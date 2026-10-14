@@ -2,7 +2,7 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
-import { EnvError, parseClientEnv, parseServerEnv } from "./schema";
+import { EnvError, parseClientEnv, parseServerEnv, parseToolingEnv } from "./schema";
 
 const APP_URL = "https://squadio.example";
 const DB_PASSWORD = "squadio_app_dev";
@@ -152,5 +152,52 @@ describe("parseClientEnv", () => {
         expect(parseClientEnv({ NEXT_PUBLIC_APP_URL: origin }).NEXT_PUBLIC_APP_URL).toBe(origin);
       }),
     );
+  });
+});
+
+describe("parseToolingEnv", () => {
+  const OWNER_PASSWORD = "squadio_owner_dev";
+  const DATABASE_OWNER_URL = `postgres://squadio_owner:${OWNER_PASSWORD}@127.0.0.1:5434/squadio`;
+
+  it("returns only the owner URL, even when app variables are present", () => {
+    const env = parseToolingEnv({ ...valid, DATABASE_OWNER_URL });
+
+    expect(env).toEqual({ DATABASE_OWNER_URL });
+    expect(Object.isFrozen(env)).toBe(true);
+  });
+
+  it("is not required by the app", () => {
+    expect(parseServerEnv({ ...valid, DATABASE_OWNER_URL: "" })).not.toHaveProperty(
+      "DATABASE_OWNER_URL",
+    );
+  });
+
+  it("accepts a postgresql:// URL unchanged", () => {
+    const url = `postgresql://squadio_owner:${OWNER_PASSWORD}@db.squadio.example/squadio?sslmode=require`;
+
+    expect(parseToolingEnv({ DATABASE_OWNER_URL: url }).DATABASE_OWNER_URL).toBe(url);
+  });
+
+  it.each([
+    ["missing", undefined],
+    ["empty", ""],
+  ])("says a %s DATABASE_OWNER_URL is required", (_case, value) => {
+    const error = errorFrom(() => parseToolingEnv({ DATABASE_OWNER_URL: value }));
+    const lines = lineFor(error, "DATABASE_OWNER_URL");
+
+    expect(error.message.startsWith("Invalid environment variables")).toBe(true);
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toContain("is required");
+  });
+
+  it.each([
+    ["mysql", `mysql://squadio_owner:${OWNER_PASSWORD}@127.0.0.1:3306/squadio`],
+    ["non-URL", `squadio_owner:${OWNER_PASSWORD}`],
+  ])("rejects a %s DATABASE_OWNER_URL without leaking it", (_case, url) => {
+    const error = errorFrom(() => parseToolingEnv({ DATABASE_OWNER_URL: url }));
+
+    expect(lineFor(error, "DATABASE_OWNER_URL")).toHaveLength(1);
+    expect(error.message).toContain("must be a postgres:// or postgresql:// URL");
+    expect(error.message).not.toContain(OWNER_PASSWORD);
   });
 });

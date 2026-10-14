@@ -20,6 +20,13 @@ const isHttpOrigin = (value: string) =>
 const isPostgresUrl = (value: string) =>
   URL.canParse(value) && /^postgres(ql)?:$/.test(new URL(value).protocol);
 
+const postgresUrl = z.preprocess(
+  unset,
+  z
+    .string({ error: "is required" })
+    .refine(isPostgresUrl, { error: "must be a postgres:// or postgresql:// URL" }),
+);
+
 const clientSchema = z.object({
   NEXT_PUBLIC_APP_URL: z.preprocess(
     unset,
@@ -39,16 +46,17 @@ const serverSchema = clientSchema.extend({
       .default("development"),
   ),
   // Server-only: it carries the app role's password.
-  DATABASE_URL: z.preprocess(
-    unset,
-    z
-      .string({ error: "is required" })
-      .refine(isPostgresUrl, { error: "must be a postgres:// or postgresql:// URL" }),
-  ),
+  DATABASE_URL: postgresUrl,
+});
+
+// Tooling only (migrations, database tests): the owner role. The app never reads it (ADR 0004).
+const toolingSchema = z.object({
+  DATABASE_OWNER_URL: postgresUrl,
 });
 
 export type ClientEnv = Readonly<z.infer<typeof clientSchema>>;
 export type ServerEnv = Readonly<z.infer<typeof serverSchema>>;
+export type ToolingEnv = Readonly<z.infer<typeof toolingSchema>>;
 
 function parse<T extends z.ZodType>(schema: T, source: Source): Readonly<z.infer<T>> {
   const result = schema.safeParse(source);
@@ -62,3 +70,5 @@ function parse<T extends z.ZodType>(schema: T, source: Source): Readonly<z.infer
 export const parseServerEnv = (source: Source): ServerEnv => parse(serverSchema, source);
 
 export const parseClientEnv = (source: Source): ClientEnv => parse(clientSchema, source);
+
+export const parseToolingEnv = (source: Source): ToolingEnv => parse(toolingSchema, source);
