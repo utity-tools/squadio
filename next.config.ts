@@ -1,7 +1,11 @@
 import type { NextConfig } from "next";
 
+import { parseServerEnv } from "./src/lib/env/schema";
+
+// Fail `next dev` and `next build` early, naming any missing or invalid variable.
+parseServerEnv(process.env);
+
 const nextConfig: NextConfig = {
-  /* config options here */
   cacheComponents: true,
   partialPrefetching: true,
   reactCompiler: true,
