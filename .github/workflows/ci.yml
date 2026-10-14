@@ -11,6 +11,7 @@ permissions:
 # Synthetic values matching .env.example; next.config.ts validates them on every build.
 env:
   NEXT_PUBLIC_APP_URL: http://localhost:3000
+  DATABASE_URL: postgres://squadio_app:squadio_app_dev@127.0.0.1:5434/squadio
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
