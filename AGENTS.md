@@ -31,15 +31,17 @@ See [ADR 0001](docs/adr/0001-stack-and-workflow.md) for why.
 
 ## Commands
 
-| Task       | Command                             |
-| ---------- | ----------------------------------- |
-| Dev server | `pnpm dev`                          |
-| Build      | `pnpm build`                        |
-| Lint       | `pnpm lint` (zero warnings)         |
-| Type check | `pnpm typecheck`                    |
-| Format     | `pnpm format` / `pnpm format:check` |
-| Unit tests | `pnpm test` / `pnpm test:watch`     |
-| Coverage   | `pnpm test:coverage`                |
+| Task                                   | Command                             |
+| -------------------------------------- | ----------------------------------- |
+| Dev server                             | `pnpm dev`                          |
+| Build                                  | `pnpm build`                        |
+| Lint                                   | `pnpm lint` (zero warnings)         |
+| Type check                             | `pnpm typecheck`                    |
+| Format                                 | `pnpm format` / `pnpm format:check` |
+| Unit tests                             | `pnpm test` / `pnpm test:watch`     |
+| Coverage                               | `pnpm test:coverage`                |
+| E2E tests (dev server)                 | `pnpm test:e2e`                     |
+| E2E tests (production build, as in CI) | `pnpm test:e2e:prod`                |
 
 Keep this table in sync with `package.json` when adding scripts.
 
