@@ -8,6 +8,10 @@ on:
 permissions:
   contents: read
 
+# Synthetic values matching .env.example; next.config.ts validates them on every build.
+env:
+  NEXT_PUBLIC_APP_URL: http://localhost:3000
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
