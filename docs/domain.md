@@ -6,24 +6,31 @@ model is in [ADR 0002](adr/0002-cost-model.md).
 
 ## The calculation
 
-All of it is one pure function per scenario, `calculateScenario(scenario, categories, config)`, in
+All of it is one pure function per scenario, `calculateScenario(scenario, rates, config, costConfig)`, where `rates` are the current
+CategoryRates or, for a chosen scenario, its FrozenRates,, in
 `src/lib/costing`. It saves nothing: it returns the result and the UI renders it.
 
 ## Entities
 
 Every entity but Organization belongs to one organization and carries its `organization_id`; the
-database keeps organizations apart ([ADR 0004](adr/0004-tenant-isolation-with-rls.md)).
+database keeps organizations apart ([ADR 0004](adr/0004-tenant-isolation-with-rls.md)). Money lives
+only in the entities marked **Restricted**, which users without rate access cannot read at all
+([ADR 0005](adr/0005-rate-access-in-the-database.md)): the rest describe structure and hours.
 
-| Entity       | Key fields                                                                                                                                     | Notes                                                                   |
-| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| Organization | id, name, starting template                                                                                                                    | The tenant                                                              |
-| Config       | net annual hours (1,550), default weekly hours (40), overhead %, buffer %, target margin %, holiday calendar                                   | One per organization                                                    |
-| Category     | id, name, gross annual salary (or monthly × number of payments), social security % (31%), other yearly costs, manual cost per hour?, sell rate | Restricted access. Cost per hour is derived unless set manually         |
-| Person       | id, name, category, weekly hours, area?, active                                                                                                | No individual salary                                                    |
-| Project      | id, name, client, pricing model (fixed or T&M), price, overhead %?, buffer %?                                                                  | Empty overrides fall back to Config                                     |
-| Scenario     | id, project, name, chosen, frozen rates?, version                                                                                              | `version` provides optimistic locking                                   |
-| Assignment   | id, scenario, category, person?, project role, reports to?, weekly hours, allocation %, start date, end date                                   | No person = open role. `reports to` builds the team tree                |
-| ExtraCost    | id, scenario, label, kind (fixed, recurring, percentage), amount, base (staff cost or revenue), dates?                                         | Belongs to the scenario: another team may need different infrastructure |
+| Entity         | Key fields                                                                                                                                     | Notes                                                                               |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| Organization   | id, name, starting template                                                                                                                    | The tenant                                                                          |
+| Config         | net annual hours (1,550), default weekly hours (40), holiday calendar                                                                          | One per organization                                                                |
+| CostConfig     | overhead %, buffer %, target margin %                                                                                                          | One per organization. Restricted                                                    |
+| Category       | id, name                                                                                                                                       | Its money lives in CategoryRate                                                     |
+| CategoryRate   | category, gross annual salary (or monthly × number of payments), social security % (31%), other yearly costs, manual cost per hour?, sell rate | One per category. Restricted. Cost per hour is derived unless set manually          |
+| Person         | id, name, category, weekly hours, area?, active                                                                                                | No individual salary                                                                |
+| Project        | id, name, client, pricing model (fixed or T&M)                                                                                                 | Its money lives in ProjectPricing                                                   |
+| ProjectPricing | project, price, overhead %?, buffer %?                                                                                                         | One per project. Restricted. Empty overrides fall back to CostConfig                |
+| Scenario       | id, project, name, chosen, version                                                                                                             | `version` provides optimistic locking                                               |
+| FrozenRate     | scenario, category, cost per hour, sell rate                                                                                                   | Written when a scenario is chosen (rule b). Restricted                              |
+| Assignment     | id, scenario, category, person?, project role, reports to?, weekly hours, allocation %, start date, end date                                   | No person = open role. `reports to` builds the team tree                            |
+| ExtraCost      | id, scenario, label, kind (fixed, recurring, percentage), amount, base (staff cost or revenue), dates?                                         | Belongs to the scenario: another team may need different infrastructure. Restricted |
 
 ## Formulas
 
@@ -89,18 +96,19 @@ full year at 100% cost exactly the fully loaded annual cost (see the first invar
 
 ## Rules
 
-| #   | Topic                 | Rule                                                                                                                            |
-| --- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| a   | Weekly hours          | Stored on the assignment: copied from the person, or from Config for an open role                                               |
-| b   | Rate changes          | Choosing a scenario freezes its rates. Other scenarios always use current rates                                                 |
-| c   | Over-allocation       | Per person and week: chosen scenarios of other projects plus the scenario being edited. Never two scenarios of the same project |
-| d   | Recurring extra costs | Prorated by day. Without dates they span the project, from the first assignment start to the last end                           |
-| e   | Price in T&M          | An optional budget cap with a warning. Percentages "over price" use the calculated revenue                                      |
-| f   | Margin %              | Over revenue                                                                                                                    |
-| g   | Money                 | Integer cents in TypeScript, `numeric` in Postgres, rounded once per result line, EUR only                                      |
-| h   | Holidays              | One national calendar in v1; a known limitation                                                                                 |
-| i   | Chosen scenario       | At most one per project, enforced by a partial unique index                                                                     |
-| j   | Salary leaks          | Without rate access, no costs or margins. A warning when a category has fewer than 3 people, since its cost reveals a salary    |
+| #   | Topic                 | Rule                                                                                                                                                                        |
+| --- | --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| a   | Weekly hours          | Stored on the assignment: copied from the person, or from Config for an open role                                                                                           |
+| b   | Rate changes          | Choosing a scenario freezes its rates. Other scenarios always use current rates                                                                                             |
+| c   | Over-allocation       | Per person and week: chosen scenarios of other projects plus the scenario being edited. Never two scenarios of the same project                                             |
+| d   | Recurring extra costs | Prorated by day. Without dates they span the project, from the first assignment start to the last end                                                                       |
+| e   | Price in T&M          | An optional budget cap with a warning. Percentages "over price" use the calculated revenue                                                                                  |
+| f   | Margin %              | Over revenue                                                                                                                                                                |
+| g   | Money                 | Integer cents in TypeScript, `numeric` in Postgres, rounded once per result line, EUR only                                                                                  |
+| h   | Holidays              | One national calendar in v1; a known limitation                                                                                                                             |
+| i   | Chosen scenario       | At most one per project, enforced by a partial unique index                                                                                                                 |
+| j   | Salary leaks          | Without rate access, no costs or margins: restricted entities return no rows (ADR 0005). A warning when a category has fewer than 3 people, since its cost reveals a salary |
+| k   | Missing rate          | A category without a rate makes its scenarios incomplete: they show a warning and no cost, never a cost of 0                                                                |
 
 ## Configuration per organization
 
@@ -118,7 +126,7 @@ The Consultancy template, also used by the demo (Madrid, 2026, indicative):
 | DevOps Engineer    |     50,000 € |     68,500 € |       44.19 € |               62 € |
 | Project Manager    |     55,000 € |     75,050 € |       48.42 € |               70 € |
 
-Template config: social security 31%, other costs 3,000 € a year, 1,550 net hours, overhead 15%,
+Template values: social security 31%, other costs 3,000 € a year, 1,550 net hours, overhead 15%,
 buffer 10%, target margin 25%.
 
 ## Guide case
