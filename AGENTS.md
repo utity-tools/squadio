@@ -85,7 +85,8 @@ Keep this table in sync with `package.json` when adding scripts.
   migration. No string-built SQL.
 - Users without rate access never see costs or margins.
 - Test and seed data are always synthetic. Never real people's data in tests, logs or screenshots.
-- Never read or print `.env` files. Only `.env.example` is versioned.
+- Never read or print `.env` files. Only `.env.example` and `.env.test` are versioned, and they
+  hold synthetic values only: never a real secret in either.
 
 ### AI (v1.0)
 

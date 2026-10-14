@@ -31,7 +31,6 @@
       "Read(./.env.*.local)",
       "Read(./.env.development)",
       "Read(./.env.production)",
-      "Read(./.env.test)",
       "Bash(git add -A *)",
       "Bash(git add --all *)",
       "Bash(git add .)",
