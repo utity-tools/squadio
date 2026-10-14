@@ -89,7 +89,8 @@ Postgres: start it with `docker compose up -d --wait`.
   `organization_id = app.current_organization_id()` and composite foreign keys, all in the same
   migration ([ADR 0004](docs/adr/0004-tenant-isolation-with-rls.md)). Tenant queries run inside
   `withOrganization`. No string-built SQL.
-- Users without rate access never see costs or margins.
+- Users without rate access never see costs or margins. Money lives only in restricted tables,
+  which the database hides from them ([ADR 0005](docs/adr/0005-rate-access-in-the-database.md)).
 - Test and seed data are always synthetic. Never real people's data in tests, logs or screenshots.
 - Never read or print `.env` files. Only `.env.example` and `.env.test` are versioned, and they
   hold synthetic values only: never a real secret in either.

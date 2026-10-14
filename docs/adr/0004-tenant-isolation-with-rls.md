@@ -34,8 +34,9 @@ enabled **and forced**, and its policies in the same migration, all keyed on one
 - **Context per transaction.** `withOrganization(db, organizationId, fn)` checks the id is a UUID,
   opens a transaction and runs `set_config('app.organization_id', $1, true)`. The setting dies with
   the transaction, so a pooled connection never carries one organization's context into the next
-  request.
-- **Fail closed.** Policies are exactly `organization_id = app.current_organization_id()`, which
+  request. ADR 0005 extends it to take an access context: organization and rate access.
+- **Fail closed.** Policies are exactly `organization_id = app.current_organization_id()` (tables
+  with money add a rate access check, [ADR 0005](0005-rate-access-in-the-database.md)), which
   returns `null` when no context is set. `null` matches no row, so a query outside
   `withOrganization` sees nothing and cannot insert anything.
 - **`organization_id` is `uuid`.** Postgres rejects malformed ids, the column and its indexes are
@@ -53,7 +54,7 @@ enabled **and forced**, and its policies in the same migration, all keyed on one
   `SELECT` on it. None exist yet.
 - **A guard test.** A database test reads the catalog and fails on: a table with `organization_id`
   without enabled and forced RLS, without a policy, or with a policy that is not exactly the tenant
-  check; a non-`uuid` `organization_id`; a table without `organization_id` that is not on the
+  check (or the restricted one, per ADR 0005); a non-`uuid` `organization_id`; a table without `organization_id` that is not on the
   allowlist; a view without `security_invoker`; any materialized view (RLS never applies to them);
   and any floating-point column (money is `numeric`, see [the domain](../domain.md)).
 - **Tests use their own database.** `squadio` is for development and `squadio_test` for database
@@ -82,6 +83,7 @@ enabled **and forced**, and its policies in the same migration, all keyed on one
   `withOrganization`; a role with `BYPASSRLS` would need its own ADR.
 - Setting up a new environment includes creating `squadio_app` with SQL before the first migration.
 - RLS separates organizations, not users. Who inside an organization may see costs and margins
-  (rate access) is not covered here and needs its own decision before the first cost table.
+  (rate access) is decided in [ADR 0005](0005-rate-access-in-the-database.md), which adds a second
+  policy key to the tables that hold money.
 - Better Auth's tables (users, sessions, members, invitations) need a decision when auth lands:
   some have no `organization_id` and some are read across organizations.
