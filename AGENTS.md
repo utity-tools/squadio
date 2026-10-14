@@ -40,10 +40,14 @@ See [ADR 0001](docs/adr/0001-stack-and-workflow.md) for why.
 | Format                                 | `pnpm format` / `pnpm format:check` |
 | Unit tests                             | `pnpm test` / `pnpm test:watch`     |
 | Coverage                               | `pnpm test:coverage`                |
+| Database tests (needs Postgres)        | `pnpm test:db`                      |
 | E2E tests (dev server)                 | `pnpm test:e2e`                     |
 | E2E tests (production build, as in CI) | `pnpm test:e2e:prod`                |
+| Generate a migration                   | `pnpm db:generate`                  |
+| Apply migrations (as the owner role)   | `pnpm db:migrate`                   |
 
-Keep this table in sync with `package.json` when adding scripts.
+Keep this table in sync with `package.json` when adding scripts. Database tests and migrations need
+Postgres: start it with `docker compose up -d --wait`.
 
 ## Workflow (mandatory)
 
