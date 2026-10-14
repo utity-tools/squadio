@@ -76,6 +76,10 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # Also catches commits made with hooks skipped or outside this machine.
+      - name: Lint commit messages
+        run: pnpm exec commitlint --from "$BASE_SHA" --to "$HEAD_SHA" --verbose
       - name: Check each earlier commit
         run: |
           commits=$(git rev-list --reverse "$BASE_SHA..$HEAD_SHA~1")
