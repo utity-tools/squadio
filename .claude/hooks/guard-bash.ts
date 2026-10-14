@@ -38,7 +38,7 @@ const rules: { matches: (command: string, branch: string) => boolean; reason: st
   },
   {
     matches: (command) =>
-      /(?:^|[\s'"=/])\.env(?:\.(?!(?:example|test)(?=$|[\s'";&|)]))[\w.-]+)?(?=$|[\s'";&|)])/.test(
+      /(?:^|[\s'"=/<(`])\.env(?:\.(?!(?:example|test)(?=$|[\s'";&|)`]))[\w.-]+)?(?=$|[\s'";&|)`])/.test(
         command,
       ),
     reason: "never read or print .env files. Only .env.example and .env.test are safe to open.",
