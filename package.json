@@ -14,7 +14,8 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
-    "test:e2e:prod": "next build && E2E_PROD=1 playwright test"
+    "test:e2e:prod": "next build && E2E_PROD=1 playwright test",
+    "prepare": "husky"
   },
   "dependencies": {
     "next": "16.4.0",
@@ -38,7 +39,9 @@
     "eslint": "^9",
     "eslint-config-next": "16.4.0",
     "eslint-config-prettier": "^10.1.8",
+    "husky": "^9.1.7",
     "jsdom": "^30.1.2",
+    "lint-staged": "^17.6.0",
     "prettier": "^3.9.10",
     "prettier-plugin-tailwindcss": "^0.8.1",
     "tailwindcss": "^4",
