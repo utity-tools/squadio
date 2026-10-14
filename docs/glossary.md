@@ -34,3 +34,5 @@ what consultancies in Spain usually say.
 | Target margin            | Margen objetivo          | Net margin % the organization aims for; drives the green, amber and red status                          |
 | Over-allocation          | Sobreasignación          | A person above 100% in a week across chosen scenarios and the one being edited                          |
 | Health check             | Diagnóstico              | A deterministic rule that flags a structural risk in a team (v0.4)                                      |
+| Rate access              | Acceso a tarifas         | Permission to see rates, costs and margins. Without it, a user sees projects and teams only             |
+| Tenant context           | Contexto de organización | The organization a database transaction acts for (`app.organization_id`). Without it, no rows           |

@@ -11,6 +11,9 @@ All of it is one pure function per scenario, `calculateScenario(scenario, catego
 
 ## Entities
 
+Every entity but Organization belongs to one organization and carries its `organization_id`; the
+database keeps organizations apart ([ADR 0004](adr/0004-tenant-isolation-with-rls.md)).
+
 | Entity       | Key fields                                                                                                                                     | Notes                                                                   |
 | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
 | Organization | id, name, starting template                                                                                                                    | The tenant                                                              |
