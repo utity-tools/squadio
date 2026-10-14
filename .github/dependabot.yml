@@ -28,3 +28,15 @@ updates:
     groups:
       actions:
         update-types: [minor, patch]
+  - package-ecosystem: docker-compose
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    commit-message:
+      prefix: build
+      include: scope
+    ignore:
+      # Production runs Postgres 17 on Neon; a new major needs an ADR, not a bot PR.
+      - dependency-name: postgres
+        update-types: [version-update:semver-major]
