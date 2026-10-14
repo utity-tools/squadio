@@ -7,7 +7,8 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     setupFiles: ["./vitest.setup.ts"],
-    include: ["src/**/*.test.{ts,tsx}"],
+    // Claude Code hooks are tooling, not app code: tested, but outside the coverage report.
+    include: ["src/**/*.test.{ts,tsx}", ".claude/hooks/**/*.test.ts"],
     // Database tests need Docker and run with their own config (setup step 8).
     exclude: ["**/node_modules/**", "src/**/*.db.test.ts"],
     coverage: {
