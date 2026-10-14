@@ -13,6 +13,10 @@ updates:
       # Minor and patch updates arrive as one PR; majors stay separate so each gets a look.
       dependencies:
         update-types: [minor, patch]
+    ignore:
+      # We run Node 24 (.nvmrc); its types follow the runtime, not the latest release.
+      - dependency-name: "@types/node"
+        update-types: [version-update:semver-major]
   - package-ecosystem: github-actions
     directory: /
     schedule:
