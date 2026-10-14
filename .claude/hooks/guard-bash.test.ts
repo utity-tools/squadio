@@ -16,6 +16,8 @@ describe("evaluate", () => {
     "git push -u origin HEAD",
     "git push --force-with-lease",
     "cat .env.example",
+    "cat .env.test",
+    "git add .env.test",
     "echo '.env*' >> .gitignore",
   ])("allows %s on a feature branch", (command) => {
     expect(evaluate(command, "feat/team-builder")).toBeNull();
@@ -37,6 +39,9 @@ describe("evaluate", () => {
     ["git push origin HEAD:main", "main"],
     ["cat .env", ".env"],
     ["grep DATABASE_URL .env.local", ".env"],
+    ["cat .env.test.local", ".env"],
+    ["cat .env.example.local", ".env"],
+    ["cat .env.testing", ".env"],
     ["gh pr merge 12 --rebase", "owner merges"],
   ])("blocks %s", (command, reason) => {
     expect(evaluate(command, "feat/team-builder")).toContain(reason);
