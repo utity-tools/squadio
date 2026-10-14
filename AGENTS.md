@@ -85,8 +85,10 @@ Postgres: start it with `docker compose up -d --wait`.
 
 ### Data and privacy
 
-- Every tenant table has `organization_id`, RLS enabled and forced, and policies in the same
-  migration. No string-built SQL.
+- Every tenant table has a `uuid` `organization_id`, RLS enabled and forced, the policy
+  `organization_id = app.current_organization_id()` and composite foreign keys, all in the same
+  migration ([ADR 0004](docs/adr/0004-tenant-isolation-with-rls.md)). Tenant queries run inside
+  `withOrganization`. No string-built SQL.
 - Users without rate access never see costs or margins.
 - Test and seed data are always synthetic. Never real people's data in tests, logs or screenshots.
 - Never read or print `.env` files. Only `.env.example` and `.env.test` are versioned, and they
