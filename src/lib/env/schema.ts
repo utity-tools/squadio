@@ -16,6 +16,10 @@ const isHttpOrigin = (value: string) =>
   /^https?:$/.test(new URL(value).protocol) &&
   new URL(value).origin === value;
 
+// node-postgres accepts both schemes; anything else is a misconfiguration, not a database.
+const isPostgresUrl = (value: string) =>
+  URL.canParse(value) && /^postgres(ql)?:$/.test(new URL(value).protocol);
+
 const clientSchema = z.object({
   NEXT_PUBLIC_APP_URL: z.preprocess(
     unset,
@@ -33,6 +37,13 @@ const serverSchema = clientSchema.extend({
         error: "must be development, production or test",
       })
       .default("development"),
+  ),
+  // Server-only: it carries the app role's password.
+  DATABASE_URL: z.preprocess(
+    unset,
+    z
+      .string({ error: "is required" })
+      .refine(isPostgresUrl, { error: "must be a postgres:// or postgresql:// URL" }),
   ),
 });
 
