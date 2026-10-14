@@ -38,6 +38,8 @@ See [ADR 0001](docs/adr/0001-stack-and-workflow.md) for why.
 | Lint       | `pnpm lint` (zero warnings)         |
 | Type check | `pnpm typecheck`                    |
 | Format     | `pnpm format` / `pnpm format:check` |
+| Unit tests | `pnpm test` / `pnpm test:watch`     |
+| Coverage   | `pnpm test:coverage`                |
 
 Keep this table in sync with `package.json` when adding scripts.
 
