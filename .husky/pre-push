@@ -1,0 +1,6 @@
+while read -r _local_ref _local_sha remote_ref _remote_sha; do
+  if [ "$remote_ref" = "refs/heads/main" ]; then
+    echo "Pushing to main is not allowed. Open a pull request instead." >&2
+    exit 1
+  fi
+done
