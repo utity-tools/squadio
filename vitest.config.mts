@@ -9,8 +9,7 @@ export default defineConfig({
     setupFiles: ["./vitest.setup.ts"],
     // Claude Code hooks are tooling, not app code: tested, but outside the coverage report.
     include: ["src/**/*.test.{ts,tsx}", ".claude/hooks/**/*.test.ts"],
-    // Database tests need Docker and run with their own config (setup step 8).
-    exclude: ["**/node_modules/**", "src/**/*.db.test.ts"],
+    // Database tests live in tests/db and run with vitest.db.config.mts (`pnpm test:db`).
     coverage: {
       provider: "v8",
       // Routes and layouts are covered by E2E tests; shadcn primitives are vendored.
