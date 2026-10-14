@@ -42,6 +42,9 @@ describe("evaluate", () => {
     ["cat .env.test.local", ".env"],
     ["cat .env.example.local", ".env"],
     ["cat .env.testing", ".env"],
+    ["cat <.env", ".env"],
+    ["x=$(cat .env)", ".env"],
+    ["x=`cat .env`", ".env"],
     ["gh pr merge 12 --rebase", "owner merges"],
   ])("blocks %s", (command, reason) => {
     expect(evaluate(command, "feat/team-builder")).toContain(reason);
