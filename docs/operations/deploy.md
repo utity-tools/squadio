@@ -54,7 +54,7 @@ chat, an issue or a commit.
 
 ### 1. Neon project
 
-Create a project named `squadio`: Postgres 17, region AWS Europe Central 1 (Frankfurt). Do not create
+Create a project named `squadio`: Postgres 18, region AWS Europe Central 1 (Frankfurt). Do not create
 roles or databases from the console: Neon makes those members of `neon_superuser`, which has
 `BYPASSRLS` ([ADR 0004](../adr/0004-tenant-isolation-with-rls.md)).
 

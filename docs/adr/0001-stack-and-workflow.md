@@ -38,7 +38,7 @@ environments, CodeQL), Vercel Hobby (production and a preview per PR), Neon (pro
 database branch per preview), Cloudflare DNS for `squadio.utitytools.com`, Resend and Sentry free
 plans, Figma Starter for design.
 
-**Environments:** Postgres 17 in Docker locally and in CI from the same `docker-compose.yml`; a Neon
+**Environments:** Postgres 18 ([ADR 0007](0007-postgres-18.md)) in Docker locally and in CI from the same `docker-compose.yml`; a Neon
 branch per pull request behind its Vercel preview; the Neon `main` branch in production. Migrations
 reach Neon only through GitHub Actions, and production deploys only after its migrations succeed.
 
