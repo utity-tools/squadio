@@ -1,5 +1,5 @@
 -- Runs once, as the bootstrap superuser, when the data volume is created (ADR 0004). Passwords are
--- synthetic and local-only; Neon creates both roles with its own secrets.
+-- synthetic and local-only; on Neon, infra/neon/bootstrap.sql creates both roles (ADR 0006).
 
 -- Owner: runs migrations and owns every object. Not a superuser and no BYPASSRLS, as in Neon, so
 -- forced Row Level Security binds it too.

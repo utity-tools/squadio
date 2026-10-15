@@ -22,11 +22,11 @@ enabled **and forced**, and its policies in the same migration, all keyed on one
   a tenant context sees and changes no tenant rows. Locally and in CI the Docker image's bootstrap
   superuser only creates the two roles and the databases, so tests run the production setup.
 - **Roles live outside migrations.** Migrations only grant privileges to `squadio_app`. The roles
-  and their passwords are created by the Docker init script locally and in CI. In Neon, `squadio_app`
-  is created with SQL (`CREATE ROLE … LOGIN PASSWORD …`) run as the owner, not from the console:
-  roles made in the console may inherit Neon's admin role, which bypasses RLS. Setting up Neon
-  (Vercel, Neon and DNS, the setup step after this one) verifies this, and a database test fails if
-  the app role is a member of any such role.
+  and their passwords are created by the Docker init script locally and in CI. In Neon, both roles
+  are created with SQL by [`infra/neon/bootstrap.sql`](../../infra/neon/bootstrap.sql), not from
+  the console: roles made in the console inherit Neon's admin role, which bypasses RLS. The script
+  fails if either role can reach such a role ([ADR 0006](0006-deploys-from-github-actions.md)), and
+  a database test fails if the app role is a member of one.
 - **Least privilege by default.** Tables and sequences the owner creates in `public` give the app
   exactly `SELECT`, `INSERT`, `UPDATE` and `DELETE` (no `TRUNCATE`, `REFERENCES` or `TRIGGER`).
   New functions are not executable by `PUBLIC`, so a `SECURITY DEFINER` function cannot become a way
