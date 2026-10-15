@@ -12,7 +12,7 @@ Requirements: Node 24 (see `.nvmrc`), pnpm and Docker.
 ```bash
 pnpm install
 cp .env.example .env.local
-docker compose up -d --wait   # Postgres 17 on 127.0.0.1:5434
+docker compose up -d --wait   # Postgres 18 on 127.0.0.1:5434
 pnpm dev                      # http://localhost:3000
 ```
 
@@ -25,7 +25,7 @@ code from `src/env.client.ts`, never from `process.env` directly.
 
 ## Database
 
-Postgres 17 runs in Docker from [`docker-compose.yml`](docker-compose.yml), the same file CI uses.
+Postgres 18 runs in Docker from [`docker-compose.yml`](docker-compose.yml), the same file CI uses.
 Two roles keep tenants apart ([ADR 0004](docs/adr/0004-tenant-isolation-with-rls.md)):
 `squadio_owner` runs migrations and owns every object; the app connects as `squadio_app`, which
 cannot bypass Row Level Security. Neither is a superuser, as in production, so forced Row Level
