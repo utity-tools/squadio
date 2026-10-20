@@ -9,7 +9,8 @@ custom compact tree layout.
 
 > Archived copy. The PoC itself was a throwaway repository and is not published: file names such
 > as `bench.tsx` or `e2e/measure.spec.ts` refer to it. The raw numbers and two screenshots are
-> kept here; the screen recording is not.
+> kept here; the screen recording is not. The decisions are in
+> [ADR 0008](../../adr/0008-simulator-interaction-stack.md).
 
 ## What was built
 

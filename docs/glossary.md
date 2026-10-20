@@ -14,6 +14,7 @@ what consultancies in Spain usually say.
 | Chosen scenario          | Escenario elegido        | The scenario the organization commits to. Its rates are frozen when chosen (frozen rates)                            |
 | Assignment               | Asignación               | A category (and optionally a person) on a scenario, with allocation, dates and who it reports to                     |
 | Open role                | Vacante                  | An assignment with no person yet                                                                                     |
+| Change                   | Cambio                   | One edit to a scenario (add, move or remove an assignment). Undo and redo move a cursor over its changes             |
 | Allocation               | Dedicación               | Share of a person's working week on an assignment, as a percentage                                                   |
 | Extra cost               | Coste extra              | Non-staff cost on a scenario: fixed, recurring (per month) or a percentage                                           |
 | Fixed price              | Precio cerrado           | Revenue is the agreed price; changing the team only moves cost                                                       |
