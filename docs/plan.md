@@ -31,6 +31,20 @@ Every version ships something that can be shown.
 | v0.5    | Auth, multi-tenancy, organization templates, public demo, CSV import                            |
 | v1.0    | AI assistant on top of the health checks ([ADR 0003](adr/0003-structure-not-people.md))         |
 
+### v0.2 build notes
+
+The simulator spike ([findings](research/simulator-poc/README.md)) settled how the canvas is built:
+[ADR 0008](adr/0008-simulator-interaction-stack.md). The accessible tree or table view and a focus
+manager ship in v0.2, not as later polish. The spike also left patterns and traps worth keeping:
+
+- **React Compiler:** no ref writes during render (current node positions live in a ref an effect
+  updates); read the system color scheme with `useSyncExternalStore`, not `setState` in an effect.
+- **Zustand 5:** selectors must return stable references, so the team derived from the changes is
+  cached outside React, not rebuilt in the selector.
+- **React Flow:** `nodeTypes` is a module-level constant.
+- **shadcn `init`** (style `base-nova`) can write a circular `--font-sans`: check the font is Geist.
+- **Contrast:** the default `muted-foreground` on `muted` is 4.34:1 in the light theme and fails AA.
+
 ## Non-goals for v1
 
 - Real-time collaboration (scenarios use optimistic locking instead).
