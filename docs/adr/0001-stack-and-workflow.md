@@ -16,22 +16,22 @@ show different skills rather than repeat it.
 **One Next.js 16 app** (App Router, Server Actions, Cache Components, React Compiler) with React 19,
 TypeScript strict and pnpm on Node 24. Every dependency has a one-line reason:
 
-| Area           | Choice                                      | Why                                                                         |
-| -------------- | ------------------------------------------- | --------------------------------------------------------------------------- |
-| Styling and UI | Tailwind CSS v4, shadcn/ui                  | Design tokens from Figma in `@theme`; components we own and restyle         |
-| Canvas         | React Flow (xyflow)                         | Zoom, pan and drag for the team tree; replaces a separate drag-and-drop lib |
-| Tree layout    | elkjs or d3-hierarchy                       | To be chosen with a spike and its own ADR                                   |
-| Animation      | Motion                                      | Team merges and reordering, with `prefers-reduced-motion`                   |
-| Canvas state   | Zustand                                     | A scenario as a list of changes: undo, redo and comparison                  |
-| i18n           | next-intl                                   | English and Spanish from day one                                            |
-| Data           | Postgres, Drizzle (`pg` driver)             | Our own roles and RLS; interactive transactions                             |
-| Auth           | Better Auth with organizations              | Multi-tenancy without a backend-as-a-service                                |
-| Validation     | Zod                                         | Inputs, environment variables and AI output                                 |
-| Tests          | Vitest, fast-check, Playwright + axe        | Unit, property-based, E2E and accessibility                                 |
-| Components     | Storybook                                   | Interaction tests for canvas components; removed if it stops being kept up  |
-| Observability  | Sentry, Vercel Analytics and Speed Insights | Errors and real-user performance, without personal data                     |
-| Releases       | release-please                              | Changelog and semver tags from Conventional Commits                         |
-| AI (v1.0)      | AI SDK v6 + AI Gateway                      | Provider-agnostic, cost tracking, no-training routing                       |
+| Area           | Choice                                      | Why                                                                                                                    |
+| -------------- | ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Styling and UI | Tailwind CSS v4, shadcn/ui                  | Design tokens from Figma in `@theme`; components we own and restyle                                                    |
+| Canvas         | React Flow (xyflow)                         | Zoom, pan and drag for the team tree; bench drops use pointer events ([ADR 0008](0008-simulator-interaction-stack.md)) |
+| Tree layout    | Custom compact layout (no dependency)       | Fits wide teams; chosen with a spike ([ADR 0008](0008-simulator-interaction-stack.md))                                 |
+| Animation      | Motion                                      | Re-layout tweens, team merges and UI, with `prefers-reduced-motion` ([ADR 0008](0008-simulator-interaction-stack.md))  |
+| Canvas state   | Zustand                                     | A scenario as a list of changes: undo, redo and comparison                                                             |
+| i18n           | next-intl                                   | English and Spanish from day one                                                                                       |
+| Data           | Postgres, Drizzle (`pg` driver)             | Our own roles and RLS; interactive transactions                                                                        |
+| Auth           | Better Auth with organizations              | Multi-tenancy without a backend-as-a-service                                                                           |
+| Validation     | Zod                                         | Inputs, environment variables and AI output                                                                            |
+| Tests          | Vitest, fast-check, Playwright + axe        | Unit, property-based, E2E and accessibility                                                                            |
+| Components     | Storybook                                   | Interaction tests for canvas components; removed if it stops being kept up                                             |
+| Observability  | Sentry, Vercel Analytics and Speed Insights | Errors and real-user performance, without personal data                                                                |
+| Releases       | release-please                              | Changelog and semver tags from Conventional Commits                                                                    |
+| AI (v1.0)      | AI SDK v6 + AI Gateway                      | Provider-agnostic, cost tracking, no-training routing                                                                  |
 
 **Infrastructure, all free tier:** public GitHub repo (unlimited Actions minutes, rulesets,
 environments, CodeQL), Vercel Hobby (production and a preview per PR), Neon (production and a
