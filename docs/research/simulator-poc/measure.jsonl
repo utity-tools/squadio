@@ -1,0 +1,23 @@
+{"key":"navigation_ms_x1","value":{"domContentLoaded":46,"load":69}}
+{"key":"bench_cards","value":157}
+{"key":"search_filter_ms_x1","value":18}
+{"key":"fill_to_30_animated_x1","value":{"minFps":60,"longTasks":0}}
+{"key":"node_drag_30_nodes_x1","value":{"minFps":60,"longTasks":0}}
+{"key":"layout_ms_x1","value":[{"name":"layout:dagre","ms":10.2},{"name":"layout:elkjs","ms":32.8},{"name":"layout:d3-hierarchy","ms":0.8},{"name":"layout:compact","ms":0.3}]}
+{"key":"undo_redo_x40_x1","value":{"minFps":60,"longTasks":0}}
+{"key":"mouse_edges_after_reparent","value":["root->n1","root->n2"]}
+{"key":"keyboard_tabs_to_first_person","value":2}
+{"key":"keyboard_focus_after_add","value":"node n1"}
+{"key":"rf_delete_key_team_size","value":3}
+{"key":"touch_html5_body_team_size","value":1}
+{"key":"touch_pointer_grip_added","value":1}
+{"key":"reduced_motion_distinct_positions","value":1}
+{"key":"axe_light","value":[]}
+{"key":"axe_dark","value":[]}
+{"key":"navigation_ms_x4","value":{"domContentLoaded":50,"load":234}}
+{"key":"bench_cards","value":157}
+{"key":"search_filter_ms_x4","value":60}
+{"key":"fill_to_30_animated_x4","value":{"minFps":56,"longTasks":0}}
+{"key":"node_drag_30_nodes_x4","value":{"minFps":60,"longTasks":0}}
+{"key":"layout_ms_x4","value":[{"name":"layout:dagre","ms":29.1},{"name":"layout:elkjs","ms":114.7},{"name":"layout:d3-hierarchy","ms":2.5},{"name":"layout:compact","ms":0.6}]}
+{"key":"undo_redo_x40_x4","value":{"minFps":47,"longTasks":0}}
