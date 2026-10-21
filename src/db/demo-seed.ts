@@ -12,14 +12,15 @@ import {
   projects,
   scenarios,
 } from "./schema";
+import { DEMO_ORGANIZATION_ID, demoAccessContext } from "./access";
 import { type TenantTransaction, withOrganization } from "./tenant";
 
 // The demo organization: the Consultancy template and the guide case team of docs/domain.md, with
 // synthetic people only. Fixed ids, so links to the demo keep working after a reseed.
 
-export const DEMO_ORGANIZATION_ID = "6d656d6f-0000-4000-8000-000000000001";
+export { DEMO_ORGANIZATION_ID };
 
-const DEMO = { organizationId: DEMO_ORGANIZATION_ID, rateAccess: true } as const;
+const DEMO = demoAccessContext;
 
 const demoId = (n: number) => `6d656d6f-0000-4000-8000-${String(n).padStart(12, "0")}`;
 
