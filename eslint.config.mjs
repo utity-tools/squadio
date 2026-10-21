@@ -39,6 +39,7 @@ const eslintConfig = defineConfig([
       "next.config.ts",
       "drizzle.config.ts",
       "playwright.config.ts",
+      "scripts/**",
       "tests/**",
       ".claude/hooks/**",
     ],
