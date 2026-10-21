@@ -87,3 +87,10 @@ enabled **and forced**, and its policies in the same migration, all keyed on one
   policy key to the tables that hold money.
 - Better Auth's tables (users, sessions, members, invitations) need a decision when auth lands:
   some have no `organization_id` and some are read across organizations.
+
+## Amendments
+
+- **2026-10-21:** `withOrganization` now takes an access context instead of a bare id:
+  `withOrganization(db, { organizationId, rateAccess }, fn)`, which sets `app.organization_id` and
+  `app.rate_access` in the same transaction ([ADR 0005](0005-rate-access-in-the-database.md)). The
+  decision itself is unchanged.
