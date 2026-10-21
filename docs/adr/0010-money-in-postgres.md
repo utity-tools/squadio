@@ -40,15 +40,19 @@ custom Drizzle column type that never uses floats.
   TypeScript.** 31.00% is stored as `31.00` and read as `3100`. A twin type, `basisPoints`, uses the
   same conversion, since a two-decimal percentage and a two-decimal euro amount are both integer
   hundredths. This covers social security, overhead, buffer and target margin, in `CategoryRate`,
-  `CostConfig` and `ProjectPricing`.
+  `CostConfig`, `ProjectPricing` and `FrozenCostConfig`.
+- **Extra costs keep amounts and percentages apart.** `ExtraCost` stores a `moneyCents` amount for
+  the fixed and recurring kinds and a `basisPoints` percentage for the percentage kind, in separate
+  columns, with a check constraint that exactly the one its kind needs is set.
 - **Allocation is an integer from 0 to 100** on `Assignment`, enforced by a check constraint. It
   holds no money, so it is not `numeric` and stays outside the restricted tables, as ADR 0005's
   guard test requires.
-- **Property-tested round trip.** A fast-check test checks that every safe integer in range
-  survives `moneyCents` (and `basisPoints`) to string and back unchanged, and that the string is
-  what Postgres prints for that value. A database test checks the same round trip through a real
-  `numeric(12,2)` column, including negative amounts and values with a zero decimal (`"10.50"`,
-  `"7.00"`).
+- **Property-tested round trip.** A fast-check test checks that every safe integer in range survives
+  `moneyCents` (and `basisPoints`) to string and back unchanged, and that the string is what
+  Postgres prints for that value. A database test checks the same round trip through a real
+  `numeric(12,2)` column, including negative amounts, a value between -1 and 0 (`"-0.50"`, where a
+  parser that reads euros as an integer and then adds the cents loses the sign) and values with a
+  zero decimal (`"10.50"`, `"7.00"`).
 - **Calculations stay in TypeScript.** The costing engine takes cents and basis points and rounds
   once per result line (rule g). Postgres stores inputs; it does not compute results.
 
