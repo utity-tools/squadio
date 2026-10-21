@@ -1,7 +1,16 @@
 @import "tailwindcss";
 
-/* shadcn zinc tokens, as `shadcn init` writes them, following the system theme. */
+/* The theme lives in `data-theme` on <html>, set before the first paint by the theme script. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/*
+ * shadcn zinc tokens with two changes (docs/design/canvas-brief.md, "Themes and contrast"):
+ * a darker --muted-foreground that passes AA on --muted, and the status pairs. --ring is darker
+ * too, so the focus ring reaches 3:1, and --destructive gets a foreground pair.
+ * src/app/theme-tokens.test.ts checks every pair.
+ */
 :root {
+  color-scheme: light;
   --radius: 0.625rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.141 0.005 285.823);
@@ -14,36 +23,49 @@
   --secondary: oklch(0.967 0.001 286.375);
   --secondary-foreground: oklch(0.21 0.006 285.885);
   --muted: oklch(0.967 0.001 286.375);
-  --muted-foreground: oklch(0.552 0.016 285.938);
+  --muted-foreground: oklch(0.5 0.016 285.938);
   --accent: oklch(0.967 0.001 286.375);
   --accent-foreground: oklch(0.21 0.006 285.885);
   --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.985 0 0);
   --border: oklch(0.92 0.004 286.32);
   --input: oklch(0.92 0.004 286.32);
-  --ring: oklch(0.705 0.015 286.067);
+  --ring: oklch(0.552 0.016 285.938);
+  --status-ok: oklch(0.5 0.13 150);
+  --status-ok-foreground: oklch(0.985 0 0);
+  --status-warn: oklch(0.5 0.11 65);
+  --status-warn-foreground: oklch(0.985 0 0);
+  --status-bad: oklch(0.52 0.2 27);
+  --status-bad-foreground: oklch(0.985 0 0);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: oklch(0.141 0.005 285.823);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.21 0.006 285.885);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.21 0.006 285.885);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.92 0.004 286.32);
-    --primary-foreground: oklch(0.21 0.006 285.885);
-    --secondary: oklch(0.274 0.006 286.033);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.274 0.006 286.033);
-    --muted-foreground: oklch(0.705 0.015 286.067);
-    --accent: oklch(0.274 0.006 286.033);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.552 0.016 285.938);
-  }
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --background: oklch(0.141 0.005 285.823);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.21 0.006 285.885);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.21 0.006 285.885);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.92 0.004 286.32);
+  --primary-foreground: oklch(0.21 0.006 285.885);
+  --secondary: oklch(0.274 0.006 286.033);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.274 0.006 286.033);
+  --muted-foreground: oklch(0.75 0.015 286.067);
+  --accent: oklch(0.274 0.006 286.033);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --destructive-foreground: oklch(0.141 0.005 285.823);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.705 0.015 286.067);
+  --status-ok: oklch(0.78 0.15 150);
+  --status-ok-foreground: oklch(0.141 0.005 285.823);
+  --status-warn: oklch(0.82 0.14 75);
+  --status-warn-foreground: oklch(0.141 0.005 285.823);
+  --status-bad: oklch(0.72 0.17 25);
+  --status-bad-foreground: oklch(0.141 0.005 285.823);
 }
 
 @theme inline {
@@ -68,14 +90,29 @@
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-status-ok: var(--status-ok);
+  --color-status-ok-foreground: var(--status-ok-foreground);
+  --color-status-warn: var(--status-warn);
+  --color-status-warn-foreground: var(--status-warn-foreground);
+  --color-status-bad: var(--status-bad);
+  --color-status-bad-foreground: var(--status-bad-foreground);
 }
 
 @layer base {
   * {
     @apply border-border;
+  }
+
+  /*
+   * One focus ring on every surface: 2 px with an offset (canvas brief, "Keyboard and focus").
+   * The vendored primitives leave their own focus styles out so this rule applies.
+   */
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-ring;
   }
 
   body {

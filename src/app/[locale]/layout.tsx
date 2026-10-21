@@ -3,6 +3,8 @@ import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getTranslations } from "next-intl/server";
 import { Geist, Geist_Mono } from "next/font/google";
 
+import { themeScript } from "@/components/theme/theme";
+import { ThemeBootstrap } from "@/components/theme/theme-bootstrap";
 import { routing } from "@/i18n/routing";
 
 import "../globals.css";
@@ -31,11 +33,17 @@ export default async function LocaleLayout({ children }: LayoutProps<"/[locale]"
   const locale = await getLocale();
 
   return (
+    // The theme script sets data-theme on <html> before React hydrates.
     <html
       lang={locale}
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body className="flex min-h-full flex-col">
+        <ThemeBootstrap />
         <NextIntlClientProvider>{children}</NextIntlClientProvider>
       </body>
     </html>
