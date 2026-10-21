@@ -1,0 +1,13 @@
+{
+  "Metadata": {
+    "description": "Simulador de staffing para consultoras: arma el equipo de un proyecto y ve el coste y el margen al momento."
+  },
+  "Home": {
+    "tagline": "Arma el equipo de un proyecto y ve el coste y el margen antes de comprometerte."
+  },
+  "NotFound": {
+    "title": "No encontramos esta página",
+    "description": "Puede que la dirección esté mal o que la página ya no exista.",
+    "back": "Volver al inicio"
+  }
+}

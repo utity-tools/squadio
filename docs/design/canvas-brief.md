@@ -233,7 +233,9 @@ v0.1 must leave room for these without moving anything:
    separate pure function. domain.md must say it first.
 2. **Rule j's branch** (`docs/salary-leak-warning`) is not merged yet; this brief follows it (1 or
    2 active people in the organization).
-3. **Locale default:** `es` for the demo organization, `en` for the public README screenshots?
+3. ~~**Locale default.**~~ Decided by the owner on 2026-10-21: `es` by default with no prefix
+   (`/scenarios/…`), `en` under `/en/…`; the README screenshots are in `en`. The URL alone picks
+   the locale.
 
 ## Visual directions
 
