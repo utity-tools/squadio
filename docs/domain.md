@@ -10,9 +10,12 @@ All of it is one pure function per scenario in `src/lib/costing`,
 `calculateScenario(scenario, rates, costConfig, targetMargin)`. It saves nothing: it returns the
 result and the UI renders it.
 
-- `rates` are a cost per hour and a sell rate per category. For a scenario that is not chosen they
-  come from the current CategoryRates (cost per hour derived with Config's net annual hours, or set
-  manually); for a chosen scenario they are its FrozenRates.
+- `rates` give each category a sell rate and an exact cost per hour: the fully loaded annual cost
+  over net annual hours, or the manual cost per hour when one is set. A derived cost per hour is
+  never rounded to cents, since that would break "rounded once per result line" and the first
+  invariant (71,120 € / 1,550 h is 45.8838… €/h, and 45.88 € × 1,550 h is 71,114 €). For a scenario
+  that is not chosen they come from the current CategoryRates and Config's net annual hours; for a
+  chosen scenario, from its FrozenRates and the net annual hours in its FrozenCostConfig.
 - `costConfig` holds the overhead %, the buffer % and the availability factor. For a scenario that
   is not chosen they come from the current CostConfig (or the project's overrides in
   ProjectPricing) and Config; for a chosen scenario they are its FrozenCostConfig.
@@ -28,21 +31,21 @@ database keeps organizations apart ([ADR 0004](adr/0004-tenant-isolation-with-rl
 only in the entities marked **Restricted**, which users without rate access cannot read at all
 ([ADR 0005](adr/0005-rate-access-in-the-database.md)): the rest describe structure and hours.
 
-| Entity           | Key fields                                                                                                                                     | Notes                                                                                          |
-| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| Organization     | id, name, starting template                                                                                                                    | The tenant                                                                                     |
-| Config           | net annual hours (1,550), default weekly hours (40)                                                                                            | One per organization. The holiday calendar is the national one in v1, a code constant (rule h) |
-| CostConfig       | overhead %, buffer %, target margin %                                                                                                          | One per organization. Restricted                                                               |
-| Category         | id, name                                                                                                                                       | Its money lives in CategoryRate                                                                |
-| CategoryRate     | category, gross annual salary (or monthly × number of payments), social security % (31%), other yearly costs, manual cost per hour?, sell rate | One per category. Restricted. Cost per hour is derived unless set manually                     |
-| Person           | id, name, category, weekly hours, area?, active                                                                                                | No individual salary                                                                           |
-| Project          | id, name, client, pricing model (fixed or T&M)                                                                                                 | Its money lives in ProjectPricing                                                              |
-| ProjectPricing   | project, price, overhead %?, buffer %?                                                                                                         | One per project. Restricted. Empty overrides fall back to CostConfig                           |
-| Scenario         | id, project, name, chosen, version                                                                                                             | `version` provides optimistic locking                                                          |
-| FrozenRate       | scenario, category, cost per hour, sell rate                                                                                                   | Written when a scenario is chosen (rule b). Restricted                                         |
-| FrozenCostConfig | scenario, overhead %, buffer %, net annual hours, calendar working hours                                                                       | One per chosen scenario, written with its FrozenRates (rule b). Restricted                     |
-| Assignment       | id, scenario, category, person?, project role, reports to?, weekly hours, allocation %, start date, end date                                   | No person = open role. `reports to` builds the team tree                                       |
-| ExtraCost        | id, scenario, label, kind (fixed, recurring, percentage), amount, base (staff cost or revenue), dates?                                         | Belongs to the scenario: another team may need different infrastructure. Restricted            |
+| Entity           | Key fields                                                                                                                                     | Notes                                                                                                                     |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Organization     | id, name, starting template                                                                                                                    | The tenant                                                                                                                |
+| Config           | net annual hours (1,550), default weekly hours (40)                                                                                            | One per organization. The holiday calendar is the national one in v1, a code constant (rule h)                            |
+| CostConfig       | overhead %, buffer %, target margin %                                                                                                          | One per organization. Restricted                                                                                          |
+| Category         | id, name                                                                                                                                       | Its money lives in CategoryRate                                                                                           |
+| CategoryRate     | category, gross annual salary (or monthly × number of payments), social security % (31%), other yearly costs, manual cost per hour?, sell rate | One per category. Restricted. Cost per hour is derived unless set manually                                                |
+| Person           | id, name, category, weekly hours, area?, active                                                                                                | No individual salary                                                                                                      |
+| Project          | id, name, client, pricing model (fixed or T&M)                                                                                                 | Its money lives in ProjectPricing                                                                                         |
+| ProjectPricing   | project, price, overhead %?, buffer %?                                                                                                         | One per project. Restricted. Empty overrides fall back to CostConfig                                                      |
+| Scenario         | id, project, name, chosen, version                                                                                                             | `version` provides optimistic locking                                                                                     |
+| FrozenRate       | scenario, category, fully loaded annual cost or manual cost per hour, sell rate                                                                | Written when a scenario is chosen (rule b). Restricted. Cost per hour is derived as in CategoryRate, never stored rounded |
+| FrozenCostConfig | scenario, overhead %, buffer %, net annual hours, calendar working hours                                                                       | One per chosen scenario, written with its FrozenRates (rule b). Restricted                                                |
+| Assignment       | id, scenario, category, person?, project role, reports to?, weekly hours, allocation %, start date, end date                                   | No person = open role. `reports to` builds the team tree                                                                  |
+| ExtraCost        | id, scenario, label, kind (fixed, recurring, percentage), amount, base (staff cost or revenue), dates?                                         | Belongs to the scenario: another team may need different infrastructure. Restricted                                       |
 
 ## Formulas
 
@@ -132,7 +135,8 @@ A chosen scenario is a commitment: its cost must not move because someone edits 
 settings later. Choosing it copies, in one transaction, everything its cost depends on that lives
 outside the scenario:
 
-- **Category rates** (FrozenRate): the cost per hour and sell rate of each category it uses.
+- **Category rates** (FrozenRate): the fully loaded annual cost (or manual cost per hour) and the
+  sell rate of each category it uses. Its cost per hour is derived from them, never stored rounded.
 - **Overhead % and buffer %** (FrozenCostConfig): the values in effect when it is chosen, the
   project's overrides or else the organization's CostConfig.
 - **The availability factor** (FrozenCostConfig). It comes from Config (net annual hours and the
