@@ -1,0 +1,225 @@
+name: Preview
+
+# Each pull request from this repository gets a Vercel preview backed by its own Neon branch, a
+# child of preview-template, deleted when the pull request closes (ADR 0009).
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+
+permissions:
+  contents: read
+
+# One run per pull request. A newer push cancels an older preview, whose branch is disposable; a
+# close waits for a running preview and is never cancelled by one.
+concurrency:
+  group: preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: ${{ github.event.action != 'closed' }}
+
+# An explicit shell adds pipefail, which GitHub's default bash -e leaves out.
+defaults:
+  run:
+    shell: bash
+
+env:
+  BRANCH: preview/pr-${{ github.event.pull_request.number }}
+  ALIAS: squadio-pr-${{ github.event.pull_request.number }}.vercel.app
+
+jobs:
+  preview:
+    name: Build, migrate and deploy a preview
+    # Forks and Dependabot get no secrets, so they get no preview.
+    if: >-
+      github.event.action != 'closed' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.user.login != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: preview
+      url: https://${{ env.ALIAS }}
+    # Variables of the preview environment, so they are read in the job that uses it.
+    env:
+      NEON_PROJECT_ID: ${{ vars.NEON_PROJECT_ID }}
+      VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Pull preview settings
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: pnpm exec vercel pull --yes --environment=preview
+      # Built before any secret exists: next.config.ts only validates DATABASE_URL, so the build
+      # gets a synthetic one it never connects to, and no real credential can end up in the output.
+      - name: Build
+        env:
+          NEXT_PUBLIC_APP_URL: https://${{ env.ALIAS }}
+          DATABASE_URL: postgres://build:build@127.0.0.1:5432/build
+        run: pnpm exec vercel build
+
+      # A fresh branch on every run: it starts from the template, with no data and only the
+      # migrations added since, even when this pull request rewrote one of its own.
+      - name: Create the Neon branch
+        id: branch
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+        run: |
+          neon() { pnpm exec neonctl --no-analytics --project-id "$NEON_PROJECT_ID" "$@"; }
+          # Only "not found" is fine: any other failure (a revoked key, an outage) fails the job.
+          if ! deleted=$(neon branches delete "$BRANCH" --output json 2>&1 > /dev/null); then
+            grep --quiet --fixed-strings "Branch $BRANCH not found" <<< "$deleted" ||
+              { echo "$deleted"; exit 1; }
+          fi
+          # --no-secrets: the response would otherwise include neondb_owner's connection string.
+          created=$(neon branches create --name "$BRANCH" --parent preview-template \
+            --expires-at "$(date -u -d '+14 days' +%Y-%m-%dT%H:%M:%SZ)" --no-secrets --output json)
+          id=$(jq -r '.branch.id // empty' <<< "$created")
+          host=$(jq -r '.endpoints[0].host // empty' <<< "$created")
+          if [ -z "$id" ] || [ -z "$host" ]; then echo "::error::Neon returned no branch or host."; exit 1; fi
+          echo "id=$id" >> "$GITHUB_OUTPUT"
+          echo "host=$host" >> "$GITHUB_OUTPUT"
+
+      # New passwords, scoped to this branch, so they match neither production nor another preview.
+      # They are masked before anything else touches them and only leave this step as masked URLs.
+      - name: Reset passwords and check the roles
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          BRANCH_ID: ${{ steps.branch.outputs.id }}
+          HOST: ${{ steps.branch.outputs.host }}
+        run: |
+          api="https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID"
+          call() {
+            # The key goes through a header file on stdin, never through process arguments. Retries
+            # cover 423 Locked while the new branch's own operations are still running.
+            curl --silent --show-error --fail-with-body --retry 10 --retry-all-errors \
+              --retry-max-time 120 --header @- "$@" <<< "Authorization: Bearer $NEON_API_KEY"
+          }
+          # A new password works once every operation the reset started has finished. Functions run
+          # in this shell, so their arguments never reach a process list.
+          wait_for() {
+            for id in $(jq -r '.operations[].id' <<< "$1"); do
+              for _ in $(seq 60); do
+                status=$(call "$api/operations/$id" | jq -r .operation.status)
+                case "$status" in
+                  finished | skipped) continue 2 ;;
+                  failed | error | cancelled) echo "::error::Neon operation $id $status."; exit 1 ;;
+                esac
+                sleep 2
+              done
+              echo "::error::Neon operation $id did not finish."; exit 1
+            done
+          }
+          encode() { jq --raw-input --raw-output @uri <<< "$1"; }
+          # Sets $password, in this shell: inside $(...) the masks would never reach the runner.
+          reset() {
+            local response
+            response=$(call --request POST "$api/branches/$BRANCH_ID/roles/$1/reset_password")
+            password=$(jq -r '.role.password // empty' <<< "$response")
+            if [ -z "$password" ]; then echo "::error::Neon returned no password for $1."; exit 1; fi
+            echo "::add-mask::$password"
+            echo "::add-mask::$(encode "$password")"
+            wait_for "$response"
+          }
+          reset squadio_owner
+          owner_password=$password
+          reset squadio_app
+          app_password=$password
+
+          # Same check as the Neon bootstrap, as the app role and through libpq's environment, so
+          # no password reaches a process argument.
+          PGHOST="$HOST" PGUSER=squadio_app PGPASSWORD="$app_password" PGDATABASE=squadio \
+            PGSSLMODE=verify-full PGSSLROOTCERT=system \
+            psql --no-psqlrc --quiet --set ON_ERROR_STOP=1 --file infra/neon/role-check.sql
+
+          # Defence in depth: the build never saw these, so they must not be in its output.
+          # grep exits 1 for "not found"; 0 (found) and 2 (could not read) both fail.
+          status=0
+          grep --recursive --quiet --fixed-strings \
+            --file <(printf '%s\n' "$owner_password" "$app_password") .vercel/output || status=$?
+          if [ "$status" -ne 1 ]; then
+            echo "::error::The build output contains a preview database password, or could not be read."
+            exit 1
+          fi
+
+          pooled="${HOST/./-pooler.}"
+          owner_url="postgresql://squadio_owner:$(encode "$owner_password")@$HOST/squadio?sslmode=verify-full"
+          app_url="postgresql://squadio_app:$(encode "$app_password")@$pooled/squadio?sslmode=verify-full"
+          echo "::add-mask::$owner_url"
+          echo "::add-mask::$app_url"
+          {
+            echo "DATABASE_OWNER_URL=$owner_url"
+            echo "DATABASE_URL=$app_url"
+          } >> "$GITHUB_ENV"
+
+      - name: Apply migrations
+        run: pnpm db:migrate
+
+      # DATABASE_URL reaches the deployment at run time only. The CLI takes it as an argument,
+      # visible to other processes on this single-job runner but masked in the log.
+      - name: Deploy
+        id: deploy
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          deployed=$(pnpm exec vercel deploy --prebuilt --json \
+            --env "DATABASE_URL=$DATABASE_URL" --env "NEXT_PUBLIC_APP_URL=https://$ALIAS")
+          url=$(jq -r '.deployment.url // .url // empty' <<< "$deployed")
+          if [ -z "$url" ]; then echo "::error::vercel deploy returned no URL."; exit 1; fi
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+      - name: Point the stable URL at it
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          URL: ${{ steps.deploy.outputs.url }}
+        run: pnpm exec vercel alias set "$URL" "$ALIAS"
+
+  cleanup:
+    name: Delete the preview
+    if: >-
+      github.event.action == 'closed' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.user.login != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: preview
+    env:
+      NEON_PROJECT_ID: ${{ vars.NEON_PROJECT_ID }}
+      VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+    steps:
+      # The head commit always exists; a closed pull request with conflicts has no merge commit.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # Deleting the branch also kills the credentials the preview deployments still hold.
+      - name: Delete the Neon branch
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+        run: |
+          neon() { pnpm exec neonctl --no-analytics --project-id "$NEON_PROJECT_ID" "$@"; }
+          # Only "not found" is fine: any other failure (a revoked key, an outage) fails the job.
+          if ! deleted=$(neon branches delete "$BRANCH" --output json 2>&1 > /dev/null); then
+            grep --quiet --fixed-strings "Branch $BRANCH not found" <<< "$deleted" ||
+              { echo "$deleted"; exit 1; }
+          fi
+      - name: Remove the stable URL
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          if ! removed=$(pnpm exec vercel alias rm "$ALIAS" --yes 2>&1); then
+            # A preview that never deployed has no alias; any other failure fails the job.
+            grep --quiet --fixed-strings "Alias not found" <<< "$removed" || { echo "$removed"; exit 1; }
+          fi
