@@ -84,3 +84,6 @@ no rows instead of salaries.
   terms are hours, not money, but they are frozen together in the same row; without rate access, a
   chosen scenario's effective hours use the current Config instead. The decision itself is
   unchanged.
+- **2026-10-21:** The small category warning of rule j counts active people: it shows for a category
+  with 1 or 2 of them, not for one with none ([Small categories](../domain.md#small-categories)).
+  It still needs rate access to be seen, like the costs it is about.
