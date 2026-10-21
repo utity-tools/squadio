@@ -1,0 +1,13 @@
+{
+  "Metadata": {
+    "description": "Staffing simulator for consultancies: build a project team, see cost and margin live."
+  },
+  "Home": {
+    "tagline": "Build a project team and see cost and margin before you commit."
+  },
+  "NotFound": {
+    "title": "We couldn't find this page",
+    "description": "The address may be wrong, or the page may no longer exist.",
+    "back": "Back to the home page"
+  }
+}
