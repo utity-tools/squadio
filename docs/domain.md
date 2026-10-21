@@ -61,7 +61,7 @@ Availability factor, derived from Config and the calendar, never typed in:
 Hours of an assignment:
 
 ```math
-\text{nominalHours} = \text{workingDays}(\text{start}, \text{end}) \times \frac{\text{weeklyHours}}{5} \times \text{allocation}
+\text{nominalHours} = \text{workingDays}(\text{start}, \text{end}) \times \frac{\text{weeklyHours}}{5} \times \frac{\text{allocation}}{100}
 ```
 
 ```math
@@ -96,6 +96,10 @@ Revenue and margin:
 - **Direct margin** = revenue − direct cost. **Net margin** = revenue − total cost.
 - **Margin %** = margin / revenue, always over revenue.
 - **Effective rate** = revenue / Σ effective hours.
+
+Allocation is an integer from 0 to 100, and percentages that touch money are basis points (rule g),
+so the formulas divide by 100 and 10,000 where they apply them. The rounding mode of each result
+line, and which values count as result lines, are set here with the costing engine.
 
 The UI shows both nominal hours (to plan) and effective hours (for cost and billing).
 

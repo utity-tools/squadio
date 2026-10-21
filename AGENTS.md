@@ -80,8 +80,10 @@ Postgres: start it with `docker compose up -d --wait`.
 
 - Cost and margin come from one pure function per scenario, following
   [`docs/domain.md`](docs/domain.md). Change the formulas there first, then the code.
-- Money is integer cents in TypeScript and `numeric` in Postgres. Round once, at the end of each
-  result line. Margin % is always over revenue.
+- Money is integer cents in TypeScript and euros in `numeric(12,2)` in Postgres, declared with the
+  `moneyCents` column type (percentages: `basisPoints`), never plain `numeric` or floats
+  ([ADR 0010](docs/adr/0010-money-in-postgres.md)). Round once, at the end of each result line.
+  Margin % is always over revenue.
 - Costs are per category, never per person: the app never stores individual salaries.
 
 ### Data and privacy

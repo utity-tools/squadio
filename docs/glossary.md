@@ -15,7 +15,7 @@ what consultancies in Spain usually say.
 | Assignment               | Asignación                        | A category (and optionally a person) on a scenario, with allocation, dates and who it reports to                                |
 | Open role                | Vacante                           | An assignment with no person yet                                                                                                |
 | Change                   | Cambio                            | One edit to a scenario (add, move or remove an assignment). Undo and redo move a cursor over its changes                        |
-| Allocation               | Dedicación                        | Share of a person's working week on an assignment, as a percentage                                                              |
+| Allocation               | Dedicación                        | Share of a person's working week on an assignment, as an integer percentage from 0 to 100                                       |
 | Extra cost               | Coste extra                       | Non-staff cost on a scenario: fixed, recurring (per month) or a percentage                                                      |
 | Fixed price              | Precio cerrado                    | Revenue is the agreed price; changing the team only moves cost                                                                  |
 | Time and materials (T&M) | T&M                               | Revenue is hours × sell rate; changing the team moves cost and revenue. The price is an optional cap                            |
@@ -41,3 +41,4 @@ what consultancies in Spain usually say.
 | Access context           | Contexto de acceso                | The organization and rate access a database transaction acts with (`app.organization_id`, `app.rate_access`)                    |
 | Frozen rate              | Tarifa congelada                  | A category's cost per hour and sell rate, copied into a scenario when it is chosen                                              |
 | Frozen cost config       | Configuración de costes congelada | A scenario's overhead %, buffer % and availability factor, copied when it is chosen. Target margin is not frozen                |
+| Basis point              | Punto básico                      | A hundredth of a percent (31% = 3,100). How percentages that touch money are held in code (ADR 0010)                            |
