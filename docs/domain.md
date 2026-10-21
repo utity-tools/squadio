@@ -96,7 +96,11 @@ Hours of an assignment:
 Cost:
 
 ```math
-\text{staffCost} = \sum \text{effectiveHours} \times \text{costPerHour}_{\text{category}}
+\text{staffCost}_{\text{category}} = \sum_{\text{its assignments}} \text{effectiveHours} \times \text{costPerHour}_{\text{category}}
+```
+
+```math
+\text{staffCost} = \sum_{\text{categories}} \text{staffCost}_{\text{category}}
 ```
 
 ```math
@@ -129,11 +133,12 @@ Rounding (rule g):
 
 - Every intermediate value is exact: hours, cost per hour and the products are fractions, never
   floats rounded on the way.
-- The result lines are staff cost, each extra cost, direct cost, overhead, buffer, total cost,
-  revenue, direct margin and net margin. Each is rounded once to the cent, half away from zero.
-- Each line is computed from the already rounded lines it depends on (direct cost is the rounded
-  staff cost plus the rounded extra costs; overhead is the overhead % of the rounded staff cost), so
-  the lines always add up as shown.
+- The result lines are the staff cost of each category, staff cost, each extra cost, direct cost,
+  overhead, buffer, total cost, revenue, direct margin and net margin. Each is rounded once to the
+  cent, half away from zero.
+- Each line is computed from the already rounded lines it depends on (staff cost is the sum of the
+  rounded staff cost of each category; direct cost is the rounded staff cost plus the rounded extra
+  costs; overhead is the overhead % of the rounded staff cost), so the lines always add up as shown.
 - Margin % is rounded to basis points and the effective rate to cents per hour, half away from
   zero. Without revenue there is no margin %, and without effective hours no effective rate.
 - A result line beyond what `numeric(12,2)` holds (±9,999,999,999.99 €), or a margin % or effective
@@ -160,6 +165,35 @@ has both dates or neither (the issue points at the missing one). An extra cost's
 is 1 to 100 characters and not blank.
 
 The UI shows both nominal hours (to plan) and effective hours (for cost and billing).
+
+### Staff cost by category
+
+Costs are shown per category, never per person ([ADR 0003](adr/0003-structure-not-people.md)), so
+a complete result breaks staff cost down into one line per category of the scenario:
+
+- **Which categories:** every category with at least one assignment in the scenario, even when its
+  effective hours are 0 (allocation 0%), in the order each first appears in the assignments. A
+  category with a rate but no assignment has no line.
+- **Effective hours:** the sum of its assignments' effective hours, exact.
+- **Cost:** its staff cost, a result line rounded once to the cent from the exact product of its
+  hours and its exact cost per hour. Staff cost is the sum of these rounded lines, so they always
+  add up to it. Rounding per category instead of over the exact total moves staff cost by at most
+  half a cent per category; in the guide case it moves nothing.
+- **Cost per hour:** the category's exact cost per hour rounded to cents, half away from zero, for
+  display only, like the effective rate. The cost never comes from it, so the shown cost per hour
+  times the hours may differ from the cost by a few cents.
+
+An incomplete result (rule k) has no lines, since it has no cost. The lines are money, so they are
+restricted like every other result line (ADR 0005).
+
+The small-category warning of rule j is not part of the calculation: it depends on how many active
+people the organization has in each category, which is not an input of the engine (see
+[Small categories](#small-categories)). The caller adds it to the line with the same category.
+
+Showing whole euros is formatting, not a second rounding: rounded to the euro one by one, the lines
+can differ from the staff cost line by up to half a euro per category (in the guide case they add
+up to 105,319 € against 105,318 €). Where the lines are shown in whole euros, they keep their exact
+cents in the data.
 
 ### Why effective hours
 
@@ -268,6 +302,17 @@ hours are 1,984. Figures are rounded to the euro here; the test pins the exact c
 | Net margin                           | 60,209 € (30.1%), green |
 | Effective rate                       |               82.05 €/h |
 
+Staff cost by category (cost per hour rounded for display; cost to the cent, as the engine returns
+it):
+
+| Category           | Effective hours | Cost per hour |             Cost |
+| ------------------ | --------------: | ------------: | ---------------: |
+| Project Manager    |          406.25 |       48.42 € |      19,670.36 € |
+| Senior Developer   |           812.5 |       45.88 € |      37,280.65 € |
+| Frontend Developer |           812.5 |       37.43 € |      30,413.71 € |
+| DevOps Engineer    |          406.25 |       44.19 € |      17,953.63 € |
+| **Staff cost**     |     **2,437.5** |               | **105,318.35 €** |
+
 Staff cost uses the exact cost per hour (45.8838… €/h for a Senior Developer), not the rounded
 45.88 € of the template table. Cloud is five whole months and 29 of September's 30 days. For
 reference, the same team billed as T&M would bring 148,688 €.
@@ -281,6 +326,8 @@ Property-based tests (fast-check) check these on random scenarios:
 - Adding an assignment never lowers the cost.
 - With a fixed price, more cost always means less margin.
 - The `reports to` tree never has cycles.
+- The staff cost of each category is its exact cost rounded once, and staff cost is their sum, never
+  more than half a cent per category away from the exact total.
 - With revenue above zero, the effective rate is positive before rounding (without effective hours
   there is none).
 
