@@ -20,6 +20,8 @@ result and the UI renders it.
   is not chosen they come from the current CostConfig (or the project's overrides in
   ProjectPricing) and Config; for a chosen scenario they are its FrozenCostConfig.
 - `targetMargin` always comes from the current CostConfig: it is never frozen (rule b).
+- `scenario` carries its assignments, its extra costs and the project's pricing model and price
+  (from ProjectPricing, not frozen).
 
 Current and frozen inputs have the same shape, so the engine does not know whether a scenario is
 chosen.
@@ -126,7 +128,7 @@ full year at 100% cost exactly the fully loaded annual cost (see the first invar
 | #   | Topic                 | Rule                                                                                                                                                                                                                                                                     |
 | --- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | a   | Weekly hours          | Stored on the assignment: copied from the person, or from Config for an open role                                                                                                                                                                                        |
-| b   | Rate changes          | Choosing a scenario freezes its category rates (FrozenRate) and its overhead %, buffer % and availability factor (FrozenCostConfig). Target margin is not frozen. Other scenarios always use current values. See [What choosing freezes](#what-choosing-freezes)         |
+| b   | Choosing freezes      | Choosing a scenario freezes its category rates (FrozenRate) and its overhead %, buffer % and availability factor (FrozenCostConfig). Target margin is not frozen. Other scenarios always use current values. See [What choosing freezes](#what-choosing-freezes)         |
 | c   | Over-allocation       | Per person and week: chosen scenarios of other projects plus the scenario being edited. Never two scenarios of the same project                                                                                                                                          |
 | d   | Recurring extra costs | Prorated by day. Without dates they span the project, from the first assignment start to the last end                                                                                                                                                                    |
 | e   | Price in T&M          | An optional budget cap with a warning. Percentages "over price" use the calculated revenue                                                                                                                                                                               |
@@ -153,8 +155,14 @@ outside the scenario:
   stored as its two terms, net annual hours and calendar working hours, so the frozen factor is
   exactly the one the scenario was costed with, with no rounding.
 
-**Target margin is not frozen.** It is a goal, not a cost: a chosen scenario's margin stays the
-same, and its green, amber or red status is judged against the organization's current target.
+**Target margin is not frozen.** It is a goal, not a cost: changing it never changes a chosen
+scenario's cost or margin, only its green, amber or red status, which is always judged against the
+organization's current target. The project's price, the scenario's extra costs and the holiday
+calendar are not frozen either, so a chosen scenario's margin can still move with them.
+
+**Without rate access** FrozenCostConfig returns no rows, so for those users a chosen scenario's
+effective hours use the current Config. They see no cost or margin, so the difference only shows in
+effective hours, and only after Config changes.
 
 ## Configuration per organization
 

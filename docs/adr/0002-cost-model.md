@@ -46,3 +46,9 @@ Follow the model in [`docs/domain.md`](../domain.md):
 - When rates change, chosen scenarios keep the rates they were chosen with.
 - Short projects with no holidays in them are slightly underestimated; the availability factor is an
   average.
+
+## Amendments
+
+- **2026-10-21:** choosing a scenario also freezes its overhead %, buffer % and availability factor
+  ([domain rule b](../domain.md#rules)), and the money representation is set in
+  [ADR 0010](0010-money-in-postgres.md): euros in `numeric(12,2)`, integer cents in TypeScript.
