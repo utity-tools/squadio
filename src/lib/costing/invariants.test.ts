@@ -226,6 +226,53 @@ describe("costing invariants", () => {
     );
   });
 
+  it("adds up staff cost from category lines, each rounded once", () => {
+    fc.assert(
+      fc.property(scenarioArb, ratesArb, costSettingsArb, (scenario, rates, costSettings) => {
+        const result = complete(scenario, rates, costSettings, TARGET_MARGIN);
+        const lines = result.staffCostByCategory;
+
+        expect(lines.map((line) => line.categoryId)).toEqual([
+          ...new Set(scenario.assignments.map((a) => a.categoryId)),
+        ]);
+        expect(lines.reduce((total, line) => total + line.costCents, 0)).toBe(
+          result.staffCostCents,
+        );
+        const exactLine = (line: (typeof lines)[number]) => {
+          const { cost } = rates.find((rate) => rate.categoryId === line.categoryId) ?? {};
+          if (!cost) throw new Error(`no rate for ${line.categoryId}`);
+          const perHour =
+            cost.kind === "manual"
+              ? cost.costPerHourCents
+              : cost.fullyLoadedCents / costSettings.netAnnualHours;
+          return line.effectiveHours * perHour;
+        };
+        for (const line of lines) {
+          // Grouping: the same hours and cost as that category's assignments alone.
+          const alone = complete(
+            {
+              ...scenario,
+              assignments: scenario.assignments.filter((a) => a.categoryId === line.categoryId),
+            },
+            rates,
+            costSettings,
+            TARGET_MARGIN,
+          );
+          expect(line.costCents).toBe(alone.staffCostCents);
+          expect(line.effectiveHours).toBeCloseTo(alone.hours.effective, 6);
+          // Rounded once: never more than half a cent away from the exact line.
+          expect(Number.isInteger(line.costCents)).toBe(true);
+          expect(Math.abs(line.costCents - exactLine(line))).toBeLessThanOrEqual(0.5 + 1e-3);
+        }
+        // So the total is never more than half a cent per category away from the exact total.
+        const exact = lines.reduce((total, line) => total + exactLine(line), 0);
+        expect(Math.abs(result.staffCostCents - exact)).toBeLessThanOrEqual(
+          0.5 * lines.length + 1e-3,
+        );
+      }),
+    );
+  });
+
   it("never accepts a reports-to tree with a cycle", () => {
     const managersArb = fc.integer({ min: 1, max: 8 }).chain((size) =>
       fc.array(fc.option(fc.integer({ min: 0, max: size - 1 }), { nil: null }), {

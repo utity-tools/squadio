@@ -194,9 +194,27 @@ type Hours = {
   assignments: { id: string; nominalHours: number; effectiveHours: number }[];
 };
 
+/**
+ * One category's share of staff cost; never per person (ADR 0003, docs/domain.md "Staff cost by
+ * category").
+ */
+export type CategoryStaffCost = {
+  categoryId: string;
+  effectiveHours: number;
+  /**
+   * Rounded for display only: the cost comes from the exact cost per hour, so effective hours
+   * times this figure need not give `costCents`. Never recompute the cost from it.
+   */
+  costPerHourCents: number;
+  costCents: number;
+};
+
 export type CompleteResult = Hours & {
   complete: true;
+  /** The sum of the category lines, each rounded once. */
   staffCostCents: number;
+  /** In the order each category first appears in the assignments. */
+  staffCostByCategory: CategoryStaffCost[];
   extraCosts: { id: string; amountCents: number }[];
   directCostCents: number;
   overheadCents: number;
@@ -317,11 +335,22 @@ export function calculateScenario(
       ? Rational.of(cost.costPerHourCents)
       : Rational.of(cost.fullyLoadedCents).dividedBy(netAnnualHours);
 
-  const staffCostCents = sum(
-    assignments.map(({ assignment, effective }) =>
-      effective.times(costPerHour(rateOf(assignment.categoryId))),
-    ),
-  ).round();
+  // Staff cost is built from the category lines, each rounded once (rule g).
+  const categoryHours = new Map<string, Rational>();
+  for (const { assignment, effective } of assignments) {
+    const hours = categoryHours.get(assignment.categoryId) ?? Rational.ZERO;
+    categoryHours.set(assignment.categoryId, hours.plus(effective));
+  }
+  const staffCostByCategory = [...categoryHours].map(([categoryId, categoryEffective]) => {
+    const perHour = costPerHour(rateOf(categoryId));
+    return {
+      categoryId,
+      effectiveHours: categoryEffective.toNumber(),
+      costPerHourCents: perHour.round(),
+      costCents: categoryEffective.times(perHour).round(),
+    };
+  });
+  const staffCostCents = staffCostByCategory.reduce((total, line) => total + line.costCents, 0);
 
   const { pricing } = scenario;
   const revenueCents =
@@ -376,6 +405,9 @@ export function calculateScenario(
           : "amber";
 
   const lines = {
+    ...Object.fromEntries(
+      staffCostByCategory.map((line) => [`staff cost of ${line.categoryId}`, line.costCents]),
+    ),
     staffCostCents,
     ...Object.fromEntries(extraCosts.map((extra) => [`extra cost ${extra.id}`, extra.amountCents])),
     directCostCents,
@@ -409,6 +441,7 @@ export function calculateScenario(
     complete: true,
     ...hours,
     staffCostCents,
+    staffCostByCategory,
     extraCosts,
     directCostCents,
     overheadCents,

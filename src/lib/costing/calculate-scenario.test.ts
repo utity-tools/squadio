@@ -95,6 +95,22 @@ describe("calculateScenario: the guide case", () => {
         { id: "devops", nominalHours: 520, effectiveHours: 406.25 },
       ],
       staffCostCents: 10531835,
+      staffCostByCategory: [
+        { categoryId: "pm", effectiveHours: 406.25, costPerHourCents: 4842, costCents: 1967036 },
+        { categoryId: "senior", effectiveHours: 812.5, costPerHourCents: 4588, costCents: 3728065 },
+        {
+          categoryId: "frontend",
+          effectiveHours: 812.5,
+          costPerHourCents: 3743,
+          costCents: 3041371,
+        },
+        {
+          categoryId: "devops",
+          effectiveHours: 406.25,
+          costPerHourCents: 4419,
+          costCents: 1795363,
+        },
+      ],
       extraCosts: [{ id: "cloud", amountCents: 596667 }],
       directCostCents: 11128502,
       overheadCents: 1579775,
@@ -171,6 +187,65 @@ describe("calculateScenario: extra costs", () => {
 
     expect(result.extraCosts).toEqual([{ id: "cloud", amountCents: 100000 }]);
     expect(result.effectiveRateCents).toBeNull();
+  });
+});
+
+describe("calculateScenario: staff cost by category", () => {
+  it("groups assignments by category in order of first appearance, even with 0 hours", () => {
+    const result = complete({
+      ...guideCase,
+      assignments: [
+        assignment("pm", "pm", 50),
+        assignment("senior-1", "senior", 100, "pm"),
+        assignment("idle", "junior", 0, "pm"),
+        assignment("senior-2", "senior", 50, "pm"),
+      ],
+    });
+
+    expect(result.staffCostByCategory).toEqual([
+      { categoryId: "pm", effectiveHours: 406.25, costPerHourCents: 4842, costCents: 1967036 },
+      {
+        categoryId: "senior",
+        effectiveHours: 1218.75,
+        costPerHourCents: 4588,
+        costCents: 5592097,
+      },
+      { categoryId: "junior", effectiveHours: 0, costPerHourCents: 2475, costCents: 0 },
+    ]);
+    expect(result.staffCostCents).toBe(1967036 + 5592097);
+  });
+
+  it("makes staff cost the sum of the category lines, each rounded once", () => {
+    // Half a cent per category: each line rounds up to 1 cent, while the exact total is 1 cent.
+    const halfCent: CategoryRate[] = ["a", "b"].map((categoryId) => ({
+      categoryId,
+      sellRateCents: 0,
+      cost: { kind: "manual", costPerHourCents: 100 },
+    }));
+    const tiny = (id: string): Assignment => ({
+      ...assignment(id, id, 50),
+      weeklyHours: 0.05,
+      endDate: "2027-04-01",
+    });
+    const result = calculateScenario(
+      {
+        pricing: { model: "timeAndMaterials" },
+        assignments: [tiny("a"), tiny("b")],
+        extraCosts: [],
+      },
+      halfCent,
+      { ...costSettings, netAnnualHours: 1984 },
+      TARGET_MARGIN,
+    );
+
+    expect(result).toMatchObject({
+      complete: true,
+      staffCostByCategory: [
+        { categoryId: "a", effectiveHours: 0.005, costCents: 1 },
+        { categoryId: "b", effectiveHours: 0.005, costCents: 1 },
+      ],
+      staffCostCents: 2,
+    });
   });
 });
 
@@ -527,6 +602,10 @@ describe("calculateScenario: validation", () => {
 
     expect(() => calculateScenario(scenario, dear, costSettings, TARGET_MARGIN)).toThrow(
       RangeError,
+    );
+    // The first line out of range is the category's own.
+    expect(() => calculateScenario(scenario, dear, costSettings, TARGET_MARGIN)).toThrow(
+      /staff cost of senior/,
     );
   });
 
