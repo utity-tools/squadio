@@ -80,3 +80,9 @@ custom Drizzle column type that never uses floats.
 - The rounding mode of each result line is not decided here; it is set in `docs/domain.md` with the
   costing engine.
 - Review decision E is closed.
+
+## Amendments
+
+- **2026-10-21:** The first restricted tables (`cost_config`, `category_rates`, `project_pricing`
+  and `extra_costs`) land in v0.1, not v0.2; only `FrozenRate` and `FrozenCostConfig` wait for
+  choosing a scenario in v0.2. The decision itself is unchanged.

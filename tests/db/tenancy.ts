@@ -20,7 +20,12 @@ export const POLICY_EXCEPTIONS: readonly string[] = [];
  * the tables it reads apply. A global table with money (template salaries, review 0001 decision D)
  * has no organization_id, so it will need its own policy expression here when it arrives.
  */
-export const RESTRICTED_TABLES: readonly string[] = [];
+export const RESTRICTED_TABLES: readonly string[] = [
+  "public.cost_config",
+  "public.category_rates",
+  "public.project_pricing",
+  "public.extra_costs",
+];
 
 /**
  * Numeric (or money) columns allowed outside the restricted tables, keyed by
