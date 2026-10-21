@@ -20,8 +20,9 @@ no rows instead of salaries.
 
 - **Money lives in its own tables.** Rates, costs, prices and margin settings move out of the
   structural entities into restricted ones: `CategoryRate`, `CostConfig`, `ProjectPricing`,
-  `FrozenRate`, `FrozenCostConfig` and `ExtraCost` ([domain](../domain.md#entities)). Config, categories, people,
-  projects, scenarios and assignments carry no money, so everyone in the organization reads them.
+  `FrozenRate`, `FrozenCostConfig` and `ExtraCost` ([domain](../domain.md#entities)). Config,
+  categories, people, projects, scenarios and assignments carry no money, so everyone in the
+  organization reads them.
 - **A second policy key.** Restricted tables use
   `organization_id = app.current_organization_id() and app.has_rate_access()`, for reading and
   writing. The function is true only when the transaction-local setting `app.rate_access` is exactly
@@ -33,10 +34,10 @@ no rows instead of salaries.
   in one place, from the signed-in member's role in the organization (Better Auth, when auth lands).
   Until then, tests and seeds build it explicitly.
 - **Actions that touch money need rate access.** Choosing a scenario (which writes its frozen rates
-  and frozen cost config, rule b), creating or deleting a category or a project, and deleting a scenario all write or cascade
-  into restricted tables. Postgres runs foreign key cascades without RLS, so the app checks rate
-  access before these actions and the UI does not offer them without it. Without rate access, people
-  can still build teams: create scenarios and edit assignments.
+  and frozen cost config, rule b), creating or deleting a category or a project, and deleting a
+  scenario all write or cascade into restricted tables. Postgres runs foreign key cascades without
+  RLS, so the app checks rate access before these actions and the UI does not offer them without it.
+  Without rate access, people can still build teams: create scenarios and edit assignments.
 - **Derived money is money.** Totals, margins, the effective rate and the margin status colour come
   from restricted data. They are computed only with rate access, never sent without it, and any
   cache of them (`'use cache'`) includes rate access in its key and tags.
@@ -79,5 +80,7 @@ no rows instead of salaries.
 
 - **2026-10-21:** `FrozenCostConfig` joins the restricted tables. Choosing a scenario now also
   freezes its overhead %, buffer % and availability factor ([domain rule b](../domain.md#rules)),
-  and overhead and buffer are money settings, so they live with the frozen rates. The decision
-  itself is unchanged.
+  and overhead and buffer are money settings, so they live with the frozen rates. The availability
+  terms are hours, not money, but they are frozen together in the same row; without rate access, a
+  chosen scenario's effective hours use the current Config instead. The decision itself is
+  unchanged.

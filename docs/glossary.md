@@ -40,6 +40,7 @@ what consultancies in Spain usually say.
 | Tenant context           | Contexto de organización          | The organization a database transaction acts for (`app.organization_id`). Without it, no rows                                   |
 | Restricted entity        | Entidad restringida               | An entity that holds money (rates, prices, costs). Only readable and writable with rate access                                  |
 | Access context           | Contexto de acceso                | The organization and rate access a database transaction acts with (`app.organization_id`, `app.rate_access`)                    |
+| Cost config              | Configuración de costes           | The organization's overhead %, buffer % and target margin %. Restricted; projects can override overhead and buffer              |
 | Frozen rate              | Tarifa congelada                  | A category's cost (fully loaded annual cost, or a manual cost per hour) and sell rate, copied into a scenario when it is chosen |
 | Frozen cost config       | Configuración de costes congelada | A scenario's overhead %, buffer % and availability factor, copied when it is chosen. Target margin is not frozen                |
 | Basis point              | Punto básico                      | A hundredth of a percent (31% = 3,100). How percentages that touch money are held in code (ADR 0010)                            |
