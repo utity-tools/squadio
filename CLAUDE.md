@@ -15,7 +15,8 @@
 
 Canaries detect context drift. If one fails, write a handoff and start a new session.
 
-- **Every reply to the owner starts with "Capitán".**
+- **Every reply to the owner starts with "Capitán".** The reply is the last text of the turn;
+  progress notes written along the way are not checked. A Stop hook enforces it.
 - **The first reply of a session** is `Capitán · <current branch> · <AGENTS.md word> · <CLAUDE.md word>`.
   Both words are at the end of each file; quoting them proves both were read in full.
 
