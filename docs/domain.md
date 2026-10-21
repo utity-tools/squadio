@@ -7,7 +7,7 @@ model is in [ADR 0002](adr/0002-cost-model.md).
 ## The calculation
 
 All of it is one pure function per scenario in `src/lib/costing`,
-`calculateScenario(scenario, rates, costConfig, targetMargin)`. It saves nothing: it returns the
+`calculateScenario(scenario, rates, costSettings, targetMargin)`. It saves nothing: it returns the
 result and the UI renders it.
 
 - `rates` give each category a sell rate and an exact cost per hour: the fully loaded annual cost
@@ -16,7 +16,7 @@ result and the UI renders it.
   invariant (71,120 € / 1,550 h is 45.8838… €/h, and 45.88 € × 1,550 h is 71,114 €). For a scenario
   that is not chosen they come from the current CategoryRates and Config's net annual hours; for a
   chosen scenario, from its FrozenRates and the net annual hours in its FrozenCostConfig.
-- `costConfig` holds the overhead %, the buffer % and the availability factor. For a scenario that
+- `costSettings` holds the overhead %, the buffer % and the availability factor. For a scenario that
   is not chosen they come from the current CostConfig (or the project's overrides in
   ProjectPricing) and Config; for a chosen scenario they are its FrozenCostConfig.
 - `targetMargin` always comes from the current CostConfig: it is never frozen (rule b).
@@ -60,7 +60,7 @@ Cost per hour of a category:
 Availability factor, derived from Config and the calendar, never typed in:
 
 ```math
-\text{availability} = \frac{\text{netAnnualHours}}{\text{calendarWorkingHours}} \approx 0.78
+\text{availability} = \frac{\text{netAnnualHours}}{\text{calendarWorkingHours}} \approx 0.76 \text{ to } 0.78
 ```
 
 ```math
@@ -68,8 +68,20 @@ Availability factor, derived from Config and the calendar, never typed in:
 ```
 
 Calendar working hours are those of a full-time week over a whole year of the national calendar,
-never computed per assignment. Which year is the reference is set with the costing engine; the
-guide case implies 1,984 hours (248 working days × 8 hours), an availability of 0.78125.
+never computed per assignment. The engine takes them as an input in `costSettings`, so which year is
+the reference is decided where Config's availability is derived, not in the engine. With the
+national calendar of rule h a year has about 254 working days (2,032 hours, an availability of
+0.763); the guide case sets 1,984 hours instead (248 working days × 8 hours, an availability of
+0.78125), an input that keeps its figures round. Weekly hours have at most two decimals, so
+calendar working hours have at most three (37.33 h a week over 254 days is 1,896.364 hours), and
+they are computed exactly, never as a float product. Net annual hours may not exceed them: an
+availability above 1 is a validation error, never a cost.
+
+Working days are the weekdays from the start date to the end date, both included, that are not
+national holidays. The national holidays of Spain are the constant: 1 and 6 January, Good Friday,
+1 May, 15 August, 12 October, 1 November, 6, 8 and 25 December, listed per year for 2026 to 2028. An
+assignment date outside the listed years is a validation error on that field, never a calendar
+without holidays.
 
 Hours of an assignment:
 
@@ -111,8 +123,41 @@ Revenue and margin:
 - **Effective rate** = revenue / Σ effective hours.
 
 Allocation is an integer from 0 to 100, and percentages that touch money are basis points (rule g),
-so the formulas divide by 100 and 10,000 where they apply them. The rounding mode of each result
-line, and which values count as result lines, are set here with the costing engine.
+so the formulas divide by 100 and 10,000 where they apply them.
+
+Rounding (rule g):
+
+- Every intermediate value is exact: hours, cost per hour and the products are fractions, never
+  floats rounded on the way.
+- The result lines are staff cost, each extra cost, direct cost, overhead, buffer, total cost,
+  revenue, direct margin and net margin. Each is rounded once to the cent, half away from zero.
+- Each line is computed from the already rounded lines it depends on (direct cost is the rounded
+  staff cost plus the rounded extra costs; overhead is the overhead % of the rounded staff cost), so
+  the lines always add up as shown.
+- Margin % is rounded to basis points and the effective rate to cents per hour, half away from
+  zero. Without revenue there is no margin %, and without effective hours no effective rate.
+- A result line beyond what `numeric(12,2)` holds (±9,999,999,999.99 €), or a margin % or effective
+  rate too large to hold exactly, is an error, never a silently wrong amount.
+
+A recurring extra cost is an amount per month, prorated by day per calendar month: each month it
+covers adds the amount × the days covered / the days in that month, so a whole month costs exactly
+the amount. Without dates it spans the project (rule d); in a scenario with no assignments there is
+no project span, so an undated recurring cost there is a validation error on that extra cost.
+
+Margin status compares the net margin %, as rounded to basis points, with the target margin:
+**green** at or above the target, **amber** below the target with a net margin of zero or more,
+**red** with a negative net margin, whatever the target. Without revenue there is no margin %, so there is no status
+either, unless the net margin is negative, which is **red**.
+
+Validation: every input is checked with Zod before any calculation, and an invalid one fails with
+the path of the field, never a silent result. Missing (`null` or `undefined` where a value is
+required), `NaN`, infinite and empty values are all invalid, as are money that is not integer
+cents and percentages that are not integer basis points. A sell rate of 0 € is valid (internal or
+unbilled work); a fixed price and a T&M budget cap, when set, are at least 1 cent, so a fixed price
+always has revenue. Weekly hours are at most 168. Assignment, extra cost and category rate ids do
+not repeat, an assignment reports to another assignment of the same scenario, and a recurring cost
+has both dates or neither (the issue points at the missing one). An extra cost's label, when set,
+is 1 to 100 characters and not blank.
 
 The UI shows both nominal hours (to plan) and effective hours (for cost and billing).
 
@@ -120,8 +165,9 @@ The UI shows both nominal hours (to plan) and effective hours (for cost and bill
 
 Cost per hour is loaded: it divides a year's cost by net hours, which already exclude holidays,
 leave and training. Multiplying it by calendar hours would count that time twice and overstate the
-cost of long assignments by up to about 28%. Applying the availability factor to the hours makes a
-full year at 100% cost exactly the fully loaded annual cost (see the first invariant below).
+cost of long assignments by up to about 28 to 31%, depending on the year. Applying the availability
+factor to the hours makes a full year at 100% of the reference year, at the default weekly hours,
+cost exactly the fully loaded annual cost (see the first invariant below).
 
 ## Rules
 
@@ -185,33 +231,39 @@ buffer 10%, target margin 25%.
 
 ## Guide case
 
-The first test of the costing engine. Fixed price of 200,000 € over 26 weeks: Senior Developer at
-100%, Frontend Developer at 100%, DevOps Engineer at 50%, Project Manager at 50%, and cloud at
-1,000 € a month. Figures are rounded here; the test pins the exact values.
+The first test of the costing engine. Fixed price of 200,000 € over 26 weeks, from 1 April to
+29 September 2027 (130 working days, no national holiday on a weekday): Senior Developer at 100%,
+Frontend Developer at 100%, DevOps Engineer at 50%, Project Manager at 50%, all at 40 hours a week,
+and cloud at 1,000 € a month with no dates of its own, so it spans the project. Calendar working
+hours are 1,984. Figures are rounded to the euro here; the test pins the exact cents.
 
 | Line                                 |                  Amount |
 | ------------------------------------ | ----------------------: |
-| Staff cost (2,437.5 effective hours) |               105,312 € |
-| Cloud                                |                 6,000 € |
-| Direct cost                          |               111,312 € |
-| Overhead                             |                15,797 € |
-| Buffer                               |                12,711 € |
-| Total cost                           |               139,820 € |
-| Direct margin                        |        88,688 € (44.3%) |
-| Net margin                           | 60,180 € (30.1%), green |
+| Staff cost (2,437.5 effective hours) |               105,318 € |
+| Cloud                                |                 5,967 € |
+| Direct cost                          |               111,285 € |
+| Overhead                             |                15,798 € |
+| Buffer                               |                12,708 € |
+| Total cost                           |               139,791 € |
+| Direct margin                        |        88,715 € (44.4%) |
+| Net margin                           | 60,209 € (30.1%), green |
 | Effective rate                       |               82.05 €/h |
 
-For reference, the same team billed as T&M would bring 148,688 €.
+Staff cost uses the exact cost per hour (45.8838… €/h for a Senior Developer), not the rounded
+45.88 € of the template table. Cloud is five whole months and 29 of September's 30 days. For
+reference, the same team billed as T&M would bring 148,688 €.
 
 ## Invariants
 
 Property-based tests (fast-check) check these on random scenarios:
 
-- A full year at 100% costs exactly the category's fully loaded annual cost.
+- A full year at 100%, in the reference year and at the default weekly hours, costs exactly the
+  category's fully loaded annual cost.
 - Adding an assignment never lowers the cost.
 - With a fixed price, more cost always means less margin.
 - The `reports to` tree never has cycles.
-- With more than zero hours, the effective rate is positive.
+- With revenue above zero, the effective rate is positive before rounding (without effective hours
+  there is none).
 
 ## Out of scope for v1
 
