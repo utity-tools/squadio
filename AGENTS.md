@@ -70,6 +70,7 @@ Postgres: start it with `docker compose up -d --wait`.
 
 - Server Components by default; `"use client"` only for interactivity.
 - Mutations go through Server Actions; validate every input with Zod. No `any`.
+- Read env vars only from `@/env` (server) or `@/env.client` (client); ESLint enforces it.
 - Business logic lives in `src/lib/<domain>`: small, pure, unit-tested. Not in components, routes
   or actions.
 - Unit tests sit next to the code (`foo.ts` + `foo.test.ts`); `tests/` holds only DB and E2E tests.

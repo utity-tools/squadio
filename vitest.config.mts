@@ -7,8 +7,9 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     setupFiles: ["./vitest.setup.ts"],
-    // Claude Code hooks are tooling, not app code: tested, but outside the coverage report.
-    include: ["src/**/*.test.{ts,tsx}", ".claude/hooks/**/*.test.ts"],
+    // Claude Code hooks and the ESLint config are tooling, not app code: tested, but outside the
+    // coverage report.
+    include: ["src/**/*.test.{ts,tsx}", ".claude/hooks/**/*.test.ts", "eslint.config.test.ts"],
     // Database tests live in tests/db and run with vitest.db.config.mts (`pnpm test:db`).
     coverage: {
       provider: "v8",
