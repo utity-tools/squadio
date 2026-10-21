@@ -12,6 +12,11 @@ on:
 permissions:
   contents: read
 
+# An explicit shell adds pipefail, which GitHub's default bash -e leaves out.
+defaults:
+  run:
+    shell: bash
+
 jobs:
   # Runs without secrets. A deploy goes ahead only for the newest commit on main, and only once CI
   # passed on it: a slow CI run on an older commit never puts older code back in production, and a
