@@ -7,6 +7,7 @@ what consultancies in Spain usually say.
 | ------------------------ | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
 | Organization             | Organización                      | The tenant: a consultancy or a company. Owns everything else                                                                         |
 | Category                 | Categoría                         | A job grade (Senior Developer, PM). Its cost per hour and sell rate live in its rate, never on people                                |
+| Small category           | Categoría pequeña                 | A category with 1 or 2 active people: its rate reveals a salary, so it carries a warning (rule j)                                    |
 | Person                   | Persona                           | Someone on the bench. Has a category and weekly hours, never a salary                                                                |
 | Bench                    | Banquillo                         | All people of the organization and how busy they are                                                                                 |
 | Project                  | Proyecto                          | A piece of client work with a pricing model. Its price is restricted                                                                 |

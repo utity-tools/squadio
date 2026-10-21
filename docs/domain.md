@@ -182,8 +182,27 @@ cost exactly the fully loaded annual cost (see the first invariant below).
 | g   | Money                 | Euros in `numeric(12,2)` in Postgres, integer cents in TypeScript; money-bearing percentages in `numeric(5,2)`, basis points in TypeScript; allocation an integer from 0 to 100 ([ADR 0010](adr/0010-money-in-postgres.md)). Rounded once per result line, EUR only      |
 | h   | Holidays              | One national calendar in v1, kept as a constant in code, not in the database; a known limitation. Choosing a scenario freezes its calendar working hours but not the working days of its assignments, so changing the constant still moves the hours of chosen scenarios |
 | i   | Chosen scenario       | At most one per project, enforced by a partial unique index                                                                                                                                                                                                              |
-| j   | Salary leaks          | Without rate access, no costs or margins: restricted entities return no rows (ADR 0005). A warning when a category has fewer than 3 people, since its cost reveals a salary                                                                                              |
+| j   | Salary leaks          | Without rate access, no costs or margins: restricted entities return no rows (ADR 0005). A warning when a category has 1 or 2 active people, since its cost reveals a salary. See [Small categories](#small-categories)                                                  |
 | k   | Missing rate          | A category without a rate makes its scenarios incomplete: they show a warning and no cost, never a cost of 0                                                                                                                                                             |
+
+### Small categories
+
+Costs are per category, never per person, but a category's rate is only an average when enough
+people share it. With 1 or 2 people, anyone who reads the rate can work out a salary. Rule j turns
+that into a warning:
+
+- **Who counts:** the organization's active people in the category, wherever they are assigned.
+  Inactive people and open roles do not count: they draw no salary. A scenario's team is not the
+  count either, since the rate belongs to the organization, not to the scenario.
+- **When it warns:** with 1 or 2 active people. With none the rate describes no one yet; with 3 or
+  more it is an average.
+- **Where it shows:** wherever the rate is read or edited, and next to the category's cost on the
+  canvas. Only users with rate access see costs, so only they see the warning.
+- **What it changes:** nothing in the calculation. It is a warning, not a block: the cost is still
+  shown, and the organization decides whether to merge the category or accept it.
+
+It is one pure function in `src/lib/rates`, apart from `calculateScenario`: the engine gets a
+scenario and its rates, not the organization's headcount.
 
 ### What choosing freezes
 
