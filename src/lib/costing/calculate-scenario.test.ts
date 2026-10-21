@@ -311,6 +311,42 @@ describe("calculateScenario: rates", () => {
     });
     expect(result).not.toHaveProperty("totalCostCents");
   });
+
+  it("makes the result incomplete when a fixed price is missing (rule l)", () => {
+    const result = calculateScenario(
+      { ...guideCase, pricing: { model: "fixed" } },
+      rates,
+      costSettings,
+      TARGET_MARGIN,
+    );
+
+    expect(result).toEqual({
+      complete: false,
+      hours: { nominal: 3120, effective: 2437.5 },
+      assignments: expect.any(Array),
+      warnings: [{ code: "missingPrice" }],
+    });
+    expect(result).not.toHaveProperty("revenueCents");
+  });
+
+  it("warns about a missing rate and a missing price together", () => {
+    const result = calculateScenario(
+      {
+        ...guideCase,
+        pricing: { model: "fixed" },
+        assignments: [...guideCase.assignments, assignment("qa", "qa", 100)],
+      },
+      rates,
+      costSettings,
+      TARGET_MARGIN,
+    );
+
+    expect(result.complete).toBe(false);
+    expect(result.warnings).toEqual([
+      { code: "missingRate", categoryIds: ["qa"] },
+      { code: "missingPrice" },
+    ]);
+  });
 });
 
 describe("calculateScenario: margin", () => {
@@ -502,9 +538,15 @@ describe("calculateScenario: validation", () => {
       ["an empty string", ""],
     ];
 
+    // A missing fixed price is not invalid: it leaves the scenario incomplete (rule l).
+    const optional = (path: (string | number)[], value: unknown) =>
+      path.join(".") === "scenario.pricing.priceCents" && value === undefined;
+
     it.each(
       fields.flatMap((path) =>
-        values.map(([name, value]) => [path.join("."), name, value, path] as const),
+        values
+          .filter(([, value]) => !optional(path, value))
+          .map(([name, value]) => [path.join("."), name, value, path] as const),
       ),
     )("rejects %s set to %s", (field, _name, value, path) => {
       const {

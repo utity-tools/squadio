@@ -91,7 +91,8 @@ const uniqueIds = (items: readonly { id: string }[]) =>
 const scenarioSchema = z
   .object({
     pricing: z.discriminatedUnion("model", [
-      z.object({ model: z.literal("fixed"), priceCents: cents.min(1) }),
+      /** Without a price the scenario is incomplete (rule l). */
+      z.object({ model: z.literal("fixed"), priceCents: cents.min(1).optional() }),
       z.object({ model: z.literal("timeAndMaterials"), budgetCapCents: cents.min(1).optional() }),
     ]),
     assignments: z.array(assignmentSchema).refine(uniqueIds, "Assignment ids repeat"),
@@ -187,6 +188,7 @@ export type MarginStatus = "green" | "amber" | "red";
 
 export type Warning =
   | { code: "missingRate"; categoryIds: string[] }
+  | { code: "missingPrice" }
   | { code: "budgetCapExceeded"; revenueCents: number; budgetCapCents: number };
 
 type Hours = {
@@ -233,7 +235,10 @@ export type CompleteResult = Hours & {
   warnings: Warning[];
 };
 
-/** A category without a rate leaves the scenario without cost, never with a cost of 0 (rule k). */
+/**
+ * A category without a rate leaves the scenario without cost, never with a cost of 0 (rule k), and
+ * a fixed price without a price leaves it without revenue, never a revenue of 0 (rule l).
+ */
 export type IncompleteResult = Hours & { complete: false; warnings: Warning[] };
 
 export type ScenarioResult = CompleteResult | IncompleteResult;
@@ -321,8 +326,16 @@ export function calculateScenario(
       scenario.assignments.map((a) => a.categoryId).filter((category) => !rates.has(category)),
     ),
   ];
-  if (missing.length > 0) {
-    return { complete: false, ...hours, warnings: [{ code: "missingRate", categoryIds: missing }] };
+  const { pricing } = scenario;
+  const fixedPriceCents = pricing.model === "fixed" ? pricing.priceCents : undefined;
+  const incomplete: Warning[] = [
+    ...(missing.length > 0 ? [{ code: "missingRate" as const, categoryIds: missing }] : []),
+    ...(pricing.model === "fixed" && fixedPriceCents === undefined
+      ? [{ code: "missingPrice" as const }]
+      : []),
+  ];
+  if (incomplete.length > 0) {
+    return { complete: false, ...hours, warnings: incomplete };
   }
 
   const rateOf = (categoryId: string) => {
@@ -352,15 +365,14 @@ export function calculateScenario(
   });
   const staffCostCents = staffCostByCategory.reduce((total, line) => total + line.costCents, 0);
 
-  const { pricing } = scenario;
+  // A fixed price without a price returned above, so only T&M reaches the sum.
   const revenueCents =
-    pricing.model === "fixed"
-      ? pricing.priceCents
-      : sum(
-          assignments.map(({ assignment, effective }) =>
-            effective.times(Rational.of(rateOf(assignment.categoryId).sellRateCents)),
-          ),
-        ).round();
+    fixedPriceCents ??
+    sum(
+      assignments.map(({ assignment, effective }) =>
+        effective.times(Rational.of(rateOf(assignment.categoryId).sellRateCents)),
+      ),
+    ).round();
 
   // Without dates, a recurring cost spans the project: first assignment start to last end.
   const starts = scenario.assignments.map((a) => a.startDate).sort();
