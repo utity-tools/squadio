@@ -11,6 +11,7 @@ import {
   foreignKey,
   index,
   integer,
+  primaryKey,
   pgEnum,
   pgPolicy,
   pgTable,
@@ -20,7 +21,7 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 
-import { MAX_WEEKLY_HOURS, weeklyHours } from "./columns";
+import { MAX_WEEKLY_HOURS, basisPoints, moneyCents, weeklyHours } from "./columns";
 
 const organizationId = () => uuid("organization_id").notNull();
 const id = () => uuid("id").primaryKey().defaultRandom();
@@ -31,6 +32,17 @@ const tenantIsolation = () =>
     for: "all",
     using: sql`organization_id = app.current_organization_id()`,
     withCheck: sql`organization_id = app.current_organization_id()`,
+  });
+
+/**
+ * The only policy a restricted table has: its organization's rows, and only with rate access
+ * (ADR 0005), for reading and writing alike.
+ */
+const rateAccess = () =>
+  pgPolicy("rate_access", {
+    for: "all",
+    using: sql`organization_id = app.current_organization_id() and app.has_rate_access()`,
+    withCheck: sql`organization_id = app.current_organization_id() and app.has_rate_access()`,
   });
 
 /** A name people read: not blank, at most 100 characters. */
@@ -208,5 +220,132 @@ export const assignments = pgTable(
     check("assignments_allocation_check", sql`allocation between 0 and 100`),
     check("assignments_dates_check", sql`end_date >= start_date`),
     check("assignments_reports_to_check", sql`reports_to <> id`),
+  ],
+).enableRLS();
+
+// Restricted tables (ADR 0005): money, hidden without rate access. Money is moneyCents and
+// money-bearing percentages basisPoints (ADR 0010).
+
+const notNegative = (table: string, column: string) =>
+  check(`${table}_${column}_check`, sql`${sql.identifier(column)} >= 0`);
+
+/** One per organization: the margin settings. */
+export const costConfig = pgTable(
+  "cost_config",
+  {
+    organizationId: uuid("organization_id").primaryKey(),
+    overhead: basisPoints("overhead_pct").notNull(),
+    buffer: basisPoints("buffer_pct").notNull(),
+    /** Can be negative: a project taken at a loss on purpose. */
+    targetMargin: basisPoints("target_margin_pct").notNull(),
+  },
+  () => [
+    rateAccess(),
+    notNegative("cost_config", "overhead_pct"),
+    notNegative("cost_config", "buffer_pct"),
+  ],
+).enableRLS();
+
+/** One per category: what it costs and what it sells for. Cost per hour is derived, not stored. */
+export const categoryRates = pgTable(
+  "category_rates",
+  {
+    organizationId: organizationId(),
+    categoryId: uuid("category_id").notNull(),
+    grossAnnualSalary: moneyCents("gross_annual_salary").notNull(),
+    socialSecurity: basisPoints("social_security_pct").notNull(),
+    otherYearlyCosts: moneyCents("other_yearly_costs").notNull(),
+    /** Replaces the derived cost per hour when set. */
+    manualCostPerHour: moneyCents("manual_cost_per_hour"),
+    sellRate: moneyCents("sell_rate").notNull(),
+  },
+  (t) => [
+    rateAccess(),
+    primaryKey({ name: "category_rates_pkey", columns: [t.organizationId, t.categoryId] }),
+    foreignKey({
+      name: "category_rates_category_fkey",
+      columns: [t.organizationId, t.categoryId],
+      foreignColumns: [categories.organizationId, categories.id],
+    }).onDelete("cascade"),
+    notNegative("category_rates", "gross_annual_salary"),
+    notNegative("category_rates", "social_security_pct"),
+    notNegative("category_rates", "other_yearly_costs"),
+    notNegative("category_rates", "manual_cost_per_hour"),
+    notNegative("category_rates", "sell_rate"),
+  ],
+).enableRLS();
+
+/** One per project: its price, and margin settings that override cost_config when set. */
+export const projectPricing = pgTable(
+  "project_pricing",
+  {
+    organizationId: organizationId(),
+    projectId: uuid("project_id").notNull(),
+    /** The fixed price, or the optional budget cap of a T&M project (rule e). */
+    price: moneyCents("price"),
+    overhead: basisPoints("overhead_pct"),
+    buffer: basisPoints("buffer_pct"),
+  },
+  (t) => [
+    rateAccess(),
+    primaryKey({ name: "project_pricing_pkey", columns: [t.organizationId, t.projectId] }),
+    foreignKey({
+      name: "project_pricing_project_fkey",
+      columns: [t.organizationId, t.projectId],
+      foreignColumns: [projects.organizationId, projects.id],
+    }).onDelete("cascade"),
+    check("project_pricing_price_check", sql`price > 0`),
+    notNegative("project_pricing", "overhead_pct"),
+    notNegative("project_pricing", "buffer_pct"),
+  ],
+).enableRLS();
+
+export const extraCostKind = pgEnum("extra_cost_kind", ["fixed", "recurring", "percentage"]);
+export const extraCostBase = pgEnum("extra_cost_base", ["staff_cost", "revenue"]);
+
+/** A cost of a scenario beyond its people: fixed, recurring per month, or a percentage. */
+export const extraCosts = pgTable(
+  "extra_costs",
+  {
+    id: id(),
+    organizationId: organizationId(),
+    scenarioId: uuid("scenario_id").notNull(),
+    label: text("label"),
+    kind: extraCostKind("kind").notNull(),
+    /** Fixed and recurring kinds; recurring is per month. */
+    amount: moneyCents("amount"),
+    /** Percentage kind only, with its base. */
+    percentage: basisPoints("percentage"),
+    base: extraCostBase("base"),
+    /** Recurring kind only, both or neither; without them it spans the project (rule d). */
+    startDate: date("start_date", { mode: "string" }),
+    endDate: date("end_date", { mode: "string" }),
+  },
+  (t) => [
+    rateAccess(),
+    unique("extra_costs_organization_id_id_key").on(t.organizationId, t.id),
+    foreignKey({
+      name: "extra_costs_scenario_fkey",
+      columns: [t.organizationId, t.scenarioId],
+      foreignColumns: [scenarios.organizationId, scenarios.id],
+    }).onDelete("cascade"),
+    index("extra_costs_scenario_idx").on(t.organizationId, t.scenarioId),
+    nameCheck("extra_costs", "label"),
+    // Exactly the columns its kind needs (ADR 0010).
+    check(
+      "extra_costs_kind_check",
+      sql`case kind
+            when 'percentage' then amount is null and percentage is not null and base is not null
+            else amount is not null and percentage is null and base is null
+          end`,
+    ),
+    check(
+      "extra_costs_dates_check",
+      sql`(start_date is null) = (end_date is null)
+          and (start_date is null or kind = 'recurring')
+          and (end_date is null or end_date >= start_date)`,
+    ),
+    notNegative("extra_costs", "amount"),
+    notNegative("extra_costs", "percentage"),
   ],
 ).enableRLS();
