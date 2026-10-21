@@ -15,6 +15,13 @@
       "when": 1792579719908,
       "tag": "0001_rate_access_context",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792596369928,
+      "tag": "0002_v01_structural_tables",
+      "breakpoints": true
     }
   ]
 }

@@ -8,6 +8,7 @@ import { afterAll, describe, expect, it } from "vitest";
 import type { TenantTransaction } from "@/db/tenant";
 
 import { ownerPool } from "./support";
+import { GLOBAL_TABLES, NUMERIC_ALLOWLIST, POLICY_EXCEPTIONS, RESTRICTED_TABLES } from "./tenancy";
 
 // Guard for ADR 0004: every tenant table has a uuid organization_id, RLS enabled and forced, and
 // policies that are exactly the tenant check. Read from the catalog, so a migration that forgets any
@@ -18,35 +19,6 @@ import { ownerPool } from "./support";
 // followed through domains, arrays, ranges and composites, so wrapping a type does not hide it.
 // Money declared as an integer, text or jsonb is invisible here: declaring it with moneyCents
 // (ADR 0010) is what lets the guard see it.
-
-/**
- * Tables that are global on purpose (shared reference data, no tenant), schema-qualified as
- * `schema.table`. Empty for now: adding one is a decision, so a new table cannot skip tenancy by
- * leaving out organization_id.
- */
-const GLOBAL_TABLES: readonly string[] = [];
-
-/**
- * Policies allowed to differ from the tenant check, keyed by `schema.table.policy`. Empty for now:
- * each entry needs a documented reason.
- */
-const POLICY_EXCEPTIONS: readonly string[] = [];
-
-/**
- * Tables that hold money and are hidden without rate access (ADR 0005), schema-qualified as
- * `schema.table`. Empty for now: the first ones arrive with the domain tables. A security_invoker
- * view that selects money is listed here too: the policies of the tables it reads apply. A global
- * table with money (template salaries, review 0001 decision D) has no organization_id, so it will
- * need its own policy expression here when it arrives.
- */
-const RESTRICTED_TABLES: readonly string[] = [];
-
-/**
- * Numeric (or money) columns allowed outside the restricted tables, keyed by
- * `schema.table.column`: open values such as hours or percentages that are not money. Empty for
- * now: each entry needs a reason, and whole hours can be integers instead.
- */
-const NUMERIC_ALLOWLIST: readonly string[] = [];
 
 /** The only policy expression allowed, as Postgres prints it back with pg_get_expr. */
 const TENANT_CHECK = "(organization_id = app.current_organization_id())";
