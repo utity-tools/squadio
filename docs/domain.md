@@ -61,6 +61,14 @@ Availability factor, derived from Config and the calendar, never typed in:
 \text{availability} = \frac{\text{netAnnualHours}}{\text{calendarWorkingHours}} \approx 0.78
 ```
 
+```math
+\text{calendarWorkingHours} = \text{workingDays}(\text{reference year}) \times \frac{\text{defaultWeeklyHours}}{5}
+```
+
+Calendar working hours are those of a full-time week over a whole year of the national calendar,
+never computed per assignment. Which year is the reference is set with the costing engine; the
+guide case implies 1,984 hours (248 working days × 8 hours), an availability of 0.78125.
+
 Hours of an assignment:
 
 ```math
@@ -115,19 +123,19 @@ full year at 100% cost exactly the fully loaded annual cost (see the first invar
 
 ## Rules
 
-| #   | Topic                 | Rule                                                                                                                                                                                                                                                                |
-| --- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| a   | Weekly hours          | Stored on the assignment: copied from the person, or from Config for an open role                                                                                                                                                                                   |
-| b   | Rate changes          | Choosing a scenario freezes its category rates (FrozenRate) and its overhead %, buffer % and availability factor (FrozenCostConfig). Target margin is not frozen. Other scenarios always use current values. See [What choosing freezes](#what-choosing-freezes)    |
-| c   | Over-allocation       | Per person and week: chosen scenarios of other projects plus the scenario being edited. Never two scenarios of the same project                                                                                                                                     |
-| d   | Recurring extra costs | Prorated by day. Without dates they span the project, from the first assignment start to the last end                                                                                                                                                               |
-| e   | Price in T&M          | An optional budget cap with a warning. Percentages "over price" use the calculated revenue                                                                                                                                                                          |
-| f   | Margin %              | Over revenue                                                                                                                                                                                                                                                        |
-| g   | Money                 | Euros in `numeric(12,2)` in Postgres, integer cents in TypeScript; money-bearing percentages in `numeric(5,2)`, basis points in TypeScript; allocation an integer from 0 to 100 ([ADR 0010](adr/0010-money-in-postgres.md)). Rounded once per result line, EUR only |
-| h   | Holidays              | One national calendar in v1, kept as a constant in code, not in the database; a known limitation. Changing it changes the working days of every assignment, chosen or not                                                                                           |
-| i   | Chosen scenario       | At most one per project, enforced by a partial unique index                                                                                                                                                                                                         |
-| j   | Salary leaks          | Without rate access, no costs or margins: restricted entities return no rows (ADR 0005). A warning when a category has fewer than 3 people, since its cost reveals a salary                                                                                         |
-| k   | Missing rate          | A category without a rate makes its scenarios incomplete: they show a warning and no cost, never a cost of 0                                                                                                                                                        |
+| #   | Topic                 | Rule                                                                                                                                                                                                                                                                     |
+| --- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| a   | Weekly hours          | Stored on the assignment: copied from the person, or from Config for an open role                                                                                                                                                                                        |
+| b   | Rate changes          | Choosing a scenario freezes its category rates (FrozenRate) and its overhead %, buffer % and availability factor (FrozenCostConfig). Target margin is not frozen. Other scenarios always use current values. See [What choosing freezes](#what-choosing-freezes)         |
+| c   | Over-allocation       | Per person and week: chosen scenarios of other projects plus the scenario being edited. Never two scenarios of the same project                                                                                                                                          |
+| d   | Recurring extra costs | Prorated by day. Without dates they span the project, from the first assignment start to the last end                                                                                                                                                                    |
+| e   | Price in T&M          | An optional budget cap with a warning. Percentages "over price" use the calculated revenue                                                                                                                                                                               |
+| f   | Margin %              | Over revenue                                                                                                                                                                                                                                                             |
+| g   | Money                 | Euros in `numeric(12,2)` in Postgres, integer cents in TypeScript; money-bearing percentages in `numeric(5,2)`, basis points in TypeScript; allocation an integer from 0 to 100 ([ADR 0010](adr/0010-money-in-postgres.md)). Rounded once per result line, EUR only      |
+| h   | Holidays              | One national calendar in v1, kept as a constant in code, not in the database; a known limitation. Choosing a scenario freezes its calendar working hours but not the working days of its assignments, so changing the constant still moves the hours of chosen scenarios |
+| i   | Chosen scenario       | At most one per project, enforced by a partial unique index                                                                                                                                                                                                              |
+| j   | Salary leaks          | Without rate access, no costs or margins: restricted entities return no rows (ADR 0005). A warning when a category has fewer than 3 people, since its cost reveals a salary                                                                                              |
+| k   | Missing rate          | A category without a rate makes its scenarios incomplete: they show a warning and no cost, never a cost of 0                                                                                                                                                             |
 
 ### What choosing freezes
 
@@ -139,11 +147,11 @@ outside the scenario:
   sell rate of each category it uses. Its cost per hour is derived from them, never stored rounded.
 - **Overhead % and buffer %** (FrozenCostConfig): the values in effect when it is chosen, the
   project's overrides or else the organization's CostConfig.
-- **The availability factor** (FrozenCostConfig). It comes from Config (net annual hours and the
-  holiday calendar) and multiplies every assignment's hours, so without freezing it, changing net
-  annual hours would change the cost of every chosen scenario. It is stored as its two terms, net
-  annual hours and calendar working hours, so the frozen factor is exactly the one the scenario was
-  costed with, with no rounding.
+- **The availability factor** (FrozenCostConfig). It comes from Config (net annual hours and default
+  weekly hours) and the holiday calendar, and multiplies every assignment's hours, so without
+  freezing it, changing net annual hours would change the cost of every chosen scenario. It is
+  stored as its two terms, net annual hours and calendar working hours, so the frozen factor is
+  exactly the one the scenario was costed with, with no rounding.
 
 **Target margin is not frozen.** It is a goal, not a cost: a chosen scenario's margin stays the
 same, and its green, amber or red status is judged against the organization's current target.

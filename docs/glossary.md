@@ -24,6 +24,7 @@ what consultancies in Spain usually say.
 | Cost per hour            | Coste/hora                        | Fully loaded annual cost / net annual hours                                                                                     |
 | Sell rate                | Tarifa de venta                   | What an hour of a category is billed at in T&M                                                                                  |
 | Availability factor      | Factor de disponibilidad          | Net annual hours / calendar working hours (about 0.78)                                                                          |
+| Calendar working hours   | Horas laborables de calendario    | Working days of the national calendar in a year × default daily hours. The denominator of the availability factor               |
 | Nominal hours            | Horas nominales                   | Calendar hours of an assignment: working days × daily hours × allocation. Used for planning                                     |
 | Effective hours          | Horas efectivas                   | Nominal hours × availability factor. Used for cost, billing and the effective rate                                              |
 | Overhead                 | Overhead                          | Structural cost charged as a percentage of staff cost                                                                           |
