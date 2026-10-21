@@ -1,0 +1,54 @@
+import { expect, test } from "@playwright/test";
+
+import { expectNoAxeViolations } from "./support/axe";
+
+// Needs the demo organization: `pnpm db:migrate` and `pnpm db:seed` (CI does both).
+const GUIDE_SCENARIO = "6d656d6f-0000-4000-8000-000000000200";
+
+test("a demo scenario opens with its header, team and summary", async ({ page }) => {
+  await page.goto(`/scenarios/${GUIDE_SCENARIO}`);
+
+  await expect(page).toHaveTitle("Escenario · Squadio");
+  await expect(page.getByRole("heading", { level: 1, name: "Escenario" })).toBeVisible();
+  await expect(page.getByRole("main", { name: "Equipo" })).toBeVisible();
+  await expect(page.getByRole("complementary", { name: "Resumen" })).toBeVisible();
+  await expect(page.getByRole("radiogroup", { name: "Tema" })).toBeVisible();
+});
+
+test("the scenario page speaks English under /en", async ({ page }) => {
+  await page.goto(`/en/scenarios/${GUIDE_SCENARIO}`);
+
+  await expect(page.getByRole("main", { name: "Team" })).toBeVisible();
+});
+
+for (const [what, id] of [
+  ["an id that is not a UUID", "plan-a"],
+  ["a scenario that is not in the organization", "00000000-0000-4000-8000-000000000000"],
+]) {
+  test(`${what} shows the not-found page, kept out of search engines`, async ({ page }) => {
+    // The skeleton has streamed by the time the scenario turns out missing, so the status stays
+    // 200 (Next.js, not-found.js); the noindex tag is what keeps the page out of search engines.
+    await page.goto(`/scenarios/${id}`);
+
+    await expect(
+      page.getByRole("heading", { level: 1, name: "No encontramos esta página" }),
+    ).toBeVisible();
+    await expect(page.getByRole("link", { name: "Volver al inicio" })).toHaveAttribute("href", "/");
+    await expect(page.locator('meta[name="robots"][content="noindex"]').first()).toBeAttached();
+    await expectNoAxeViolations(page);
+  });
+}
+
+for (const colorScheme of ["light", "dark"] as const) {
+  test(`the scenario page has no accessibility violations in the ${colorScheme} theme`, async ({
+    page,
+  }) => {
+    await page.emulateMedia({ colorScheme });
+    await page.goto(`/scenarios/${GUIDE_SCENARIO}`);
+    // The heading is not in the skeleton: once it shows, the page has loaded.
+    await expect(page.getByRole("heading", { level: 1, name: "Escenario" })).toBeVisible();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", colorScheme);
+
+    await expectNoAxeViolations(page);
+  });
+}

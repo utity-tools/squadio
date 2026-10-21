@@ -65,6 +65,9 @@ jobs:
     name: E2E tests on a production build
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    # The scenario pages read the demo organization: migrate and seed before the tests.
+    env:
+      DATABASE_OWNER_URL: postgres://squadio_owner:squadio_owner_dev@127.0.0.1:5434/squadio_test
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -76,6 +79,9 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec playwright install --with-deps chromium
+      - run: docker compose up -d --wait
+      - run: pnpm db:migrate
+      - run: pnpm db:seed
       - run: pnpm test:e2e:prod
       - if: ${{ failure() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

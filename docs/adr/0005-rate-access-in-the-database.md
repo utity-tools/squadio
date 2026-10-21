@@ -87,3 +87,10 @@ no rows instead of salaries.
 - **2026-10-21:** The small category warning of rule j counts active people: it shows for a category
   with 1 or 2 of them, not for one with none ([Small categories](../domain.md#small-categories)).
   It still needs rate access to be seen, like the costs it is about.
+- **2026-10-21:** Until sign-in lands in v0.5, the app serves one access context: the demo
+  organization, with rate access, to anyone who opens it. Its data is synthetic and its template
+  figures are already public in [domain.md](../domain.md), so nothing real is exposed; production
+  holds only the demo organization until then. The context is built in one place,
+  `currentAccessContext()` in `src/db/access.ts`, which v0.5 replaces with the signed-in member's.
+  The scenario page will take `?access=none` to show the state without rate access, so this ADR
+  can be seen without sign-in. The decision itself is unchanged.

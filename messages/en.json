@@ -15,5 +15,16 @@
     "system": "System",
     "light": "Light",
     "dark": "Dark"
+  },
+  "ScenarioPage": {
+    "title": "Scenario",
+    "team": "Team",
+    "summary": "Summary",
+    "loading": "Loading the scenario…"
+  },
+  "ScenarioError": {
+    "title": "We couldn't open this scenario",
+    "description": "Something went wrong while reading it. Try again in a moment.",
+    "retry": "Try again"
   }
 }
