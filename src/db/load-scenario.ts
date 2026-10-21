@@ -1,0 +1,148 @@
+import { eq } from "drizzle-orm";
+import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+import { z } from "zod";
+
+import {
+  assignments,
+  categoryRates,
+  config,
+  costConfig,
+  extraCosts,
+  people,
+  projectPricing,
+  projects,
+  scenarios,
+} from "./schema";
+import { type ScenarioResult, calculateScenario } from "@/lib/costing/calculate-scenario";
+import { type SmallCategory, findSmallCategories } from "@/lib/rates/small-categories";
+
+import {
+  type EngineInput,
+  type StoredScenario,
+  toEngineInput,
+  toHoursInput,
+} from "@/lib/scenarios/engine-input";
+
+import { type AccessContext, type TenantTransaction, withOrganization } from "./tenant";
+
+// docs/domain.md, "Loading a scenario".
+
+export type LoadedScenario =
+  | { rateAccess: true; result: ScenarioResult; smallCategories: SmallCategory[] }
+  | {
+      rateAccess: false;
+      hours: ScenarioResult["hours"];
+      assignments: ScenarioResult["assignments"];
+    };
+
+const run = ({ scenario, rates, costSettings, targetMargin }: EngineInput) =>
+  calculateScenario(scenario, rates, costSettings, targetMargin);
+
+/** The rows everyone reads; undefined when the scenario is not in the organization. */
+async function readStructure(tx: TenantTransaction, scenarioId: string) {
+  const [scenario] = await tx
+    .select({ projectId: projects.id, pricingModel: projects.pricingModel })
+    .from(scenarios)
+    .innerJoin(projects, eq(projects.id, scenarios.projectId))
+    .where(eq(scenarios.id, scenarioId));
+  if (!scenario) return undefined;
+  const [settings] = await tx
+    .select({
+      netAnnualHours: config.netAnnualHours,
+      defaultWeeklyHours: config.defaultWeeklyHours,
+    })
+    .from(config);
+  if (!settings) throw new Error("The organization has no config");
+  const team = await tx
+    .select({
+      id: assignments.id,
+      categoryId: assignments.categoryId,
+      reportsTo: assignments.reportsTo,
+      weeklyHours: assignments.weeklyHours,
+      allocation: assignments.allocation,
+      startDate: assignments.startDate,
+      endDate: assignments.endDate,
+    })
+    .from(assignments)
+    .where(eq(assignments.scenarioId, scenarioId))
+    .orderBy(assignments.startDate, assignments.id);
+  return { ...scenario, config: settings, assignments: team };
+}
+
+/** The restricted rows: none without rate access (ADR 0005). */
+async function readMoney(tx: TenantTransaction, scenarioId: string, projectId: string) {
+  const [organizationCosts] = await tx
+    .select({
+      overhead: costConfig.overhead,
+      buffer: costConfig.buffer,
+      targetMargin: costConfig.targetMargin,
+    })
+    .from(costConfig);
+  const [pricing] = await tx
+    .select({
+      price: projectPricing.price,
+      overhead: projectPricing.overhead,
+      buffer: projectPricing.buffer,
+    })
+    .from(projectPricing)
+    .where(eq(projectPricing.projectId, projectId));
+  const extras = await tx
+    .select({
+      id: extraCosts.id,
+      label: extraCosts.label,
+      kind: extraCosts.kind,
+      amount: extraCosts.amount,
+      percentage: extraCosts.percentage,
+      base: extraCosts.base,
+      startDate: extraCosts.startDate,
+      endDate: extraCosts.endDate,
+    })
+    .from(extraCosts)
+    .where(eq(extraCosts.scenarioId, scenarioId))
+    .orderBy(extraCosts.id);
+  const rates = await tx
+    .select({
+      categoryId: categoryRates.categoryId,
+      grossAnnualSalaryCents: categoryRates.grossAnnualSalary,
+      socialSecurityBasisPoints: categoryRates.socialSecurity,
+      otherYearlyCostsCents: categoryRates.otherYearlyCosts,
+      manualCostPerHourCents: categoryRates.manualCostPerHour,
+      sellRateCents: categoryRates.sellRate,
+    })
+    .from(categoryRates);
+  return { costConfig: organizationCosts, pricing, extraCosts: extras, rates };
+}
+
+/**
+ * A scenario's result with the organization's current values, or null when the scenario is not
+ * in the organization. Without rate access only its hours: never a money figure.
+ */
+export async function loadScenario(
+  db: NodePgDatabase,
+  context: AccessContext,
+  scenarioIdInput: string,
+): Promise<LoadedScenario | null> {
+  const scenarioId = z.uuid().parse(scenarioIdInput);
+  return withOrganization(db, context, async (tx) => {
+    const structure = await readStructure(tx, scenarioId);
+    if (!structure) return null;
+    const { projectId, ...rest } = structure;
+
+    if (!context.rateAccess) {
+      const stored: StoredScenario = { ...rest, extraCosts: [], rates: [] };
+      const { hours, assignments: perAssignment } = run(toHoursInput(stored));
+      return { rateAccess: false, hours, assignments: perAssignment };
+    }
+
+    const money = await readMoney(tx, scenarioId, projectId);
+    const result = run(toEngineInput({ ...rest, ...money }));
+    const headcount = await tx
+      .select({ id: people.id, categoryId: people.categoryId, active: people.active })
+      .from(people);
+    const used = new Set(rest.assignments.map((assignment) => assignment.categoryId));
+    const smallCategories = findSmallCategories(headcount).filter((small) =>
+      used.has(small.categoryId),
+    );
+    return { rateAccess: true, result, smallCategories };
+  });
+}
