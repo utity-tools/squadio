@@ -9,5 +9,11 @@
     "title": "No encontramos esta página",
     "description": "Puede que la dirección esté mal o que la página ya no exista.",
     "back": "Volver al inicio"
+  },
+  "Theme": {
+    "label": "Tema",
+    "system": "Sistema",
+    "light": "Claro",
+    "dark": "Oscuro"
   }
 }

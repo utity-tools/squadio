@@ -9,5 +9,11 @@
     "title": "We couldn't find this page",
     "description": "The address may be wrong, or the page may no longer exist.",
     "back": "Back to the home page"
+  },
+  "Theme": {
+    "label": "Theme",
+    "system": "System",
+    "light": "Light",
+    "dark": "Dark"
   }
 }
