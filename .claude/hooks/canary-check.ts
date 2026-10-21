@@ -1,6 +1,7 @@
 /**
- * Stop hook: checks the context-drift canary from CLAUDE.md. If the reply of the turn does not
- * start with "Capitán", exit code 2 keeps Claude going and sends stderr back to it.
+ * Stop hook: checks the context-drift canary from CLAUDE.md. If the final reply of the turn does
+ * not start with "Capitán", exit code 2 keeps Claude going and sends stderr back to it. Progress
+ * notes written earlier in the turn are not checked.
  * Fails open: an unreadable transcript never blocks.
  * Runs with Node's built-in type stripping: keep to erasable TypeScript syntax.
  */
@@ -24,8 +25,8 @@ function parse(line: string): Entry | null {
   }
 }
 
-/** First text Claude wrote after the latest user prompt, or null if it has written none. */
-export function firstReplyText(lines: string[]): string | null {
+/** Last text Claude wrote after the latest user prompt, or null if it has written none. */
+export function finalReplyText(lines: string[]): string | null {
   let reply: string | null = null;
 
   for (const entry of lines.map(parse)) {
@@ -36,8 +37,8 @@ export function firstReplyText(lines: string[]): string | null {
       const isPrompt =
         typeof content === "string" || content?.some((block) => block.type === "text");
       if (isPrompt) reply = null;
-    } else if (entry.type === "assistant" && reply === null && Array.isArray(content)) {
-      reply = content.find((block) => block.type === "text")?.text ?? null;
+    } else if (entry.type === "assistant" && Array.isArray(content)) {
+      reply = content.findLast((block) => block.type === "text")?.text ?? reply;
     }
   }
 
@@ -53,7 +54,7 @@ if (import.meta.main) {
   if (!input.stop_hook_active && input.transcript_path) {
     let reply: string | null = null;
     try {
-      reply = firstReplyText(readFileSync(input.transcript_path, "utf8").split("\n"));
+      reply = finalReplyText(readFileSync(input.transcript_path, "utf8").split("\n"));
     } catch {
       // Fail open.
     }

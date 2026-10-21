@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { firstReplyText } from "./canary-check";
+import { finalReplyText } from "./canary-check";
 
 const hook = fileURLToPath(new URL("./canary-check.ts", import.meta.url));
 
@@ -22,8 +22,8 @@ const text = (value: string) => ({ type: "text", text: value });
 
 const lines = (...entries: object[]) => entries.map((entry) => JSON.stringify(entry));
 
-describe("firstReplyText", () => {
-  it("returns the first text of the latest turn, skipping thinking and tool calls", () => {
+describe("finalReplyText", () => {
+  it("returns the last text of the latest turn, skipping thinking and tool calls", () => {
     const transcript = lines(
       prompt("first"),
       reply(text("Capitán, old turn")),
@@ -31,11 +31,21 @@ describe("firstReplyText", () => {
       reply({ type: "thinking" }),
       reply({ type: "tool_use" }),
       toolResult(),
+      reply(text("progress note")),
+      reply({ type: "tool_use" }),
+      toolResult(),
       reply(text("Capitán, new turn")),
-      reply(text("trailing note")),
+      reply({ type: "tool_use" }),
+      toolResult(),
     );
 
-    expect(firstReplyText(transcript)).toBe("Capitán, new turn");
+    expect(finalReplyText(transcript)).toBe("Capitán, new turn");
+  });
+
+  it("returns the last text block of an entry", () => {
+    const transcript = lines(prompt("go"), reply(text("note"), text("Capitán, done")));
+
+    expect(finalReplyText(transcript)).toBe("Capitán, done");
   });
 
   it("ignores subagent and meta entries", () => {
@@ -46,15 +56,15 @@ describe("firstReplyText", () => {
       reply(text("Capitán, done")),
     );
 
-    expect(firstReplyText(transcript)).toBe("Capitán, done");
+    expect(finalReplyText(transcript)).toBe("Capitán, done");
   });
 
   it("returns null when the turn has no text yet", () => {
-    expect(firstReplyText(lines(prompt("go"), reply({ type: "tool_use" })))).toBeNull();
+    expect(finalReplyText(lines(prompt("go"), reply({ type: "tool_use" })))).toBeNull();
   });
 
   it("skips lines that are not valid JSON", () => {
-    expect(firstReplyText(["{broken", ...lines(prompt("go"), reply(text("Capitán")))])).toBe(
+    expect(finalReplyText(["{broken", ...lines(prompt("go"), reply(text("Capitán")))])).toBe(
       "Capitán",
     );
   });
@@ -74,6 +84,30 @@ describe("canary-check hook", () => {
     const transcript_path = transcriptWith(prompt("go"), reply(text("Capitán · all good")));
 
     expect(run({ transcript_path }).status).toBe(0);
+  });
+
+  it("ignores progress notes before a final reply that starts with the canary", () => {
+    const transcript_path = transcriptWith(
+      prompt("go"),
+      reply(text("Now the tests.")),
+      reply({ type: "tool_use" }),
+      toolResult(),
+      reply(text("Capitán, all good")),
+    );
+
+    expect(run({ transcript_path }).status).toBe(0);
+  });
+
+  it("exits 2 when the final reply drops the canary", () => {
+    const transcript_path = transcriptWith(
+      prompt("go"),
+      reply(text("Capitán, starting")),
+      reply({ type: "tool_use" }),
+      toolResult(),
+      reply(text("All good")),
+    );
+
+    expect(run({ transcript_path }).status).toBe(2);
   });
 
   it("exits 2 when the reply drops the canary", () => {
