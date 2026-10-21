@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { readFile } from "node:fs/promises";
 
 import { sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
@@ -125,5 +126,19 @@ describe("owner role", () => {
     );
 
     expect(rows).toEqual([{ rolsuper: false, rolbypassrls: false }]);
+  });
+});
+
+// The check that guards the Neon bootstrap and every preview branch (ADR 0009) must pass on roles
+// that are set up correctly, as the local ones are.
+describe("Neon role check", () => {
+  const pool = appPool(1);
+
+  afterAll(() => pool.end());
+
+  it("passes against the local roles", async () => {
+    const check = await readFile("infra/neon/role-check.sql", "utf8");
+
+    await expect(pool.query(check)).resolves.toBeDefined();
   });
 });
