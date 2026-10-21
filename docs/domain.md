@@ -57,6 +57,11 @@ Cost per hour of a category:
 \text{costPerHour} = \frac{\text{grossSalary} \times (1 + \text{socialSecurity}) + \text{otherCosts}}{\text{netAnnualHours}}
 ```
 
+The numerator is the fully loaded annual cost. Derived from a CategoryRate it is rounded once to the
+cent, half away from zero, since the engine takes it in integer cents (a 31.17% social security on
+41,333.33 € gives 12,883.598… €); the template values give whole euros, so there it moves nothing.
+The cost per hour itself is never rounded.
+
 Availability factor, derived from Config and the calendar, never typed in:
 
 ```math
@@ -69,7 +74,9 @@ Availability factor, derived from Config and the calendar, never typed in:
 
 Calendar working hours are those of a full-time week over a whole year of the national calendar,
 never computed per assignment. The engine takes them as an input in `costSettings`, so which year is
-the reference is decided where Config's availability is derived, not in the engine. With the
+the reference is decided where Config's availability is derived, not in the engine: the year of
+the scenario's earliest assignment start, so a scenario is costed with the calendar of the year it
+runs in. A scenario without assignments has no hours, and the factor then moves nothing. With the
 national calendar of rule h a year has about 254 working days (2,032 hours, an availability of
 0.763); the guide case sets 1,984 hours instead (248 working days × 8 hours, an availability of
 0.78125), an input that keeps its figures round. Weekly hours have at most two decimals, so
@@ -159,7 +166,7 @@ the path of the field, never a silent result. Missing (`null` or `undefined` whe
 required), `NaN`, infinite and empty values are all invalid, as are money that is not integer
 cents and percentages that are not integer basis points. A sell rate of 0 € is valid (internal or
 unbilled work); a fixed price and a T&M budget cap, when set, are at least 1 cent, so a fixed price
-always has revenue. Weekly hours are at most 168. Assignment, extra cost and category rate ids do
+always has revenue, and without one the scenario is incomplete (rule l). Weekly hours are at most 168. Assignment, extra cost and category rate ids do
 not repeat, an assignment reports to another assignment of the same scenario, and a recurring cost
 has both dates or neither (the issue points at the missing one). An extra cost's label, when set,
 is 1 to 100 characters and not blank.
@@ -218,6 +225,7 @@ cost exactly the fully loaded annual cost (see the first invariant below).
 | i   | Chosen scenario       | At most one per project, enforced by a partial unique index                                                                                                                                                                                                              |
 | j   | Salary leaks          | Without rate access, no costs or margins: restricted entities return no rows (ADR 0005). A warning when a category has 1 or 2 active people, since its cost reveals a salary. See [Small categories](#small-categories)                                                  |
 | k   | Missing rate          | A category without a rate makes its scenarios incomplete: they show a warning and no cost, never a cost of 0                                                                                                                                                             |
+| l   | Missing price         | A fixed-price project without a price makes its scenarios incomplete, as in rule k: a warning and no cost or margin, never a revenue of 0                                                                                                                                |
 
 ### Small categories
 
@@ -263,13 +271,32 @@ calendar are not frozen either, so a chosen scenario's margin can still move wit
 effective hours use the current Config. They see no cost or margin, so the difference only shows in
 effective hours, and only after Config changes.
 
+## Loading a scenario
+
+The loader, `loadScenario` in `src/db`, reads a scenario inside `withOrganization`, builds the
+inputs of `calculateScenario` from the current values with the pure functions of `src/lib/scenarios`,
+as [The calculation](#the-calculation) lists them, and runs it. Until choosing arrives in v0.2 no scenario is chosen, so there are no frozen values to read.
+Every organization has its Config and CostConfig from the moment it exists (the starting template
+creates them), so a missing one is an error, never an incomplete result.
+
+- **With rate access** it returns the engine's result, and the small-category warning of rule j for
+  each category of the scenario that has 1 or 2 active people.
+- **Without rate access** the restricted tables return no rows, so it returns only the hours: the
+  scenario's nominal and effective hours and those of each assignment. Never a result line, a rate
+  or a warning about money.
+
+An assignment date outside the calendar's years stays a validation error on that field (see
+[Formulas](#formulas)): the reference year never turns it into another kind of error.
+
 ## Configuration per organization
 
 Each organization creates its own categories and sets every number. A salary can be entered per year
 or per month with the number of payments (2,100 €/month × 14 = 29,400 €/year). On sign-up the
 organization picks a starting template (Consultancy, Startup, Design agency) and edits it.
 
-The Consultancy template, also used by the demo (Madrid, 2026, indicative):
+The Consultancy template, also used by the demo organization (Madrid, 2026, indicative). The demo's
+first scenario is the guide case team, costed with the 2027 calendar rather than the guide case's
+1,984 hours, so its figures differ slightly from the table below:
 
 | Category           | Gross annual | Fully loaded | Cost per hour | Sell rate per hour |
 | ------------------ | -----------: | -----------: | ------------: | -----------------: |
