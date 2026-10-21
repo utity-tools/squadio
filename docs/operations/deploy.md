@@ -2,7 +2,8 @@
 
 Production is `https://squadio.utitytools.com`: a Vercel project in `fra1` and a Neon project in
 AWS Frankfurt. Only GitHub Actions deploys, and only from `main` after CI passed
-([ADR 0006](../adr/0006-deploys-from-github-actions.md)).
+([ADR 0006](../adr/0006-deploys-from-github-actions.md)). Pull requests get previews instead: see
+[`preview.md`](preview.md).
 
 ## How a deploy works
 
