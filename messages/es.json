@@ -38,5 +38,28 @@
     "title": "No hemos podido abrir este escenario",
     "description": "Algo ha fallado al leerlo. Prueba otra vez dentro de un momento.",
     "retry": "Reintentar"
+  },
+  "TeamTree": {
+    "label": "Árbol del equipo",
+    "instructions": "Muévete con las flechas: arriba al responsable, abajo al primer subordinado, izquierda y derecha entre compañeros. Inicio vuelve a la raíz. Más, menos y cero acercan, alejan y ajustan la vista.",
+    "openRole": "Vacante",
+    "weeklyHours": "{hours} h/sem",
+    "effectiveHours": "{hours} h efectivas",
+    "nominalHours": "{hours} h nominales",
+    "controls": "Controles del lienzo",
+    "zoomIn": "Acercar",
+    "zoomOut": "Alejar",
+    "fitView": "Ajustar el equipo a la vista",
+    "empty": {
+      "title": "Este escenario aún no tiene equipo",
+      "description": "Sus asignaciones aparecerán aquí como un árbol."
+    },
+    "layoutError": {
+      "title": "No podemos dibujar este equipo",
+      "assignment": "{title} ({person})",
+      "duplicateId": "La asignación {name} aparece dos veces.",
+      "unknownReportsTo": "{name} depende de una asignación que no está en este escenario.",
+      "cycle": "Estas asignaciones dependen unas de otras en bucle: {names}."
+    }
   }
 }
