@@ -11,6 +11,7 @@ import {
   categoryRates,
   config,
   costConfig,
+  people,
   projects,
   scenarios,
 } from "@/db/schema";
@@ -102,15 +103,104 @@ describe("loadScenario", () => {
     ]);
   });
 
-  it("returns only hours without rate access", async () => {
+  it("returns only the open part and the hours without rate access", async () => {
     const full = await loadScenario(app, withRates, DEMO_IDS.guideScenario);
     const hoursOnly = await loadScenario(app, withoutRates, DEMO_IDS.guideScenario);
     if (!full?.rateAccess) throw new Error("expected a result with rate access");
 
     expect(hoursOnly).toEqual({
+      project: full.project,
+      scenario: full.scenario,
+      team: full.team,
+      span: full.span,
       rateAccess: false,
       hours: full.result.hours,
       assignments: full.result.assignments,
+    });
+  });
+
+  it("names the project, the scenario and the team for everyone", async () => {
+    const names = await withOrganization(app, withRates, async (tx) => ({
+      categories: await tx.select({ id: categories.id, name: categories.name }).from(categories),
+      people: await tx.select({ id: people.id, name: people.name }).from(people),
+    }));
+    const category = (name: string) => names.categories.find((c) => c.name === name)!;
+    const person = (name: string) => names.people.find((p) => p.name === name)!;
+    const seat = (
+      id: string,
+      projectRole: string,
+      categoryName: string,
+      personName: string | null,
+      allocation: number,
+      reportsTo: string | null,
+    ) => ({
+      id,
+      projectRole,
+      category: category(categoryName),
+      person: personName === null ? null : person(personName),
+      reportsTo,
+      weeklyHours: 40,
+      allocation,
+      startDate: "2027-04-01",
+      endDate: "2027-09-29",
+    });
+    const { manager: lead, senior, frontend, devops } = DEMO_IDS.guide;
+
+    for (const context of [withRates, withoutRates]) {
+      expect(await loadScenario(app, context, DEMO_IDS.guideScenario)).toMatchObject({
+        project: { name: "Customer portal", client: "Demo Client", pricingModel: "fixed" },
+        scenario: { name: "Plan A", chosen: false },
+        team: [
+          seat(lead, "Project manager", "Project Manager", "Project Manager 1", 50, null),
+          seat(senior, "Tech lead", "Senior Developer", "Senior Developer 1", 100, lead),
+          seat(
+            frontend,
+            "Frontend developer",
+            "Frontend Developer",
+            "Frontend Developer 1",
+            100,
+            lead,
+          ),
+          // DevOps is an open role: no person.
+          seat(devops, "DevOps engineer", "DevOps Engineer", null, 50, lead),
+        ],
+        span: { start: "2027-04-01", end: "2027-09-29", workingDays: 130 },
+      });
+    }
+  });
+
+  it("opens a chosen scenario without a team, with no project span", async () => {
+    const context: AccessContext = { organizationId: randomUUID(), rateAccess: false };
+    const organizationId = context.organizationId;
+    // Rows go in with rate access; the loader reads without it.
+    const scenarioId = await withOrganization(app, { ...context, rateAccess: true }, async (tx) => {
+      await tx
+        .insert(config)
+        .values({ organizationId, netAnnualHours: 1550, defaultWeeklyHours: 40 });
+      const [project] = await tx
+        .insert(projects)
+        .values({
+          organizationId,
+          name: "Support",
+          client: "Client C",
+          pricingModel: "time_and_materials",
+        })
+        .returning();
+      const [scenario] = await tx
+        .insert(scenarios)
+        .values({ organizationId, projectId: project!.id, name: "Plan A", chosen: true })
+        .returning();
+      return scenario!.id;
+    });
+
+    expect(await loadScenario(app, context, scenarioId)).toEqual({
+      project: { name: "Support", client: "Client C", pricingModel: "time_and_materials" },
+      scenario: { name: "Plan A", chosen: true },
+      team: [],
+      span: null,
+      rateAccess: false,
+      hours: { nominal: 0, effective: 0 },
+      assignments: [],
     });
   });
 
@@ -169,6 +259,54 @@ describe("loadScenario", () => {
       rateAccess: true,
       result: { complete: false, warnings: [{ code: "missingPrice" }] },
     });
+  });
+
+  it("reports a date outside the calendar on its field, with and without rate access", async () => {
+    const organizationId = randomUUID();
+    const owner: AccessContext = { organizationId, rateAccess: true };
+    const scenarioId = await withOrganization(app, owner, async (tx) => {
+      await tx
+        .insert(config)
+        .values({ organizationId, netAnnualHours: 1550, defaultWeeklyHours: 40 });
+      await tx
+        .insert(costConfig)
+        .values({ organizationId, overhead: 1500, buffer: 1000, targetMargin: 2500 });
+      const [category] = await tx
+        .insert(categories)
+        .values({ organizationId, name: "Senior Developer" })
+        .returning();
+      const [project] = await tx
+        .insert(projects)
+        .values({ organizationId, name: "Long run", client: "Client D", pricingModel: "fixed" })
+        .returning();
+      const [scenario] = await tx
+        .insert(scenarios)
+        .values({ organizationId, projectId: project!.id, name: "Plan A" })
+        .returning();
+      // The database only checks that the end is not before the start.
+      await tx.insert(assignments).values({
+        organizationId,
+        scenarioId: scenario!.id,
+        categoryId: category!.id,
+        projectRole: "Developer",
+        weeklyHours: 40,
+        allocation: 100,
+        startDate: "2027-04-01",
+        endDate: "2031-01-31",
+      });
+      return scenario!.id;
+    });
+
+    for (const rateAccess of [true, false]) {
+      const error = await loadScenario(app, { organizationId, rateAccess }, scenarioId).catch(
+        (caught: unknown) => caught,
+      );
+      // The engine's validation runs before the project span could throw a CalendarError.
+      expect(error).toBeInstanceOf(ZodError);
+      expect((error as ZodError).issues.map((issue) => issue.path)).toEqual([
+        ["scenario", "assignments", 0, "endDate"],
+      ]);
+    }
   });
 
   it("refuses a scenario id that is not a UUID", async () => {

@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import {
   assignments,
+  categories,
   categoryRates,
   config,
   costConfig,
@@ -15,6 +16,7 @@ import {
 } from "./schema";
 import { type ScenarioResult, calculateScenario } from "@/lib/costing/calculate-scenario";
 import { type SmallCategory, findSmallCategories } from "@/lib/rates/small-categories";
+import { type ProjectSpan, projectSpan } from "@/lib/scenarios/project-span";
 
 import {
   type EngineInput,
@@ -27,13 +29,39 @@ import { type AccessContext, type TenantTransaction, withOrganization } from "./
 
 // docs/domain.md, "Loading a scenario".
 
-export type LoadedScenario =
-  | { rateAccess: true; result: ScenarioResult; smallCategories: SmallCategory[] }
-  | {
-      rateAccess: false;
-      hours: ScenarioResult["hours"];
-      assignments: ScenarioResult["assignments"];
-    };
+/**
+ * An assignment as everyone sees it: structure and names, never money. No person: an open role.
+ * It names people, so it is never an AI payload (ADR 0003).
+ */
+export type TeamAssignment = {
+  id: string;
+  projectRole: string;
+  category: { id: string; name: string };
+  person: { id: string; name: string } | null;
+  reportsTo: string | null;
+  weeklyHours: number;
+  allocation: number;
+  startDate: string;
+  endDate: string;
+};
+
+/** The open part: what everyone gets, read only from tables without money (ADR 0005). */
+export type OpenScenario = {
+  project: { name: string; client: string; pricingModel: StoredScenario["pricingModel"] };
+  scenario: { name: string; chosen: boolean };
+  team: TeamAssignment[];
+  span: ProjectSpan | null;
+};
+
+export type LoadedScenario = OpenScenario &
+  (
+    | { rateAccess: true; result: ScenarioResult; smallCategories: SmallCategory[] }
+    | {
+        rateAccess: false;
+        hours: ScenarioResult["hours"];
+        assignments: ScenarioResult["assignments"];
+      }
+  );
 
 const run = ({ scenario, rates, costSettings, targetMargin }: EngineInput) =>
   calculateScenario(scenario, rates, costSettings, targetMargin);
@@ -41,7 +69,14 @@ const run = ({ scenario, rates, costSettings, targetMargin }: EngineInput) =>
 /** The rows everyone reads; undefined when the scenario is not in the organization. */
 async function readStructure(tx: TenantTransaction, scenarioId: string) {
   const [scenario] = await tx
-    .select({ projectId: projects.id, pricingModel: projects.pricingModel })
+    .select({
+      projectId: projects.id,
+      project: projects.name,
+      client: projects.client,
+      pricingModel: projects.pricingModel,
+      name: scenarios.name,
+      chosen: scenarios.chosen,
+    })
     .from(scenarios)
     .innerJoin(projects, eq(projects.id, scenarios.projectId))
     .where(eq(scenarios.id, scenarioId));
@@ -56,7 +91,11 @@ async function readStructure(tx: TenantTransaction, scenarioId: string) {
   const team = await tx
     .select({
       id: assignments.id,
+      projectRole: assignments.projectRole,
       categoryId: assignments.categoryId,
+      categoryName: categories.name,
+      personId: people.id,
+      personName: people.name,
       reportsTo: assignments.reportsTo,
       weeklyHours: assignments.weeklyHours,
       allocation: assignments.allocation,
@@ -64,9 +103,40 @@ async function readStructure(tx: TenantTransaction, scenarioId: string) {
       endDate: assignments.endDate,
     })
     .from(assignments)
+    .innerJoin(categories, eq(categories.id, assignments.categoryId))
+    .leftJoin(people, eq(people.id, assignments.personId))
     .where(eq(assignments.scenarioId, scenarioId))
     .orderBy(assignments.startDate, assignments.id);
-  return { ...scenario, config: settings, assignments: team };
+  return { ...scenario, config: settings, team };
+}
+
+type Structure = NonNullable<Awaited<ReturnType<typeof readStructure>>>;
+
+/** The engine's view of the team: no names. */
+const toStoredAssignments = (team: Structure["team"]): StoredScenario["assignments"] =>
+  team.map(({ id, categoryId, reportsTo, weeklyHours, allocation, startDate, endDate }) => ({
+    id,
+    categoryId,
+    reportsTo,
+    weeklyHours,
+    allocation,
+    startDate,
+    endDate,
+  }));
+
+/** Runs after the engine, so a date outside the calendar fails there first, on its field. */
+function toOpenScenario(structure: Structure): OpenScenario {
+  const { project, client, pricingModel, name, chosen, team } = structure;
+  return {
+    project: { name: project, client, pricingModel },
+    scenario: { name, chosen },
+    team: team.map(({ categoryId, categoryName, personId, personName, ...member }) => ({
+      ...member,
+      category: { id: categoryId, name: categoryName },
+      person: personId === null || personName === null ? null : { id: personId, name: personName },
+    })),
+    span: projectSpan(team),
+  };
 }
 
 /** The restricted rows: none without rate access (ADR 0005). */
@@ -114,8 +184,9 @@ async function readMoney(tx: TenantTransaction, scenarioId: string, projectId: s
 }
 
 /**
- * A scenario's result with the organization's current values, or null when the scenario is not
- * in the organization. Without rate access only its hours: never a money figure.
+ * A scenario's open part and result with the organization's current values, or null when the
+ * scenario is not in the organization. Without rate access the open part and its hours only:
+ * never a money figure.
  */
 export async function loadScenario(
   db: NodePgDatabase,
@@ -126,23 +197,28 @@ export async function loadScenario(
   return withOrganization(db, context, async (tx) => {
     const structure = await readStructure(tx, scenarioId);
     if (!structure) return null;
-    const { projectId, ...rest } = structure;
+    const { projectId, pricingModel, config: settings } = structure;
+    const structural = {
+      pricingModel,
+      config: settings,
+      assignments: toStoredAssignments(structure.team),
+    };
 
     if (!context.rateAccess) {
-      const stored: StoredScenario = { ...rest, extraCosts: [], rates: [] };
+      const stored: StoredScenario = { ...structural, extraCosts: [], rates: [] };
       const { hours, assignments: perAssignment } = run(toHoursInput(stored));
-      return { rateAccess: false, hours, assignments: perAssignment };
+      return { ...toOpenScenario(structure), rateAccess: false, hours, assignments: perAssignment };
     }
 
     const money = await readMoney(tx, scenarioId, projectId);
-    const result = run(toEngineInput({ ...rest, ...money }));
+    const result = run(toEngineInput({ ...structural, ...money }));
     const headcount = await tx
       .select({ id: people.id, categoryId: people.categoryId, active: people.active })
       .from(people);
-    const used = new Set(rest.assignments.map((assignment) => assignment.categoryId));
+    const used = new Set(structural.assignments.map((assignment) => assignment.categoryId));
     const smallCategories = findSmallCategories(headcount).filter((small) =>
       used.has(small.categoryId),
     );
-    return { rateAccess: true, result, smallCategories };
+    return { ...toOpenScenario(structure), rateAccess: true, result, smallCategories };
   });
 }
