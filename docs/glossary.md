@@ -51,3 +51,4 @@ what consultancies in Spain usually say.
 | Frozen rate              | Tarifa congelada                  | A category's cost (fully loaded annual cost, or a manual cost per hour) and sell rate, copied into a scenario when it is chosen                      |
 | Frozen cost config       | Configuración de costes congelada | A scenario's overhead %, buffer % and availability factor, copied when it is chosen. Target margin is not frozen                                     |
 | Basis point              | Punto básico                      | A hundredth of a percent (31% = 3,100). How percentages that touch money are held in code (ADR 0010)                                                 |
+| Leaf column              | Columna de hojas                  | Assignments without reports, stacked in one column at the left of the row under the assignment they report to, when there are more than two          |
