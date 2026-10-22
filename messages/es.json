@@ -22,6 +22,18 @@
     "summary": "Resumen",
     "loading": "Cargando el escenario…"
   },
+  "ScenarioHeader": {
+    "breadcrumb": "Ruta de navegación",
+    "project": "{name} ({client})",
+    "chosen": "Elegido",
+    "pricingModel": "Modelo de precio",
+    "pricingModels": {
+      "fixed": "Precio cerrado",
+      "time_and_materials": "T&M"
+    },
+    "span": "Duración del proyecto",
+    "workingDays": "{count, plural, one {# día laborable} other {# días laborables}}"
+  },
   "ScenarioError": {
     "title": "No hemos podido abrir este escenario",
     "description": "Algo ha fallado al leerlo. Prueba otra vez dentro de un momento.",
