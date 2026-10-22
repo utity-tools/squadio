@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 
+import { ScenarioHeader } from "@/components/scenario/scenario-header";
 import { ScenarioShell } from "@/components/scenario/scenario-shell";
 import { currentAccessContext } from "@/db/access";
 import { db } from "@/db/client";
@@ -19,16 +20,19 @@ export default async function ScenarioPage({ params }: PageProps<"/[locale]/scen
   const { id } = await params;
   // An id that is not a UUID, or a scenario of another organization, is simply not found.
   if (!z.uuid().safeParse(id).success) notFound();
-  // The result feeds the header, tree and summary of the next slices; for now it only proves
-  // the scenario exists in the organization.
+  // The team and the result feed the tree and summary of the next slices.
   const scenario = await loadScenario(db, currentAccessContext(), id);
   if (!scenario) notFound();
 
-  const t = await getTranslations("ScenarioPage");
-
   return (
     <ScenarioShell
-      header={<h1 className="text-lg font-semibold tracking-tight">{t("title")}</h1>}
+      header={
+        <ScenarioHeader
+          project={scenario.project}
+          scenario={scenario.scenario}
+          span={scenario.span}
+        />
+      }
       team={null}
       summary={null}
     />

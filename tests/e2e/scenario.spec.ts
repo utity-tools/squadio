@@ -9,7 +9,14 @@ test("a demo scenario opens with its header, team and summary", async ({ page })
   await page.goto(`/scenarios/${GUIDE_SCENARIO}`);
 
   await expect(page).toHaveTitle("Escenario · Squadio");
-  await expect(page.getByRole("heading", { level: 1, name: "Escenario" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Plan A" })).toBeVisible();
+  const breadcrumb = page.getByRole("navigation", { name: "Ruta de navegación" });
+  await expect(breadcrumb.getByRole("listitem")).toHaveText([
+    "Customer portal (Demo Client)",
+    "Plan A",
+  ]);
+  await expect(page.getByText("Precio cerrado")).toBeVisible();
+  await expect(page.getByText("130 días laborables")).toBeVisible();
   await expect(page.getByRole("main", { name: "Equipo" })).toBeVisible();
   await expect(page.getByRole("complementary", { name: "Resumen" })).toBeVisible();
   await expect(page.getByRole("radiogroup", { name: "Tema" })).toBeVisible();
@@ -19,6 +26,9 @@ test("the scenario page speaks English under /en", async ({ page }) => {
   await page.goto(`/en/scenarios/${GUIDE_SCENARIO}`);
 
   await expect(page.getByRole("main", { name: "Team" })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Breadcrumb" })).toBeVisible();
+  await expect(page.getByText("Fixed price")).toBeVisible();
+  await expect(page.getByText("130 working days")).toBeVisible();
 });
 
 for (const [what, id] of [
@@ -46,7 +56,7 @@ for (const colorScheme of ["light", "dark"] as const) {
     await page.emulateMedia({ colorScheme });
     await page.goto(`/scenarios/${GUIDE_SCENARIO}`);
     // The heading is not in the skeleton: once it shows, the page has loaded.
-    await expect(page.getByRole("heading", { level: 1, name: "Escenario" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: "Plan A" })).toBeVisible();
     await expect(page.locator("html")).toHaveAttribute("data-theme", colorScheme);
 
     await expectNoAxeViolations(page);

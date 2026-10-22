@@ -22,6 +22,18 @@
     "summary": "Summary",
     "loading": "Loading the scenario…"
   },
+  "ScenarioHeader": {
+    "breadcrumb": "Breadcrumb",
+    "project": "{name} ({client})",
+    "chosen": "Chosen",
+    "pricingModel": "Pricing model",
+    "pricingModels": {
+      "fixed": "Fixed price",
+      "time_and_materials": "Time and materials"
+    },
+    "span": "Project span",
+    "workingDays": "{count, plural, one {# working day} other {# working days}}"
+  },
   "ScenarioError": {
     "title": "We couldn't open this scenario",
     "description": "Something went wrong while reading it. Try again in a moment.",
