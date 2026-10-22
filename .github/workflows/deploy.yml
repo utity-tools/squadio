@@ -20,7 +20,8 @@ defaults:
 jobs:
   # Runs without secrets. A deploy goes ahead only for the newest commit on main, and only once CI
   # passed on it: a slow CI run on an older commit never puts older code back in production, and a
-  # manual run never skips CI.
+  # manual run never skips CI. After CI, the triggering event carries the result; a manual run
+  # checks it through the API.
   gate:
     name: Check the commit is the tip of main and passed CI
     if: >-
@@ -48,11 +49,23 @@ jobs:
             echo "deploy=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          passed=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow CI --commit "$SHA" \
-            --event push --status success --json databaseId --jq length)
-          if [ "$passed" -eq 0 ]; then
-            echo "::error::CI has not passed on $SHA."
-            exit 1
+          # A workflow_run event already proves CI passed on a push of $SHA (see the job's if), so
+          # only a manual run asks the API. Its run list can lag or drop runs while Actions is
+          # degraded, so the query retries before failing (docs/incidents/2026-10-22-deploy-gate.md).
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
+            for attempt in 1 2 3 4 5; do
+              passed=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow CI --commit "$SHA" \
+                --event push --status success --json databaseId --jq length) || passed=0
+              if [ "$passed" -gt 0 ]; then
+                break
+              fi
+              if [ "$attempt" -eq 5 ]; then
+                echo "::error::CI has not passed on $SHA."
+                exit 1
+              fi
+              echo "::notice::No successful CI run found for $SHA (attempt $attempt); retrying."
+              sleep $((attempt * 10))
+            done
           fi
           echo "deploy=true" >> "$GITHUB_OUTPUT"
 

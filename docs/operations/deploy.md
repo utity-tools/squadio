@@ -18,7 +18,8 @@ AWS Frankfurt. Only GitHub Actions deploys, and only from `main` after CI passed
 5. `vercel deploy --prebuilt --prod` uploads the build and promotes it.
 
 A deploy can also be started by hand from the Actions tab (**Deploy → Run workflow**, branch `main`)
-to ship the tip of `main` again. It fails unless CI passed on that commit.
+to ship the tip of `main` again. It fails unless CI passed on that commit; the check retries for
+about 100 seconds first, because GitHub's list of runs can lag.
 
 ### Migrations must be backwards compatible
 
