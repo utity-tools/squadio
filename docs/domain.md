@@ -279,14 +279,26 @@ as [The calculation](#the-calculation) lists them, and runs it. Until choosing a
 Every organization has its Config and CostConfig from the moment it exists (the starting template
 creates them), so a missing one is an error, never an incomplete result.
 
-- **With rate access** it returns the engine's result, and the small-category warning of rule j for
+Everyone gets the open part, read only from open tables:
+
+- the project's name, client and pricing model, and the scenario's name and whether it is chosen;
+- the team: each assignment's project role, category (id and name), person (id and name, or none
+  for an open role), reports to, weekly hours, allocation and dates, in the order of their start
+  date;
+- the project span, from the first assignment start to the last assignment end (rule d), with its
+  working days; a scenario without assignments has none.
+
+The organization's name is not part of it: there is no Organization table until v0.5.
+
+- **With rate access** it adds the engine's result, and the small-category warning of rule j for
   each category of the scenario that has 1 or 2 active people.
-- **Without rate access** the restricted tables return no rows, so it returns only the hours: the
+- **Without rate access** the restricted tables return no rows, so it adds only the hours: the
   scenario's nominal and effective hours and those of each assignment. Never a result line, a rate
   or a warning about money.
 
 An assignment date outside the calendar's years stays a validation error on that field (see
-[Formulas](#formulas)): the reference year never turns it into another kind of error.
+[Formulas](#formulas)): neither the reference year nor the project span turns it into another kind
+of error.
 
 ## Configuration per organization
 

@@ -44,6 +44,7 @@ what consultancies in Spain usually say.
 | Rate access              | Acceso a tarifas                  | Permission to see rates, costs and margins, enforced by the database (ADR 0005). Without it, projects and teams only                                 |
 | Tenant context           | Contexto de organización          | The organization a database transaction acts for (`app.organization_id`). Without it, no rows                                                        |
 | Restricted entity        | Entidad restringida               | An entity that holds money (rates, prices, costs). Only readable and writable with rate access                                                       |
+| Open part                | Parte abierta                     | What loading a scenario gives everyone: names, structure, hours and span. No money. Not an open role                                                 |
 | Access context           | Contexto de acceso                | The organization and rate access a database transaction acts with (`app.organization_id`, `app.rate_access`)                                         |
 | Cost config              | Configuración de costes           | The organization's overhead %, buffer % and target margin %. Restricted; projects can override overhead and buffer                                   |
 | Cost settings            | Parámetros de coste               | The costing engine's input: overhead %, buffer % and the two terms of the availability factor. Not the cost config: no target margin                 |
