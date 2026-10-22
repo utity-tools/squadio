@@ -38,5 +38,28 @@
     "title": "We couldn't open this scenario",
     "description": "Something went wrong while reading it. Try again in a moment.",
     "retry": "Try again"
+  },
+  "TeamTree": {
+    "label": "Team tree",
+    "instructions": "Move with the arrow keys: up to the manager, down to the first report, left and right between colleagues. Home goes back to the root. Plus, minus and zero zoom in, zoom out and fit the view.",
+    "openRole": "Open role",
+    "weeklyHours": "{hours} h/wk",
+    "effectiveHours": "{hours} h effective",
+    "nominalHours": "{hours} h nominal",
+    "controls": "Canvas controls",
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out",
+    "fitView": "Fit the team in view",
+    "empty": {
+      "title": "This scenario has no team yet",
+      "description": "Its assignments will show here as a tree."
+    },
+    "layoutError": {
+      "title": "We can't draw this team",
+      "assignment": "{title} ({person})",
+      "duplicateId": "The assignment {name} appears twice.",
+      "unknownReportsTo": "{name} reports to an assignment that is not in this scenario.",
+      "cycle": "These assignments report to each other in a loop: {names}."
+    }
   }
 }

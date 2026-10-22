@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "@xyflow/react/dist/base.css";
 
 /* The theme lives in `data-theme` on <html>, set before the first paint by the theme script. */
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
@@ -118,4 +119,16 @@
   body {
     @apply bg-background font-sans text-foreground;
   }
+}
+
+/*
+ * React Flow's attribution stays (hiding it needs a paid plan) in the theme's colours: its default
+ * grey link fails contrast.
+ */
+.react-flow__attribution {
+  background: var(--background);
+}
+
+.react-flow__attribution a {
+  color: var(--muted-foreground);
 }
