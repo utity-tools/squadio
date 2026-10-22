@@ -3,6 +3,7 @@ import { z } from "zod";
 import { hasNationalHolidays, monthsCovered, workingDays } from "@/lib/calendar/calendar";
 import { MAX_BASIS_POINTS, MAX_MONEY_CENTS } from "@/lib/money/numeric";
 
+import { projectSpanDates } from "./project-span";
 import { Rational, sum } from "./rational";
 import { findReportsToCycle } from "./reports-to";
 
@@ -374,10 +375,8 @@ export function calculateScenario(
       ),
     ).round();
 
-  // Without dates, a recurring cost spans the project: first assignment start to last end.
-  const starts = scenario.assignments.map((a) => a.startDate).sort();
-  const ends = scenario.assignments.map((a) => a.endDate).sort();
-  const projectSpan = starts.length > 0 ? { start: starts[0], end: ends.at(-1) } : null;
+  // Without dates, a recurring cost spans the project (rule d).
+  const projectSpan = projectSpanDates(scenario.assignments);
 
   const extraCosts = scenario.extraCosts.map((extra) => {
     switch (extra.kind) {
