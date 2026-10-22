@@ -28,15 +28,15 @@ There is one route with two views of the same data, plus the summary.
 
 ### 1. Header
 
-| Element         | Content                                                                          |
-| --------------- | -------------------------------------------------------------------------------- |
-| Breadcrumb      | Organization › Project (client) › Scenario                                       |
-| Scenario name   | With a "Chosen" badge when it is the chosen scenario (rates frozen, rule b)      |
-| Pricing model   | "Fixed price" or "Time and materials"                                            |
-| Project span    | First assignment start – last assignment end, and the working days in between    |
-| View switch     | "Tree" / "Table", a segmented control (`radiogroup`); the choice is in the URL   |
-| Theme           | System, light, dark                                                              |
-| Reserved (v0.2) | Undo, redo and a save state indicator, right-aligned; absent in v0.1, not greyed |
+| Element         | Content                                                                           |
+| --------------- | --------------------------------------------------------------------------------- |
+| Breadcrumb      | Organization › Project (client) › Scenario; Organization from v0.5 (no table yet) |
+| Scenario name   | With a "Chosen" badge when it is the chosen scenario (rates frozen, rule b)       |
+| Pricing model   | "Fixed price" or "Time and materials"                                             |
+| Project span    | First assignment start – last assignment end, and the working days in between     |
+| View switch     | "Tree" / "Table", a segmented control (`radiogroup`); the choice is in the URL    |
+| Theme           | System, light, dark                                                               |
+| Reserved (v0.2) | Undo, redo and a save state indicator, right-aligned; absent in v0.1, not greyed  |
 
 ### 2. Tree view (the canvas)
 
