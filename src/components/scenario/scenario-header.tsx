@@ -2,11 +2,9 @@ import { CheckIcon, ChevronRightIcon } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
 
 import type { OpenScenario } from "@/db/load-scenario";
+import { utcDay } from "@/lib/calendar/utc-day";
 
 export type ScenarioHeaderProps = Pick<OpenScenario, "project" | "scenario" | "span">;
-
-/** A calendar date, `YYYY-MM-DD`, as the instant that starts it in UTC. */
-const utcDay = (date: string) => new Date(`${date}T00:00:00Z`);
 
 /**
  * The header of the canvas brief: breadcrumb, scenario name with its Chosen badge, pricing model
@@ -47,7 +45,6 @@ export function ScenarioHeader({ project, scenario, span }: ScenarioHeaderProps)
           <div>
             <dt className="sr-only">{t("span")}</dt>
             <dd>
-              {/* Calendar dates have no time zone: in UTC they never shift a day. */}
               <span>
                 {format.dateTimeRange(utcDay(span.start), utcDay(span.end), {
                   dateStyle: "medium",
