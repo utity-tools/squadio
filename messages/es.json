@@ -85,5 +85,69 @@
     "label": "Vista",
     "tree": "Árbol",
     "table": "Tabla"
+  },
+  "Summary": {
+    "unavailable": "No disponible: el escenario está incompleto",
+    "hours": "{hours} h",
+    "rate": "{amount}/h",
+    "amountWithPercent": "{amount} ({percent})",
+    "headline": {
+      "netMargin": "Margen neto",
+      "incomplete": "Sin margen: el escenario está incompleto",
+      "target": "objetivo {percent}",
+      "status": {
+        "green": "En objetivo",
+        "amber": "Bajo objetivo",
+        "red": "Pérdidas"
+      }
+    },
+    "figures": {
+      "title": "Cifras clave",
+      "revenue": "Ingresos",
+      "totalCost": "Coste total",
+      "effectiveRate": "Tarifa efectiva",
+      "effectiveHours": "Horas efectivas"
+    },
+    "lines": {
+      "title": "Desglose",
+      "staffCost": "Coste de personal ({hours} h efectivas)",
+      "extraCost": {
+        "fixed": "Coste extra fijo",
+        "recurring": "Coste extra mensual",
+        "percentage": "Coste extra porcentual"
+      },
+      "directCost": "Coste directo",
+      "overhead": "Overhead ({percent})",
+      "buffer": "Buffer ({percent})",
+      "totalCost": "Coste total",
+      "revenue": "Ingresos",
+      "directMargin": "Margen directo",
+      "netMargin": "Margen neto"
+    },
+    "categories": {
+      "title": "Coste de personal por categoría",
+      "effectiveHours": "Horas efectivas",
+      "costPerHour": "Coste/hora",
+      "cost": "Coste",
+      "small": "Categoría pequeña: su tarifa puede revelar un salario"
+    },
+    "warnings": {
+      "missingRate": {
+        "title": "Falta una tarifa",
+        "description": "{categories} no {count, plural, one {tiene} other {tienen}} tarifa, así que el escenario no tiene coste."
+      },
+      "missingPrice": {
+        "title": "Falta el precio",
+        "description": "El proyecto es de precio cerrado y no tiene precio, así que el escenario no tiene ingresos ni margen."
+      },
+      "budgetCapExceeded": {
+        "title": "Tope de presupuesto superado",
+        "description": "Los ingresos, {revenue}, superan el tope de {cap}."
+      }
+    },
+    "team": {
+      "people": "{count, plural, one {# persona} other {# personas}}",
+      "openRoles": "{count, plural, =0 {Sin vacantes} one {# vacante} other {# vacantes}}"
+    }
   }
 }
