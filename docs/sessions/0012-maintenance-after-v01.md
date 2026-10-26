@@ -116,7 +116,8 @@ same statements, run with `psql` against a local copy of the mistake, left it em
      `ToggleGroup` whose comment promises "one tab stop moved with the arrow keys". Likely gap: the
      arrows move focus without choosing, while a radio group's arrows also select. Start with a
      failing test in `theme-switch.test.tsx` that presses an arrow and expects the preference to
-     change, and check the roles axe expects.
+     change. `src/components/team-views/view-switch.tsx` already solves it with a radio group:
+     follow it.
    - **ESLint ignores `.claude/worktrees/**`** in `globalIgnores` (`eslint.config.mjs`), so plain
      `pnpm lint` works with stale worktrees; `eslint.config.test.ts` covers the config.
    - **The empty state's text.** `TeamTree.empty.description` says "como un árbol" / "as a
