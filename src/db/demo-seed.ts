@@ -15,8 +15,9 @@ import {
 import { DEMO_ORGANIZATION_ID, demoAccessContext } from "./access";
 import { type TenantTransaction, withOrganization } from "./tenant";
 
-// The demo organization: the Consultancy template and the guide case team of docs/domain.md, with
-// synthetic people only. Fixed ids, so links to the demo keep working after a reseed.
+// The demo organization: the Consultancy template and the guide case team of docs/domain.md, plus
+// one scenario per summary warning, with synthetic people only. Fixed ids, so links to the demo
+// keep working after a reseed.
 
 export { DEMO_ORGANIZATION_ID };
 
@@ -36,6 +37,12 @@ export const DEMO_IDS = {
     devops: demoId(303),
     cloud: demoId(400),
   },
+  /** A time and materials project whose budget cap is below its revenue. */
+  overBudgetScenario: demoId(202),
+  /** Uses a category without a rate. */
+  missingRateScenario: demoId(203),
+  /** A fixed-price project without a price. */
+  missingPriceScenario: demoId(204),
 } as const;
 
 /** The Consultancy template: gross annual salary and sell rate per hour, in cents. */
@@ -46,6 +53,9 @@ const TEMPLATE = [
   { key: "devops", name: "DevOps Engineer", gross: 5_000_000, sell: 6200, people: 2 },
   { key: "pm", name: "Project Manager", gross: 5_500_000, sell: 7000, people: 3 },
 ] as const;
+
+/** A category without a rate or people, so a scenario that uses it has no cost (rule k). */
+const UNRATED_CATEGORY = { id: demoId(15), name: "Data Engineer" };
 
 type CategoryKey = (typeof TEMPLATE)[number]["key"];
 
@@ -73,7 +83,10 @@ async function insert(tx: TenantTransaction) {
 
   await tx
     .insert(categories)
-    .values(TEMPLATE.map(({ key, name }) => ({ id: categoryId(key), organizationId, name })));
+    .values([
+      ...TEMPLATE.map(({ key, name }) => ({ id: categoryId(key), organizationId, name })),
+      { ...UNRATED_CATEGORY, organizationId },
+    ]);
   await tx.insert(categoryRates).values(
     TEMPLATE.map(({ key, gross, sell }) => ({
       organizationId,
@@ -208,6 +221,98 @@ async function insert(tx: TenantTransaction) {
       label: "Cloud",
       kind: "recurring",
       amount: 100_000,
+    },
+  ]);
+
+  await insertWarningScenarios(tx);
+}
+
+/** One scenario per summary warning, in projects of their own so Plan A's figures stay put. */
+async function insertWarningScenarios(tx: TenantTransaction) {
+  const organizationId = DEMO_ORGANIZATION_ID;
+  const retainer = demoId(101);
+  const tooling = demoId(102);
+  await tx.insert(projects).values([
+    {
+      id: retainer,
+      organizationId,
+      name: "Support retainer",
+      client: "Demo Client",
+      pricingModel: "time_and_materials",
+    },
+    // Fixed price with no project_pricing row: the price is still to be agreed.
+    {
+      id: tooling,
+      organizationId,
+      name: "Internal tooling",
+      client: "Demo Client",
+      pricingModel: "fixed",
+    },
+  ]);
+  // About 793 effective hours of a senior at €65/h bill €51,565, above the €50,000 cap.
+  await tx.insert(projectPricing).values({ organizationId, projectId: retainer, price: 5_000_000 });
+  await tx.insert(scenarios).values([
+    {
+      id: DEMO_IDS.overBudgetScenario,
+      organizationId,
+      projectId: retainer,
+      name: "Over budget",
+    },
+    {
+      id: DEMO_IDS.missingRateScenario,
+      organizationId,
+      projectId: retainer,
+      name: "Data platform",
+    },
+    {
+      id: DEMO_IDS.missingPriceScenario,
+      organizationId,
+      projectId: tooling,
+      name: "First draft",
+    },
+  ]);
+
+  const seat = {
+    organizationId,
+    weeklyHours: 40,
+    startDate: "2027-04-01",
+    endDate: "2027-09-29",
+    allocation: 100,
+  };
+  const dataLead = demoId(330);
+  await tx.insert(assignments).values([
+    {
+      ...seat,
+      id: demoId(320),
+      scenarioId: DEMO_IDS.overBudgetScenario,
+      categoryId: categoryId("senior"),
+      personId: personId("senior", 1),
+      projectRole: "Support engineer",
+    },
+    {
+      ...seat,
+      id: dataLead,
+      scenarioId: DEMO_IDS.missingRateScenario,
+      categoryId: categoryId("senior"),
+      personId: personId("senior", 2),
+      projectRole: "Tech lead",
+    },
+    {
+      ...seat,
+      id: demoId(331),
+      scenarioId: DEMO_IDS.missingRateScenario,
+      categoryId: UNRATED_CATEGORY.id,
+      projectRole: "Data engineer",
+      reportsTo: dataLead,
+      allocation: 50,
+    },
+    {
+      ...seat,
+      id: demoId(340),
+      scenarioId: DEMO_IDS.missingPriceScenario,
+      categoryId: categoryId("junior"),
+      personId: personId("junior", 1),
+      projectRole: "Developer",
     },
   ]);
 }
