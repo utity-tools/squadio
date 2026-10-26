@@ -1,6 +1,7 @@
 // `pnpm db:seed`: replaces the demo organization's data (docs/domain.md, "Configuration per
 // organization"). Connects as the app role, so Row Level Security scopes it to the demo
-// organization. Run by hand in production, and by preview.yml on every preview (ADR 0009).
+// organization. Run by deploy.yml on every production deploy (ADR 0006) and by preview.yml on every
+// preview (ADR 0009).
 import nextEnv from "@next/env";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";

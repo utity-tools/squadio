@@ -1,7 +1,8 @@
 name: Deploy
 
 # Production deploys only from main, after CI passed on that exact commit (ADR 0006). Migrations
-# run between the build and the deploy, as the owner role; the app role never runs them.
+# run between the build and the deploy, as the owner role; the app role never runs them. The demo
+# seed runs after them, as the app role.
 on:
   workflow_run:
     workflows: [CI]
@@ -112,6 +113,25 @@ jobs:
         env:
           DATABASE_OWNER_URL: ${{ secrets.DATABASE_OWNER_URL }}
         run: pnpm db:migrate
+      # The synthetic demo organization, as in previews (ADR 0009), as squadio_app. DATABASE_URL
+      # comes from the variables `vercel pull` wrote, so Vercel stays the only place it is set. It
+      # is masked before use and reaches the seed through the environment, never as an argument.
+      # The seed replaces the demo in one transaction with fixed ids: the running deployment never
+      # sees it half-written, and its links keep working.
+      - name: Seed the demo organization
+        run: |
+          # Node's own parser: unlike @next/env, it leaves a `$` in the value alone.
+          url=$(node --eval '
+            const { readFileSync } = require("node:fs");
+            const { parseEnv } = require("node:util");
+            const pulled = parseEnv(readFileSync(".vercel/.env.production.local", "utf8"));
+            process.stdout.write(pulled.DATABASE_URL ?? "");
+          ')
+          # Defensive: Build already fails on an empty value, as a Secret variable is pulled
+          # (docs/incidents/2026-10-23-migrations-in-neondb.md).
+          if [ -z "$url" ]; then echo "::error::vercel pull wrote no DATABASE_URL."; exit 1; fi
+          echo "::add-mask::$url"
+          DATABASE_URL="$url" pnpm db:seed
       - name: Deploy
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}

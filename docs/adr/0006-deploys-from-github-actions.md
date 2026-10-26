@@ -66,3 +66,12 @@ The steps and the rollback live in [`docs/operations/deploy.md`](../operations/d
   the runbook describes.
 - The `neondb_owner` connection string is only used by hand, for the bootstrap and for password
   rotation. It never reaches CI or Vercel.
+
+## Amendments
+
+- **2026-10-26:** Production seeds the demo organization on every deploy, after the migrations, as
+  previews do ([ADR 0009](0009-preview-deployments.md)). Seeding by hand after each seed change was
+  easy to forget. The seed runs as `squadio_app` with the `DATABASE_URL` that `vercel pull` wrote,
+  so Vercel stays its only source. It replaces the demo organization's data, which is right while
+  scenarios are read-only: once v0.2 lets people edit them, every deploy would discard their edits,
+  so this must be revisited then.
