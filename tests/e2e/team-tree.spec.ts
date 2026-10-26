@@ -4,6 +4,10 @@ import { expectNoAxeViolations } from "./support/axe";
 
 // Needs the demo organization: `pnpm db:migrate` and `pnpm db:seed` (CI does both).
 const GUIDE_SCENARIO = "6d656d6f-0000-4000-8000-000000000200";
+/** A team of one: fitting it to the canvas would blow its card up. */
+const ONE_NODE_SCENARIO = "6d656d6f-0000-4000-8000-000000000204";
+/** A card's width at 100% (`NODE_WIDTH` in src/lib/layout/compact-layout.ts). */
+const NODE_WIDTH = 240;
 
 const tree = (page: Page) => page.getByRole("application", { name: "Árbol del equipo" });
 const node = (page: Page, name: RegExp) => tree(page).getByRole("button", { name });
@@ -97,6 +101,22 @@ test("the canvas zooms with named buttons and fits the team back in view", async
   for (let step = 0; step < 4; step++) await page.keyboard.press("+");
   await expect(devOps).toBeInViewport({ ratio: 1 });
   await expect(controls.getByRole("button", { name: "Zoom out" })).toBeVisible();
+});
+
+test("fitting the view never draws the cards above their natural size", async ({ page }) => {
+  await page.goto(`/scenarios/${ONE_NODE_SCENARIO}`);
+  const card = node(page, /^Developer/);
+  const width = async () => (await card.boundingBox())?.width ?? Infinity;
+  await expect(card).toBeInViewport({ ratio: 1 });
+
+  // On load, after a resize and with the fit button, the zoom stops at 100%.
+  await expect.poll(width).toBeLessThanOrEqual(NODE_WIDTH);
+  await page.setViewportSize({ width: 1600, height: 1000 });
+  await expect.poll(width).toBeLessThanOrEqual(NODE_WIDTH);
+  await page.getByRole("button", { name: "Acercar" }).click();
+  await page.getByRole("button", { name: "Ajustar el equipo a la vista" }).click();
+  await expect.poll(width).toBeLessThanOrEqual(NODE_WIDTH);
+  await expect(card).toBeInViewport({ ratio: 1 });
 });
 
 for (const colorScheme of ["light", "dark"] as const) {
