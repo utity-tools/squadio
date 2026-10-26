@@ -1,14 +1,13 @@
 import { TriangleAlertIcon, UsersIcon } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
 
+import { SelectableTeamCanvas } from "@/components/team-tree/team-canvas";
 import type { TeamAssignment } from "@/db/load-scenario";
 import { type LayoutError, layoutTeam } from "@/lib/layout/compact-layout";
 import type { ProjectSpan } from "@/lib/scenarios/project-span";
 import { type AssignmentCard, assignmentCards } from "@/lib/team-tree/cards";
 
-import { SelectableTeamCanvas } from "./team-canvas";
-
-export type TeamTreeProps = {
+export type ScenarioTeamProps = {
   team: TeamAssignment[];
   /** Each assignment's hours, from the engine: open to everyone (ADR 0005). */
   hours: { id: string; nominalHours: number; effectiveHours: number }[];
@@ -19,7 +18,7 @@ export type TeamTreeProps = {
  * The tree view of the canvas brief: the team laid out by `layoutTeam` on a read-only canvas, an
  * empty state without assignments, or an alert naming the assignments the layout cannot draw.
  */
-export function TeamTree({ team, hours, span }: TeamTreeProps) {
+export function ScenarioTeam({ team, hours, span }: ScenarioTeamProps) {
   if (team.length === 0) return <EmptyTeam />;
   const cards = assignmentCards(team, hours, span);
   const layout = layoutTeam(team);
