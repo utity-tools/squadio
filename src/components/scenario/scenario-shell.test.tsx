@@ -22,6 +22,12 @@ describe("ScenarioShell", () => {
     expect(team.compareDocumentPosition(summary) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
+  it("lets the keyboard reach the summary, which scrolls in its own rail", () => {
+    renderWithIntl(<ScenarioShell header={null} team={null} summary={<p>ledger</p>} />);
+
+    expect(screen.getByRole("complementary", { name: "Resumen" })).toHaveAttribute("tabindex", "0");
+  });
+
   it("puts the theme switch in the header", () => {
     renderWithIntl(<ScenarioShell header={null} team={null} summary={null} />);
 
