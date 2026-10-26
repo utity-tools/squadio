@@ -9,4 +9,20 @@ describe("currentAccessContext", () => {
       rateAccess: true,
     });
   });
+
+  it("drops rate access for ?access=none, so the page shows the state without it", () => {
+    expect(currentAccessContext({ access: "none" })).toEqual({
+      organizationId: DEMO_ORGANIZATION_ID,
+      rateAccess: false,
+    });
+  });
+
+  it("never grants anything for any other value", () => {
+    for (const access of [undefined, "", "full", "NONE", ["none", "none"], ["none"]]) {
+      expect(currentAccessContext({ access })).toEqual({
+        organizationId: DEMO_ORGANIZATION_ID,
+        rateAccess: true,
+      });
+    }
+  });
 });
