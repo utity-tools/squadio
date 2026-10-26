@@ -20,7 +20,8 @@ Managers and directors see rates, costs and margins; everyone else sees projects
 
 ## Roadmap
 
-Every version ships something that can be shown.
+Every version ships something that can be shown. v0.1 shipped on 2026-10-26
+([handoff 0011](sessions/0011-read-only-canvas.md)).
 
 | Version | Scope                                                                                           |
 | ------- | ----------------------------------------------------------------------------------------------- |
