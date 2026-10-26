@@ -55,6 +55,8 @@ const eslintConfig = defineConfig([
     "coverage/**",
     "playwright-report/**",
     "test-results/**",
+    // Other sessions' checkouts, linted in their own worktree.
+    ".claude/worktrees/**",
   ]),
 ]);
 

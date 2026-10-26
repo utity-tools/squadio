@@ -41,3 +41,16 @@ describe("process.env restriction", () => {
     }
   });
 });
+
+describe("ignored files", () => {
+  it.each([".claude/worktrees/some-branch/src/app/example.ts", ".next/server/example.js"])(
+    "ignores %s",
+    async (filePath) => {
+      expect(await eslint.isPathIgnored(filePath)).toBe(true);
+    },
+  );
+
+  it("lints the rest of .claude", async () => {
+    expect(await eslint.isPathIgnored(".claude/hooks/example.ts")).toBe(false);
+  });
+});
