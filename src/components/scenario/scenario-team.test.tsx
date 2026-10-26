@@ -5,19 +5,19 @@ import { guideHours, guideSpan, guideTeam } from "@/test/guide-team";
 import { stubReactFlowLayout } from "@/test/react-flow";
 import { renderWithIntl } from "@/test/render";
 
-import { type TeamTreeProps, TeamTree } from "./team-tree";
+import { type ScenarioTeamProps, ScenarioTeam } from "./scenario-team";
 
 stubReactFlowLayout();
 
 const team = guideTeam;
 
-const guide: TeamTreeProps = { team, hours: guideHours, span: guideSpan };
+const guide: ScenarioTeamProps = { team, hours: guideHours, span: guideSpan };
 
 const node = (name: RegExp) => screen.getByRole("button", { name });
 
-describe("TeamTree", () => {
+describe("ScenarioTeam", () => {
   it("draws one card per assignment in a labelled canvas", () => {
-    renderWithIntl(<TeamTree {...guide} />);
+    renderWithIntl(<ScenarioTeam {...guide} />);
 
     expect(screen.getByRole("application", { name: "Árbol del equipo" })).toBeInTheDocument();
     for (const name of [/^Project manager/, /^Tech lead/, /^Frontend Developer/, /^DevOps/]) {
@@ -26,7 +26,7 @@ describe("TeamTree", () => {
   });
 
   it("keeps the selected node", () => {
-    renderWithIntl(<TeamTree {...guide} />);
+    renderWithIntl(<ScenarioTeam {...guide} />);
 
     fireEvent.click(node(/^Tech lead/));
 
@@ -34,7 +34,7 @@ describe("TeamTree", () => {
   });
 
   it("shows an empty state without assignments", () => {
-    renderWithIntl(<TeamTree team={[]} hours={[]} span={null} />);
+    renderWithIntl(<ScenarioTeam team={[]} hours={[]} span={null} />);
 
     expect(
       screen.getByRole("heading", { level: 2, name: "Este escenario aún no tiene equipo" }),
@@ -46,7 +46,7 @@ describe("TeamTree", () => {
     const loop = team.map((member) =>
       member.id === "pm" ? { ...member, reportsTo: "lead" } : member,
     );
-    renderWithIntl(<TeamTree {...guide} team={loop} />, { locale: "en" });
+    renderWithIntl(<ScenarioTeam {...guide} team={loop} />, { locale: "en" });
 
     const alert = screen.getByRole("alert");
     expect(
@@ -63,7 +63,7 @@ describe("TeamTree", () => {
     const stray = team.map((member) =>
       member.id === "ops" ? { ...member, reportsTo: "gone" } : member,
     );
-    renderWithIntl(<TeamTree {...guide} team={stray} />, { locale: "en" });
+    renderWithIntl(<ScenarioTeam {...guide} team={stray} />, { locale: "en" });
 
     expect(screen.getByRole("alert")).toHaveTextContent(
       "DevOps engineer (Open role) reports to an assignment that is not in this scenario.",
@@ -71,7 +71,7 @@ describe("TeamTree", () => {
   });
 
   it("names a repeated assignment", () => {
-    renderWithIntl(<TeamTree {...guide} team={[...team, team[1]!]} />, { locale: "en" });
+    renderWithIntl(<ScenarioTeam {...guide} team={[...team, team[1]!]} />, { locale: "en" });
 
     expect(screen.getByRole("alert")).toHaveTextContent(
       "The assignment Tech lead (Senior Developer 1) appears twice.",

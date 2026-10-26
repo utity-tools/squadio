@@ -5,7 +5,7 @@ import { z } from "zod";
 
 import { ScenarioHeader } from "@/components/scenario/scenario-header";
 import { ScenarioShell } from "@/components/scenario/scenario-shell";
-import { TeamTree } from "@/components/team-tree/team-tree";
+import { ScenarioTeam } from "@/components/scenario/scenario-team";
 import { currentAccessContext } from "@/db/access";
 import { db } from "@/db/client";
 import { loadScenario } from "@/db/load-scenario";
@@ -35,7 +35,7 @@ export default async function ScenarioPage({ params }: PageProps<"/[locale]/scen
         />
       }
       team={
-        <TeamTree
+        <ScenarioTeam
           team={scenario.team}
           // Every assignment's hours, with or without rate access (ADR 0005).
           hours={scenario.rateAccess ? scenario.result.assignments : scenario.assignments}
