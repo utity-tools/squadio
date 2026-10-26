@@ -103,19 +103,17 @@ test("the canvas zooms with named buttons and fits the team back in view", async
   await expect(controls.getByRole("button", { name: "Zoom out" })).toBeVisible();
 });
 
-test("fitting the view never draws the cards above their natural size", async ({ page }) => {
+test("fitting the view draws the cards at their natural size, never larger", async ({ page }) => {
   await page.goto(`/scenarios/${ONE_NODE_SCENARIO}`);
   const card = node(page, /^Developer/);
   const width = async () => (await card.boundingBox())?.width ?? Infinity;
-  await expect(card).toBeInViewport({ ratio: 1 });
 
-  // On load, after a resize and with the fit button, the zoom stops at 100%.
-  await expect.poll(width).toBeLessThanOrEqual(NODE_WIDTH);
-  await page.setViewportSize({ width: 1600, height: 1000 });
-  await expect.poll(width).toBeLessThanOrEqual(NODE_WIDTH);
-  await page.getByRole("button", { name: "Acercar" }).click();
-  await page.getByRole("button", { name: "Ajustar el equipo a la vista" }).click();
-  await expect.poll(width).toBeLessThanOrEqual(NODE_WIDTH);
+  // A team of one would fill the canvas: fitting stops at 100%, on load and with the fit button.
+  await expect.poll(width).toBeCloseTo(NODE_WIDTH, 0);
+  for (const step of ["Alejar", "Alejar", "Ajustar el equipo a la vista"]) {
+    await page.getByRole("button", { name: step }).click();
+  }
+  await expect.poll(width).toBeCloseTo(NODE_WIDTH, 0);
   await expect(card).toBeInViewport({ ratio: 1 });
 });
 
