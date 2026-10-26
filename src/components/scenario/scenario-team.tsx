@@ -1,11 +1,13 @@
 import { TriangleAlertIcon, UsersIcon } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
+import { Suspense } from "react";
 
-import { SelectableTeamCanvas } from "@/components/team-tree/team-canvas";
 import type { TeamAssignment } from "@/db/load-scenario";
 import { type LayoutError, layoutTeam } from "@/lib/layout/compact-layout";
 import type { ProjectSpan } from "@/lib/scenarios/project-span";
 import { type AssignmentCard, assignmentCards } from "@/lib/team-tree/cards";
+
+import { TeamViews, TeamViewsSkeleton } from "@/components/team-views/team-views";
 
 export type ScenarioTeamProps = {
   team: TeamAssignment[];
@@ -15,8 +17,9 @@ export type ScenarioTeamProps = {
 };
 
 /**
- * The tree view of the canvas brief: the team laid out by `layoutTeam` on a read-only canvas, an
- * empty state without assignments, or an alert naming the assignments the layout cannot draw.
+ * The team region of the scenario page: an empty state without assignments, an alert naming the
+ * assignments the layout cannot draw, or else the tree and table views of the canvas brief. The
+ * cards and the layout are computed once, here, for both views.
  */
 export function ScenarioTeam({ team, hours, span }: ScenarioTeamProps) {
   if (team.length === 0) return <EmptyTeam />;
@@ -24,11 +27,14 @@ export function ScenarioTeam({ team, hours, span }: ScenarioTeamProps) {
   const layout = layoutTeam(team);
   if (!layout.ok) return <UndrawableTeam error={layout.error} cards={cards} />;
   return (
-    <SelectableTeamCanvas
-      team={team.map(({ id, reportsTo }) => ({ id, reportsTo }))}
-      nodes={layout.nodes}
-      cards={cards}
-    />
+    // The views read the URL, only known at request time (Cache Components).
+    <Suspense fallback={<TeamViewsSkeleton />}>
+      <TeamViews
+        team={team.map(({ id, reportsTo }) => ({ id, reportsTo }))}
+        nodes={layout.nodes}
+        cards={cards}
+      />
+    </Suspense>
   );
 }
 

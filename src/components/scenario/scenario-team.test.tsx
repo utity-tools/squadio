@@ -1,13 +1,21 @@
-import { fireEvent, screen, within } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { screen, within } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { guideHours, guideSpan, guideTeam } from "@/test/guide-team";
+import { stubHistory, stubScreen } from "@/test/navigation";
 import { stubReactFlowLayout } from "@/test/react-flow";
 import { renderWithIntl } from "@/test/render";
 
 import { type ScenarioTeamProps, ScenarioTeam } from "./scenario-team";
 
+vi.mock("next/navigation", () => import("@/test/navigation"));
+
 stubReactFlowLayout();
+
+beforeEach(() => {
+  stubScreen({ wide: true });
+  stubHistory("/scenarios/guide");
+});
 
 const team = guideTeam;
 
@@ -16,21 +24,23 @@ const guide: ScenarioTeamProps = { team, hours: guideHours, span: guideSpan };
 const node = (name: RegExp) => screen.getByRole("button", { name });
 
 describe("ScenarioTeam", () => {
-  it("draws one card per assignment in a labelled canvas", () => {
+  it("draws the team in the view switch's view, one card per assignment", () => {
     renderWithIntl(<ScenarioTeam {...guide} />);
 
+    expect(screen.getByRole("radiogroup", { name: "Vista" })).toBeInTheDocument();
     expect(screen.getByRole("application", { name: "Árbol del equipo" })).toBeInTheDocument();
     for (const name of [/^Project manager/, /^Tech lead/, /^Frontend Developer/, /^DevOps/]) {
       expect(node(name)).toBeInTheDocument();
     }
   });
 
-  it("keeps the selected node", () => {
+  it("lists the same team in the table view", () => {
+    stubHistory("/scenarios/guide?view=table");
     renderWithIntl(<ScenarioTeam {...guide} />);
 
-    fireEvent.click(node(/^Tech lead/));
-
-    expect(node(/^Tech lead/)).toHaveAttribute("aria-current", "true");
+    expect(screen.getByRole("treegrid", { name: "Tabla del equipo" })).toBeInTheDocument();
+    // Four assignments, plus the header and the totals.
+    expect(screen.getAllByRole("row")).toHaveLength(6);
   });
 
   it("shows an empty state without assignments", () => {
@@ -40,6 +50,7 @@ describe("ScenarioTeam", () => {
       screen.getByRole("heading", { level: 2, name: "Este escenario aún no tiene equipo" }),
     ).toBeInTheDocument();
     expect(screen.queryByRole("application")).not.toBeInTheDocument();
+    expect(screen.queryByRole("radiogroup")).not.toBeInTheDocument();
   });
 
   it("names the assignments in a loop instead of drawing the tree", () => {
@@ -57,6 +68,8 @@ describe("ScenarioTeam", () => {
         "Project manager (Project Manager 1) and Tech lead (Senior Developer 1).",
     );
     expect(screen.queryByRole("application")).not.toBeInTheDocument();
+    expect(screen.queryByRole("treegrid")).not.toBeInTheDocument();
+    expect(screen.queryByRole("radiogroup")).not.toBeInTheDocument();
   });
 
   it("names an assignment that reports to someone outside the scenario", () => {

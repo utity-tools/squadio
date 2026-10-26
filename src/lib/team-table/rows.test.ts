@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { layoutTeam } from "@/lib/layout/compact-layout";
 import type { AssignmentCard } from "@/lib/team-tree/cards";
 
-import { type TableRow, teamRows, teamTotals, visibleRows } from "./rows";
+import { type TableRow, revealRow, teamRows, teamTotals, visibleRows } from "./rows";
 
 type Member = { id: string; reportsTo: string | null };
 
@@ -168,6 +168,41 @@ describe("visibleRows", () => {
         };
 
         expect(ids(visibleRows(all, collapsed))).toEqual(ids(all).filter((id) => !hidden(id)));
+      }),
+    );
+  });
+});
+
+describe("revealRow", () => {
+  const team = [member("pm"), member("lead", "pm"), member("dev", "lead"), member("ops", "pm")];
+
+  it("expands every manager above a row, and only those", () => {
+    expect(revealRow(team, new Set(["pm", "lead", "ops"]), "dev")).toEqual(new Set(["ops"]));
+  });
+
+  it("leaves the row itself collapsed", () => {
+    expect(revealRow(team, new Set(["lead"]), "lead")).toEqual(new Set(["lead"]));
+  });
+
+  it("returns the same set when the row is already visible", () => {
+    const collapsed = new Set(["ops"]);
+    expect(revealRow(team, collapsed, "dev")).toBe(collapsed);
+    expect(revealRow(team, collapsed, "gone")).toBe(collapsed);
+  });
+
+  it("always makes the row visible", () => {
+    const ids = team.map(({ id }) => id);
+    fc.assert(
+      fc.property(fc.subarray(ids), fc.constantFrom(...ids), (collapsed, id) => {
+        const layout = layoutTeam(team);
+        if (!layout.ok) throw new Error("expected a layout");
+        const rows = teamRows(
+          team,
+          layout.nodes,
+          ids.map((each) => card(each)),
+        );
+        const shown = visibleRows(rows, revealRow(team, new Set(collapsed), id));
+        expect(shown.map((row) => row.id)).toContain(id);
       }),
     );
   });

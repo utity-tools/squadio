@@ -80,5 +80,10 @@
     "noManager": "Nadie",
     "wholeProject": "Todo el proyecto",
     "total": "Total"
+  },
+  "TeamViews": {
+    "label": "Vista",
+    "tree": "Árbol",
+    "table": "Tabla"
   }
 }

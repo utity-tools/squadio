@@ -9,7 +9,8 @@ type Slots = { header: ReactNode; team: ReactNode; summary: ReactNode };
 /**
  * The scenario page grid of direction A, "Ledger rail" (docs/design/canvas-brief.md): header on
  * top, the team in the centre and the summary in a fixed right rail. The left column is the v0.2
- * bench, collapsed to zero. Below `md` the regions stack.
+ * bench, collapsed to zero. Below `md` the regions stack in one column no wider than the screen:
+ * a wide table scrolls inside the team region, not the page.
  */
 export function ScenarioShell({ header, team, summary }: Slots) {
   const t = useTranslations("ScenarioPage");
@@ -20,7 +21,7 @@ export function ScenarioShell({ header, team, summary }: Slots) {
         <div className="min-w-0">{header}</div>
         <ThemeSwitch />
       </header>
-      <div className="grid flex-1 md:grid-cols-[0_minmax(0,1fr)_330px]">
+      <div className="grid flex-1 grid-cols-[minmax(0,1fr)] md:grid-cols-[0_minmax(0,1fr)_330px]">
         {/* The dot grid stays lighter than any border (canvas brief, "Themes and contrast"). */}
         <main
           aria-label={t("team")}
