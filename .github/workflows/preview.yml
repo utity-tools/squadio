@@ -161,6 +161,11 @@ jobs:
       - name: Apply migrations
         run: pnpm db:migrate
 
+      # The synthetic demo organization, so the preview has scenarios to open (ADR 0009). It runs
+      # as squadio_app, so Row Level Security scopes it to that organization.
+      - name: Seed the demo organization
+        run: pnpm db:seed
+
       # DATABASE_URL reaches the deployment at run time only. The CLI takes it as an argument,
       # visible to other processes on this single-job runner but masked in the log.
       - name: Deploy
