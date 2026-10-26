@@ -97,3 +97,11 @@ when the pull request closes.
   the only one who can push.
 - Every preview has its own compute, which scales to zero and counts against the monthly compute
   hours.
+
+## Amendments
+
+- **2026-10-26:** Previews start with the demo organization. A preview without data could not open
+  a scenario, so it could not be checked before a merge. After the migrations, the workflow runs
+  `pnpm db:seed` as `squadio_app`, the same seed the owner runs by hand in production. The demo
+  data is synthetic, so the data constraint holds: the branch still copies nothing from production.
+  The template stays empty.
