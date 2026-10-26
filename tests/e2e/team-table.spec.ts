@@ -48,6 +48,36 @@ test("a wide screen opens the tree without a view in the URL", async ({ page }) 
   await expect(grid(page)).toHaveCount(0);
 });
 
+/** The table's scroll container: its width and the width of what it holds. */
+const scrollWidths = (page: Page) =>
+  grid(page)
+    .locator("xpath=..")
+    .evaluate((element) => ({
+      scrollWidth: element.scrollWidth,
+      clientWidth: element.clientWidth,
+    }));
+
+for (const viewport of [
+  { width: 1280, height: 800 },
+  // The md shell with the summary rail leaves the table about 780 px here.
+  { width: 1110, height: 800 },
+]) {
+  test(`every column fits a ${viewport.width} px wide window, without scrolling`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(viewport);
+    await page.goto(`/scenarios/${GUIDE_SCENARIO}?view=table`);
+    await expect(row(page, "Project manager")).toBeVisible();
+
+    await expect(grid(page).getByRole("columnheader", { name: "Horas efectivas" })).toBeInViewport({
+      ratio: 1,
+    });
+    await expect(footer(page).getByRole("gridcell").last()).toBeInViewport({ ratio: 1 });
+    const { scrollWidth, clientWidth } = await scrollWidths(page);
+    expect(scrollWidth).toBeLessThanOrEqual(clientWidth);
+  });
+}
+
 test.describe("on a phone", () => {
   test.use({ viewport: PHONE });
 
@@ -65,6 +95,19 @@ test.describe("on a phone", () => {
       return { scrollWidth: root.scrollWidth, clientWidth: root.clientWidth };
     });
     expect(size.scrollWidth).toBeLessThanOrEqual(size.clientWidth);
+
+    // A table wider than the phone scrolls, with edge shadows that scroll away with the content.
+    const scroller = await grid(page)
+      .locator("xpath=..")
+      .evaluate((element) => ({
+        scrolls: element.scrollWidth > element.clientWidth,
+        attachment: getComputedStyle(element).backgroundAttachment,
+        image: getComputedStyle(element).backgroundImage,
+      }));
+    expect(scroller.scrolls).toBe(true);
+    // Covers move with the content; the shadows (and the plain colour below) stay put.
+    expect(scroller.attachment).toMatch(/^local, local, scroll, scroll\b/);
+    expect(scroller.image.match(/radial-gradient/g)).toHaveLength(2);
   });
 
   for (const colorScheme of ["light", "dark"] as const) {

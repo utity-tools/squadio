@@ -139,3 +139,21 @@
 .react-flow__attribution a {
   color: var(--muted-foreground);
 }
+
+/*
+ * A shadow at each edge of a horizontal scroller that has more to show, CSS only. Two covers in
+ * the background colour scroll with the content (`local`) and hide the shadows (`scroll`, fixed to
+ * the box) once an edge of the content is reached. Covers and shadows sit at both ends, so the
+ * effect works the same in either writing direction.
+ */
+@utility scroll-shadow-x {
+  --scroll-shadow: color-mix(in oklab, var(--foreground) 22%, transparent);
+  background:
+    linear-gradient(to right, var(--background) 40%, transparent) left / 2.5rem 100% no-repeat local,
+    linear-gradient(to left, var(--background) 40%, transparent) right / 2.5rem 100% no-repeat local,
+    radial-gradient(farthest-side at 0 50%, var(--scroll-shadow), transparent) left / 0.75rem 100%
+      no-repeat scroll,
+    radial-gradient(farthest-side at 100% 50%, var(--scroll-shadow), transparent) right / 0.75rem
+      100% no-repeat scroll,
+    var(--background);
+}
