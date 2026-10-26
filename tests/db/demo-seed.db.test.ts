@@ -5,7 +5,8 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import type { PgTable } from "drizzle-orm/pg-core";
 import { afterAll, describe, expect, it } from "vitest";
 
-import { DEMO_ORGANIZATION_ID, seedDemo } from "@/db/demo-seed";
+import { DEMO_IDS, DEMO_ORGANIZATION_ID, seedDemo } from "@/db/demo-seed";
+import { loadScenario } from "@/db/load-scenario";
 import {
   assignments,
   categories,
@@ -64,15 +65,30 @@ describe("seedDemo", () => {
     expect(await countsIn(demo)).toEqual({
       config: 1,
       cost_config: 1,
-      categories: 5,
+      categories: 6,
       category_rates: 5,
       people: 15,
-      projects: 1,
-      project_pricing: 1,
-      scenarios: 2,
-      assignments: 7,
+      projects: 3,
+      project_pricing: 2,
+      scenarios: 5,
+      assignments: 11,
       extra_costs: 2,
     });
+  });
+
+  it.each([
+    ["the guide case", DEMO_IDS.guideScenario, []],
+    ["a T&M project over its budget cap", DEMO_IDS.overBudgetScenario, ["budgetCapExceeded"]],
+    ["a category without a rate", DEMO_IDS.missingRateScenario, ["missingRate"]],
+    ["a fixed-price project without a price", DEMO_IDS.missingPriceScenario, ["missingPrice"]],
+  ])("gives %s its summary warnings", async (_, scenarioId, codes) => {
+    await seedDemo(app);
+
+    const loaded = await loadScenario(app, demo, scenarioId);
+
+    expect(loaded?.rateAccess && loaded.result.warnings.map((warning) => warning.code)).toEqual(
+      codes,
+    );
   });
 
   it("leaves the same rows when run again", async () => {
