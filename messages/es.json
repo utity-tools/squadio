@@ -61,5 +61,24 @@
       "unknownReportsTo": "{name} depende de una asignación que no está en este escenario.",
       "cycle": "Estas asignaciones dependen unas de otras en bucle: {names}."
     }
+  },
+  "TeamTable": {
+    "label": "Tabla del equipo",
+    "instructions": "Muévete con las flechas: arriba y abajo entre filas, derecha para desplegar una fila o entrar en sus celdas, izquierda para plegar una fila o ir a su responsable. Inicio y Fin van a la primera y la última fila, o a la primera y la última celda.",
+    "columns": {
+      "role": "Rol",
+      "person": "Persona / Vacante",
+      "category": "Categoría",
+      "reportsTo": "Depende de",
+      "allocation": "Dedicación",
+      "weeklyHours": "Horas semanales",
+      "dates": "Inicio – fin",
+      "nominalHours": "Horas nominales",
+      "effectiveHours": "Horas efectivas"
+    },
+    "openRole": "Vacante",
+    "noManager": "Nadie",
+    "wholeProject": "Todo el proyecto",
+    "total": "Total"
   }
 }
