@@ -13,7 +13,14 @@ import {
   useReactFlow,
   useStore,
 } from "@xyflow/react";
-import { ScanIcon, UserIcon, UserRoundSearchIcon, ZoomInIcon, ZoomOutIcon } from "lucide-react";
+import {
+  ScanIcon,
+  TriangleAlertIcon,
+  UserIcon,
+  UserRoundSearchIcon,
+  ZoomInIcon,
+  ZoomOutIcon,
+} from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
 import {
   type CSSProperties,
@@ -359,8 +366,17 @@ function AssignmentNode({ data: { card, selected, onPath, tabbable } }: NodeProp
               <span className="truncate">{person}</span>
             </span>
             <Pause />
-            <span className="max-w-full truncate rounded-full border px-1.5 text-xs leading-4">
-              {card.category}
+            <span className="flex w-full items-center gap-1.5 text-xs leading-4">
+              <span className="min-w-0 truncate rounded-full border px-1.5">{card.category}</span>
+              {card.missingRate && (
+                <>
+                  <Pause />
+                  <span data-missing-rate="" className="flex shrink-0 items-center gap-0.5">
+                    <TriangleAlertIcon aria-hidden className="size-3.5 text-status-warn" />
+                    {t("missingRate")}
+                  </span>
+                </>
+              )}
             </span>
             <Pause />
             <span className="w-full truncate text-xs leading-4 text-muted-foreground">
@@ -387,6 +403,7 @@ function AssignmentNode({ data: { card, selected, onPath, tabbable } }: NodeProp
           <span className="block font-semibold">{card.title}</span>
           <span className="block">{person}</span>
           <span className="block">{card.category}</span>
+          {card.missingRate && <span className="block">{t("missingRateDetail")}</span>}
           <span className="block">{t("nominalHours", { hours: hours(card.nominalHours) })}</span>
         </TooltipContent>
       </Tooltip>

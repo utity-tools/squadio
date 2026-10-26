@@ -201,4 +201,30 @@ describe("TeamCanvas", () => {
     await userEvent.keyboard("+");
     await vi.waitFor(() => expect(scale()).not.toBe(zoomedOut));
   });
+
+  it("marks the nodes whose category has no rate with an icon and text", () => {
+    const cards = assignmentCards(guideTeam, guideHours, guideSpan, new Set(["c-senior"]));
+    renderWithIntl(<Stateful cards={cards} />);
+
+    const lead = node(/^Tech lead/);
+    expect(lead).toHaveAccessibleName(
+      lines(
+        "Tech lead",
+        "Senior Developer 1",
+        "Senior Developer",
+        "Sin tarifa",
+        "100 %",
+        "40 h/sem",
+        "897,5 h efectivas",
+      ),
+    );
+    expect(lead.querySelector("[data-missing-rate] svg")).toHaveClass("text-status-warn");
+    expect(node(/^Project manager/)).not.toHaveTextContent("Sin tarifa");
+  });
+
+  it("marks no node when every category has a rate", () => {
+    renderWithIntl(<Stateful />);
+
+    expect(screen.queryByText("Sin tarifa")).not.toBeInTheDocument();
+  });
 });

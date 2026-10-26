@@ -46,6 +46,8 @@
     "weeklyHours": "{hours} h/sem",
     "effectiveHours": "{hours} h efectivas",
     "nominalHours": "{hours} h nominales",
+    "missingRate": "Sin tarifa",
+    "missingRateDetail": "Su categoría no tiene tarifa, así que el escenario no tiene coste.",
     "controls": "Controles del lienzo",
     "zoomIn": "Acercar",
     "zoomOut": "Alejar",
@@ -79,6 +81,7 @@
     "openRole": "Vacante",
     "noManager": "Nadie",
     "wholeProject": "Todo el proyecto",
+    "missingRate": "Sin tarifa",
     "total": "Total"
   },
   "TeamViews": {

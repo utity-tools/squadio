@@ -46,6 +46,8 @@
     "weeklyHours": "{hours} h/wk",
     "effectiveHours": "{hours} h effective",
     "nominalHours": "{hours} h nominal",
+    "missingRate": "No rate",
+    "missingRateDetail": "Its category has no rate, so the scenario has no cost.",
     "controls": "Canvas controls",
     "zoomIn": "Zoom in",
     "zoomOut": "Zoom out",
@@ -79,6 +81,7 @@
     "openRole": "Open role",
     "noManager": "No one",
     "wholeProject": "Whole project",
+    "missingRate": "No rate",
     "total": "Total"
   },
   "TeamViews": {

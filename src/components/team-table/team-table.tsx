@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronRightIcon, UserIcon, UserRoundSearchIcon } from "lucide-react";
+import { ChevronRightIcon, TriangleAlertIcon, UserIcon, UserRoundSearchIcon } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
 import {
   type FocusEvent,
@@ -182,7 +182,18 @@ export function TeamTable({
         );
       }
       case "category":
-        return card.category;
+        if (!card.missingRate) return card.category;
+        return (
+          <>
+            {card.category}
+            {/* Read as two parts, like the tree's card. */}
+            <span className="sr-only">, </span>
+            <span data-missing-rate="" className="ms-1 inline-flex items-center gap-0.5 text-xs">
+              <TriangleAlertIcon aria-hidden className="size-3.5 shrink-0 text-status-warn" />
+              {t("missingRate")}
+            </span>
+          </>
+        );
       case "reportsTo":
         return row.reportsTo ?? <span className="text-muted-foreground">{t("noManager")}</span>;
       case "allocation":
