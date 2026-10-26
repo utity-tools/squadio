@@ -109,7 +109,16 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm exec playwright install --with-deps chromium
+      # No `--with-deps`: it installs system libraries with apt, and a slow Ubuntu mirror once held
+      # this job for twenty minutes. The runner image ships Google Chrome, and with it the libraries
+      # Chromium needs. The browser itself is cached per Playwright version.
+      - id: playwright
+        run: echo "version=$(pnpm exec playwright --version | cut -d' ' -f2)" | tee -a "$GITHUB_OUTPUT"
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      - run: pnpm exec playwright install chromium
       - run: docker compose up -d --wait
       - run: pnpm db:migrate
       - run: pnpm db:seed
