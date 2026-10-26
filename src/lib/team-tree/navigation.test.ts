@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 
 import { layoutTeam } from "@/lib/layout/compact-layout";
 
-import { pathToRoot, treeNavigation } from "./navigation";
+import { pathToRoot, reportsInReadingOrder, treeNavigation } from "./navigation";
 
 type Member = { id: string; reportsTo: string | null };
 
@@ -93,6 +93,29 @@ describe("treeNavigation", () => {
         visit(root);
         expect(reached.size).toBe(team.length);
       }),
+    );
+  });
+});
+
+describe("reportsInReadingOrder", () => {
+  it("groups reports by manager, the roots under null, in reading order", () => {
+    const team = [
+      member("pm"),
+      member("sub", "pm"),
+      member("a", "pm"),
+      member("b", "pm"),
+      member("c", "pm"),
+      member("dev", "sub"),
+    ];
+    const layout = layoutTeam(team);
+    if (!layout.ok) throw new Error("expected a layout");
+
+    expect(reportsInReadingOrder(team, layout.nodes)).toEqual(
+      new Map([
+        [null, ["pm"]],
+        ["pm", ["a", "b", "c", "sub"]],
+        ["sub", ["dev"]],
+      ]),
     );
   });
 });

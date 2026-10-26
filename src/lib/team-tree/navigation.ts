@@ -19,14 +19,14 @@ export type TreeNavigation = {
 type Member = { readonly id: string; readonly reportsTo: string | null };
 
 /**
- * Up to the manager, Down to the first report, Left and Right to the previous and next sibling.
- * Siblings follow the canvas, left to right and then top to bottom, so a leaf column comes before
- * the subtrees beside it, as it reads. Roots are siblings of each other. Nothing wraps around.
+ * Each manager's reports, and the roots under `null`, in the order they read on the canvas: left to
+ * right and then top to bottom, so a leaf column comes before the subtrees beside it. The tree's
+ * arrows and the table's rows both follow it, so switching views keeps the order.
  */
-export function treeNavigation(
+export function reportsInReadingOrder(
   team: readonly Member[],
   nodes: readonly LayoutNode[],
-): TreeNavigation {
+): Map<string | null, string[]> {
   const position = new Map(nodes.map((node) => [node.id, node]));
   const childrenOf = new Map<string | null, string[]>();
   for (const { id, reportsTo } of team) {
@@ -40,7 +40,19 @@ export function treeNavigation(
     return first.x - second.x || first.y - second.y;
   };
   for (const siblings of childrenOf.values()) siblings.sort(readingOrder);
+  return childrenOf;
+}
 
+/**
+ * Up to the manager, Down to the first report, Left and Right to the previous and next sibling,
+ * siblings in reading order (`reportsInReadingOrder`). Roots are siblings of each other. Nothing
+ * wraps around.
+ */
+export function treeNavigation(
+  team: readonly Member[],
+  nodes: readonly LayoutNode[],
+): TreeNavigation {
+  const childrenOf = reportsInReadingOrder(team, nodes);
   const moves = new Map<string, Moves>();
   for (const { id, reportsTo } of team) {
     const siblings = childrenOf.get(reportsTo) ?? [];
