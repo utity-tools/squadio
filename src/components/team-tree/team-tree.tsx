@@ -6,7 +6,7 @@ import { type LayoutError, layoutTeam } from "@/lib/layout/compact-layout";
 import type { ProjectSpan } from "@/lib/scenarios/project-span";
 import { type AssignmentCard, assignmentCards } from "@/lib/team-tree/cards";
 
-import { TeamCanvas } from "./team-canvas";
+import { SelectableTeamCanvas } from "./team-canvas";
 
 export type TeamTreeProps = {
   team: TeamAssignment[];
@@ -25,7 +25,7 @@ export function TeamTree({ team, hours, span }: TeamTreeProps) {
   const layout = layoutTeam(team);
   if (!layout.ok) return <UndrawableTeam error={layout.error} cards={cards} />;
   return (
-    <TeamCanvas
+    <SelectableTeamCanvas
       team={team.map(({ id, reportsTo }) => ({ id, reportsTo }))}
       nodes={layout.nodes}
       cards={cards}

@@ -44,10 +44,14 @@ type CardNode = Node<
 >;
 type ReportEdge = Edge<{ points: Point[]; onPath: boolean }, "report">;
 
-type TeamCanvasProps = {
+export type TeamCanvasProps = {
   team: { id: string; reportsTo: string | null }[];
   nodes: LayoutNode[];
   cards: AssignmentCard[];
+  /** The selected assignment, shared with the table view; null when nothing is selected. */
+  selected: string | null;
+  /** Called when a node is clicked or takes focus. */
+  onSelect: (id: string) => void;
 };
 
 /**
@@ -74,7 +78,10 @@ const MAX_ZOOM = 2;
 /** React Flow's own zoom in and out step. */
 const ZOOM_STEP = 1.2;
 
-/** The read-only team tree on a React Flow canvas: positions come from the compact layout. */
+/**
+ * The read-only team tree on a React Flow canvas: positions come from the compact layout.
+ * Controlled: the selection lives with the caller, so the tree and the table can share it.
+ */
 export function TeamCanvas(props: TeamCanvasProps) {
   return (
     <ReactFlowProvider>
@@ -85,7 +92,13 @@ export function TeamCanvas(props: TeamCanvasProps) {
   );
 }
 
-function Canvas({ team, nodes: layout, cards }: TeamCanvasProps) {
+/** The canvas holding its own selection, until the scenario page shares it with the table view. */
+export function SelectableTeamCanvas(props: Omit<TeamCanvasProps, "selected" | "onSelect">) {
+  const [selected, setSelected] = useState<string | null>(null);
+  return <TeamCanvas {...props} selected={selected} onSelect={setSelected} />;
+}
+
+function Canvas({ team, nodes: layout, cards, selected, onSelect }: TeamCanvasProps) {
   const t = useTranslations("TeamTree");
   const instructions = useId();
   const flow = useReactFlow();
@@ -94,7 +107,6 @@ function Canvas({ team, nodes: layout, cards }: TeamCanvasProps) {
   /** Once someone zooms or pans, resizing the canvas no longer fits the team again. */
   const moved = useRef(false);
   const navigation = treeNavigation(team, layout);
-  const [selected, setSelected] = useState<string | null>(null);
   const tabStop = selected ?? navigation.root;
   const path = new Set(selected === null ? [] : pathToRoot(team, selected));
   const position = new Map(layout.map((node) => [node.id, node]));
@@ -128,7 +140,7 @@ function Canvas({ team, nodes: layout, cards }: TeamCanvasProps) {
   }));
 
   function select(id: string) {
-    setSelected(id);
+    onSelect(id);
     show(id);
   }
 
