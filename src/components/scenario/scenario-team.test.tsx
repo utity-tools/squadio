@@ -62,6 +62,8 @@ describe("ScenarioTeam", () => {
     expect(
       screen.getByRole("heading", { level: 2, name: "Este escenario aún no tiene equipo" }),
     ).toBeInTheDocument();
+    // Either view may show the team once it has one: the text names neither.
+    expect(screen.getByText("Sus asignaciones aparecerán aquí.")).toBeInTheDocument();
     expect(screen.queryByRole("application")).not.toBeInTheDocument();
     expect(screen.queryByRole("radiogroup")).not.toBeInTheDocument();
   });

@@ -54,7 +54,7 @@
     "fitView": "Fit the team in view",
     "empty": {
       "title": "This scenario has no team yet",
-      "description": "Its assignments will show here as a tree."
+      "description": "Its assignments will show here."
     },
     "layoutError": {
       "title": "We can't draw this team",
