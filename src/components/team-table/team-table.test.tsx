@@ -338,4 +338,20 @@ describe("TeamTable", () => {
     expect(screen.getByRole("treegrid", { name: "Team table" })).toBeInTheDocument();
     expect(onSelect).not.toHaveBeenCalled();
   });
+
+  it("marks the rows whose category has no rate with an icon and text", () => {
+    const cards = assignmentCards(team, hours, span, new Set(["c-senior"]));
+    renderWithIntl(<Stateful cards={cards} />);
+
+    const category = within(row("Tech lead")).getAllByRole("gridcell")[2]!;
+    expect(category).toHaveTextContent("Senior Developer, Sin tarifa");
+    expect(category.querySelector("[data-missing-rate] svg")).toHaveClass("text-status-warn");
+    expect(cells("Project manager")[2]).toBe("Project Manager");
+  });
+
+  it("marks no row when every category has a rate", () => {
+    renderWithIntl(<Stateful />);
+
+    expect(screen.queryByText("Sin tarifa")).not.toBeInTheDocument();
+  });
 });
