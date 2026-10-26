@@ -61,5 +61,24 @@
       "unknownReportsTo": "{name} reports to an assignment that is not in this scenario.",
       "cycle": "These assignments report to each other in a loop: {names}."
     }
+  },
+  "TeamTable": {
+    "label": "Team table",
+    "instructions": "Move with the arrow keys: up and down between rows, right to expand a row or enter its cells, left to collapse a row or go to its manager. Home and End go to the first and last row, or to the first and last cell.",
+    "columns": {
+      "role": "Role",
+      "person": "Person / Open role",
+      "category": "Category",
+      "reportsTo": "Reports to",
+      "allocation": "Allocation",
+      "weeklyHours": "Weekly hours",
+      "dates": "Start – end",
+      "nominalHours": "Nominal hours",
+      "effectiveHours": "Effective hours"
+    },
+    "openRole": "Open role",
+    "noManager": "No one",
+    "wholeProject": "Whole project",
+    "total": "Total"
   }
 }
