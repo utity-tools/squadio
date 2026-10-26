@@ -7,7 +7,8 @@
 /*
  * shadcn zinc tokens with two changes (docs/design/canvas-brief.md, "Themes and contrast"):
  * a darker --muted-foreground that passes AA on --muted, and the status pairs. --ring is darker
- * too, so the focus ring reaches 3:1, and --destructive gets a foreground pair.
+ * too, so the focus ring reaches 3:1, and --destructive gets a foreground pair. --selected marks
+ * the table's selected row: a cool tint plainly apart from the page, with room for muted text.
  * src/app/theme-tokens.test.ts checks every pair.
  */
 :root {
@@ -38,6 +39,8 @@
   --status-warn-foreground: oklch(0.985 0 0);
   --status-bad: oklch(0.52 0.2 27);
   --status-bad-foreground: oklch(0.985 0 0);
+  --selected: oklch(0.91 0.035 255);
+  --selected-foreground: oklch(0.141 0.005 285.823);
 }
 
 :root[data-theme="dark"] {
@@ -67,6 +70,8 @@
   --status-warn-foreground: oklch(0.141 0.005 285.823);
   --status-bad: oklch(0.72 0.17 25);
   --status-bad-foreground: oklch(0.141 0.005 285.823);
+  --selected: oklch(0.33 0.045 262);
+  --selected-foreground: oklch(0.985 0 0);
 }
 
 @theme inline {
@@ -101,6 +106,8 @@
   --color-status-warn-foreground: var(--status-warn-foreground);
   --color-status-bad: var(--status-bad);
   --color-status-bad-foreground: var(--status-bad-foreground);
+  --color-selected: var(--selected);
+  --color-selected-foreground: var(--selected-foreground);
 }
 
 @layer base {

@@ -35,6 +35,9 @@ const textPairs: [string, string][] = [
   ["muted-foreground", "muted"],
   ["muted-foreground", "background"],
   ["muted-foreground", "card"],
+  // The table's selected row: its own text, the muted cells ("Nadie") and the plain foreground.
+  ["selected-foreground", "selected"],
+  ["muted-foreground", "selected"],
   ...statuses.map((status): [string, string] => [`${status}-foreground`, status]),
   ...statuses.flatMap((status) => surfaces.map((surface): [string, string] => [status, surface])),
 ];
@@ -42,6 +45,8 @@ const textPairs: [string, string][] = [
 const uiPairs: [string, string][] = [
   ...surfaces.map((surface): [string, string] => ["ring", surface]),
   ...surfaces.map((surface): [string, string] => ["destructive", surface]),
+  // The selected row's start bar.
+  ["primary", "selected"],
 ];
 
 describe.each(Object.entries(themes))("the %s theme", (_, theme) => {
@@ -57,5 +62,10 @@ describe.each(Object.entries(themes))("the %s theme", (_, theme) => {
 
   it.each(uiPairs)("--%s on --%s reaches 3:1 for UI", (foreground, background) => {
     expect(ratio(foreground, background)).toBeGreaterThanOrEqual(3);
+  });
+
+  it("sets the selected row apart from the page, not only by a hair", () => {
+    // No WCAG floor for a background; 1.25:1 keeps it plainly visible on any screen.
+    expect(ratio("selected", "background")).toBeGreaterThanOrEqual(1.25);
   });
 });
