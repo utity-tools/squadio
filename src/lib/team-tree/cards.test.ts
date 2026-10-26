@@ -1,7 +1,9 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
 
-import { assignmentCards } from "./cards";
+import type { Warning } from "@/lib/costing/calculate-scenario";
+
+import { assignmentCards, categoriesWithoutRate } from "./cards";
 
 const span = { start: "2027-04-01", end: "2027-09-29", workingDays: 130 };
 
@@ -32,6 +34,7 @@ describe("assignmentCards", () => {
         dates: null,
         nominalHours: 1040,
         effectiveHours: 897.5,
+        missingRate: false,
       },
     ]);
   });
@@ -67,7 +70,46 @@ describe("assignmentCards", () => {
     });
   });
 
+  it("marks the cards whose category has no rate", () => {
+    const developer = { ...lead, id: "dev", category: { id: "junior", name: "Junior Developer" } };
+    const both = [...hours, { id: "dev", nominalHours: 1040, effectiveHours: 897.5 }];
+
+    const cards = assignmentCards([lead, developer], both, span, new Set(["junior"]));
+
+    expect(cards.map(({ id, missingRate }) => [id, missingRate])).toEqual([
+      ["lead", false],
+      ["dev", true],
+    ]);
+  });
+
+  it("marks no card when no category is missing a rate, as without rate access", () => {
+    expect(assignmentCards([lead], hours, span)[0]?.missingRate).toBe(false);
+  });
+
   it("refuses an assignment without hours", () => {
     expect(() => assignmentCards([lead], [], span)).toThrow(/lead/);
+  });
+});
+
+describe("categoriesWithoutRate", () => {
+  const withAccess = (warnings: Warning[]) => ({ rateAccess: true as const, result: { warnings } });
+
+  it("collects the categories of the missing-rate warnings", () => {
+    const missing = categoriesWithoutRate(
+      withAccess([
+        { code: "missingPrice" },
+        { code: "missingRate", categoryIds: ["junior", "ops"] },
+      ]),
+    );
+
+    expect([...missing]).toEqual(["junior", "ops"]);
+  });
+
+  it("is empty without a missing-rate warning", () => {
+    expect(categoriesWithoutRate(withAccess([{ code: "missingPrice" }])).size).toBe(0);
+  });
+
+  it("is empty without rate access", () => {
+    expect(categoriesWithoutRate({ rateAccess: false }).size).toBe(0);
   });
 });
