@@ -8,10 +8,13 @@ const GUIDE_SCENARIO = "6d656d6f-0000-4000-8000-000000000200";
 const tree = (page: Page) => page.getByRole("application", { name: "Árbol del equipo" });
 const node = (page: Page, name: RegExp) => tree(page).getByRole("button", { name });
 
-/** Tabs from the theme switch, the last stop of the header, into the tree once it is drawn. */
+/** Tabs from the view switch, the stop before the view, into the tree once it is drawn. */
 async function tabIntoTree(page: Page) {
   await expect(node(page, /^Project manager/)).toBeVisible();
-  await page.getByRole("radio", { checked: true }).focus();
+  await page
+    .getByRole("radiogroup", { name: "Vista" })
+    .getByRole("radio", { checked: true })
+    .focus();
   await page.keyboard.press("Tab");
 }
 

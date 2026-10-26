@@ -1,6 +1,6 @@
 import type { LayoutNode } from "@/lib/layout/compact-layout";
 import type { AssignmentCard } from "@/lib/team-tree/cards";
-import { reportsInReadingOrder } from "@/lib/team-tree/navigation";
+import { pathToRoot, reportsInReadingOrder } from "@/lib/team-tree/navigation";
 
 // docs/design/canvas-brief.md, "Table view": the same team as a treegrid, one row per assignment.
 
@@ -57,6 +57,22 @@ export function teamRows(
   };
   visit(null, 1);
   return rows;
+}
+
+/**
+ * The collapsed rows once every manager above `id` is expanded, so its row is on screen; the same
+ * set when nothing above it is collapsed. The row itself stays as it was.
+ */
+export function revealRow(
+  team: readonly Member[],
+  collapsed: ReadonlySet<string>,
+  id: string,
+): ReadonlySet<string> {
+  const managers = pathToRoot(team, id).slice(1);
+  if (!managers.some((manager) => collapsed.has(manager))) return collapsed;
+  const next = new Set(collapsed);
+  for (const manager of managers) next.delete(manager);
+  return next;
 }
 
 /** The rows on screen: those under a collapsed row are left out. Keeps the order of `rows`. */

@@ -92,12 +92,6 @@ export function TeamCanvas(props: TeamCanvasProps) {
   );
 }
 
-/** The canvas holding its own selection, until the scenario page shares it with the table view. */
-export function SelectableTeamCanvas(props: Omit<TeamCanvasProps, "selected" | "onSelect">) {
-  const [selected, setSelected] = useState<string | null>(null);
-  return <TeamCanvas {...props} selected={selected} onSelect={setSelected} />;
-}
-
 function Canvas({ team, nodes: layout, cards, selected, onSelect }: TeamCanvasProps) {
   const t = useTranslations("TeamTree");
   const instructions = useId();
@@ -194,7 +188,8 @@ function Canvas({ team, nodes: layout, cards, selected, onSelect }: TeamCanvasPr
       ?.focus({ preventScroll: true });
   }
 
-  // Owner decision: until the table view ships, the whole team stays in view at every width.
+  // Owner decision: the whole team stays in view at every width, also on the narrow screens where
+  // the table is the default view and the tree is still one click away.
   useEffect(() => {
     if (!canvas) return;
     let frame = 0;
