@@ -28,6 +28,19 @@ test("a chosen theme applies at once and survives a reload", async ({ page }) =>
   await expect(page.getByRole("radio", { name: "Oscuro" })).toBeChecked();
 });
 
+test("the arrow keys choose a theme in the switch", async ({ page }) => {
+  await page.emulateMedia({ colorScheme: "light" });
+  await page.goto("/");
+  await page.getByRole("radio", { name: "Sistema" }).focus();
+
+  await page.keyboard.press("ArrowLeft");
+
+  const dark = page.getByRole("radio", { name: "Oscuro" });
+  await expect(dark).toBeChecked();
+  await expect(dark).toBeFocused();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+});
+
 for (const colorScheme of ["light", "dark"] as const) {
   test.describe(`in the ${colorScheme} theme`, () => {
     test.beforeEach(async ({ page }) => {

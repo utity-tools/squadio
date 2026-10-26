@@ -1,6 +1,6 @@
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { renderWithIntl } from "@/test/render";
 
@@ -58,18 +58,32 @@ describe("ThemeSwitch", () => {
     expect(screen.getByRole("radio", { name: "Sistema" })).toBeChecked();
   });
 
-  it("is one tab stop, moved with the arrow keys and chosen with Space", async () => {
+  it("is one tab stop whose arrow keys move to the next theme and choose it", async () => {
     const user = userEvent.setup();
     renderWithIntl(<ThemeSwitch />);
 
     await user.tab();
     expect(screen.getByRole("radio", { name: "Sistema" })).toHaveFocus();
+    // A quick press: the key is up again before Radix moves the focus, a tick later.
     await user.keyboard("{ArrowRight}");
-    expect(screen.getByRole("radio", { name: "Claro" })).toHaveFocus();
-    await user.keyboard(" ");
+    await vi.waitFor(() => expect(screen.getByRole("radio", { name: "Claro" })).toHaveFocus());
 
+    expect(screen.getByRole("radio", { name: "Claro" })).toBeChecked();
     expect(readThemePreference(document.cookie)).toBe("light");
+    await user.keyboard("{ArrowLeft}");
+    await vi.waitFor(() => expect(screen.getByRole("radio", { name: "Sistema" })).toHaveFocus());
+    expect(readThemePreference(document.cookie)).toBe("system");
     await user.tab();
     expect(document.body).toHaveFocus();
+  });
+
+  it("tabs into the chosen theme", async () => {
+    document.cookie = `${THEME_COOKIE}=dark; path=/`;
+    const user = userEvent.setup();
+    renderWithIntl(<ThemeSwitch />);
+
+    await user.tab();
+
+    expect(screen.getByRole("radio", { name: "Oscuro" })).toHaveFocus();
   });
 });
