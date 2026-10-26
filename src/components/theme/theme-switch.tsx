@@ -2,9 +2,11 @@
 
 import { Monitor, Moon, Sun } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { RadioGroup } from "radix-ui";
 import { useSyncExternalStore } from "react";
 
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { toggleVariants } from "@/components/ui/toggle";
+import { cn } from "@/lib/utils";
 
 import {
   THEME_CHANGE_EVENT,
@@ -25,7 +27,10 @@ function subscribe(onChange: () => void) {
   return () => window.removeEventListener(THEME_CHANGE_EVENT, onChange);
 }
 
-/** System, light or dark: a segmented radio group, one tab stop moved with the arrow keys. */
+/**
+ * System, light or dark: a segmented radio group, one tab stop. As the APG radio group says, the
+ * arrow keys move to the next option and choose it.
+ */
 export function ThemeSwitch() {
   const t = useTranslations("Theme");
   // The server cannot read the cookie without making every page dynamic: it renders "system"
@@ -37,31 +42,38 @@ export function ThemeSwitch() {
   );
 
   return (
-    <ToggleGroup
-      type="single"
-      variant="outline"
-      size="sm"
+    <RadioGroup.Root
       aria-label={t("label")}
+      orientation="horizontal"
       value={preference}
       onValueChange={(value) => {
-        // Clicking the chosen option again sends "": a theme always stays chosen.
         if (isThemePreference(value)) writeThemePreference(value);
       }}
+      className="flex w-fit items-center rounded-md shadow-xs"
     >
       {themePreferences.map((option) => {
         const Icon = icons[option];
         return (
-          <ToggleGroupItem
+          <RadioGroup.Item
             key={option}
             value={option}
             aria-label={t(option)}
             title={t(option)}
-            className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+            // Focus chooses, however quick the key: Radix only does it while an arrow is held down.
+            // A theme is always chosen, so unlike the view switch there is no unknown state to skip.
+            onFocus={() => {
+              if (option !== preference) writeThemePreference(option);
+            }}
+            className={cn(
+              toggleVariants({ variant: "outline", size: "sm" }),
+              "rounded-none border-s-0 px-3 shadow-none first:rounded-s-md first:border-s last:rounded-e-md focus-visible:z-10",
+              "data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground",
+            )}
           >
             <Icon aria-hidden />
-          </ToggleGroupItem>
+          </RadioGroup.Item>
         );
       })}
-    </ToggleGroup>
+    </RadioGroup.Root>
   );
 }
