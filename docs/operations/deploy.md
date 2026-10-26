@@ -14,11 +14,18 @@ AWS Frankfurt. Only GitHub Actions deploys, and only from `main` after CI passed
 3. In the `production` environment, on the exact commit CI tested, `vercel pull` and
    `vercel build --prod` build the app in the runner. A failed build stops here, with the database
    untouched.
-4. `pnpm db:migrate` applies pending migrations as `squadio_owner`.
-5. `pnpm db:seed` replaces the synthetic demo organization as `squadio_app`, with the
-   `DATABASE_URL` that `vercel pull` wrote. It runs in one transaction with fixed ids, so the
-   running deployment never sees a half-written demo.
+4. `pnpm db:check-target owner` fails unless `DATABASE_OWNER_URL` leads to `squadio_owner` on
+   `squadio`: a string pointing elsewhere would still migrate, and go green
+   ([post-mortem](../incidents/2026-10-23-migrations-in-neondb.md)). Then `pnpm db:migrate`
+   applies pending migrations.
+5. `pnpm db:check-target app` checks the `DATABASE_URL` that `vercel pull` wrote leads to
+   `squadio_app` on `squadio`, and `pnpm db:seed` replaces the synthetic demo organization with
+   it. The seed runs in one transaction with fixed ids, so the running deployment never sees a
+   half-written demo.
 6. `vercel deploy --prebuilt --prod` uploads the build and promotes it.
+7. A smoke test opens the guide scenario on the production domain and fails unless it answers 200
+   and shows the scenario's name. A missing scenario also answers 200, because the page streams.
+   The new deployment is live by then: if the smoke test fails, roll back (below).
 
 A deploy can also be started by hand from the Actions tab (**Deploy → Run workflow**, branch `main`)
 to ship the tip of `main` again. It fails unless CI passed on that commit; the check retries for
@@ -111,9 +118,11 @@ later `PUBLIC` keeps `U` without `C`, which is harmless: it cannot connect to `s
 Finally, reset the `neondb_owner` password (**Roles → ⋮ → Reset password**) and close the dialog
 without copying it. Nothing needs it day to day; reset it again whenever it is needed.
 
-The two connection strings used below take the host from Neon's **Connect** dialog. Neon does not
-know the passwords of roles created with SQL, so the dialog shows a placeholder: compose each string
-in the password manager, never in a shell or a chat.
+The two connection strings used below take the host from Neon's **Connect** dialog, with its
+database selector on `squadio`: it defaults to `neondb`, and a string on `neondb` still connects and
+migrates ([post-mortem](../incidents/2026-10-23-migrations-in-neondb.md)). Neon does not know the
+passwords of roles created with SQL, so the dialog shows a placeholder: compose each string in the
+password manager, never in a shell or a chat. Keep one entry per string, named after its variable.
 
 | Name                 | Role            | Host                    | Database  |
 | -------------------- | --------------- | ----------------------- | --------- |
@@ -124,6 +133,21 @@ Both have the form `postgresql://<role>:<password>@<host>/squadio?sslmode=verify
 treats `require` as `verify-full`, but its next major gives `require` libpq's weaker meaning, so
 the strings say `verify-full`. The pooler runs in transaction mode, which is safe because
 `withOrganization` sets the tenant per transaction.
+
+Check where each string leads before storing it anywhere else. The deploy runs the same check:
+
+```bash
+read -rs "DATABASE_OWNER_URL?DATABASE_OWNER_URL: " && export DATABASE_OWNER_URL
+pnpm db:check-target owner
+unset DATABASE_OWNER_URL
+read -rs "DATABASE_URL?DATABASE_URL: " && export DATABASE_URL
+pnpm db:check-target app
+unset DATABASE_URL
+```
+
+To check one with `psql` instead, add `sslrootcert=system` to its query string: libpq only uses the
+system's root certificates with it, while Node's `pg` uses Node's bundled ones (and would read
+`system` as a file path, so never store the string with it).
 
 ### 3. Vercel project
 
@@ -192,7 +216,8 @@ Vercel never returns secret (sensitive) values, so `vercel pull` would leave `DA
 and `next build`, which validates it, would fail
 ([ADR 0006](../adr/0006-deploys-from-github-actions.md)). `--type config` makes the choice
 explicit, since a piped or non-interactive run cannot answer the prompt. Config values are still
-encrypted and readable only by members of the Vercel team.
+encrypted and readable only by members of the Vercel team. The dashboard later suggests **Change to
+Secret** for `DATABASE_URL`: decline it, as the post-mortem explains.
 
 ### 5. Domain
 

@@ -107,6 +107,12 @@ jobs:
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: pnpm exec vercel build --prod
+      # A string with the wrong database or role still migrates, and goes green: check where it
+      # leads before writing to it (docs/incidents/2026-10-23-migrations-in-neondb.md).
+      - name: Check the migration target
+        env:
+          DATABASE_OWNER_URL: ${{ secrets.DATABASE_OWNER_URL }}
+        run: pnpm db:check-target owner
       # Migrations must keep the running version working (expand, then contract in a later deploy):
       # the old deployment serves traffic until the new one is promoted.
       - name: Apply migrations
@@ -131,8 +137,33 @@ jobs:
           # (docs/incidents/2026-10-23-migrations-in-neondb.md).
           if [ -z "$url" ]; then echo "::error::vercel pull wrote no DATABASE_URL."; exit 1; fi
           echo "::add-mask::$url"
+          # The seed's deletes rely on Row Level Security, which only binds squadio_app.
+          DATABASE_URL="$url" pnpm db:check-target app
           DATABASE_URL="$url" pnpm db:seed
       - name: Deploy
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: pnpm exec vercel deploy --prebuilt --prod
+      # A page that reads the database, through the production domain. It must answer 200 and show
+      # the guide scenario's name: a scenario that is not found also answers 200, because the page
+      # streams, so the status alone would miss a missing seed. Retries cover the domain moving to
+      # the new deployment, which is already live by now: on failure, roll back as the runbook says.
+      - name: Smoke test the guide scenario
+        env:
+          # DEMO_IDS.guideScenario and GUIDE_SCENARIO_NAME in src/db/demo-seed.ts.
+          PAGE: https://squadio.utitytools.com/scenarios/6d656d6f-0000-4000-8000-000000000200
+          EXPECTED: Plan A
+        run: |
+          body=$(mktemp)
+          for attempt in 1 2 3 4 5; do
+            status=$(curl --silent --output "$body" --write-out '%{http_code}' --max-time 20 \
+              "$PAGE") || status=000
+            if [ "$status" = 200 ] && grep --quiet --fixed-strings "$EXPECTED" "$body"; then
+              exit 0
+            fi
+            echo "::notice::$PAGE answered $status without the guide scenario (attempt $attempt)."
+            if [ "$attempt" -eq 5 ]; then break; fi
+            sleep $((attempt * 10))
+          done
+          echo "::error::$PAGE never showed the guide scenario. Roll back: see docs/operations/deploy.md."
+          exit 1

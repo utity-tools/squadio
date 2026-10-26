@@ -25,6 +25,9 @@ const DEMO = demoAccessContext;
 
 const demoId = (n: number) => `6d656d6f-0000-4000-8000-${String(n).padStart(12, "0")}`;
 
+/** The guide scenario's name, which the deploy's smoke test looks for on its page. */
+export const GUIDE_SCENARIO_NAME = "Plan A";
+
 export const DEMO_IDS = {
   project: demoId(100),
   guideScenario: demoId(200),
@@ -120,7 +123,12 @@ async function insert(tx: TenantTransaction) {
     .insert(projectPricing)
     .values({ organizationId, projectId: DEMO_IDS.project, price: 20_000_000 });
   await tx.insert(scenarios).values([
-    { id: DEMO_IDS.guideScenario, organizationId, projectId: DEMO_IDS.project, name: "Plan A" },
+    {
+      id: DEMO_IDS.guideScenario,
+      organizationId,
+      projectId: DEMO_IDS.project,
+      name: GUIDE_SCENARIO_NAME,
+    },
     { id: DEMO_IDS.leanScenario, organizationId, projectId: DEMO_IDS.project, name: "Plan B" },
   ]);
 
