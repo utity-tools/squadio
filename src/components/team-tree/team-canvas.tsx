@@ -82,6 +82,8 @@ const ARROWS: Record<string, keyof Moves> = {
 const ZOOM_DURATION = 200;
 const MIN_ZOOM = 0.1;
 const MAX_ZOOM = 2;
+/** Fitting never zooms past 100%: a small team keeps the card size of the layout. */
+const FIT_VIEW = { maxZoom: 1 };
 /** React Flow's own zoom in and out step. */
 const ZOOM_STEP = 1.2;
 
@@ -160,7 +162,7 @@ function Canvas({ team, nodes: layout, cards, selected, onSelect }: TeamCanvasPr
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const options = { duration: reduced ? 0 : ZOOM_DURATION };
     if (action === "fit") {
-      void flow.fitView(options);
+      void flow.fitView({ ...options, ...FIT_VIEW });
       return;
     }
     // From a focused node, zoom around it so it stays in view; otherwise around the centre.
@@ -203,7 +205,7 @@ function Canvas({ team, nodes: layout, cards, selected, onSelect }: TeamCanvasPr
     const observer = new ResizeObserver(() => {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
-        if (!moved.current) void flow.fitView();
+        if (!moved.current) void flow.fitView(FIT_VIEW);
       });
     });
     observer.observe(canvas);
@@ -236,6 +238,7 @@ function Canvas({ team, nodes: layout, cards, selected, onSelect }: TeamCanvasPr
           if (event) moved.current = true;
         }}
         fitView
+        fitViewOptions={FIT_VIEW}
         minZoom={MIN_ZOOM}
         maxZoom={MAX_ZOOM}
         nodesDraggable={false}
