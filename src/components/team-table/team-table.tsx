@@ -49,6 +49,15 @@ type Column = (typeof COLUMNS)[number];
 
 const NUMERIC = new Set<Column>(["allocation", "weeklyHours", "nominalHours", "effectiveHours"]);
 
+/**
+ * Each cell's padding: tight, so the nine columns fit a laptop's table area (about 780 px), with
+ * room at the start of the first one for the selected row's bar.
+ */
+const padding = (index: number) => cn("py-2", index === 0 ? "ps-3 pe-2" : "px-2");
+
+/** Text wraps, so the columns fit; numbers never break. */
+const wrapping = (column: Column) => (NUMERIC.has(column) ? "whitespace-nowrap" : "break-words");
+
 /** The totals footer's row: reached with the grid keys like any row, but never selected. */
 const TOTALS_ROW = "totals";
 
@@ -148,7 +157,7 @@ export function TeamTable({
               <span
                 data-toggle=""
                 aria-hidden
-                className="-m-1 cursor-pointer rounded p-1 hover:bg-muted"
+                className="-m-1 shrink-0 cursor-pointer rounded p-1 hover:bg-muted"
                 onClick={() => toggle(row.id, !row.expanded)}
               >
                 <ChevronRightIcon
@@ -160,7 +169,7 @@ export function TeamTable({
             ) : (
               <span aria-hidden className="size-4 shrink-0" />
             )}
-            <span className="font-medium">{card.title}</span>
+            <span className="min-w-0 font-medium">{card.title}</span>
           </span>
         );
       case "person": {
@@ -182,10 +191,12 @@ export function TeamTable({
         return hours(card.allocatedWeeklyHours);
       case "dates":
         return card.dates ? (
-          format.dateTimeRange(utcDay(card.dates.start), utcDay(card.dates.end), {
-            dateStyle: "medium",
-            timeZone: "UTC",
-          })
+          <span className="whitespace-nowrap">
+            {format.dateTimeRange(utcDay(card.dates.start), utcDay(card.dates.end), {
+              dateStyle: "medium",
+              timeZone: "UTC",
+            })}
+          </span>
         ) : (
           <span className="text-muted-foreground">{t("wholeProject")}</span>
         );
@@ -201,8 +212,9 @@ export function TeamTable({
       <p id={instructions} className="sr-only">
         {t("instructions")}
       </p>
-      {/* Narrow screens scroll the table, not the page. */}
-      <div className="overflow-x-auto">
+      {/* A table wider than its area scrolls inside it, not the page, with a shadow at each edge
+          that has more to show. */}
+      <div className="overflow-x-auto scroll-shadow-x">
         <table
           ref={table}
           role="treegrid"
@@ -214,13 +226,15 @@ export function TeamTable({
         >
           <thead role="rowgroup">
             <tr role="row" className="border-b">
-              {COLUMNS.map((column) => (
+              {COLUMNS.map((column, index) => (
                 <th
                   key={column}
                   role="columnheader"
                   scope="col"
+                  // Headers wrap to two lines, aligned on the bottom one.
                   className={cn(
-                    "px-3 py-2 text-start font-medium whitespace-nowrap text-muted-foreground",
+                    padding(index),
+                    "text-start align-bottom text-xs font-medium text-muted-foreground",
                     NUMERIC.has(column) && "text-end",
                   )}
                 >
@@ -256,7 +270,9 @@ export function TeamTable({
                       data-column={index}
                       tabIndex={rowTabStop?.column === index ? 0 : -1}
                       className={cn(
-                        "px-3 py-2 whitespace-nowrap focus-visible:-outline-offset-2",
+                        padding(index),
+                        wrapping(column),
+                        "focus-visible:-outline-offset-2",
                         NUMERIC.has(column) && "text-end tabular-nums",
                         index === 0 && "relative",
                       )}
@@ -290,7 +306,9 @@ export function TeamTable({
                   "data-column": index,
                   tabIndex: footerTabStop?.column === index ? 0 : -1,
                   className: cn(
-                    "px-3 py-2 whitespace-nowrap focus-visible:-outline-offset-2",
+                    padding(index),
+                    wrapping(column),
+                    "focus-visible:-outline-offset-2",
                     NUMERIC.has(column) ? "text-end tabular-nums" : "text-start",
                   ),
                 };
