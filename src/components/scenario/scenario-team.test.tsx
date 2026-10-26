@@ -43,6 +43,19 @@ describe("ScenarioTeam", () => {
     expect(screen.getAllByRole("row")).toHaveLength(6);
   });
 
+  it("marks the assignments whose category has no rate", () => {
+    renderWithIntl(<ScenarioTeam {...guide} withoutRate={new Set(["c-ops"])} />);
+    expect(node(/^DevOps/)).toHaveTextContent("Sin tarifa");
+    expect(node(/^Tech lead/)).not.toHaveTextContent("Sin tarifa");
+  });
+
+  it("marks nothing without the categories missing a rate", () => {
+    stubHistory("/scenarios/guide?view=table");
+    renderWithIntl(<ScenarioTeam {...guide} />);
+
+    expect(screen.queryByText("Sin tarifa")).not.toBeInTheDocument();
+  });
+
   it("shows an empty state without assignments", () => {
     renderWithIntl(<ScenarioTeam team={[]} hours={[]} span={null} />);
 
