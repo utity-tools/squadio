@@ -11,7 +11,9 @@ import {
   categoryRates,
   config,
   costConfig,
+  extraCosts,
   people,
+  projectPricing,
   projects,
   scenarios,
 } from "@/db/schema";
@@ -101,6 +103,59 @@ describe("loadScenario", () => {
     expect(loaded.smallCategories).toEqual([
       { categoryId: category("DevOps Engineer"), activePeople: 2 },
     ]);
+    // What the summary shows next to the result lines.
+    expect(loaded.settings).toEqual({
+      overheadBasisPoints: 1500,
+      bufferBasisPoints: 1000,
+      targetMarginBasisPoints: 2500,
+    });
+    expect(loaded.extraCosts).toEqual([{ id: cloud, label: "Cloud", kind: "recurring" }]);
+  });
+
+  it("shows the project's overrides of overhead and buffer, not the organization's", async () => {
+    const context: AccessContext = { organizationId: randomUUID(), rateAccess: true };
+    const organizationId = context.organizationId;
+    const scenarioId = await withOrganization(app, context, async (tx) => {
+      await tx
+        .insert(config)
+        .values({ organizationId, netAnnualHours: 1550, defaultWeeklyHours: 40 });
+      await tx
+        .insert(costConfig)
+        .values({ organizationId, overhead: 1500, buffer: 1000, targetMargin: 2500 });
+      const [project] = await tx
+        .insert(projects)
+        .values({ organizationId, name: "Tuned", client: "Client E", pricingModel: "fixed" })
+        .returning();
+      await tx.insert(projectPricing).values({
+        organizationId,
+        projectId: project!.id,
+        price: 1_000_000,
+        overhead: 2000,
+        buffer: null,
+      });
+      const [scenario] = await tx
+        .insert(scenarios)
+        .values({ organizationId, projectId: project!.id, name: "Plan A" })
+        .returning();
+      await tx.insert(extraCosts).values({
+        organizationId,
+        scenarioId: scenario!.id,
+        kind: "fixed",
+        amount: 50_000,
+      });
+      return scenario!.id;
+    });
+
+    const loaded = await loadScenario(app, context, scenarioId);
+    if (!loaded?.rateAccess) throw new Error("expected a result with rate access");
+
+    expect(loaded.settings).toEqual({
+      overheadBasisPoints: 2000,
+      bufferBasisPoints: 1000,
+      targetMarginBasisPoints: 2500,
+    });
+    // An extra cost without a label keeps it null; the summary names it by its kind.
+    expect(loaded.extraCosts).toMatchObject([{ label: null, kind: "fixed" }]);
   });
 
   it("returns only the open part and the hours without rate access", async () => {
