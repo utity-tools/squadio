@@ -85,5 +85,69 @@
     "label": "View",
     "tree": "Tree",
     "table": "Table"
+  },
+  "Summary": {
+    "unavailable": "Not available: the scenario is incomplete",
+    "hours": "{hours} h",
+    "rate": "{amount}/h",
+    "amountWithPercent": "{amount} ({percent})",
+    "headline": {
+      "netMargin": "Net margin",
+      "incomplete": "No margin: the scenario is incomplete",
+      "target": "target {percent}",
+      "status": {
+        "green": "On target",
+        "amber": "Below target",
+        "red": "Loss"
+      }
+    },
+    "figures": {
+      "title": "Key figures",
+      "revenue": "Revenue",
+      "totalCost": "Total cost",
+      "effectiveRate": "Effective rate",
+      "effectiveHours": "Effective hours"
+    },
+    "lines": {
+      "title": "Breakdown",
+      "staffCost": "Staff cost ({hours} effective hours)",
+      "extraCost": {
+        "fixed": "Fixed extra cost",
+        "recurring": "Monthly extra cost",
+        "percentage": "Percentage extra cost"
+      },
+      "directCost": "Direct cost",
+      "overhead": "Overhead ({percent})",
+      "buffer": "Buffer ({percent})",
+      "totalCost": "Total cost",
+      "revenue": "Revenue",
+      "directMargin": "Direct margin",
+      "netMargin": "Net margin"
+    },
+    "categories": {
+      "title": "Staff cost by category",
+      "effectiveHours": "Effective hours",
+      "costPerHour": "Cost per hour",
+      "cost": "Cost",
+      "small": "Small category: its rate can reveal a salary"
+    },
+    "warnings": {
+      "missingRate": {
+        "title": "A rate is missing",
+        "description": "{categories} {count, plural, one {has} other {have}} no rate, so the scenario has no cost."
+      },
+      "missingPrice": {
+        "title": "The price is missing",
+        "description": "The project is fixed price and has no price, so the scenario has no revenue or margin."
+      },
+      "budgetCapExceeded": {
+        "title": "Budget cap exceeded",
+        "description": "Revenue, {revenue}, is over the cap of {cap}."
+      }
+    },
+    "team": {
+      "people": "{count, plural, one {# person} other {# people}}",
+      "openRoles": "{count, plural, =0 {No open roles} one {# open role} other {# open roles}}"
+    }
   }
 }
