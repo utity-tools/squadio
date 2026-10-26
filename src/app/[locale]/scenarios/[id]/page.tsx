@@ -11,6 +11,7 @@ import { currentAccessContext } from "@/db/access";
 import { db } from "@/db/client";
 import { loadScenario } from "@/db/load-scenario";
 import { assertLocale } from "@/i18n/locale";
+import { categoriesWithoutRate } from "@/lib/team-tree/cards";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("ScenarioPage");
@@ -44,6 +45,8 @@ export default async function ScenarioPage({
           // Every assignment's hours, with or without rate access (ADR 0005).
           hours={scenario.rateAccess ? scenario.result.assignments : scenario.assignments}
           span={scenario.span}
+          // Which categories lack a rate is restricted: without rate access, no node is marked.
+          withoutRate={categoriesWithoutRate(scenario)}
         />
       }
       summary={<ScenarioSummary scenario={scenario} />}

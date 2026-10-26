@@ -14,6 +14,8 @@ export type ScenarioTeamProps = {
   /** Each assignment's hours, from the engine: open to everyone (ADR 0005). */
   hours: { id: string; nominalHours: number; effectiveHours: number }[];
   span: ProjectSpan | null;
+  /** The categories without a rate, marked on their nodes. Only with rate access (ADR 0005). */
+  withoutRate?: ReadonlySet<string>;
 };
 
 /**
@@ -21,9 +23,9 @@ export type ScenarioTeamProps = {
  * assignments the layout cannot draw, or else the tree and table views of the canvas brief. The
  * cards and the layout are computed once, here, for both views.
  */
-export function ScenarioTeam({ team, hours, span }: ScenarioTeamProps) {
+export function ScenarioTeam({ team, hours, span, withoutRate }: ScenarioTeamProps) {
   if (team.length === 0) return <EmptyTeam />;
-  const cards = assignmentCards(team, hours, span);
+  const cards = assignmentCards(team, hours, span, withoutRate);
   const layout = layoutTeam(team);
   if (!layout.ok) return <UndrawableTeam error={layout.error} cards={cards} />;
   return (
