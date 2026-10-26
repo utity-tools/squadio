@@ -146,8 +146,17 @@
       }
     },
     "team": {
+      "title": "Team and hours",
       "people": "{count, plural, one {# person} other {# people}}",
-      "openRoles": "{count, plural, =0 {No open roles} one {# open role} other {# open roles}}"
+      "openRoles": "{count, plural, =0 {No open roles} one {# open role} other {# open roles}}",
+      "peopleLabel": "People",
+      "openRolesLabel": "Open roles",
+      "nominalHours": "Nominal hours",
+      "effectiveHours": "Effective hours",
+      "span": "Project span",
+      "workingDays": "{count, plural, one {# working day} other {# working days}}",
+      "noSpan": "No dates: the scenario has no team",
+      "note": "Costs and margins are visible to people with rate access."
     }
   }
 }
