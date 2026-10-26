@@ -15,7 +15,10 @@ AWS Frankfurt. Only GitHub Actions deploys, and only from `main` after CI passed
    `vercel build --prod` build the app in the runner. A failed build stops here, with the database
    untouched.
 4. `pnpm db:migrate` applies pending migrations as `squadio_owner`.
-5. `vercel deploy --prebuilt --prod` uploads the build and promotes it.
+5. `pnpm db:seed` replaces the synthetic demo organization as `squadio_app`, with the
+   `DATABASE_URL` that `vercel pull` wrote. It runs in one transaction with fixed ids, so the
+   running deployment never sees a half-written demo.
+6. `vercel deploy --prebuilt --prod` uploads the build and promotes it.
 
 A deploy can also be started by hand from the Actions tab (**Deploy → Run workflow**, branch `main`)
 to ship the tip of `main` again. It fails unless CI passed on that commit; the check retries for

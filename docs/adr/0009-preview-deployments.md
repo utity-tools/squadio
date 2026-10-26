@@ -105,3 +105,5 @@ when the pull request closes.
   `pnpm db:seed` as `squadio_app`, the same seed the owner runs by hand in production. The demo
   data is synthetic, so the data constraint holds: the branch still copies nothing from production.
   The template stays empty.
+- **2026-10-26:** Production now runs the same seed on every deploy, instead of by hand
+  ([ADR 0006](0006-deploys-from-github-actions.md)).
