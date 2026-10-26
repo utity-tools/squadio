@@ -19,6 +19,33 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  changes:
+    name: Detect code changes
+    # A pull request that only touches docs cannot break the database, the pages or any commit's
+    # code: the heavy jobs below skip it, and a skipped required check counts as passed. Lint,
+    # format and unit tests still run on it. Pushes to main always run everything.
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      code: ${{ steps.diff.outputs.code }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - id: diff
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          code=true
+          if [ "$EVENT" = pull_request ] &&
+            ! git diff --name-only "$BASE_SHA...$HEAD_SHA" | grep -qvE '^(docs/|LICENSE$)|\.md$'; then
+            code=false
+          fi
+          echo "code=$code" | tee -a "$GITHUB_OUTPUT"
+
   checks:
     name: Lint, types, format and unit tests
     runs-on: ubuntu-latest
@@ -40,6 +67,8 @@ jobs:
 
   database:
     name: Migrations and database tests
+    needs: changes
+    if: ${{ needs.changes.outputs.code == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     # Only the jobs that migrate or test get the owner role.
@@ -63,6 +92,8 @@ jobs:
 
   e2e:
     name: E2E tests on a production build
+    needs: changes
+    if: ${{ needs.changes.outputs.code == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     # The scenario pages read the demo organization: migrate and seed before the tests.
@@ -78,7 +109,16 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm exec playwright install --with-deps chromium
+      # No `--with-deps`: it installs system libraries with apt, and a slow Ubuntu mirror once held
+      # this job for twenty minutes. The runner image ships Google Chrome, and with it the libraries
+      # Chromium needs. The browser itself is cached per Playwright version.
+      - id: playwright
+        run: echo "version=$(pnpm exec playwright --version | cut -d' ' -f2)" | tee -a "$GITHUB_OUTPUT"
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      - run: pnpm exec playwright install chromium
       - run: docker compose up -d --wait
       - run: pnpm db:migrate
       - run: pnpm db:seed
@@ -94,6 +134,8 @@ jobs:
     name: Every commit passes the checks
     # Rebase merge puts every commit on main, so each one must be green on its own. The checks job
     # already covers the last commit; the ruleset requires branches to be up to date with main.
+    # Commit messages are linted on every pull request; the code of each commit only when it changes.
+    needs: changes
     if: ${{ github.event_name == 'pull_request' }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
@@ -117,6 +159,7 @@ jobs:
       - name: Lint commit messages
         run: pnpm exec commitlint --from "$BASE_SHA" --to "$HEAD_SHA" --verbose
       - name: Check each earlier commit
+        if: ${{ needs.changes.outputs.code == 'true' }}
         run: |
           commits=$(git rev-list --reverse "$BASE_SHA..$HEAD_SHA~1")
           for sha in $commits; do
