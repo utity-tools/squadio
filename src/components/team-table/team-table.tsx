@@ -52,9 +52,6 @@ const NUMERIC = new Set<Column>(["allocation", "weeklyHours", "nominalHours", "e
 /** The totals footer's row: reached with the grid keys like any row, but never selected. */
 const TOTALS_ROW = "totals";
 
-/** The selected row's marker beyond its colour: a bar at the start of its first cell. */
-const SELECTED_MARKER = "shadow-[inset_3px_0_0_var(--primary)]";
-
 /**
  * The table view of the canvas brief: the team as a WAI-ARIA treegrid, structure and hours only,
  * never money. Controlled: the selection and the collapsed rows live with the caller, so the tree
@@ -249,7 +246,7 @@ export function TeamTable({
                   tabIndex={rowTabStop?.column === null ? 0 : -1}
                   className={cn(
                     "cursor-pointer border-b focus-visible:-outline-offset-2",
-                    isSelected ? "bg-accent text-accent-foreground" : "hover:bg-muted/50",
+                    isSelected ? "bg-selected text-selected-foreground" : "hover:bg-muted/50",
                   )}
                 >
                   {COLUMNS.map((column, index) => (
@@ -258,13 +255,21 @@ export function TeamTable({
                       role="gridcell"
                       data-column={index}
                       tabIndex={rowTabStop?.column === index ? 0 : -1}
-                      data-selected-marker={isSelected && index === 0 ? "" : undefined}
                       className={cn(
                         "px-3 py-2 whitespace-nowrap focus-visible:-outline-offset-2",
                         NUMERIC.has(column) && "text-end tabular-nums",
-                        isSelected && index === 0 && SELECTED_MARKER,
+                        index === 0 && "relative",
                       )}
                     >
+                      {isSelected && index === 0 && (
+                        // The selected row's mark beyond its colour: a bar at its start, set in
+                        // from the table's edge so it never blends with the window's frame.
+                        <span
+                          data-selected-marker=""
+                          aria-hidden
+                          className="absolute inset-y-1.5 start-1 w-1 rounded-full bg-primary"
+                        />
+                      )}
                       {value(row, column)}
                     </td>
                   ))}

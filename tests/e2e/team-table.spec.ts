@@ -1,4 +1,4 @@
-import { type Page, expect, test } from "@playwright/test";
+import { type Locator, type Page, expect, test } from "@playwright/test";
 
 import { expectNoAxeViolations } from "./support/axe";
 
@@ -222,10 +222,17 @@ for (const colorScheme of ["light", "dark"] as const) {
     await tabIntoGrid(page);
     await page.keyboard.press("ArrowDown");
     await expect(row(page, "Tech lead")).toHaveAttribute("aria-selected", "true");
-    // The selected row is marked by more than its colour: a bar at its start.
-    await expect(row(page, "Tech lead").getByRole("gridcell").first()).not.toHaveCSS(
-      "box-shadow",
-      "none",
+    // The selected row is marked by more than its colour: a 4 px bar at its start, set in from
+    // the table's edge, on a background apart from the page's.
+    const marker = row(page, "Tech lead").locator("[data-selected-marker]");
+    await expect(marker).toBeVisible();
+    const [bar, table] = await Promise.all([marker.boundingBox(), grid(page).boundingBox()]);
+    expect(bar!.width).toBe(4);
+    expect(bar!.x - table!.x).toBeGreaterThanOrEqual(2);
+    const background = (locator: Locator) =>
+      locator.evaluate((element) => getComputedStyle(element).backgroundColor);
+    expect(await background(row(page, "Tech lead"))).not.toBe(
+      await background(page.locator("body")),
     );
     await expectNoAxeViolations(page);
 

@@ -278,11 +278,15 @@ describe("TeamTable", () => {
     await userEvent.tab();
     await userEvent.keyboard("{ArrowDown}");
 
-    const [first] = within(row("Tech lead")).getAllByRole("gridcell");
-    expect(first).toHaveAttribute("data-selected-marker");
-    expect(within(row("Project manager")).getAllByRole("gridcell")[0]).not.toHaveAttribute(
-      "data-selected-marker",
-    );
+    // A bar inside the first cell, a little in from the table's edge; decoration for the eye,
+    // since aria-selected already tells assistive technologies.
+    const marker = row("Tech lead").querySelector("[data-selected-marker]");
+    expect(marker).toBe(within(row("Tech lead")).getAllByRole("gridcell")[0]!.firstElementChild);
+    expect(marker).toHaveAttribute("aria-hidden", "true");
+    expect(marker).toHaveClass("bg-primary");
+    expect(row("Tech lead")).toHaveClass("bg-selected");
+    expect(row("Project manager").querySelector("[data-selected-marker]")).toBeNull();
+    expect(row("Project manager")).not.toHaveClass("bg-selected");
   });
 
   it("collapses and expands with the arrows, hiding the reports", async () => {
