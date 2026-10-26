@@ -290,8 +290,10 @@ Everyone gets the open part, read only from open tables:
 
 The organization's name is not part of it: there is no Organization table until v0.5.
 
-- **With rate access** it adds the engine's result, and the small-category warning of rule j for
-  each category of the scenario that has 1 or 2 active people.
+- **With rate access** it adds the engine's result, the small-category warning of rule j for
+  each category of the scenario that has 1 or 2 active people, and what the summary shows next to
+  the result lines: the overhead % and buffer % the engine applied (the project's overrides or
+  else the CostConfig), the target margin, and each extra cost's label and kind.
 - **Without rate access** the restricted tables return no rows, so it adds only the hours: the
   scenario's nominal and effective hours and those of each assignment. Never a result line, a rate
   or a warning about money.
