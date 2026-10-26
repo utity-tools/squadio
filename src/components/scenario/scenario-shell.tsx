@@ -9,29 +9,36 @@ type Slots = { header: ReactNode; team: ReactNode; summary: ReactNode };
 /**
  * The scenario page grid of direction A, "Ledger rail" (docs/design/canvas-brief.md): header on
  * top, the team in the centre and the summary in a fixed right rail. The left column is the v0.2
- * bench, collapsed to zero. Below `md` the regions stack in one column no wider than the screen:
- * a wide table scrolls inside the team region, not the page.
+ * bench, collapsed to zero. From `md` the page holds to the screen's height, so the canvas fits
+ * the window, and a long table or summary scrolls inside its own region. Below `md` the regions stack in one
+ * column no wider than the screen: a wide table scrolls inside the team region, not the page.
  */
 export function ScenarioShell({ header, team, summary }: Slots) {
   const t = useTranslations("ScenarioPage");
 
   return (
-    <div className="flex flex-1 flex-col">
+    <div className="flex flex-1 flex-col md:max-h-dvh">
       <header className="flex items-center justify-between gap-4 border-b px-4 py-3">
         <div className="min-w-0">{header}</div>
         <ThemeSwitch />
       </header>
-      <div className="grid flex-1 grid-cols-[minmax(0,1fr)] md:grid-cols-[0_minmax(0,1fr)_330px]">
+      <div className="grid flex-1 grid-cols-[minmax(0,1fr)] md:min-h-0 md:grid-cols-[0_minmax(0,1fr)_330px] md:grid-rows-[minmax(0,1fr)]">
         {/* The dot grid stays lighter than any border (canvas brief, "Themes and contrast"). */}
         <main
           aria-label={t("team")}
-          className="min-h-96 bg-[radial-gradient(color-mix(in_oklab,var(--border)_60%,transparent)_1px,transparent_1px)] bg-size-[16px_16px] md:col-start-2"
+          className="min-h-96 bg-[radial-gradient(color-mix(in_oklab,var(--border)_60%,transparent)_1px,transparent_1px)] bg-size-[16px_16px] md:col-start-2 md:min-h-0 md:overflow-auto"
         >
           {team}
         </main>
+        {/*
+          Focusable, so the keyboard can scroll the rail: it holds no control of its own. Below
+          `md` it does not scroll, and the extra tab stop is accepted. The ring is drawn inside,
+          since the rail touches the window's edges.
+        */}
         <aside
           aria-label={t("summary")}
-          className="border-t p-4 md:col-start-3 md:border-t-0 md:border-l"
+          tabIndex={0}
+          className="border-t p-4 focus-visible:-outline-offset-2 md:col-start-3 md:overflow-y-auto md:border-t-0 md:border-l"
         >
           {summary}
         </aside>

@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { ScenarioHeader } from "@/components/scenario/scenario-header";
 import { ScenarioShell } from "@/components/scenario/scenario-shell";
+import { ScenarioSummary } from "@/components/scenario/scenario-summary";
 import { ScenarioTeam } from "@/components/scenario/scenario-team";
 import { currentAccessContext } from "@/db/access";
 import { db } from "@/db/client";
@@ -16,13 +17,16 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t("title") };
 }
 
-export default async function ScenarioPage({ params }: PageProps<"/[locale]/scenarios/[id]">) {
+export default async function ScenarioPage({
+  params,
+  searchParams,
+}: PageProps<"/[locale]/scenarios/[id]">) {
   await assertLocale();
   const { id } = await params;
   // An id that is not a UUID, or a scenario of another organization, is simply not found.
   if (!z.uuid().safeParse(id).success) notFound();
-  // The result feeds the summary of a later slice.
-  const scenario = await loadScenario(db, currentAccessContext(), id);
+  // `?access=none` shows the page without rate access (ADR 0005, amendment of 2026-10-21).
+  const scenario = await loadScenario(db, currentAccessContext(await searchParams), id);
   if (!scenario) notFound();
 
   return (
@@ -42,7 +46,7 @@ export default async function ScenarioPage({ params }: PageProps<"/[locale]/scen
           span={scenario.span}
         />
       }
-      summary={null}
+      summary={<ScenarioSummary scenario={scenario} />}
     />
   );
 }
