@@ -74,13 +74,17 @@ database, and nothing checked where they pointed. A migration against the wrong 
 
 ## Follow-ups
 
-- The deploy checks its target: after migrating, fail unless `current_database()` is `squadio` and
-  `current_user` is `squadio_owner`.
-- A smoke test after the deploy requests a page that reads the database and fails on a 5xx.
-- The runbook says to pick the `squadio` database in **Connect**, adds the `psql` check with
-  `sslrootcert=system`, and warns against Vercel's "Change to Secret" prompt.
-- Drop the stale tables and the `drizzle` schema from `neondb`.
-- One password manager entry per connection string, named after its variable.
+- [x] The deploy checks its target: it fails unless `current_database()` is `squadio` and
+      `current_user` is `squadio_owner`. It checks before migrating, not after, so a wrong string
+      writes nothing; the app's string gets the same check before the seed.
+- [x] A smoke test after the deploy requests a page that reads the database. It fails unless the
+      page answers 200 and shows the guide scenario: a missing scenario also answers 200, because
+      the page streams, so failing on a 5xx alone would miss it.
+- [x] The runbook says to pick the `squadio` database in **Connect**, adds two checks of where a
+      string leads (`pnpm db:check-target`, and `psql` with `sslrootcert=system`), and warns
+      against Vercel's "Change to Secret" prompt.
+- [ ] Drop the stale tables and the `drizzle` schema from `neondb` (the owner).
+- [ ] One password manager entry per connection string, named after its variable (the owner).
 
 ## Lessons
 
