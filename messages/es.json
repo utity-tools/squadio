@@ -54,7 +54,7 @@
     "fitView": "Ajustar el equipo a la vista",
     "empty": {
       "title": "Este escenario aún no tiene equipo",
-      "description": "Sus asignaciones aparecerán aquí como un árbol."
+      "description": "Sus asignaciones aparecerán aquí."
     },
     "layoutError": {
       "title": "No podemos dibujar este equipo",
