@@ -20,6 +20,7 @@ import { type ProjectSpan, projectSpan } from "@/lib/scenarios/project-span";
 
 import {
   type EngineInput,
+  type StoredExtraCost,
   type StoredScenario,
   toEngineInput,
   toHoursInput,
@@ -53,9 +54,29 @@ export type OpenScenario = {
   span: ProjectSpan | null;
 };
 
+/**
+ * The percentages the summary shows next to the result lines, in basis points. Restricted. Not
+ * the engine's cost settings: it holds the target margin, and no availability.
+ */
+export type SummaryPercentages = {
+  /** The project's override, or else the organization's: the one the engine applied. */
+  overheadBasisPoints: number;
+  bufferBasisPoints: number;
+  targetMarginBasisPoints: number;
+};
+
+/** An extra cost as the summary names it; its amount is in the result. Restricted. */
+export type SummaryExtraCost = Pick<StoredExtraCost, "id" | "label" | "kind">;
+
 export type LoadedScenario = OpenScenario &
   (
-    | { rateAccess: true; result: ScenarioResult; smallCategories: SmallCategory[] }
+    | {
+        rateAccess: true;
+        result: ScenarioResult;
+        smallCategories: SmallCategory[];
+        settings: SummaryPercentages;
+        extraCosts: SummaryExtraCost[];
+      }
     | {
         rateAccess: false;
         hours: ScenarioResult["hours"];
@@ -211,7 +232,8 @@ export async function loadScenario(
     }
 
     const money = await readMoney(tx, scenarioId, projectId);
-    const result = run(toEngineInput({ ...structural, ...money }));
+    const input = toEngineInput({ ...structural, ...money });
+    const result = run(input);
     const headcount = await tx
       .select({ id: people.id, categoryId: people.categoryId, active: people.active })
       .from(people);
@@ -219,6 +241,17 @@ export async function loadScenario(
     const smallCategories = findSmallCategories(headcount).filter((small) =>
       used.has(small.categoryId),
     );
-    return { ...toOpenScenario(structure), rateAccess: true, result, smallCategories };
+    return {
+      ...toOpenScenario(structure),
+      rateAccess: true,
+      result,
+      smallCategories,
+      settings: {
+        overheadBasisPoints: input.costSettings.overheadBasisPoints,
+        bufferBasisPoints: input.costSettings.bufferBasisPoints,
+        targetMarginBasisPoints: input.targetMargin,
+      },
+      extraCosts: money.extraCosts.map(({ id, label, kind }) => ({ id, label, kind })),
+    };
   });
 }
