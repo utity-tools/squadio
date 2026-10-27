@@ -243,6 +243,20 @@ gh workflow run deploy.yml -R utity-tools/squadio --ref main
 
 When it finishes, check that `https://squadio.utitytools.com` loads and its certificate is valid.
 
+### 7. Rate limit on first saves
+
+A visitor's first save makes their copy of the demo ([ADR 0011](../adr/0011-saving-edits-and-the-visitor-copy.md),
+"Abuse"). One firewall rule limits first saves per IP; saves from a visitor who already has a copy
+carry the cookie and never meet it. In the Vercel dashboard, project `squadio`, Firewall, Configure,
+New Rule:
+
+- **Name:** `First saves per IP`.
+- **If:** Request Method equals `POST`, and Request Header `Next-Action` exists, and Cookie
+  `squadio_visitor` does not exist.
+- **Then:** Rate Limit, fixed window, 10 minutes, 10 requests, keyed by IP, action Deny.
+
+Review Changes, then Publish. Hobby allows one rate limit rule per project, so this is it.
+
 ## Rotating credentials
 
 - **Database passwords** (`squadio_app` shown; the same for `squadio_owner`). Not in the SQL
