@@ -51,3 +51,8 @@ export const weeklyHours = customType<{ data: number; driverData: string }>({
   toDriver: formatWeeklyHours,
   fromDriver: (value) => parseBasisPoints(value) / 100,
 });
+
+/** Raw bytes, such as a hash. */
+export const bytea = customType<{ data: Buffer; driverData: Buffer }>({
+  dataType: () => "bytea",
+});

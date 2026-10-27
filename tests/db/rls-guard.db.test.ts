@@ -8,7 +8,13 @@ import { afterAll, describe, expect, it } from "vitest";
 import type { TenantTransaction } from "@/db/tenant";
 
 import { ownerPool } from "./support";
-import { GLOBAL_TABLES, NUMERIC_ALLOWLIST, POLICY_EXCEPTIONS, RESTRICTED_TABLES } from "./tenancy";
+import {
+  GLOBAL_TABLES,
+  NUMERIC_ALLOWLIST,
+  OWNER_ONLY_TABLES,
+  POLICY_EXCEPTIONS,
+  RESTRICTED_TABLES,
+} from "./tenancy";
 
 // Guard for ADR 0004: every tenant table has a uuid organization_id, RLS enabled and forced, and
 // policies that are exactly the tenant check. Read from the catalog, so a migration that forgets any
@@ -42,7 +48,11 @@ type TenancyProblem =
   | "floating-point column; money is numeric"
   | "policy is not exactly the restricted check"
   | "numeric or money column outside the restricted tables"
-  | "listed as restricted but does not exist";
+  | "listed as restricted but does not exist"
+  | "owner-only table has a policy"
+  | "owner-only table forces rls"
+  | "owner-only table grants the app role"
+  | "listed as owner-only but does not exist";
 
 type TenancyViolation = { table: string; problem: TenancyProblem };
 
@@ -57,6 +67,7 @@ type RelationRow = {
   organization_id_type: string | null;
   policies: number;
   security_invoker: boolean;
+  app_privileges: boolean;
   has_float: boolean;
   numeric_columns: string[];
 };
@@ -68,17 +79,22 @@ const userSchemas = sql`
   n.nspname not like 'pg\\_%'
   and n.nspname <> 'information_schema'`;
 
-type GuardLists = { restrictedTables: readonly string[]; numericAllowlist: readonly string[] };
+type GuardLists = {
+  restrictedTables: readonly string[];
+  numericAllowlist: readonly string[];
+  ownerOnlyTables: readonly string[];
+};
 
 const GUARD_LISTS: GuardLists = {
   restrictedTables: RESTRICTED_TABLES,
   numericAllowlist: NUMERIC_ALLOWLIST,
+  ownerOnlyTables: OWNER_ONLY_TABLES,
 };
 
 /** Lists every tenancy rule a relation breaks, sorted by relation and problem. */
 async function findTenancyViolations(
   db: Executor,
-  { restrictedTables, numericAllowlist }: GuardLists = GUARD_LISTS,
+  { restrictedTables, numericAllowlist, ownerOnlyTables }: GuardLists = GUARD_LISTS,
 ): Promise<TenancyViolation[]> {
   const relations = await db.execute<RelationRow>(sql`
     -- Every type each column reaches: its own, and what domains, arrays, ranges, multiranges and
@@ -126,6 +142,11 @@ async function findTenancyViolations(
            coalesce((select o.option_value::boolean
                        from pg_options_to_table(c.reloptions) o
                       where o.option_name = 'security_invoker'), false) as security_invoker,
+           (has_table_privilege('squadio_app', c.oid,
+                                'SELECT, INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER')
+            or has_any_column_privilege('squadio_app', c.oid,
+                                        'SELECT, INSERT, UPDATE, REFERENCES'))
+             as app_privileges,
            exists (select
                      from reached r
                     where r.relid = c.oid
@@ -158,6 +179,11 @@ async function findTenancyViolations(
   for (const table of restrictedTables) {
     if (!relations.rows.some((row) => row.table === table)) {
       report(table, "listed as restricted but does not exist");
+    }
+  }
+  for (const table of ownerOnlyTables) {
+    if (!relations.rows.some((row) => row.table === table)) {
+      report(table, "listed as owner-only but does not exist");
     }
   }
 
@@ -193,6 +219,15 @@ async function findTenancyViolations(
       continue;
     }
     if (!row.rls_enabled) report(row.table, "rls not enabled");
+    // An owner-only table (ADR 0011) is the opposite of a tenant one: no policy and no privilege,
+    // so the app role cannot touch it at all, and not forced, so its owner reads every row.
+    if (ownerOnlyTables.includes(row.table)) {
+      if (row.rls_forced) report(row.table, "owner-only table forces rls");
+      if (row.policies > 0) report(row.table, "owner-only table has a policy");
+      if (row.app_privileges) report(row.table, "owner-only table grants the app role");
+      if (row.organization_id_type !== "uuid") report(row.table, "organization_id is not uuid");
+      continue;
+    }
     if (!row.rls_forced) report(row.table, "rls not forced");
     if (row.policies === 0) report(row.table, "no policy");
     if (row.organization_id_type !== "uuid") report(row.table, "organization_id is not uuid");
@@ -283,6 +318,13 @@ describe("tenancy guard", () => {
       openComposite: name("open_composite"),
       rate: name("rate"),
       floatDomain: name("float_domain"),
+      ownerOnly: name("owner_only"),
+      ownerOnlyGranted: name("owner_only_granted"),
+      ownerOnlyPolicy: name("owner_only_policy"),
+      ownerOnlyNoRls: name("owner_only_no_rls"),
+      ownerOnlyForced: name("owner_only_forced"),
+      ownerOnlyColumn: name("owner_only_column"),
+      missingOwnerOnly: name("owner_only_missing"),
     };
     // A schema other than public, to prove the guard is not limited to it.
     const otherSchema = name("schema");
@@ -318,7 +360,17 @@ describe("tenancy guard", () => {
         names.missingRestricted,
       ].map((table) => `public.${table}`),
       numericAllowlist: [`public.${names.allowlistedNumeric}.amount`],
+      ownerOnlyTables: [
+        names.ownerOnly,
+        names.ownerOnlyGranted,
+        names.ownerOnlyPolicy,
+        names.ownerOnlyNoRls,
+        names.ownerOnlyForced,
+        names.ownerOnlyColumn,
+        names.missingOwnerOnly,
+      ].map((table) => `public.${table}`),
     };
+    const revoke = (table: string) => sql`revoke all on ${id(table)} from squadio_app`;
 
     let found: TenancyViolation[] = [];
 
@@ -453,6 +505,27 @@ describe("tenancy guard", () => {
           withAmount(names.allowlistedNumeric),
           ...secure(names.allowlistedNumeric),
 
+          // Owner-only tables: default privileges grant the app every new table, so each revokes.
+          tenantTable(names.ownerOnly),
+          enable(names.ownerOnly),
+          revoke(names.ownerOnly),
+          tenantTable(names.ownerOnlyGranted),
+          enable(names.ownerOnlyGranted),
+          tenantTable(names.ownerOnlyPolicy),
+          enable(names.ownerOnlyPolicy),
+          isolate(names.ownerOnlyPolicy),
+          revoke(names.ownerOnlyPolicy),
+          tenantTable(names.ownerOnlyNoRls),
+          revoke(names.ownerOnlyNoRls),
+          tenantTable(names.ownerOnlyForced),
+          enable(names.ownerOnlyForced),
+          force(names.ownerOnlyForced),
+          revoke(names.ownerOnlyForced),
+          tenantTable(names.ownerOnlyColumn),
+          enable(names.ownerOnlyColumn),
+          revoke(names.ownerOnlyColumn),
+          sql`grant select (organization_id) on ${id(names.ownerOnlyColumn)} to squadio_app`,
+
           sql`create view ${id(names.numericView)} with (security_invoker = true)
                 as select id, amount from ${id(names.restricted)}`,
 
@@ -534,6 +607,13 @@ describe("tenancy guard", () => {
     expect(problemsOf(names.missingRestricted)).toEqual([
       "listed as restricted but does not exist",
     ]);
+    expect(problemsOf(names.ownerOnly)).toEqual([]);
+    expect(problemsOf(names.ownerOnlyGranted)).toEqual(["owner-only table grants the app role"]);
+    expect(problemsOf(names.ownerOnlyPolicy)).toEqual(["owner-only table has a policy"]);
+    expect(problemsOf(names.ownerOnlyNoRls)).toEqual(["rls not enabled"]);
+    expect(problemsOf(names.ownerOnlyForced)).toEqual(["owner-only table forces rls"]);
+    expect(problemsOf(names.ownerOnlyColumn)).toEqual(["owner-only table grants the app role"]);
+    expect(problemsOf(names.missingOwnerOnly)).toEqual(["listed as owner-only but does not exist"]);
 
     // The rollback left nothing behind.
     expect(await findTenancyViolations(owner)).toEqual([]);

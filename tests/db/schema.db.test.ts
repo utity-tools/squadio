@@ -8,7 +8,7 @@ import { assignments, categories, config, people, projects, scenarios } from "@/
 import { type AccessContext, type TenantTransaction, withOrganization } from "@/db/tenant";
 
 import { appPool, ownerPool } from "./support";
-import { RESTRICTED_TABLES, STRUCTURAL_TABLES } from "./tenancy";
+import { OWNER_ONLY_TABLES, RESTRICTED_TABLES, STRUCTURAL_TABLES } from "./tenancy";
 
 // The structural tables of v0.1 (docs/domain.md, ADR 0004): isolated per organization, pointing
 // only inside it, and holding the constraints of the domain rules. Synthetic data only.
@@ -84,7 +84,7 @@ const counts = (tx: Pick<TenantTransaction, "select">) =>
   );
 
 describe("v0.1 tenant tables", () => {
-  it("lists every tenant table as structural or restricted", async () => {
+  it("lists every table with organization_id as structural, restricted or owner-only", async () => {
     const { rows } = await owner.execute<{ table: string }>(sql`
       select n.nspname || '.' || c.relname as table
         from pg_class c
@@ -94,7 +94,7 @@ describe("v0.1 tenant tables", () => {
        order by 1`);
 
     expect(rows.map((row) => row.table)).toEqual(
-      [...STRUCTURAL_TABLES, ...RESTRICTED_TABLES].toSorted(),
+      [...STRUCTURAL_TABLES, ...RESTRICTED_TABLES, ...OWNER_ONLY_TABLES].toSorted(),
     );
   });
 });
