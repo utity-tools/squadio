@@ -75,3 +75,7 @@ The steps and the rollback live in [`docs/operations/deploy.md`](../operations/d
   so Vercel stays its only source. It replaces the demo organization's data, which is right while
   scenarios are read-only: once v0.2 lets people edit them, every deploy would discard their edits,
   so this must be revisited then.
+- **2026-10-27:** Revisited for v0.2: visitors edit their own copy of the demo organization
+  ([ADR 0011](0011-saving-edits-and-the-visitor-copy.md)), so the seed on every deploy keeps
+  replacing the demo template only and never touches the copies. A daily workflow, also in the
+  `production` environment and as `squadio_owner`, deletes copies idle for 30 days.

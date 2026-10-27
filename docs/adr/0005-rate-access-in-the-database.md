@@ -94,3 +94,9 @@ no rows instead of salaries.
   `currentAccessContext()` in `src/db/access.ts`, which v0.5 replaces with the signed-in member's.
   The scenario page will take `?access=none` to show the state without rate access, so this ADR
   can be seen without sign-in. The decision itself is unchanged.
+- **2026-10-27:** Before sign-in there are two access contexts: the demo template and a visitor's
+  copy of it, found through an anonymous cookie
+  ([ADR 0011](0011-saving-edits-and-the-visitor-copy.md)). Both have rate access, and both are
+  built in `currentAccessContext()`, which becomes async to read the cookie. `?access=none` still
+  only takes rate access away. Editing a team needs no rate access; choosing a scenario still does.
+  The decision itself is unchanged.
