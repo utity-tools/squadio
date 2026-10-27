@@ -15,7 +15,12 @@ export default defineConfig({
       provider: "v8",
       // Routes and layouts are covered by E2E tests; shadcn primitives are vendored.
       include: ["src/lib/**", "src/components/**"],
-      exclude: ["**/*.test.{ts,tsx}", "**/*.stories.tsx", "src/components/ui/**"],
+      exclude: [
+        "**/*.test.{ts,tsx}",
+        "**/*.fixtures.ts",
+        "**/*.stories.tsx",
+        "src/components/ui/**",
+      ],
       thresholds: {
         lines: 80,
         functions: 80,
