@@ -16,12 +16,13 @@ import {
   pgPolicy,
   pgTable,
   text,
+  timestamp,
   uniqueIndex,
   unique,
   uuid,
 } from "drizzle-orm/pg-core";
 
-import { MAX_WEEKLY_HOURS, basisPoints, moneyCents, weeklyHours } from "./columns";
+import { MAX_WEEKLY_HOURS, basisPoints, bytea, moneyCents, weeklyHours } from "./columns";
 
 const organizationId = () => uuid("organization_id").notNull();
 const id = () => uuid("id").primaryKey().defaultRandom();
@@ -347,5 +348,29 @@ export const extraCosts = pgTable(
     ),
     notNegative("extra_costs", "amount"),
     notNegative("extra_costs", "percentage"),
+  ],
+).enableRLS();
+
+// ADR 0011: which visitor owns which copy of the demo organization. Not a tenant table: a row maps a
+// visitor to an organization. RLS is enabled but not forced and it has no policy, so the app role,
+// which gets no privilege on it either (migration 0004), reaches it only through
+// app.visitor_organization() and app.claim_visitor_copy(), and the owner reads it for the clean-up.
+
+/** One per visitor's copy, keyed by the SHA-256 of the visitor's cookie token. */
+export const visitorCopies = pgTable(
+  "visitor_copies",
+  {
+    tokenHash: bytea("token_hash").primaryKey(),
+    organizationId: uuid("organization_id").notNull().unique(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    lastSavedAt: timestamp("last_saved_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  () => [
+    check("visitor_copies_token_hash_check", sql`octet_length(token_hash) = 32`),
+    // The demo template is never a visitor's copy: the clean-up would delete it.
+    check(
+      "visitor_copies_not_the_demo_check",
+      sql`organization_id <> '6d656d6f-0000-4000-8000-000000000001'`,
+    ),
   ],
 ).enableRLS();

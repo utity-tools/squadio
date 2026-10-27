@@ -29,6 +29,13 @@
       "when": 1792596597299,
       "tag": "0003_v01_restricted_tables",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793117504935,
+      "tag": "0004_visitor_copies",
+      "breakpoints": true
     }
   ]
 }

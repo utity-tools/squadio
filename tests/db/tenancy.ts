@@ -15,6 +15,16 @@ export const GLOBAL_TABLES: readonly string[] = [];
 export const POLICY_EXCEPTIONS: readonly string[] = [];
 
 /**
+ * Tables with organization_id that only the owner reads, schema-qualified as `schema.table`: RLS
+ * enabled but not forced, no policy and no privilege for the app role, which reaches them only
+ * through SECURITY DEFINER functions. Each entry needs an ADR.
+ */
+export const OWNER_ONLY_TABLES: readonly string[] = [
+  // ADR 0011: maps a visitor's token hash to their copy of the demo; the clean-up reads it as owner.
+  "public.visitor_copies",
+];
+
+/**
  * Tables that hold money and are hidden without rate access (ADR 0005), schema-qualified as
  * `schema.table`. A security_invoker view that selects money is listed here too: the policies of
  * the tables it reads apply. A global table with money (template salaries, review 0001 decision D)
