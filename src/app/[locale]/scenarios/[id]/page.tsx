@@ -7,9 +7,9 @@ import { ScenarioHeader } from "@/components/scenario/scenario-header";
 import { ScenarioShell } from "@/components/scenario/scenario-shell";
 import { ScenarioSummary } from "@/components/scenario/scenario-summary";
 import { ScenarioTeam } from "@/components/scenario/scenario-team";
-import { currentAccessContext } from "@/db/access";
 import { db } from "@/db/client";
 import { loadScenario } from "@/db/load-scenario";
+import { currentAccessContext } from "@/db/request-access";
 import { assertLocale } from "@/i18n/locale";
 import { categoriesWithoutRate } from "@/lib/team-tree/cards";
 
@@ -26,8 +26,9 @@ export default async function ScenarioPage({
   const { id } = await params;
   // An id that is not a UUID, or a scenario of another organization, is simply not found.
   if (!z.uuid().safeParse(id).success) notFound();
-  // `?access=none` shows the page without rate access (ADR 0005, amendment of 2026-10-21).
-  const scenario = await loadScenario(db, currentAccessContext(await searchParams), id);
+  // The visitor's copy or the demo template (ADR 0011); `?access=none` shows the page without rate
+  // access (ADR 0005, amendment of 2026-10-21).
+  const scenario = await loadScenario(db, await currentAccessContext(await searchParams), id);
   if (!scenario) notFound();
 
   return (
