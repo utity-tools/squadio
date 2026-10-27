@@ -148,6 +148,8 @@ describe("applyChange: restore", () => {
     expect(reason(restore(lead, [seatId(8)]), removed)).toBe("unknown-id");
     expect(reason(restore(lead, [seatId(1)]), removed)).toBe("cycle");
     expect(reason(restore({ ...lead, personId: personId(3) }), removed)).toBe("duplicate-person");
+    expect(reason(restore({ ...lead, personId: personId(9) }), removed)).toBe("unknown-id");
+    expect(reason(restore({ ...lead, categoryId: seatId(9) }), removed)).toBe("unknown-id");
   });
 });
 
@@ -278,6 +280,8 @@ function hasCycle(members: readonly Member[]): boolean {
   });
 }
 
+// Rare sequences (a restore, then an edit of it) only show up over many runs.
+const RUNS = { numRuns: 1000 };
 describe("applyChange invariants", () => {
   it("never leaves a cycle, a dangling parent or the same person twice", () => {
     fc.assert(
@@ -291,6 +295,7 @@ describe("applyChange invariants", () => {
           expect(after.every((m) => m.startDate <= m.endDate)).toBe(true);
         });
       }),
+      RUNS,
     );
   });
 
@@ -304,6 +309,7 @@ describe("applyChange invariants", () => {
           else expect(undone).toEqual({ ok: true, team: before });
         });
       }),
+      RUNS,
     );
   });
 });

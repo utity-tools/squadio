@@ -135,10 +135,16 @@ function remove(team: readonly Member[], id: string): ChangeResult {
  */
 function restore(
   team: readonly Member[],
+  roster: Roster,
   member: Member,
   reports: readonly string[],
 ): ChangeResult {
-  const problem = checkPlace(team, member) ?? checkFits(team, member);
+  // Its person may be inactive or in another category now, but the organization still knows them.
+  const known =
+    roster.categoryIds.has(member.categoryId) &&
+    (member.personId === null || roster.people.has(member.personId));
+  const problem =
+    checkPlace(team, member) ?? (known ? null : "unknown-id") ?? checkFits(team, member);
   if (problem) return reject(problem);
   if (!reports.every((id) => has(team, id))) return reject("unknown-id");
   // A report that sits above the restored assignment would end up below itself.
@@ -226,7 +232,7 @@ export function applyChange(team: readonly Member[], roster: Roster, change: Cha
     case "remove":
       return remove(team, change.id);
     case "restore":
-      return restore(team, change.member, change.reports);
+      return restore(team, roster, change.member, change.reports);
     case "edit":
       return edit(team, roster, change.id, change.set);
   }
