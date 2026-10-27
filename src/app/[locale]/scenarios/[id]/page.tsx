@@ -8,9 +8,11 @@ import { ScenarioShell } from "@/components/scenario/scenario-shell";
 import { ScenarioSummary } from "@/components/scenario/scenario-summary";
 import { ScenarioTeam } from "@/components/scenario/scenario-team";
 import { db } from "@/db/client";
+import { copyLink } from "@/db/copy-link";
 import { loadScenario } from "@/db/load-scenario";
 import { currentAccessContext } from "@/db/request-access";
-import { assertLocale } from "@/i18n/locale";
+import { assertLocale, currentLocale } from "@/i18n/locale";
+import { redirect } from "@/i18n/navigation";
 import { categoriesWithoutRate } from "@/lib/team-tree/cards";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -28,8 +30,15 @@ export default async function ScenarioPage({
   if (!z.uuid().safeParse(id).success) notFound();
   // The visitor's copy or the demo template (ADR 0011); `?access=none` shows the page without rate
   // access (ADR 0005, amendment of 2026-10-21).
-  const scenario = await loadScenario(db, await currentAccessContext(await searchParams), id);
-  if (!scenario) notFound();
+  const query = await searchParams;
+  const context = await currentAccessContext(query);
+  const scenario = await loadScenario(db, context, id);
+  if (!scenario) {
+    // A template link, followed by a visitor who has a copy, leads to their copy of it.
+    const href = await copyLink(db, context, id, query);
+    if (href) redirect({ href, locale: await currentLocale() });
+    notFound();
+  }
 
   return (
     <ScenarioShell
