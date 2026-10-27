@@ -90,6 +90,21 @@ describe("copyOrganization", () => {
     );
   });
 
+  it("returns the template ids it renamed", async () => {
+    const renamed = await app.transaction((tx) =>
+      copyOrganization(tx, DEMO_ORGANIZATION_ID, randomUUID()),
+    );
+    for (const id of [
+      DEMO_IDS.project,
+      DEMO_IDS.guideScenario,
+      DEMO_IDS.guide.manager,
+      DEMO_IDS.guide.cloud,
+    ]) {
+      expect(renamed.has(id), id).toBe(true);
+    }
+    expect(renamed.has(DEMO_ORGANIZATION_ID)).toBe(false);
+  });
+
   it("leaves the transaction in the copy's context without rate access", async () => {
     const other = randomUUID();
     const context = await app.transaction(async (tx) => {

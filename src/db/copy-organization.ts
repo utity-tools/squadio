@@ -48,13 +48,14 @@ export const COPIED_TABLES: readonly PgTable[] = COPIES.map(({ table }) => table
  * Copies every tenant row of organization `from` into organization `to`, with ids derived by
  * `copyId`, inside the caller's transaction. It leaves the transaction in `to`'s context without
  * rate access, so nothing after it sees money unless the caller grants it again. Throws if `to` is
- * `from` or already has rows.
+ * `from` or already has rows. Returns every id of `from`'s rows it renamed, so a save that names
+ * them can be translated (translateSave).
  */
 export async function copyOrganization(
   tx: TenantTransaction,
   from: string,
   to: string,
-): Promise<void> {
+): Promise<ReadonlySet<string>> {
   if (from.toLowerCase() === to.toLowerCase()) {
     throw new RangeError("An organization cannot be copied onto itself");
   }
@@ -71,6 +72,7 @@ export async function copyOrganization(
   const [existing] = await tx.select({ rows: count() }).from(config);
   if (existing?.rows) throw new Error("The target organization already has rows");
 
+  const renamed = new Set<string>();
   for (const [index, { table, ids }] of COPIES.entries()) {
     const source = rows[index] ?? [];
     if (source.length === 0) continue;
@@ -78,7 +80,9 @@ export async function copyOrganization(
       const next: Record<string, unknown> = { ...row, organizationId: to };
       for (const key of ids) {
         const value = row[key];
-        if (typeof value === "string") next[key] = copyId(value, to);
+        if (typeof value !== "string") continue;
+        next[key] = copyId(value, to);
+        renamed.add(value);
       }
       return next;
     });
@@ -87,4 +91,5 @@ export async function copyOrganization(
 
   // Fail closed: the copy needed rate access, the caller may not have it.
   await setAccessContext(tx, { organizationId: to, rateAccess: false });
+  return renamed;
 }
