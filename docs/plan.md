@@ -32,6 +32,25 @@ Every version ships something that can be shown. v0.1 shipped on 2026-10-26
 | v0.5    | Auth, multi-tenancy, organization templates, public demo, CSV import                            |
 | v1.0    | AI assistant on top of the health checks ([ADR 0003](adr/0003-structure-not-people.md))         |
 
+### v0.2 slices
+
+v0.2 ships in eight pull requests, tests first, in this order. Saving and the visitor's copy are
+settled in [ADR 0011](adr/0011-saving-edits-and-the-visitor-copy.md); the rules for changes,
+how busy a person is and choosing are in [the domain](domain.md#editing-a-scenario).
+
+| #   | Slice                         | Done when                                                                                                                                                                                                                    |
+| --- | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Change model                  | A pure module in `src/lib/scenarios` applies a change to a team or rejects it with a reason, keeps the history and its cursor, and returns what is left to save. Zod schemas and fast-check properties, no UI                |
+| 2   | Saving and the visitor's copy | A Server Action saves a list of changes against a base version and returns the new version or a conflict. The first edit makes the visitor's copy and sets the cookie. DB tests cover RLS, conflicts, the copy and its limit |
+| 3   | Store and header              | A Zustand store drives the canvas, the table and the summary. ⌘Z and ⇧⌘Z undo and redo, the header shows the save state, totals count up with Motion and a live region announces each change                                 |
+| 4   | Bench                         | The left panel lists active people by category with how busy each is, and filters them. It works with the keyboard and in both themes                                                                                        |
+| 5   | Keyboard parity               | "Add to team…", "Move to…" and "Remove" on nodes and table rows, with the focus manager. Every change can be made without a pointer, and an E2E test proves it with axe                                                      |
+| 6   | Drag                          | One pointer-events layer drags from the bench to the canvas and inside the tree, with the drop-target hit test shared with the keyboard menus (ADR 0008). Mouse in E2E, touch in Chromium emulation                          |
+| 7   | Choose scenario               | With rate access, choosing a scenario writes its frozen tables in one transaction and shows it as chosen. Without rate access the action is not offered and the server refuses it                                            |
+| 8   | v0.2 release                  | Handoff, README with new screenshots, tag `v0.2.0`                                                                                                                                                                           |
+
+Clean-up of idle copies (ADR 0011) ships with slice 2 or right after it, before the release.
+
 ### v0.2 build notes
 
 The simulator spike ([findings](research/simulator-poc/README.md)) settled how the canvas is built:
