@@ -1,16 +1,16 @@
 // @vitest-environment node
-// ADR 0011, "The copy": ids in a visitor's copy are the UUIDv5 of the template's ids.
+// ADR 0011, "The copy": ids in a visitor's copy are name-based UUIDv8 (SHA-256) of the template's.
 import { describe, expect, it } from "vitest";
 
-import { copyId, uuidV5 } from "./copy-id";
+import { copyId, uuidV8Sha256 } from "./copy-id";
 
 const TEMPLATE_ID = "6d656d6f-0000-4000-8000-000000000200";
 const COPY_ORGANIZATION = "0b0e6c1a-5d2f-4c3e-9a8b-7f6e5d4c3b2a";
 
-describe("uuidV5", () => {
-  it("matches RFC 9562's example for www.example.com in the DNS namespace", () => {
-    expect(uuidV5("6ba7b810-9dad-11d1-80b4-00c04fd430c8", "www.example.com")).toBe(
-      "2ed6657d-e927-568b-95e1-2665a8aea6a2",
+describe("uuidV8Sha256", () => {
+  it("matches RFC 9562's name-based UUIDv8 example (appendix B.2)", () => {
+    expect(uuidV8Sha256("6ba7b810-9dad-11d1-80b4-00c04fd430c8", "www.example.com")).toBe(
+      "5c146b14-3c52-8afd-938a-375d0df1fbf6",
     );
   });
 });
@@ -28,9 +28,9 @@ describe("copyId", () => {
     );
   });
 
-  it("is a version 5 UUID with the RFC variant", () => {
+  it("is a version 8 UUID with the RFC variant", () => {
     expect(copyId(TEMPLATE_ID, COPY_ORGANIZATION)).toMatch(
-      /^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+      /^[0-9a-f]{8}-[0-9a-f]{4}-8[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
     );
   });
 

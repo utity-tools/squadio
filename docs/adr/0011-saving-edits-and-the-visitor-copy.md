@@ -70,8 +70,10 @@ changes, so a visitor never has an empty copy.
   cookie's mapping, not from the request.
 - **Its own context, not the request's.** The copy always runs with rate access, also for a visitor
   on `?access=none`, who still never sees money: their pages keep the request's context.
-- **New ids are derived, not random:** each row's id in the copy is the UUIDv5 of the template id
-  in the namespace of the copy's organization id. The mapping needs no table: the action translates
+- **New ids are derived, not random:** each row's id in the copy is a name-based UUIDv8 with
+  SHA-256 (RFC 9562, appendix B.2) of the template id, in the namespace of the copy's organization
+  id. Not UUIDv5, which is fixed to SHA-1: the ids hide nothing, but a broken hash invites the
+  question and code scanning flags it. The mapping needs no table: the action translates
   the first batch of changes, which name template ids, and a visitor with a copy who opens a link to
   a template scenario (the README's guide scenario) is redirected to their copy of it.
 - **Composite foreign keys survive** because every reference is mapped the same way. Each scenario
@@ -139,7 +141,9 @@ requires for rate access.
   revoked, and the id would travel in every request.
 - **Copy on the first visit:** simpler code, but every bot and every reader would cost a copy.
 - **Random ids in the copy and a mapping table:** works, but the first save and template links would
-  need a lookup the UUIDv5 derivation gives for free.
+  need a lookup the derived ids give for free.
+- **UUIDv5:** the standard name-based UUID, but its hash is SHA-1. Using it is harmless here, and
+  still worth avoiding when UUIDv8 allows SHA-256 at no cost.
 - **A `SECURITY DEFINER` function that copies the organization:** RLS is forced for the owner too,
   so it would switch contexts exactly as the app does, with SQL that is harder to test than
   TypeScript.
