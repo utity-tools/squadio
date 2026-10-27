@@ -26,6 +26,37 @@ const FIELD_ERRORS: Record<keyof AccessContext, string> = {
 const isField = (key: PropertyKey | undefined): key is keyof AccessContext =>
   typeof key === "string" && Object.hasOwn(FIELD_ERRORS, key);
 
+/** Checks a context before it touches the database; the values are left out of the message. */
+function parseContext(context: AccessContext, caller: string): AccessContext {
+  const parsed = accessContextSchema.safeParse(context);
+  if (!parsed.success) {
+    // A missing or non-object context and unknown keys have no field in the path.
+    const field = parsed.error.issues[0]?.path[0];
+    const message = isField(field)
+      ? FIELD_ERRORS[field]
+      : "context must be { organizationId, rateAccess }";
+    throw new TypeError(`${caller}: ${message}`);
+  }
+  return parsed.data;
+}
+
+/**
+ * Sets the Row Level Security context of a transaction that is already open. Both settings are
+ * transaction-local. Only code that must act for two organizations in one transaction calls it
+ * directly, such as the copy of the demo (ADR 0011); everything else goes through
+ * `withOrganization`.
+ */
+export async function setAccessContext(
+  tx: TenantTransaction,
+  context: AccessContext,
+): Promise<void> {
+  const { organizationId, rateAccess } = parseContext(context, "setAccessContext");
+  // Anything but exactly 'on' is no rate access in app.has_rate_access().
+  await tx.execute(sql`
+    select set_config('app.organization_id', ${organizationId}, true),
+           set_config('app.rate_access', ${rateAccess ? "on" : "off"}, true)`);
+}
+
 /**
  * Runs `fn` in a transaction whose Row Level Security context is `context`: its organization
  * (ADR 0004) and its rate access (ADR 0005). Both settings are transaction-local, so they never
@@ -36,23 +67,10 @@ export async function withOrganization<T>(
   context: AccessContext,
   fn: (tx: TenantTransaction) => Promise<T>,
 ): Promise<T> {
-  // Checked before touching the database; the values are left out of the message.
-  const parsed = accessContextSchema.safeParse(context);
-  if (!parsed.success) {
-    // A missing or non-object context and unknown keys have no field in the path.
-    const field = parsed.error.issues[0]?.path[0];
-    const message = isField(field)
-      ? FIELD_ERRORS[field]
-      : "context must be { organizationId, rateAccess }";
-    throw new TypeError(`withOrganization: ${message}`);
-  }
-
-  const { organizationId, rateAccess } = parsed.data;
+  // Checked before touching the database, so an invalid context never opens a transaction.
+  const checked = parseContext(context, "withOrganization");
   return db.transaction(async (tx) => {
-    // Anything but exactly 'on' is no rate access in app.has_rate_access().
-    await tx.execute(sql`
-      select set_config('app.organization_id', ${organizationId}, true),
-             set_config('app.rate_access', ${rateAccess ? "on" : "off"}, true)`);
+    await setAccessContext(tx, checked);
     return fn(tx);
   });
 }
