@@ -1,28 +1,20 @@
 import { describe, expect, it } from "vitest";
 
-import { DEMO_ORGANIZATION_ID, currentAccessContext } from "./access";
+import { keepsRateAccess } from "./access";
 
-describe("currentAccessContext", () => {
-  it("is the demo organization with rate access until sign-in lands in v0.5", () => {
-    expect(currentAccessContext()).toEqual({
-      organizationId: DEMO_ORGANIZATION_ID,
-      rateAccess: true,
-    });
+describe("keepsRateAccess", () => {
+  it("keeps rate access by default until sign-in lands in v0.5", () => {
+    expect(keepsRateAccess()).toBe(true);
+    expect(keepsRateAccess({})).toBe(true);
   });
 
-  it("drops rate access for ?access=none, so the page shows the state without it", () => {
-    expect(currentAccessContext({ access: "none" })).toEqual({
-      organizationId: DEMO_ORGANIZATION_ID,
-      rateAccess: false,
-    });
+  it("drops it for ?access=none, so the page shows the state without it", () => {
+    expect(keepsRateAccess({ access: "none" })).toBe(false);
   });
 
-  it("never grants anything for any other value", () => {
+  it("never drops or grants anything for any other value", () => {
     for (const access of [undefined, "", "full", "NONE", ["none", "none"], ["none"]]) {
-      expect(currentAccessContext({ access })).toEqual({
-        organizationId: DEMO_ORGANIZATION_ID,
-        rateAccess: true,
-      });
+      expect(keepsRateAccess({ access })).toBe(true);
     }
   });
 });
