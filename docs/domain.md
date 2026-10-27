@@ -315,26 +315,42 @@ hours only.
 
 ### Changes
 
-| Change | What it does                                                                                                                                                                                        |
-| ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Add    | Adds an assignment: a person (taking their category and weekly hours, rule a) or an open role (a category and Config's default weekly hours), with a project role, allocation, dates and reports to |
-| Move   | Changes who an assignment reports to: another assignment of the scenario, or none (a root)                                                                                                          |
-| Remove | Deletes an assignment. Its direct reports move up to the assignment it reported to, or become roots, so removing someone never removes their team                                                   |
-| Edit   | Changes an assignment's project role, allocation, weekly hours or dates, fills an open role with a person, or turns a person's assignment back into an open role                                    |
+| Change  | What it does                                                                                                                                                                                        |
+| ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Add     | Adds an assignment: a person (taking their category and weekly hours, rule a) or an open role (a category and Config's default weekly hours), with a project role, allocation, dates and reports to |
+| Move    | Changes who an assignment reports to: another assignment of the scenario, or none (a root)                                                                                                          |
+| Remove  | Deletes an assignment. Its direct reports move up to the assignment it reported to, or become roots, so removing someone never removes their team                                                   |
+| Edit    | Changes an assignment's project role, allocation, weekly hours or dates, fills an open role with a person, or turns a person's assignment back into an open role                                    |
+| Restore | Puts a removed assignment back exactly as it was, with the reports it had. Only undo makes it: it is the inverse of a remove                                                                        |
 
 A new assignment starts at 100% allocation and spans the project (rule d), or, in a scenario without
 assignments, the next full month. Ids of new assignments are made by the client
-(`crypto.randomUUID()`), so a change means the same thing before and after it is saved.
+(`crypto.randomUUID()`), so a change means the same thing before and after it is saved. For the
+same reason, an edit that fills an open role is recorded with the weekly hours it copied from the
+person, not left to copy them again when it is saved. Turning a person's assignment back into an
+open role keeps its weekly hours: they describe the seat, and the edit can change them.
 
 A change is checked against the team it applies to, and a rejected change never reaches the history
 (ADR 0008, point 5). It is rejected, with a reason the UI can show, when:
 
+- **it changes nothing:** a move to where the assignment already reports, or an edit to the values
+  it already has. It would only take an undo slot;
 - **it makes a cycle:** an assignment would report to itself or to one of its own reports;
 - **the same person appears twice** in the scenario. A person who works on two parts of a project
   is one assignment with the sum of both allocations;
 - **a person fills an assignment of another category.** The cost is per category (ADR 0003), so
   someone else's category would cost them at another rate. Add them as themselves instead;
 - **the person is inactive;**
+
+The person's checks (inactive, category, and whether the organization knows them) apply when a
+person is placed: an add with a person, or an edit that changes who fills an assignment. A loaded
+team may already hold a person who was deactivated or moved to another category after being
+assigned; editing that assignment's other fields, removing it and undoing the removal still work.
+A restore only checks that the team can take it back: its id is free, its parent and reports exist,
+it makes no cycle and its person is not on the scenario again. Undo can still fail when the team
+cannot take an inverse (for example, undoing an edit that replaced a person who is now inactive):
+the UI says so and the history stays where it was.
+
 - **the dates are impossible:** the end before the start, or a date outside the calendar's years
   (rule h);
 - **a value is out of range:** allocation outside 0 to 100, weekly hours above 168 or not in
@@ -349,8 +365,8 @@ change and redo forward one; a new change drops everything after the cursor. Eac
 change and the inverse that undoes it, computed against the team it applied to (undoing a remove
 restores the assignment and puts its reports back under it).
 
-What is left to save is a pure function of the history, the cursor and the last saved position: the
-changes past the saved position, or the inverses of those undone below it, in order. Undoing a saved
+What is left to save is kept next to the history: every change, undo and redo adds the changes it
+applied (a change, or an entry's inverse), and a successful save drops those it sent. Undoing a saved
 change therefore saves its inverse, and the history survives saving. The history lives in memory
 only: reloading the page starts from what was last saved.
 
@@ -444,6 +460,14 @@ Property-based tests (fast-check) check these on random scenarios:
   more than half a cent per category away from the exact total.
 - With revenue above zero, the effective rate is positive before rounding (without effective hours
   there is none).
+
+And on random sequences of changes, undo, redo and saves (see
+[Editing a scenario](#editing-a-scenario)):
+
+- An accepted change never leaves a cycle or the same person twice.
+- Applying an accepted change's inverse gives back exactly the team before it, unless it places
+  again a person who is now inactive or in another category, and then it is rejected.
+- Applying what is left to save to the last saved team gives exactly the current team.
 
 ## Out of scope for v1
 
