@@ -122,6 +122,8 @@ const stepArb: fc.Arbitrary<Step> = fc.oneof(
   fc.constant({ kind: "save" as const }),
 );
 
+// Rare sequences (a restore, then an edit of it) only show up over many runs.
+const RUNS = { numRuns: 1000 };
 describe("history invariants", () => {
   it("turns the last saved team into the current one with what is left to save", () => {
     fc.assert(
@@ -147,6 +149,7 @@ describe("history invariants", () => {
           });
         }
       }),
+      RUNS,
     );
   });
 
@@ -165,15 +168,17 @@ describe("history invariants", () => {
         }
         while (canUndo(history)) {
           const result = undo(history, roster);
-          // Only placing the deactivated tester again can fail; nothing else is checked then.
+          // Only placing again a person who cannot be placed any more can fail (the deactivated
+          // tester, or a restored person of another category); nothing else is checked then.
           if (!result.ok) {
-            expect(result.reason).toBe("inactive-person");
+            expect(["inactive-person", "wrong-category"]).toContain(result.reason);
             return;
           }
           history = result.history;
         }
         expect(history.team).toEqual(team);
       }),
+      RUNS,
     );
   });
 });

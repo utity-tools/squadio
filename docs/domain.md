@@ -347,7 +347,8 @@ person is placed: an add with a person, or an edit that changes who fills an ass
 team may already hold a person who was deactivated or moved to another category after being
 assigned; editing that assignment's other fields, removing it and undoing the removal still work.
 A restore only checks that the team can take it back: its id is free, its parent and reports exist,
-it makes no cycle and its person is not on the scenario again. Undo can still fail when the team
+it makes no cycle, the organization still knows its category and person, and the person is not on the
+scenario again. Undo can still fail when the team
 cannot take an inverse (for example, undoing an edit that replaced a person who is now inactive):
 the UI says so and the history stays where it was.
 
