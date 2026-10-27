@@ -302,6 +302,79 @@ An assignment date outside the calendar's years stays a validation error on that
 [Formulas](#formulas)): neither the reference year nor the project span turns it into another kind
 of error.
 
+## Editing a scenario
+
+v0.2 lets people build a scenario's team. Every edit is a change, made the same way by dragging,
+by the keyboard menus or by undo and redo ([ADR 0008](adr/0008-simulator-interaction-stack.md)).
+The change model is pure and lives in `src/lib/scenarios`; saving is in
+[ADR 0011](adr/0011-saving-edits-and-the-visitor-copy.md).
+
+Editing a team needs no rate access: assignments hold hours and structure, never money
+([ADR 0005](adr/0005-rate-access-in-the-database.md)). Without rate access the summary keeps showing
+hours only.
+
+### Changes
+
+| Change | What it does                                                                                                                                                                                        |
+| ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Add    | Adds an assignment: a person (taking their category and weekly hours, rule a) or an open role (a category and Config's default weekly hours), with a project role, allocation, dates and reports to |
+| Move   | Changes who an assignment reports to: another assignment of the scenario, or none (a root)                                                                                                          |
+| Remove | Deletes an assignment. Its direct reports move up to the assignment it reported to, or become roots, so removing someone never removes their team                                                   |
+| Edit   | Changes an assignment's project role, allocation, weekly hours or dates, fills an open role with a person, or turns a person's assignment back into an open role                                    |
+
+A new assignment starts at 100% allocation and spans the project (rule d), or, in a scenario without
+assignments, the next full month. Ids of new assignments are made by the client
+(`crypto.randomUUID()`), so a change means the same thing before and after it is saved.
+
+A change is checked against the team it applies to, and a rejected change never reaches the history
+(ADR 0008, point 5). It is rejected, with a reason the UI can show, when:
+
+- **it makes a cycle:** an assignment would report to itself or to one of its own reports;
+- **the same person appears twice** in the scenario. A person who works on two parts of a project
+  is one assignment with the sum of both allocations;
+- **a person fills an assignment of another category.** The cost is per category (ADR 0003), so
+  someone else's category would cost them at another rate. Add them as themselves instead;
+- **the person is inactive;**
+- **the dates are impossible:** the end before the start, or a date outside the calendar's years
+  (rule h);
+- **a value is out of range:** allocation outside 0 to 100, weekly hours above 168 or not in
+  hundredths, an empty or blank project role, or one longer than 100 characters;
+- **it points at nothing:** an assignment, person, category or parent that is not in the scenario or
+  the organization, or an add whose id is already taken.
+
+### History, undo and redo
+
+The history is the list of changes made in the page, with a cursor. Undo moves the cursor back one
+change and redo forward one; a new change drops everything after the cursor. Each entry keeps its
+change and the inverse that undoes it, computed against the team it applied to (undoing a remove
+restores the assignment and puts its reports back under it).
+
+What is left to save is a pure function of the history, the cursor and the last saved position: the
+changes past the saved position, or the inverses of those undone below it, in order. Undoing a saved
+change therefore saves its inverse, and the history survives saving. The history lives in memory
+only: reloading the page starts from what was last saved.
+
+### How busy a person is
+
+The bench shows how busy each active person is **today**: the sum of their allocation over every
+chosen scenario with one of their assignments covering today (start and end included), in the
+`Europe/Madrid` time zone. It is an integer percentage and may exceed 100%, which is
+over-allocation (rule c). Open roles and scenarios that are not chosen do not count. It holds no
+money, so everyone sees it. Week by week over-allocation, with the scenario being edited, is v0.4's
+health check.
+
+### Choosing a scenario
+
+Choosing a scenario needs rate access and does what rule b says, in one transaction: it marks it
+chosen, unmarks the project's previously chosen scenario (rule i) and deletes that one's frozen
+rows, and writes the new scenario's FrozenRates (one per category it uses) and its
+FrozenCostConfig, read from the current values. Unchoosing, also with rate access only, deletes its
+frozen rows.
+
+**A chosen scenario's team cannot be edited.** It is a commitment, and a category added after
+choosing would have no frozen rate, while writing one needs rate access that editing does not. To
+change it, unchoose it, edit it and choose it again, which freezes the current values.
+
 ## Configuration per organization
 
 Each organization creates its own categories and sets every number. A salary can be entered per year
