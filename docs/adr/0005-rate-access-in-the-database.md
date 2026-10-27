@@ -96,7 +96,10 @@ no rows instead of salaries.
   can be seen without sign-in. The decision itself is unchanged.
 - **2026-10-27:** Before sign-in there are two access contexts: the demo template and a visitor's
   copy of it, found through an anonymous cookie
-  ([ADR 0011](0011-saving-edits-and-the-visitor-copy.md)). Both have rate access, and both are
-  built in `currentAccessContext()`, which becomes async to read the cookie. `?access=none` still
-  only takes rate access away. Editing a team needs no rate access; choosing a scenario still does.
-  The decision itself is unchanged.
+  ([ADR 0011](0011-saving-edits-and-the-visitor-copy.md)). Both have rate access. They are built in
+  one module, `src/db/access.ts`: `accessContextFor` for pages and `editContextFor` for saves, which
+  have no rate access. `currentAccessContext()` becomes async and moves to the server-only
+  `src/db/request-access.ts`, where it reads the cookie; the earlier amendment's
+  `src/db/access.ts` now names that module. `?access=none` still only takes rate access away.
+  Editing a team needs no rate access; choosing a scenario still does. The decision itself is
+  unchanged.

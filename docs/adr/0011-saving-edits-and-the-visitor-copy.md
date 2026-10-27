@@ -32,13 +32,22 @@ demo template that belongs to the visitor and is found through a random token in
 
 ### Saving
 
-- **One Server Action,** `saveScenarioChanges({ scenarioId, baseVersion, changes })`. It validates
+- **One Server Action,** `saveScenario({ scenarioId, baseVersion, changes })`. It validates
   the input with Zod, then in one transaction: locks the scenario row, compares its `version` with
   `baseVersion`, re-checks every change against the stored team with the same pure functions as the
   client, applies them and increments `version`. It returns the new version, or a conflict with the
-  current version and nothing written.
+  current version and nothing written. An unexpected error is returned as `failed`, logged by kind
+  and code only, so it never replaces the page with its error boundary.
 - **Conflicts only happen across tabs,** since nobody else edits a visitor's copy. The client shows
-  that the scenario changed elsewhere and offers to reload; it never merges.
+  that the scenario changed elsewhere and offers to reload; it never merges. Two tabs that make
+  their first save at the same moment each make a copy: the last cookie wins, the other copy is
+  orphaned until the clean-up, and the other tab's next save is `not-found`, which the client
+  answers with a reload. Accepted: nothing leaks and the template is untouched.
+- **The first save re-renders the page.** Setting a cookie in a Server Action makes Next re-render
+  the current route in the same response (Next 16, `cookies()`). With the new cookie, the template
+  scenario is not the visitor's, so the page redirects to their copy of it. The action also returns
+  the copy's id for each open row the page holds (`renamed`, never a restricted row's), so the
+  client can carry its history across; slice 3 decides how.
 - **The client saves on its own,** shortly after the last change and one save at a time. The header
   shows saving, saved or failed.
 - **Writes never touch the demo template.** The action refuses to write to it, whatever the context
@@ -46,9 +55,12 @@ demo template that belongs to the visitor and is found through a random token in
 
 ### The cookie
 
-- **A token, never the organization id:** 32 random bytes (`crypto.getRandomValues`), base64url,
-  in a cookie named `squadio_visitor`. HttpOnly, Secure, SameSite=Lax, Path `/`, Max-Age 30 days,
-  renewed on every save.
+- **A token, never the organization id:** 32 random bytes from Node's CSPRNG (`randomBytes`),
+  base64url, in a cookie named `squadio_visitor`. HttpOnly, Secure, SameSite=Lax, Path `/`, Max-Age
+  400 days, the most browsers keep.
+- **Set on the first save only, never renewed.** Setting a cookie in a Server Action re-renders the
+  whole page, which every autosave would pay for. The copy's life is set by `last_saved_at` instead:
+  30 days without a save (see Clean-up), and a cookie whose copy is gone is no copy.
 - **The database keeps only its SHA-256 hash.** A dump of the table cannot be turned back into
   cookies. A plain hash is enough: the token has 256 bits of entropy, so there is nothing to guess.
 - **An unknown or expired token is no copy.** The visitor reads the template, and the next edit
@@ -103,37 +115,43 @@ changes, so a visitor never has an empty copy.
 
 ### Access
 
-`currentAccessContext()` becomes async and is still the only place a context is built: it reads the
-cookie, asks `app.visitor_organization`, and returns the copy's organization or else the demo
-template, with rate access. `?access=none` still only takes rate access away.
+Contexts are still built in one module, `src/db/access.ts`: `accessContextFor` for pages (the
+visitor's copy or else the demo template, with rate access) and `editContextFor` for saves (the
+visitor's copy without rate access, or none). Both read the token through `app.visitor_organization`.
+`currentAccessContext()` becomes async and moves to the server-only `src/db/request-access.ts`, where
+it reads the cookie and calls `accessContextFor`. `?access=none` still only takes rate access away.
 
 ### Rendering
 
-The scenario page is already dynamic, so reading the cookie adds a function call to a transaction
-it already opens, not a new rendering cost. Slice 2 measures the time to first byte of the guide
-scenario before and after, with and without a cookie, against a production build, and records it in
-its PR. If a page is ever cached, the cache key must include the organization, as ADR 0005 already
-requires for rate access.
+The scenario page is already dynamic, so reading the cookie costs no new rendering mode. With a
+cookie, looking up the copy is one more query, before the page's transaction: one round trip,
+only for visitors with a cookie. Measured against a production build with a local database
+(slice 2b, 30 requests each), the guide scenario took a median of 12 to 14 ms in full with no
+cookie, a forged one or a copy, with no difference between them; the first byte is the streamed
+loading state, at under 2 ms. If a page is ever cached, the cache key must include the
+organization, as ADR 0005 already requires for rate access.
 
 ### Clean-up
 
-- **A copy is deleted after 30 days without a save,** matching the cookie's life.
+- **A copy is deleted after 30 days without a save** (`last_saved_at`, touched by every save).
 - **A scheduled GitHub Actions workflow,** daily, in the `production` environment, as
   `squadio_owner` with `DATABASE_OWNER_URL`, the only role that reads `visitor_copies` directly. For
   each idle copy it deletes its tenant rows inside its own context (RLS is forced on them for the
   owner too, ADR 0004) and then its `visitor_copies` row. It runs `pnpm db:check-target owner` first,
   like the deploy.
-- **Neon's free plan holds 0.5 GB per project.** Slice 2 measures a copy's size
-  (`pg_total_relation_size` before and after one) and sets the daily limit so that a month of copies
-  at the limit stays under a fifth of it.
+- **Neon's free plan holds 0.5 GB per project.** A copy of today's demo is 51 rows, about 5 KB of
+  tuples and some 15 KB with indexes and overhead. A month at the daily limit is about 6,000
+  copies, some 90 MB: under a fifth of the plan, so the limit stays at 200.
 
 ### Abuse
 
-- **A global daily limit on new copies,** 200 until slice 2 measures a copy, enforced inside
-  `app.claim_visitor_copy`. Beyond it, edits are refused with a message, and reading still works.
-- **Per IP, Vercel's firewall, if the Hobby plan allows a rate limit rule** on the Server Action's
-  POST. Slice 2 checks that before relying on it. Squadio never stores an IP address: a hash of an
-  IPv4 address is reversible, and it would be personal data.
+- **A global daily limit on new copies,** 200, enforced inside `app.claim_visitor_copy`. Beyond
+  it, edits are refused with a message, and reading still works.
+- **Per IP, one Vercel firewall rule.** Hobby allows one rate limit rule per project, counted by IP
+  over a fixed window of 10 seconds to 10 minutes. It matches only first saves: a POST with the
+  `Next-Action` header and without the `squadio_visitor` cookie, so visitors with a copy never meet
+  it. The owner creates it from the dashboard (runbook). Squadio never stores an IP address: a hash
+  of an IPv4 address is reversible, and it would be personal data.
 
 ## Alternatives considered
 
@@ -156,7 +174,8 @@ requires for rate access.
 
 ## Consequences
 
-- The demo can be edited without sign-in, and each visitor's edits survive deploys for 30 days.
+- The demo can be edited without sign-in, and each visitor's edits survive deploys until 30 days
+  after their last save.
 - The copy function is the base of v0.5's starting templates: an organization made from a template
   is the same copy with a member instead of a cookie.
 - Production now has a cron job and owner credentials used outside deploys; both are in the
