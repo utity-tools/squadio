@@ -1,0 +1,50 @@
+name: Clean up
+
+# Deletes visitors' copies of the demo idle for 30 days (ADR 0011, "Clean-up"), daily, as the owner
+# role: the only one that reads visitor_copies directly. It runs the code on main, as production
+# does.
+on:
+  schedule:
+    # Off the hour, when GitHub's scheduled runs queue the most.
+    - cron: "17 4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# An explicit shell adds pipefail, which GitHub's default bash -e leaves out.
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  visitor-copies:
+    name: Delete idle visitor copies
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Its own group: sharing deploy-production would let a queued clean-up replace a queued deploy.
+    # A clean-up that meets a migration waits on its locks.
+    concurrency:
+      group: clean-up-production
+      cancel-in-progress: false
+    environment: production
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # As before migrations: a string with the wrong database or role must fail before it deletes
+      # anything (docs/incidents/2026-10-23-migrations-in-neondb.md).
+      - name: Check the target
+        env:
+          DATABASE_OWNER_URL: ${{ secrets.DATABASE_OWNER_URL }}
+        run: pnpm db:check-target owner
+      - name: Delete idle visitor copies
+        env:
+          DATABASE_OWNER_URL: ${{ secrets.DATABASE_OWNER_URL }}
+        run: pnpm db:clean-up
