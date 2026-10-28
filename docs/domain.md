@@ -166,7 +166,7 @@ the path of the field, never a silent result. Missing (`null` or `undefined` whe
 required), `NaN`, infinite and empty values are all invalid, as are money that is not integer
 cents and percentages that are not integer basis points. A sell rate of 0 € is valid (internal or
 unbilled work); a fixed price and a T&M budget cap, when set, are at least 1 cent, so a fixed price
-always has revenue, and without one the scenario is incomplete (rule l). Weekly hours are at most 168. Assignment, extra cost and category rate ids do
+always has revenue, and without one the scenario is incomplete (rule l). Weekly hours are above 0 and at most 168, in hundredths. Assignment, extra cost and category rate ids do
 not repeat, an assignment reports to another assignment of the same scenario, and a recurring cost
 has both dates or neither (the issue points at the missing one). An extra cost's label, when set,
 is 1 to 100 characters and not blank.
@@ -214,7 +214,7 @@ cost exactly the fully loaded annual cost (see the first invariant below).
 
 | #   | Topic                 | Rule                                                                                                                                                                                                                                                                     |
 | --- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| a   | Weekly hours          | Stored on the assignment: copied from the person, or from Config for an open role                                                                                                                                                                                        |
+| a   | Weekly hours          | Stored on the assignment: copied from the person when one is placed (add or edit), or from Config for a new open role; an edit may change them                                                                                                                           |
 | b   | Choosing freezes      | Choosing a scenario freezes its category rates (FrozenRate) and its overhead %, buffer % and availability factor (FrozenCostConfig). Target margin is not frozen. Other scenarios always use current values. See [What choosing freezes](#what-choosing-freezes)         |
 | c   | Over-allocation       | Per person and week: chosen scenarios of other projects plus the scenario being edited. Never two scenarios of the same project                                                                                                                                          |
 | d   | Recurring extra costs | Prorated by day. Without dates they span the project, from the first assignment start to the last end                                                                                                                                                                    |
@@ -331,7 +331,7 @@ hours only.
 | Add     | Adds an assignment: a person (taking their category and weekly hours, rule a) or an open role (a category and Config's default weekly hours), with a project role, allocation, dates and reports to |
 | Move    | Changes who an assignment reports to: another assignment of the scenario, or none (a root)                                                                                                          |
 | Remove  | Deletes an assignment. Its direct reports move up to the assignment it reported to, or become roots, so removing someone never removes their team                                                   |
-| Edit    | Changes an assignment's project role, allocation, weekly hours or dates, fills an open role with a person, or turns a person's assignment back into an open role                                    |
+| Edit    | Changes an assignment's project role, allocation, weekly hours or dates, fills an open role with a person, changes who fills it, or turns a person's assignment back into an open role              |
 | Restore | Puts a removed assignment back exactly as it was, with the reports it had. Only undo makes it: it is the inverse of a remove                                                                        |
 
 A new assignment starts at 100% allocation and spans the project (rule d), or, in a scenario without
@@ -366,7 +366,7 @@ the UI says so and the history stays where it was.
 
 - **the dates are impossible:** the end before the start, or a date outside the calendar's years
   (rule h);
-- **a value is out of range:** allocation outside 0 to 100, weekly hours above 168 or not in
+- **a value is out of range:** allocation outside 0 to 100, weekly hours not above 0, above 168 or not in
   hundredths, an empty or blank project role, or one longer than 100 characters;
 - **it points at nothing:** an assignment, person, category or parent that is not in the scenario or
   the organization, or an add whose id is already taken.
