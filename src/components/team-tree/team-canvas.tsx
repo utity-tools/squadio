@@ -38,7 +38,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { utcDay } from "@/lib/calendar/utc-day";
+import { useDayRange } from "@/components/format/use-day-range";
 import { type LayoutNode, NODE_HEIGHT, NODE_WIDTH } from "@/lib/layout/compact-layout";
 import type { AssignmentCard } from "@/lib/team-tree/cards";
 import { type Point, edgePath, teamEdges } from "@/lib/team-tree/edges";
@@ -308,17 +308,13 @@ function ControlButton({
 function AssignmentNode({ data: { card, selected, onPath, tabbable } }: NodeProps<CardNode>) {
   const t = useTranslations("TeamTree");
   const format = useFormatter();
+  const dayRange = useDayRange();
   const { select, tooltips } = useContext(CanvasContext);
   const hours = (value: number) => format.number(value, { maximumFractionDigits: 2 });
   const person = card.person ?? t("openRole");
   const allocation = format.number(card.allocation / 100, { style: "percent" });
   const weekly = t("weeklyHours", { hours: hours(card.allocatedWeeklyHours) });
-  const dates =
-    card.dates &&
-    format.dateTimeRange(utcDay(card.dates.start), utcDay(card.dates.end), {
-      dateStyle: "medium",
-      timeZone: "UTC",
-    });
+  const dates = card.dates && dayRange(card.dates.start, card.dates.end);
   const effective = t("effectiveHours", { hours: hours(card.effectiveHours) });
   const schedule = [allocation, weekly, ...(dates ? [dates] : [])];
   const PersonIcon = card.person ? UserIcon : UserRoundSearchIcon;

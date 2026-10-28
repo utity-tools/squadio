@@ -1,10 +1,10 @@
 import { act, render, screen } from "@testing-library/react";
-import { useEffect } from "react";
 import { describe, expect, it } from "vitest";
 
 import { hoursBasis } from "@/lib/scenarios/basis.fixtures";
 import { developer, seatId, team } from "@/lib/scenarios/change.fixtures";
 import type { SaveOutcome, ScenarioStore } from "@/lib/scenarios/store";
+import { StoreSpy } from "@/test/store-spy";
 
 import {
   type ScenarioEditorProps,
@@ -35,15 +35,6 @@ const props = (overrides: Partial<ScenarioEditorProps> = {}): ScenarioEditorProp
   children: <Probe />,
   ...overrides,
 });
-
-/** Hands the test the store the editor gives its views. */
-function StoreSpy({ onStore }: { onStore: (store: ScenarioStore) => void }) {
-  const store = useScenarioStore();
-  useEffect(() => {
-    onStore(store);
-  }, [onStore, store]);
-  return null;
-}
 
 function renderEditor(overrides: Partial<ScenarioEditorProps> = {}) {
   const stores: ScenarioStore[] = [];

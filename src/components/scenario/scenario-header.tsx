@@ -1,8 +1,8 @@
 import { CheckIcon, ChevronRightIcon } from "lucide-react";
-import { useFormatter, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 
+import { useDayRange } from "@/components/format/use-day-range";
 import type { OpenScenario } from "@/lib/scenarios/scenario-view";
-import { utcDay } from "@/lib/calendar/utc-day";
 
 export type ScenarioHeaderProps = Pick<OpenScenario, "project" | "scenario" | "span">;
 
@@ -12,7 +12,7 @@ export type ScenarioHeaderProps = Pick<OpenScenario, "project" | "scenario" | "s
  */
 export function ScenarioHeader({ project, scenario, span }: ScenarioHeaderProps) {
   const t = useTranslations("ScenarioHeader");
-  const format = useFormatter();
+  const dayRange = useDayRange();
 
   return (
     <div className="flex min-w-0 flex-col gap-1">
@@ -45,12 +45,7 @@ export function ScenarioHeader({ project, scenario, span }: ScenarioHeaderProps)
           <div>
             <dt className="sr-only">{t("span")}</dt>
             <dd>
-              <span>
-                {format.dateTimeRange(utcDay(span.start), utcDay(span.end), {
-                  dateStyle: "medium",
-                  timeZone: "UTC",
-                })}
-              </span>
+              <span>{dayRange(span.start, span.end)}</span>
               <span aria-hidden> · </span>
               <span>{t("workingDays", { count: span.workingDays })}</span>
             </dd>

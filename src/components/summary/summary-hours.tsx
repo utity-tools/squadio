@@ -1,7 +1,7 @@
 import { useFormatter, useTranslations } from "next-intl";
 import { useId } from "react";
 
-import { utcDay } from "@/lib/calendar/utc-day";
+import { useDayRange } from "@/components/format/use-day-range";
 import type { TeamSummary } from "@/lib/summary/summary";
 
 import { Figure, useSummaryFormat } from "./summary-format";
@@ -13,6 +13,7 @@ import { Figure, useSummaryFormat } from "./summary-format";
 export function SummaryHours({ team }: { team: TeamSummary }) {
   const t = useTranslations("Summary.team");
   const format = useFormatter();
+  const dayRange = useDayRange();
   const { hours } = useSummaryFormat();
   const id = useId();
 
@@ -31,10 +32,7 @@ export function SummaryHours({ team }: { team: TeamSummary }) {
           <dd className="font-medium">
             {team.span ? (
               <>
-                {format.dateTimeRange(utcDay(team.span.start), utcDay(team.span.end), {
-                  dateStyle: "medium",
-                  timeZone: "UTC",
-                })}
+                {dayRange(team.span.start, team.span.end)}
                 <span aria-hidden> · </span>
                 {t("workingDays", { count: team.span.workingDays })}
               </>
