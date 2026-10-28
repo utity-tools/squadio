@@ -7,7 +7,14 @@ const tags = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa", "best-prac
 /** Fails the test with axe's report when the page has any detectable violation. */
 export async function expectNoAxeViolations(page: Page) {
   // Colours mid-transition (a theme just applied) would give contrast ratios no one sees for
-  // long; endless animations (a loading pulse) never settle and do not count.
+  // long; endless animations (a loading pulse) never settle and do not count. A transition only
+  // shows in getAnimations() once a frame has styled it, so two frames go by first.
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+      ),
+  );
   await page.waitForFunction(() =>
     document
       .getAnimations()
