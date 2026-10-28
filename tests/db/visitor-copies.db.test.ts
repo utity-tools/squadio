@@ -3,7 +3,7 @@ import { createHash, randomBytes, randomUUID } from "node:crypto";
 import type { Pool } from "pg";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 
-import { appPool, ownerPool } from "./support";
+import { appPool, ownerPool, waitForLockWaiter } from "./support";
 
 // ADR 0011, "The visitor table": visitor_copies maps a visitor's token hash to their copy of the
 // demo organization. The app role reaches it only through two SECURITY DEFINER functions.
@@ -92,6 +92,27 @@ describe("app.claim_visitor_copy and app.visitor_organization", () => {
     );
     expect(rows).toEqual([{ fresh: true }]);
     expect(await claim(hash, randomUUID())).toBe("taken");
+  });
+
+  it("reports a copy cleaned up while its touch waited as gone", async () => {
+    const hash = tokenHash();
+    const organizationId = randomUUID();
+    await claim(hash, organizationId);
+
+    // The clean-up locks the claim, the save's touch waits for it, then the clean-up deletes it.
+    const cleanUp = await owner.connect();
+    try {
+      await cleanUp.query("begin");
+      await cleanUp.query("select 1 from visitor_copies where token_hash = $1 for update", [hash]);
+      const touch = claim(hash, organizationId);
+      await waitForLockWaiter();
+      await cleanUp.query("delete from visitor_copies where token_hash = $1", [hash]);
+      await cleanUp.query("commit");
+      expect(await touch).toBe("gone");
+    } finally {
+      cleanUp.release();
+    }
+    expect((await owner.query("select 1 from visitor_copies")).rows).toEqual([]);
   });
 
   it("refuses an organization that already has a visitor", async () => {

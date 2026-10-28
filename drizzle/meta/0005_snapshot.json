@@ -1,0 +1,1110 @@
+{
+  "id": "c625ac18-be56-4712-a887-57a5b6d84bd2",
+  "prevId": "ee6987a3-c57b-41d2-95ba-01b305a80897",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.assignments": {
+      "name": "assignments",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "scenario_id": {
+          "name": "scenario_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "category_id": {
+          "name": "category_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "person_id": {
+          "name": "person_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "project_role": {
+          "name": "project_role",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "reports_to": {
+          "name": "reports_to",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "weekly_hours": {
+          "name": "weekly_hours",
+          "type": "numeric(5,2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "allocation": {
+          "name": "allocation",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "start_date": {
+          "name": "start_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "end_date": {
+          "name": "end_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "assignments_category_idx": {
+          "name": "assignments_category_idx",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "category_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "assignments_person_idx": {
+          "name": "assignments_person_idx",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "person_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "assignments_reports_to_idx": {
+          "name": "assignments_reports_to_idx",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "scenario_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "reports_to",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "assignments_scenario_fkey": {
+          "name": "assignments_scenario_fkey",
+          "tableFrom": "assignments",
+          "columnsFrom": ["organization_id", "scenario_id"],
+          "tableTo": "scenarios",
+          "columnsTo": ["organization_id", "id"],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        },
+        "assignments_category_fkey": {
+          "name": "assignments_category_fkey",
+          "tableFrom": "assignments",
+          "columnsFrom": ["organization_id", "category_id"],
+          "tableTo": "categories",
+          "columnsTo": ["organization_id", "id"],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "assignments_person_fkey": {
+          "name": "assignments_person_fkey",
+          "tableFrom": "assignments",
+          "columnsFrom": ["organization_id", "person_id"],
+          "tableTo": "people",
+          "columnsTo": ["organization_id", "id"],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "assignments_reports_to_fkey": {
+          "name": "assignments_reports_to_fkey",
+          "tableFrom": "assignments",
+          "columnsFrom": ["organization_id", "scenario_id", "reports_to"],
+          "tableTo": "assignments",
+          "columnsTo": ["organization_id", "scenario_id", "id"],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "assignments_organization_id_id_key": {
+          "name": "assignments_organization_id_id_key",
+          "columns": ["organization_id", "id"],
+          "nullsNotDistinct": false
+        },
+        "assignments_organization_id_scenario_id_id_key": {
+          "name": "assignments_organization_id_scenario_id_id_key",
+          "columns": ["organization_id", "scenario_id", "id"],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {
+        "tenant_isolation": {
+          "name": "tenant_isolation",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": ["public"],
+          "using": "organization_id = app.current_organization_id()",
+          "withCheck": "organization_id = app.current_organization_id()"
+        }
+      },
+      "checkConstraints": {
+        "assignments_project_role_check": {
+          "name": "assignments_project_role_check",
+          "value": "\"project_role\" ~ '\\S' and char_length(\"project_role\") <= 100"
+        },
+        "assignments_weekly_hours_check": {
+          "name": "assignments_weekly_hours_check",
+          "value": "\"weekly_hours\" > 0 and \"weekly_hours\" <= 168"
+        },
+        "assignments_allocation_check": {
+          "name": "assignments_allocation_check",
+          "value": "allocation between 0 and 100"
+        },
+        "assignments_dates_check": {
+          "name": "assignments_dates_check",
+          "value": "end_date >= start_date"
+        },
+        "assignments_reports_to_check": {
+          "name": "assignments_reports_to_check",
+          "value": "reports_to <> id"
+        }
+      },
+      "isRLSEnabled": true
+    },
+    "public.categories": {
+      "name": "categories",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "categories_organization_id_id_key": {
+          "name": "categories_organization_id_id_key",
+          "columns": ["organization_id", "id"],
+          "nullsNotDistinct": false
+        },
+        "categories_organization_id_name_key": {
+          "name": "categories_organization_id_name_key",
+          "columns": ["organization_id", "name"],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {
+        "tenant_isolation": {
+          "name": "tenant_isolation",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": ["public"],
+          "using": "organization_id = app.current_organization_id()",
+          "withCheck": "organization_id = app.current_organization_id()"
+        }
+      },
+      "checkConstraints": {
+        "categories_name_check": {
+          "name": "categories_name_check",
+          "value": "\"name\" ~ '\\S' and char_length(\"name\") <= 100"
+        }
+      },
+      "isRLSEnabled": true
+    },
+    "public.category_rates": {
+      "name": "category_rates",
+      "schema": "",
+      "columns": {
+        "organization_id": {
+          "name": "organization_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "category_id": {
+          "name": "category_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "gross_annual_salary": {
+          "name": "gross_annual_salary",
+          "type": "numeric(12,2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "social_security_pct": {
+          "name": "social_security_pct",
+          "type": "numeric(5,2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "other_yearly_costs": {
+          "name": "other_yearly_costs",
+          "type": "numeric(12,2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "manual_cost_per_hour": {
+          "name": "manual_cost_per_hour",
+          "type": "numeric(12,2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sell_rate": {
+          "name": "sell_rate",
+          "type": "numeric(12,2)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "category_rates_category_fkey": {
+          "name": "category_rates_category_fkey",
+          "tableFrom": "category_rates",
+          "columnsFrom": ["organization_id", "category_id"],
+          "tableTo": "categories",
+          "columnsTo": ["organization_id", "id"],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {
+        "category_rates_pkey": {
+          "name": "category_rates_pkey",
+          "columns": ["organization_id", "category_id"]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {
+        "rate_access": {
+          "name": "rate_access",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": ["public"],
+          "using": "organization_id = app.current_organization_id() and app.has_rate_access()",
+          "withCheck": "organization_id = app.current_organization_id() and app.has_rate_access()"
+        }
+      },
+      "checkConstraints": {
+        "category_rates_gross_annual_salary_check": {
+          "name": "category_rates_gross_annual_salary_check",
+          "value": "\"gross_annual_salary\" >= 0"
+        },
+        "category_rates_social_security_pct_check": {
+          "name": "category_rates_social_security_pct_check",
+          "value": "\"social_security_pct\" >= 0"
+        },
+        "category_rates_other_yearly_costs_check": {
+          "name": "category_rates_other_yearly_costs_check",
+          "value": "\"other_yearly_costs\" >= 0"
+        },
+        "category_rates_manual_cost_per_hour_check": {
+          "name": "category_rates_manual_cost_per_hour_check",
+          "value": "\"manual_cost_per_hour\" >= 0"
+        },
+        "category_rates_sell_rate_check": {
+          "name": "category_rates_sell_rate_check",
+          "value": "\"sell_rate\" >= 0"
+        }
+      },
+      "isRLSEnabled": true
+    },
+    "public.config": {
+      "name": "config",
+      "schema": "",
+      "columns": {
+        "organization_id": {
+          "name": "organization_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "net_annual_hours": {
+          "name": "net_annual_hours",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "default_weekly_hours": {
+          "name": "default_weekly_hours",
+          "type": "numeric(5,2)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "tenant_isolation": {
+          "name": "tenant_isolation",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": ["public"],
+          "using": "organization_id = app.current_organization_id()",
+          "withCheck": "organization_id = app.current_organization_id()"
+        }
+      },
+      "checkConstraints": {
+        "config_net_annual_hours_check": {
+          "name": "config_net_annual_hours_check",
+          "value": "net_annual_hours > 0"
+        },
+        "config_default_weekly_hours_check": {
+          "name": "config_default_weekly_hours_check",
+          "value": "\"default_weekly_hours\" > 0 and \"default_weekly_hours\" <= 168"
+        }
+      },
+      "isRLSEnabled": true
+    },
+    "public.cost_config": {
+      "name": "cost_config",
+      "schema": "",
+      "columns": {
+        "organization_id": {
+          "name": "organization_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "overhead_pct": {
+          "name": "overhead_pct",
+          "type": "numeric(5,2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "buffer_pct": {
+          "name": "buffer_pct",
+          "type": "numeric(5,2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "target_margin_pct": {
+          "name": "target_margin_pct",
+          "type": "numeric(5,2)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "rate_access": {
+          "name": "rate_access",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": ["public"],
+          "using": "organization_id = app.current_organization_id() and app.has_rate_access()",
+          "withCheck": "organization_id = app.current_organization_id() and app.has_rate_access()"
+        }
+      },
+      "checkConstraints": {
+        "cost_config_overhead_pct_check": {
+          "name": "cost_config_overhead_pct_check",
+          "value": "\"overhead_pct\" >= 0"
+        },
+        "cost_config_buffer_pct_check": {
+          "name": "cost_config_buffer_pct_check",
+          "value": "\"buffer_pct\" >= 0"
+        }
+      },
+      "isRLSEnabled": true
+    },
+    "public.extra_costs": {
+      "name": "extra_costs",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "scenario_id": {
+          "name": "scenario_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "label": {
+          "name": "label",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "kind": {
+          "name": "kind",
+          "type": "extra_cost_kind",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "amount": {
+          "name": "amount",
+          "type": "numeric(12,2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "percentage": {
+          "name": "percentage",
+          "type": "numeric(5,2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "base": {
+          "name": "base",
+          "type": "extra_cost_base",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "start_date": {
+          "name": "start_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "end_date": {
+          "name": "end_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "extra_costs_scenario_idx": {
+          "name": "extra_costs_scenario_idx",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "scenario_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "extra_costs_scenario_fkey": {
+          "name": "extra_costs_scenario_fkey",
+          "tableFrom": "extra_costs",
+          "columnsFrom": ["organization_id", "scenario_id"],
+          "tableTo": "scenarios",
+          "columnsTo": ["organization_id", "id"],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "extra_costs_organization_id_id_key": {
+          "name": "extra_costs_organization_id_id_key",
+          "columns": ["organization_id", "id"],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {
+        "rate_access": {
+          "name": "rate_access",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": ["public"],
+          "using": "organization_id = app.current_organization_id() and app.has_rate_access()",
+          "withCheck": "organization_id = app.current_organization_id() and app.has_rate_access()"
+        }
+      },
+      "checkConstraints": {
+        "extra_costs_label_check": {
+          "name": "extra_costs_label_check",
+          "value": "\"label\" ~ '\\S' and char_length(\"label\") <= 100"
+        },
+        "extra_costs_kind_check": {
+          "name": "extra_costs_kind_check",
+          "value": "case kind\n            when 'percentage' then amount is null and percentage is not null and base is not null\n            else amount is not null and percentage is null and base is null\n          end"
+        },
+        "extra_costs_dates_check": {
+          "name": "extra_costs_dates_check",
+          "value": "(start_date is null) = (end_date is null)\n          and (start_date is null or kind = 'recurring')\n          and (end_date is null or end_date >= start_date)"
+        },
+        "extra_costs_amount_check": {
+          "name": "extra_costs_amount_check",
+          "value": "\"amount\" >= 0"
+        },
+        "extra_costs_percentage_check": {
+          "name": "extra_costs_percentage_check",
+          "value": "\"percentage\" >= 0"
+        }
+      },
+      "isRLSEnabled": true
+    },
+    "public.people": {
+      "name": "people",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "category_id": {
+          "name": "category_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "weekly_hours": {
+          "name": "weekly_hours",
+          "type": "numeric(5,2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "area": {
+          "name": "area",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "active": {
+          "name": "active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        }
+      },
+      "indexes": {
+        "people_category_idx": {
+          "name": "people_category_idx",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "category_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "people_category_fkey": {
+          "name": "people_category_fkey",
+          "tableFrom": "people",
+          "columnsFrom": ["organization_id", "category_id"],
+          "tableTo": "categories",
+          "columnsTo": ["organization_id", "id"],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "people_organization_id_id_key": {
+          "name": "people_organization_id_id_key",
+          "columns": ["organization_id", "id"],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {
+        "tenant_isolation": {
+          "name": "tenant_isolation",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": ["public"],
+          "using": "organization_id = app.current_organization_id()",
+          "withCheck": "organization_id = app.current_organization_id()"
+        }
+      },
+      "checkConstraints": {
+        "people_name_check": {
+          "name": "people_name_check",
+          "value": "\"name\" ~ '\\S' and char_length(\"name\") <= 100"
+        },
+        "people_weekly_hours_check": {
+          "name": "people_weekly_hours_check",
+          "value": "\"weekly_hours\" > 0 and \"weekly_hours\" <= 168"
+        }
+      },
+      "isRLSEnabled": true
+    },
+    "public.project_pricing": {
+      "name": "project_pricing",
+      "schema": "",
+      "columns": {
+        "organization_id": {
+          "name": "organization_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "project_id": {
+          "name": "project_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "price": {
+          "name": "price",
+          "type": "numeric(12,2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "overhead_pct": {
+          "name": "overhead_pct",
+          "type": "numeric(5,2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "buffer_pct": {
+          "name": "buffer_pct",
+          "type": "numeric(5,2)",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "project_pricing_project_fkey": {
+          "name": "project_pricing_project_fkey",
+          "tableFrom": "project_pricing",
+          "columnsFrom": ["organization_id", "project_id"],
+          "tableTo": "projects",
+          "columnsTo": ["organization_id", "id"],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {
+        "project_pricing_pkey": {
+          "name": "project_pricing_pkey",
+          "columns": ["organization_id", "project_id"]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {
+        "rate_access": {
+          "name": "rate_access",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": ["public"],
+          "using": "organization_id = app.current_organization_id() and app.has_rate_access()",
+          "withCheck": "organization_id = app.current_organization_id() and app.has_rate_access()"
+        }
+      },
+      "checkConstraints": {
+        "project_pricing_price_check": {
+          "name": "project_pricing_price_check",
+          "value": "price > 0"
+        },
+        "project_pricing_overhead_pct_check": {
+          "name": "project_pricing_overhead_pct_check",
+          "value": "\"overhead_pct\" >= 0"
+        },
+        "project_pricing_buffer_pct_check": {
+          "name": "project_pricing_buffer_pct_check",
+          "value": "\"buffer_pct\" >= 0"
+        }
+      },
+      "isRLSEnabled": true
+    },
+    "public.projects": {
+      "name": "projects",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "client": {
+          "name": "client",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "pricing_model": {
+          "name": "pricing_model",
+          "type": "pricing_model",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "projects_organization_id_id_key": {
+          "name": "projects_organization_id_id_key",
+          "columns": ["organization_id", "id"],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {
+        "tenant_isolation": {
+          "name": "tenant_isolation",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": ["public"],
+          "using": "organization_id = app.current_organization_id()",
+          "withCheck": "organization_id = app.current_organization_id()"
+        }
+      },
+      "checkConstraints": {
+        "projects_name_check": {
+          "name": "projects_name_check",
+          "value": "\"name\" ~ '\\S' and char_length(\"name\") <= 100"
+        },
+        "projects_client_check": {
+          "name": "projects_client_check",
+          "value": "\"client\" ~ '\\S' and char_length(\"client\") <= 100"
+        }
+      },
+      "isRLSEnabled": true
+    },
+    "public.scenarios": {
+      "name": "scenarios",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "project_id": {
+          "name": "project_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "chosen": {
+          "name": "chosen",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "version": {
+          "name": "version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        }
+      },
+      "indexes": {
+        "scenarios_project_idx": {
+          "name": "scenarios_project_idx",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "project_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "scenarios_one_chosen_per_project": {
+          "name": "scenarios_one_chosen_per_project",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "project_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "with": {},
+          "method": "btree",
+          "where": "chosen",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "scenarios_project_fkey": {
+          "name": "scenarios_project_fkey",
+          "tableFrom": "scenarios",
+          "columnsFrom": ["organization_id", "project_id"],
+          "tableTo": "projects",
+          "columnsTo": ["organization_id", "id"],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "scenarios_organization_id_id_key": {
+          "name": "scenarios_organization_id_id_key",
+          "columns": ["organization_id", "id"],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {
+        "tenant_isolation": {
+          "name": "tenant_isolation",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": ["public"],
+          "using": "organization_id = app.current_organization_id()",
+          "withCheck": "organization_id = app.current_organization_id()"
+        }
+      },
+      "checkConstraints": {
+        "scenarios_name_check": {
+          "name": "scenarios_name_check",
+          "value": "\"name\" ~ '\\S' and char_length(\"name\") <= 100"
+        },
+        "scenarios_version_check": {
+          "name": "scenarios_version_check",
+          "value": "version >= 1"
+        }
+      },
+      "isRLSEnabled": true
+    },
+    "public.visitor_copies": {
+      "name": "visitor_copies",
+      "schema": "",
+      "columns": {
+        "token_hash": {
+          "name": "token_hash",
+          "type": "bytea",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "last_saved_at": {
+          "name": "last_saved_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "visitor_copies_organization_id_unique": {
+          "name": "visitor_copies_organization_id_unique",
+          "columns": ["organization_id"],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "visitor_copies_token_hash_check": {
+          "name": "visitor_copies_token_hash_check",
+          "value": "octet_length(token_hash) = 32"
+        }
+      },
+      "isRLSEnabled": true
+    }
+  },
+  "enums": {
+    "public.extra_cost_base": {
+      "name": "extra_cost_base",
+      "schema": "public",
+      "values": ["staff_cost", "revenue"]
+    },
+    "public.extra_cost_kind": {
+      "name": "extra_cost_kind",
+      "schema": "public",
+      "values": ["fixed", "recurring", "percentage"]
+    },
+    "public.pricing_model": {
+      "name": "pricing_model",
+      "schema": "public",
+      "values": ["fixed", "time_and_materials"]
+    }
+  },
+  "schemas": {},
+  "views": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

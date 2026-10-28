@@ -190,13 +190,13 @@ describe("saveForVisitor: later saves", () => {
     }) as typeof app.transaction;
 
     const { cookies, sets } = jar(token);
-    await expect(
-      saveForVisitor(racy, cookies, {
-        scenarioId,
-        baseVersion: 2,
-        changes: [{ type: "edit", id: copyId(DEMO_IDS.guide.senior, org), set: { allocation: 5 } }],
-      }),
-    ).rejects.toThrow(/claim could not be touched/);
+    const result = await saveForVisitor(racy, cookies, {
+      scenarioId,
+      baseVersion: 2,
+      changes: [{ type: "edit", id: copyId(DEMO_IDS.guide.senior, org), set: { allocation: 5 } }],
+    });
+    // The page answers not-found with a reload, which reads the template.
+    expect(result).toEqual({ ok: false, reason: "not-found" });
     expect(await allocationOf(org, copyId(DEMO_IDS.guide.senior, org))).toBe(50);
     expect(await copies()).toEqual([]);
     expect(sets).toEqual([]);
@@ -212,5 +212,18 @@ describe("saveForVisitor: later saves", () => {
     });
     expect(result).toEqual({ ok: false, reason: "conflict", version: 2 });
     expect(sets).toEqual([]);
+  });
+
+  // Guards the touch-first order: a rejected save must roll its touch back.
+  it("does not touch the claim when the save is rejected", async () => {
+    const { token, org, scenarioId } = await firstVisit();
+    await owner.query("update visitor_copies set last_saved_at = now() - interval '3 days'");
+    const result = await saveForVisitor(app, jar(token).cookies, {
+      scenarioId,
+      baseVersion: 1,
+      changes: [{ type: "edit", id: copyId(DEMO_IDS.guide.senior, org), set: { allocation: 30 } }],
+    });
+    expect(result).toMatchObject({ ok: false, reason: "conflict" });
+    expect((await copies())[0]?.last_saved_at.getTime()).toBeLessThan(Date.now() - 86_400_000);
   });
 });

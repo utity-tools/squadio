@@ -36,3 +36,27 @@ export const ownerPool = () =>
     ),
     max: 1,
   });
+
+/**
+ * Waits until some session is blocked on a lock, so a test can release it knowing the other side
+ * really waits. Polls on its own connection, outside any transaction, so every check is fresh.
+ */
+export async function waitForLockWaiter(timeoutMs = 5_000) {
+  const pool = appPool(1);
+  try {
+    const deadline = Date.now() + timeoutMs;
+    for (;;) {
+      const { rows } = await pool.query<{ waiting: boolean }>(
+        `select exists (
+           select 1 from pg_stat_activity
+            where datname = current_database() and cardinality(pg_blocking_pids(pid)) > 0
+         ) as waiting`,
+      );
+      if (rows[0]?.waiting) return;
+      if (Date.now() > deadline) throw new Error("No session started waiting on a lock");
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+  } finally {
+    await pool.end();
+  }
+}
