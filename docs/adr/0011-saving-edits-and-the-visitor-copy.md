@@ -139,6 +139,13 @@ organization, as ADR 0005 already requires for rate access.
   each idle copy it deletes its tenant rows inside its own context (RLS is forced on them for the
   owner too, ADR 0004) and then its `visitor_copies` row. It runs `pnpm db:check-target owner` first,
   like the deploy.
+- **A save and the clean-up lock the claim first,** before any tenant row, so they never deadlock.
+  A save that touches the claim first keeps the copy: the clean-up's lock rechecks
+  `last_saved_at`. A clean-up that locks it first wins: the save's touch finds no row, answers
+  `gone`, and the save rolls back and returns `not-found`, which the page answers with a reload.
+  The workflow runs `main` while a deploy may still be shipping it; until it ends, the running app
+  saves in the old order and the two can deadlock. Postgres aborts one, a save or that day's run,
+  and nothing is left half-written. Accepted rather than checking the deployed version first.
 - **Neon's free plan holds 0.5 GB per project.** A copy of today's demo is 51 rows, about 5 KB of
   tuples and some 15 KB with indexes and overhead. A month at the daily limit is about 6,000
   copies, some 90 MB: under a fifth of the plan, so the limit stays at 200.
