@@ -14,78 +14,24 @@ import {
   projects,
   scenarios,
 } from "./schema";
-import { type ScenarioResult, calculateScenario } from "@/lib/costing/calculate-scenario";
-import { type SmallCategory, findSmallCategories } from "@/lib/rates/small-categories";
-import { type ProjectSpan, projectSpan } from "@/lib/scenarios/project-span";
-
+import { findSmallCategories } from "@/lib/rates/small-categories";
+import type { Member } from "@/lib/scenarios/change";
+import { type StoredScenario, toEngineInput, toHoursInput } from "@/lib/scenarios/engine-input";
 import {
-  type EngineInput,
-  type StoredExtraCost,
-  type StoredScenario,
-  toEngineInput,
-  toHoursInput,
-} from "@/lib/scenarios/engine-input";
+  type LoadedScenario,
+  type ScenarioBasis,
+  scenarioView,
+} from "@/lib/scenarios/scenario-view";
 
 import { type AccessContext, type TenantTransaction, withOrganization } from "./tenant";
 
-// docs/domain.md, "Loading a scenario".
+// docs/domain.md, "Loading a scenario". The view comes from `scenarioView`, the function the page
+// runs again on every change, over a basis that holds everything but the team.
 
-/**
- * An assignment as everyone sees it: structure and names, never money. No person: an open role.
- * It names people, so it is never an AI payload (ADR 0003).
- */
-export type TeamAssignment = {
-  id: string;
-  projectRole: string;
-  category: { id: string; name: string };
-  person: { id: string; name: string } | null;
-  reportsTo: string | null;
-  weeklyHours: number;
-  allocation: number;
-  startDate: string;
-  endDate: string;
+/** A loaded scenario, with what the page needs to edit it: its basis, team and version. */
+export type EditableScenario = LoadedScenario & {
+  editing: { basis: ScenarioBasis; team: Member[]; version: number };
 };
-
-/** The open part: what everyone gets, read only from tables without money (ADR 0005). */
-export type OpenScenario = {
-  project: { name: string; client: string; pricingModel: StoredScenario["pricingModel"] };
-  scenario: { name: string; chosen: boolean };
-  team: TeamAssignment[];
-  span: ProjectSpan | null;
-};
-
-/**
- * The percentages the summary shows next to the result lines, in basis points. Restricted. Not
- * the engine's cost settings: it holds the target margin, and no availability.
- */
-export type SummaryPercentages = {
-  /** The project's override, or else the organization's: the one the engine applied. */
-  overheadBasisPoints: number;
-  bufferBasisPoints: number;
-  targetMarginBasisPoints: number;
-};
-
-/** An extra cost as the summary names it; its amount is in the result. Restricted. */
-export type SummaryExtraCost = Pick<StoredExtraCost, "id" | "label" | "kind">;
-
-export type LoadedScenario = OpenScenario &
-  (
-    | {
-        rateAccess: true;
-        result: ScenarioResult;
-        smallCategories: SmallCategory[];
-        settings: SummaryPercentages;
-        extraCosts: SummaryExtraCost[];
-      }
-    | {
-        rateAccess: false;
-        hours: ScenarioResult["hours"];
-        assignments: ScenarioResult["assignments"];
-      }
-  );
-
-const run = ({ scenario, rates, costSettings, targetMargin }: EngineInput) =>
-  calculateScenario(scenario, rates, costSettings, targetMargin);
 
 /** The rows everyone reads; undefined when the scenario is not in the organization. */
 async function readStructure(tx: TenantTransaction, scenarioId: string) {
@@ -97,6 +43,7 @@ async function readStructure(tx: TenantTransaction, scenarioId: string) {
       pricingModel: projects.pricingModel,
       name: scenarios.name,
       chosen: scenarios.chosen,
+      version: scenarios.version,
     })
     .from(scenarios)
     .innerJoin(projects, eq(projects.id, scenarios.projectId))
@@ -109,14 +56,12 @@ async function readStructure(tx: TenantTransaction, scenarioId: string) {
     })
     .from(config);
   if (!settings) throw new Error("The organization has no config");
-  const team = await tx
+  const team: Member[] = await tx
     .select({
       id: assignments.id,
       projectRole: assignments.projectRole,
       categoryId: assignments.categoryId,
-      categoryName: categories.name,
-      personId: people.id,
-      personName: people.name,
+      personId: assignments.personId,
       reportsTo: assignments.reportsTo,
       weeklyHours: assignments.weeklyHours,
       allocation: assignments.allocation,
@@ -124,40 +69,23 @@ async function readStructure(tx: TenantTransaction, scenarioId: string) {
       endDate: assignments.endDate,
     })
     .from(assignments)
-    .innerJoin(categories, eq(categories.id, assignments.categoryId))
-    .leftJoin(people, eq(people.id, assignments.personId))
     .where(eq(assignments.scenarioId, scenarioId))
     .orderBy(assignments.startDate, assignments.id);
-  return { ...scenario, config: settings, team };
-}
-
-type Structure = NonNullable<Awaited<ReturnType<typeof readStructure>>>;
-
-/** The engine's view of the team: no names. */
-const toStoredAssignments = (team: Structure["team"]): StoredScenario["assignments"] =>
-  team.map(({ id, categoryId, reportsTo, weeklyHours, allocation, startDate, endDate }) => ({
-    id,
-    categoryId,
-    reportsTo,
-    weeklyHours,
-    allocation,
-    startDate,
-    endDate,
-  }));
-
-/** Runs after the engine, so a date outside the calendar fails there first, on its field. */
-function toOpenScenario(structure: Structure): OpenScenario {
-  const { project, client, pricingModel, name, chosen, team } = structure;
-  return {
-    project: { name: project, client, pricingModel },
-    scenario: { name, chosen },
-    team: team.map(({ categoryId, categoryName, personId, personName, ...member }) => ({
-      ...member,
-      category: { id: categoryId, name: categoryName },
-      person: personId === null || personName === null ? null : { id: personId, name: personName },
-    })),
-    span: projectSpan(team),
-  };
+  const roster = await tx
+    .select({
+      id: people.id,
+      name: people.name,
+      categoryId: people.categoryId,
+      weeklyHours: people.weeklyHours,
+      active: people.active,
+    })
+    .from(people)
+    .orderBy(people.name, people.id);
+  const categoryNames = await tx
+    .select({ id: categories.id, name: categories.name })
+    .from(categories)
+    .orderBy(categories.name, categories.id);
+  return { ...scenario, config: settings, team, roster, categories: categoryNames };
 }
 
 /** The restricted rows: none without rate access (ADR 0005). */
@@ -205,53 +133,47 @@ async function readMoney(tx: TenantTransaction, scenarioId: string, projectId: s
 }
 
 /**
- * A scenario's open part and result with the organization's current values, or null when the
- * scenario is not in the organization. Without rate access the open part and its hours only:
- * never a money figure.
+ * A scenario's view with the organization's current values, and what the page needs to edit it,
+ * or null when the scenario is not in the organization. Without rate access the open part and its
+ * hours only: never a money figure, in the view or the basis.
  */
 export async function loadScenario(
   db: NodePgDatabase,
   context: AccessContext,
   scenarioIdInput: string,
-): Promise<LoadedScenario | null> {
+): Promise<EditableScenario | null> {
   const scenarioId = z.uuid().parse(scenarioIdInput);
   return withOrganization(db, context, async (tx) => {
     const structure = await readStructure(tx, scenarioId);
     if (!structure) return null;
-    const { projectId, pricingModel, config: settings } = structure;
-    const structural = {
-      pricingModel,
-      config: settings,
-      assignments: toStoredAssignments(structure.team),
-    };
+    const { projectId, pricingModel, config: settings, team } = structure;
+    // The engine's inputs without a team: `scenarioView` adds it, and its year's calendar.
+    const structural = { pricingModel, config: settings, assignments: [] };
 
+    let engine: ScenarioBasis["engine"];
     if (!context.rateAccess) {
       const stored: StoredScenario = { ...structural, extraCosts: [], rates: [] };
-      const { hours, assignments: perAssignment } = run(toHoursInput(stored));
-      return { ...toOpenScenario(structure), rateAccess: false, hours, assignments: perAssignment };
+      engine = { rateAccess: false, input: toHoursInput(stored) };
+    } else {
+      const money = await readMoney(tx, scenarioId, projectId);
+      engine = {
+        rateAccess: true,
+        input: toEngineInput({ ...structural, ...money }),
+        smallCategories: findSmallCategories(structure.roster),
+        extraCosts: money.extraCosts.map(({ id, label, kind }) => ({ id, label, kind })),
+      };
     }
-
-    const money = await readMoney(tx, scenarioId, projectId);
-    const input = toEngineInput({ ...structural, ...money });
-    const result = run(input);
-    const headcount = await tx
-      .select({ id: people.id, categoryId: people.categoryId, active: people.active })
-      .from(people);
-    const used = new Set(structural.assignments.map((assignment) => assignment.categoryId));
-    const smallCategories = findSmallCategories(headcount).filter((small) =>
-      used.has(small.categoryId),
-    );
+    const basis: ScenarioBasis = {
+      project: { name: structure.project, client: structure.client, pricingModel },
+      scenario: { name: structure.name, chosen: structure.chosen },
+      categories: structure.categories,
+      people: structure.roster,
+      defaultWeeklyHours: settings.defaultWeeklyHours,
+      engine,
+    };
     return {
-      ...toOpenScenario(structure),
-      rateAccess: true,
-      result,
-      smallCategories,
-      settings: {
-        overheadBasisPoints: input.costSettings.overheadBasisPoints,
-        bufferBasisPoints: input.costSettings.bufferBasisPoints,
-        targetMarginBasisPoints: input.targetMargin,
-      },
-      extraCosts: money.extraCosts.map(({ id, label, kind }) => ({ id, label, kind })),
+      ...scenarioView(basis, team),
+      editing: { basis, team, version: structure.version },
     };
   });
 }
