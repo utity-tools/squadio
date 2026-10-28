@@ -55,7 +55,7 @@ export const FIRST_CALENDAR_YEAR = Math.min(...Object.keys(NATIONAL_HOLIDAYS).ma
  * so any year gives the same result: the calendar's first one. A year the calendar does not list
  * falls back to it too, so the engine reports that assignment's date on its field.
  */
-export function referenceYear(assignments: readonly StoredAssignment[]): number {
+export function referenceYear(assignments: readonly Pick<StoredAssignment, "startDate">[]): number {
   const starts = assignments.map((assignment) => assignment.startDate).toSorted();
   const year = starts[0] === undefined ? FIRST_CALENDAR_YEAR : Number(starts[0].slice(0, 4));
   return year in NATIONAL_HOLIDAYS ? year : FIRST_CALENDAR_YEAR;

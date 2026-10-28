@@ -33,21 +33,21 @@ database keeps organizations apart ([ADR 0004](adr/0004-tenant-isolation-with-rl
 only in the entities marked **Restricted**, which users without rate access cannot read at all
 ([ADR 0005](adr/0005-rate-access-in-the-database.md)): the rest describe structure and hours.
 
-| Entity           | Key fields                                                                                                                                                        | Notes                                                                                                                                                                |
-| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Organization     | id, name, starting template                                                                                                                                       | The tenant. No table until auth lands in v0.5 and brings Better Auth's organization table; until then `organization_id` is a bare uuid with no foreign key           |
-| Config           | net annual hours (1,550, whole hours), default weekly hours (40)                                                                                                  | One per organization. The holiday calendar is the national one in v1, a code constant (rule h)                                                                       |
-| CostConfig       | overhead %, buffer %, target margin %                                                                                                                             | One per organization. Restricted. The target margin may be negative: a project taken at a loss on purpose                                                            |
-| Category         | id, name                                                                                                                                                          | Its money lives in CategoryRate                                                                                                                                      |
-| CategoryRate     | category, gross annual salary (or monthly × number of payments), social security % (31%), other yearly costs, manual cost per hour?, sell rate                    | One per category. Restricted. Cost per hour is derived unless set manually. The monthly form is input only, stored as the annual salary                              |
-| Person           | id, name, category, weekly hours, area?, active                                                                                                                   | No individual salary                                                                                                                                                 |
-| Project          | id, name, client, pricing model (fixed or T&M)                                                                                                                    | Its money lives in ProjectPricing                                                                                                                                    |
-| ProjectPricing   | project, price, overhead %?, buffer %?                                                                                                                            | One per project. Restricted. Empty overrides fall back to CostConfig                                                                                                 |
-| Scenario         | id, project, name, chosen, version                                                                                                                                | `version` provides optimistic locking. Until choosing arrives (v0.2, slice 7) only the demo seed sets `chosen`, without frozen tables; choosing writes them (rule b) |
-| FrozenRate       | scenario, category, fully loaded annual cost or manual cost per hour, sell rate                                                                                   | Written when a scenario is chosen (rule b). Restricted. Cost per hour is derived as in CategoryRate, never stored rounded                                            |
-| FrozenCostConfig | scenario, overhead %, buffer %, net annual hours, calendar working hours                                                                                          | One per chosen scenario, written with its FrozenRates (rule b). Restricted                                                                                           |
-| Assignment       | id, scenario, category, person?, project role, reports to?, weekly hours, allocation %, start date, end date                                                      | No person = open role. `reports to` builds the team tree; deleting an assignment clears `reports to` on those that pointed to it                                     |
-| ExtraCost        | id, scenario, label?, kind (fixed, recurring, percentage), amount (fixed, recurring) or percentage with its base (staff cost or revenue), dates? (recurring only) | Belongs to the scenario: another team may need different infrastructure. Restricted                                                                                  |
+| Entity           | Key fields                                                                                                                                                        | Notes                                                                                                                                                      |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Organization     | id, name, starting template                                                                                                                                       | The tenant. No table until auth lands in v0.5 and brings Better Auth's organization table; until then `organization_id` is a bare uuid with no foreign key |
+| Config           | net annual hours (1,550, whole hours), default weekly hours (40)                                                                                                  | One per organization. The holiday calendar is the national one in v1, a code constant (rule h)                                                             |
+| CostConfig       | overhead %, buffer %, target margin %                                                                                                                             | One per organization. Restricted. The target margin may be negative: a project taken at a loss on purpose                                                  |
+| Category         | id, name                                                                                                                                                          | Its money lives in CategoryRate                                                                                                                            |
+| CategoryRate     | category, gross annual salary (or monthly × number of payments), social security % (31%), other yearly costs, manual cost per hour?, sell rate                    | One per category. Restricted. Cost per hour is derived unless set manually. The monthly form is input only, stored as the annual salary                    |
+| Person           | id, name, category, weekly hours, area?, active                                                                                                                   | No individual salary                                                                                                                                       |
+| Project          | id, name, client, pricing model (fixed or T&M)                                                                                                                    | Its money lives in ProjectPricing                                                                                                                          |
+| ProjectPricing   | project, price, overhead %?, buffer %?                                                                                                                            | One per project. Restricted. Empty overrides fall back to CostConfig                                                                                       |
+| Scenario         | id, project, name, chosen, version                                                                                                                                | `version` provides optimistic locking; choosing and unchoosing move it on too. Choosing writes its frozen tables (rule b)                                  |
+| FrozenRate       | scenario, category, fully loaded annual cost or manual cost per hour, sell rate                                                                                   | Written when a scenario is chosen (rule b). Restricted. Cost per hour is derived as in CategoryRate, never stored rounded                                  |
+| FrozenCostConfig | scenario, overhead %, buffer %, net annual hours, calendar working hours                                                                                          | One per chosen scenario, written with its FrozenRates (rule b). Restricted                                                                                 |
+| Assignment       | id, scenario, category, person?, project role, reports to?, weekly hours, allocation %, start date, end date                                                      | No person = open role. `reports to` builds the team tree; deleting an assignment clears `reports to` on those that pointed to it                           |
+| ExtraCost        | id, scenario, label?, kind (fixed, recurring, percentage), amount (fixed, recurring) or percentage with its base (staff cost or revenue), dates? (recurring only) | Belongs to the scenario: another team may need different infrastructure. Restricted                                                                        |
 
 ## Formulas
 
@@ -274,9 +274,12 @@ effective hours, and only after Config changes.
 ## Loading a scenario
 
 The loader, `loadScenario` in `src/db`, reads a scenario inside `withOrganization`, builds the
-inputs of `calculateScenario` from the current values with the pure functions of `src/lib/scenarios`,
-as [The calculation](#the-calculation) lists them, and runs it. Until choosing arrives (v0.2, slice 7) it reads no frozen values: the demo seed chooses two
-scenarios so the bench shows occupancy, but writes no frozen tables for them.
+inputs of `calculateScenario` with the pure functions of `src/lib/scenarios`, as
+[The calculation](#the-calculation) lists them, and runs it: from the current values, or, for a
+chosen scenario read with rate access, from its FrozenRates and FrozenCostConfig. The demo seed
+freezes its two chosen scenarios the way choosing does. A chosen scenario without frozen rows,
+chosen before slice 7 and skipped by its backfill because a category has no rate, is costed with
+the current values and stays incomplete (rule k) until it is chosen again.
 Every organization has its Config and CostConfig from the moment it exists (the starting template
 creates them), so a missing one is an error, never an incomplete result.
 
@@ -309,7 +312,8 @@ team to show it and recalculate it on every change, with the same pure function 
 category and person of the organization (name, category, weekly hours and whether active, which
 the change model checks against), Config's default weekly hours and the engine's inputs without
 assignments. With rate access these are the engine's inputs, never the stored salaries, plus every
-small category of the organization; without it, only the hours inputs, which hold no money
+small category of the organization; for a chosen scenario its frozen rates, which cover only the
+categories its team uses, since its team cannot be edited; without it, only the hours inputs, which hold no money
 ([ADR 0005](adr/0005-rate-access-in-the-database.md)). The team, as the change model's
 assignments, and the scenario's version, the base of the next save, come with it.
 
@@ -407,7 +411,14 @@ Choosing a scenario needs rate access and does what rule b says, in one transact
 chosen, unmarks the project's previously chosen scenario (rule i) and deletes that one's frozen
 rows, and writes the new scenario's FrozenRates (one per category it uses) and its
 FrozenCostConfig, read from the current values. Unchoosing, also with rate access only, deletes its
-frozen rows.
+frozen rows. Both move the scenario's version on, like a save, so a page holding an older version
+gets a conflict instead of overwriting the choice. A scenario with a category without a rate cannot
+be chosen: there is no rate to freeze (rule k). That is the only rule that blocks choosing: an
+incomplete scenario for another reason (a missing price, a date outside the calendar) can be
+chosen, and its calendar working hours are those of the calendar's first year, as the engine uses.
+Choosing what is chosen, or unchoosing what is not, is refused as changing nothing, and the demo
+template is never chosen or unchosen: only its visitors' copies are
+([ADR 0011](adr/0011-saving-edits-and-the-visitor-copy.md)).
 
 **A chosen scenario's team cannot be edited.** It is a commitment, and a category added after
 choosing would have no frozen rate, while writing one needs rate access that editing does not. To
