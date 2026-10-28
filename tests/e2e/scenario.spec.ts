@@ -75,6 +75,8 @@ for (const colorScheme of ["light", "dark"] as const) {
     // The heading is not in the skeleton: once it shows, the page has loaded.
     await expect(page.getByRole("heading", { level: 1, name: "Plan A" })).toBeVisible();
     await expect(page.locator("html")).toHaveAttribute("data-theme", colorScheme);
+    // The view is chosen once the page hydrates, and its button's colours then change.
+    await expect(page.getByRole("radio", { name: "Árbol" })).toBeChecked();
 
     await expectNoAxeViolations(page);
   });
