@@ -35,6 +35,12 @@ async function tabIntoView(page: Page, view: "tree" | "table") {
   await expect(first).toBeFocused();
 }
 
+/** Opens the focused node's or row's menu with Enter, and waits for its first item to take focus. */
+async function openMenu(page: Page) {
+  await page.keyboard.press("Enter");
+  await expect(menu(page).getByRole("menuitem").first()).toBeFocused();
+}
+
 /** Waits for the first save, which moves the page to the visitor's copy. */
 async function expectSavedInCopy(page: Page) {
   await expect(page).not.toHaveURL(new RegExp(GUIDE_SCENARIO));
@@ -48,7 +54,7 @@ test("an assignment is removed with the keyboard, and focus stays in the tree", 
   await page.keyboard.press("ArrowDown");
   await expect(node(page, "Tech lead")).toBeFocused();
 
-  await page.keyboard.press("Enter");
+  await openMenu(page);
   await expect(menu(page)).toHaveAccessibleName(/^Acciones de Tech lead/);
   await page.keyboard.press("ArrowDown");
   await page.keyboard.press("ArrowDown");
@@ -68,7 +74,7 @@ test("an assignment is removed with the keyboard, and focus stays in the tree", 
 
 test("a person is added below a node with the keyboard", async ({ page }) => {
   await tabIntoView(page, "tree");
-  await page.keyboard.press("Enter");
+  await openMenu(page);
   await page.keyboard.press("Enter");
 
   await expect(dialog(page)).toHaveAccessibleName("Añadir al equipo");
@@ -93,14 +99,19 @@ test("an assignment is moved from the table with the keyboard", async ({ page })
   await page.keyboard.press("ArrowDown");
   await expect(row(page, "Frontend developer")).toBeFocused();
 
-  await page.keyboard.press("Enter");
+  await openMenu(page);
   await page.keyboard.press("ArrowDown");
   await expect(menu(page).getByRole("menuitem", { name: "Mover a…" })).toBeFocused();
   await page.keyboard.press("Enter");
   await expect(dialog(page)).toHaveAccessibleName(/^Mover Frontend developer/);
-  await dialog(page)
-    .getByRole("combobox", { name: "Depende de" })
-    .selectOption({ label: "Tech lead (Senior Developer 1)" });
+  const reportsTo = dialog(page).getByRole("combobox", { name: "Depende de" });
+  // The dialog opens on its first field.
+  await expect(reportsTo).toBeFocused();
+  await reportsTo.selectOption({ label: "Tech lead (Senior Developer 1)" });
+  // Enter on a select opens it on Windows and Linux: the keyboard goes on to the button.
+  await page.keyboard.press("Tab");
+  await page.keyboard.press("Tab");
+  await expect(dialog(page).getByRole("button", { name: "Mover" })).toBeFocused();
   await page.keyboard.press("Enter");
 
   await expect(row(page, "Frontend developer")).toBeFocused();
@@ -115,7 +126,7 @@ for (const colorScheme of ["light", "dark"] as const) {
     await tabIntoView(page, "tree");
     await page.keyboard.press("ArrowDown");
     await expect(node(page, "Tech lead")).toBeFocused();
-    await page.keyboard.press("Enter");
+    await openMenu(page);
     await expect(menu(page)).toBeVisible();
     await expectNoAxeViolations(page);
     // The destructive item, focused, is the one with the least contrast.
@@ -130,7 +141,7 @@ for (const colorScheme of ["light", "dark"] as const) {
     await page.keyboard.press("Escape");
     await expect(node(page, "Tech lead")).toBeFocused();
 
-    await page.keyboard.press("Enter");
+    await openMenu(page);
     await page.keyboard.press("Home");
     await page.keyboard.press("Enter");
     await expect(dialog(page)).toHaveAccessibleName("Añadir al equipo");
