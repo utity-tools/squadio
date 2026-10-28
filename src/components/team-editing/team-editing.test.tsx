@@ -8,7 +8,8 @@ import { ScenarioEditor, ScenarioStoreProvider } from "@/components/scenario/sce
 import { LiveScenarioTeam } from "@/components/scenario/scenario-live";
 import { hoursBasis } from "@/lib/scenarios/basis.fixtures";
 import type { Member } from "@/lib/scenarios/change";
-import { personId, seatId, team } from "@/lib/scenarios/change.fixtures";
+import { PM, personId, seatId, team } from "@/lib/scenarios/change.fixtures";
+import type { RosterPerson } from "@/lib/scenarios/scenario-view";
 import type { SaveOutcome, ScenarioStore } from "@/lib/scenarios/store";
 import { stubHistory, stubScreen } from "@/test/navigation";
 import { stubReactFlowLayout } from "@/test/react-flow";
@@ -38,17 +39,24 @@ function renderTeam({
   chosen = false,
   members = team,
   save = never,
+  people = (all: RosterPerson[]) => all,
 }: {
   query?: string;
   wide?: boolean;
   chosen?: boolean;
   members?: Member[];
   save?: () => Promise<SaveOutcome>;
+  /** Changes the organization's people, as they are now. */
+  people?: (all: RosterPerson[]) => RosterPerson[];
 } = {}) {
   stubScreen({ wide });
   stubHistory(`/scenarios/plan${query}`);
   const stores: ScenarioStore[] = [];
-  const basis = { ...hoursBasis, scenario: { ...hoursBasis.scenario, chosen } };
+  const basis = {
+    ...hoursBasis,
+    scenario: { ...hoursBasis.scenario, chosen },
+    people: people(hoursBasis.people),
+  };
   const page = (drawing: number) => (
     <ScenarioStoreProvider>
       <ScenarioEditor
@@ -90,7 +98,7 @@ describe("the team's menus", () => {
       within(menu())
         .getAllByRole("menuitem")
         .map((item) => item.textContent),
-    ).toEqual(["Añadir a su cargo…", "Mover a…", "Quitar del equipo"]);
+    ).toEqual(["Editar…", "Añadir a su cargo…", "Mover a…", "Quitar del equipo"]);
 
     await user.keyboard("{Escape}");
     expect(screen.queryByRole("menu")).not.toBeInTheDocument();
@@ -148,6 +156,128 @@ describe("the team's menus", () => {
       weeklyHours: 37.5,
     });
     await waitFor(() => expect(node("Senior Developer")).toHaveFocus());
+  });
+
+  it("edits an assignment's fields in one change, and focuses it again", async () => {
+    const { user, store } = renderTeam();
+    node("Role 2").focus();
+    await user.keyboard("{Enter}");
+    await user.click(within(menu()).getByRole("menuitem", { name: "Editar…" }));
+    const dialog = screen.getByRole("dialog", { name: "Editar Role 2 (Person 1)" });
+    const field = (name: string) => within(dialog).getByRole("textbox", { name });
+
+    expect(field("Horas semanales")).toHaveValue("30");
+    await user.clear(field("Rol en el proyecto"));
+    await user.type(field("Rol en el proyecto"), "Architect");
+    await user.clear(field("Dedicación (%)"));
+    await user.type(field("Dedicación (%)"), "50");
+    await user.clear(field("Horas semanales"));
+    await user.type(field("Horas semanales"), "32,5");
+    const entries = store.getState().history.entries.length;
+    await user.click(within(dialog).getByRole("button", { name: "Guardar" }));
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(store.getState().history.entries).toHaveLength(entries + 1);
+    expect(store.getState().history.entries.at(-1)?.change).toEqual({
+      type: "edit",
+      id: seatId(2),
+      set: { projectRole: "Architect", allocation: 50, weeklyHours: 32.5 },
+    });
+    await waitFor(() => expect(node("Architect")).toHaveFocus());
+  });
+
+  it("offers the people of the role's category, and a person brings their hours", async () => {
+    const { user, store } = renderTeam();
+    node("Role 2").focus();
+    await user.keyboard("{Enter}");
+    await user.click(within(menu()).getByRole("menuitem", { name: "Editar…" }));
+    const dialog = screen.getByRole("dialog");
+    const who = within(dialog).getByRole("combobox", { name: "Persona o vacante" });
+
+    // Its own person, the other active Senior Developer; not the inactive one, nor the PM.
+    expect(
+      within(who)
+        .getAllByRole("option")
+        .map((option) => option.textContent),
+    ).toEqual([
+      "Vacante (sin persona)",
+      expect.stringMatching(/^Person 1, ocupación hoy: 0\s%$/),
+      expect.stringMatching(/^Person 2, ocupación hoy: 0\s%$/),
+    ]);
+    const hours = within(dialog).getByRole("textbox", { name: "Horas semanales" });
+    // Nobody, or the person it had, brings back the seat's 30 h; a new person, theirs.
+    await user.selectOptions(who, personId(2));
+    expect(hours).toHaveValue("37,5");
+    await user.selectOptions(who, "");
+    expect(hours).toHaveValue("30");
+    await user.selectOptions(who, personId(2));
+    await user.click(within(dialog).getByRole("button", { name: "Guardar" }));
+
+    expect(store.getState().history.team.find((member) => member.id === seatId(2))).toMatchObject({
+      personId: personId(2),
+      weeklyHours: 37.5,
+    });
+  });
+
+  it("keeps offering the role's own person after they moved to another category", async () => {
+    // Person 1, the lead's, is now a Project Manager.
+    const { user } = renderTeam({
+      people: (people) =>
+        people.map((person) =>
+          person.id === personId(1) ? { ...person, categoryId: PM } : person,
+        ),
+    });
+    node("Role 2").focus();
+    await user.keyboard("{Enter}");
+    await user.click(within(menu()).getByRole("menuitem", { name: "Editar…" }));
+    const who = within(screen.getByRole("dialog")).getByRole("combobox", {
+      name: "Persona o vacante",
+    });
+
+    expect(who).toHaveValue(personId(1));
+    expect(within(who).getByRole("option", { selected: true })).toHaveTextContent(/^Person 1/);
+  });
+
+  it("names the date a problem is about, and takes the keyboard there", async () => {
+    const { user } = renderTeam();
+    node("Role 2").focus();
+    await user.keyboard("{Enter}");
+    await user.click(within(menu()).getByRole("menuitem", { name: "Editar…" }));
+    const dialog = screen.getByRole("dialog");
+    const start = within(dialog).getByLabelText("Inicio");
+
+    await user.clear(start);
+    await user.click(within(dialog).getByRole("button", { name: "Guardar" }));
+    expect(within(dialog).getByRole("alert")).toHaveTextContent(
+      "Escribe la fecha de inicio completa.",
+    );
+    expect(start).toHaveFocus();
+    expect(start).toHaveAccessibleDescription("Escribe la fecha de inicio completa.");
+  });
+
+  it("ties each problem to its field, and saves nothing when nothing changed", async () => {
+    const { user, store } = renderTeam();
+    node("Role 2").focus();
+    await user.keyboard("{Enter}");
+    await user.click(within(menu()).getByRole("menuitem", { name: "Editar…" }));
+    const dialog = screen.getByRole("dialog");
+    const allocation = within(dialog).getByRole("textbox", { name: "Dedicación (%)" });
+
+    await user.clear(allocation);
+    await user.type(allocation, "150");
+    await user.click(within(dialog).getByRole("button", { name: "Guardar" }));
+    expect(within(dialog).getByRole("alert")).toHaveTextContent(
+      "La dedicación es un número entero del 0 al 100.",
+    );
+    expect(allocation).toHaveAttribute("aria-invalid", "true");
+
+    await user.clear(allocation);
+    await user.type(allocation, "100");
+    const entries = store.getState().history.entries.length;
+    await user.click(within(dialog).getByRole("button", { name: "Guardar" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(store.getState().history.entries).toHaveLength(entries);
+    await waitFor(() => expect(node("Role 2")).toHaveFocus());
   });
 
   it("keeps a typed project role when the choice changes", async () => {

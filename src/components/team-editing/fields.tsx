@@ -10,7 +10,7 @@ export const FIELD =
   "h-9 w-full min-w-0 rounded-md border bg-transparent px-3 text-sm shadow-xs placeholder:text-muted-foreground aria-invalid:border-destructive dark:bg-input/30";
 
 /** What is wrong with a dialog's form, and the field it is about. */
-export type FieldProblem<Field extends string> = { field: Field; message: string };
+export type FieldProblem<Field extends string> = { field: Field | null; message: string };
 
 /**
  * A dialog's error: which field it is about, the props that tie that field to it, and the alert
@@ -29,8 +29,8 @@ export function useFieldProblem<Field extends string>() {
       setProblem({ field, message });
       setAttempt((last) => last + 1);
     },
-    /** Shows why the store refused the change, in its own words, against `field`. */
-    refused: (field: Field, reason: StepRejection["reason"]) => {
+    /** Shows why the store refused the change, in its own words, against `field` if it has one. */
+    refused: (field: Field | null, reason: StepRejection["reason"]) => {
       setProblem({
         field,
         message: t("rejected", { action: "change", reason: t(`reasons.${reason}`) }),

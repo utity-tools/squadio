@@ -63,6 +63,7 @@
     "removed": "{name} sale del equipo.",
     "moved": "{name} depende ahora de {manager}.",
     "movedToTop": "{name} ya no depende de nadie.",
+    "edited": "Se ha actualizado {name}.",
     "undone": "Deshecho. {summary}",
     "redone": "Rehecho. {summary}",
     "rejected": "{action, select, undo {No se puede deshacer} redo {No se puede rehacer} other {No se puede hacer el cambio}}: {reason}",
@@ -171,8 +172,27 @@
     "emptyDescription": "Añade la primera persona o vacante.",
     "addFirst": "Será la primera asignación. Empieza al {percent} durante el mes que viene.",
     "whoMissing": "Elige una persona o una vacante.",
-    "roleMissing": "Escribe el rol en el proyecto.",
-    "someAssignment": "una asignación"
+    "someAssignment": "una asignación",
+    "edit": "Editar…",
+    "editTitle": "Editar {name}",
+    "filledBy": "Persona o vacante",
+    "openRoleChoice": "Vacante (sin persona)",
+    "allocation": "Dedicación (%)",
+    "weeklyHours": "Horas semanales",
+    "startDate": "Inicio",
+    "endDate": "Fin",
+    "editSubmit": "Guardar",
+    "problems": {
+      "roleMissing": "Escribe el rol en el proyecto.",
+      "roleTooLong": "El rol admite como mucho 100 caracteres.",
+      "allocationInvalid": "La dedicación es un número entero del 0 al 100.",
+      "hoursInvalid": "Las horas semanales deben ser más de 0 y como mucho 168, con hasta dos decimales.",
+      "dateInvalid": "{field, select, startDate {Escribe la fecha de inicio completa.} other {Escribe la fecha de fin completa.}}",
+      "dateOutsideCalendar": "{field, select, startDate {El calendario aún no tiene festivos del año de inicio.} other {El calendario aún no tiene festivos del año de fin.}}",
+      "datesOrder": "El fin no puede ser anterior al inicio."
+    },
+    "editHint": "Al elegir a una persona se ponen sus horas semanales; se pueden cambiar.",
+    "samePersonOption": "{name}{active, select, false {, no activa} other {}}, ocupación hoy: {percent}"
   },
   "TeamViews": {
     "label": "Vista",

@@ -1,6 +1,12 @@
 "use client";
 
-import { ArrowRightLeftIcon, EllipsisIcon, Trash2Icon, UserPlusIcon } from "lucide-react";
+import {
+  ArrowRightLeftIcon,
+  EllipsisIcon,
+  PencilIcon,
+  Trash2Icon,
+  UserPlusIcon,
+} from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useRef } from "react";
 
@@ -32,8 +38,8 @@ export type MemberMenuProps = {
 };
 
 /**
- * An assignment's actions (canvas brief, "Keyboard parity"): add a report, move it under someone
- * else, remove it. Controlled, so Enter on the node or row can open it.
+ * An assignment's actions (canvas brief, "Keyboard parity"): edit it, add a report, move it under
+ * someone else, remove it. Controlled, so Enter on the node or row can open it.
  */
 export function MemberMenu({
   id,
@@ -88,6 +94,15 @@ export function MemberMenu({
           handedOver.current = false;
         }}
       >
+        <DropdownMenuItem
+          onSelect={() => {
+            handedOver.current = true;
+            editing.edit(id, owner());
+          }}
+        >
+          <PencilIcon aria-hidden />
+          {t("edit")}
+        </DropdownMenuItem>
         <DropdownMenuItem
           onSelect={() => {
             handedOver.current = true;

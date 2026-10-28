@@ -14,9 +14,9 @@ import { useScenarioStore, useScenarioView } from "./scenario-editor";
 /** An assignment as an announcement names it: its role and its person, or none for an open role. */
 type Named = { role: string; person: string | null };
 
-/** What a change did to the team, said before the summary; edits are left to the summary. */
+/** What a change did to the team, said before the summary. */
 type Done =
-  | { kind: "added" | "removed" | "movedToTop"; member: Named }
+  | { kind: "added" | "removed" | "movedToTop" | "edited"; member: Named }
   | { kind: "moved"; member: Named; manager: Named };
 
 /** What was announced: a step's result, or why a step was refused. */
@@ -31,7 +31,7 @@ function named(basis: ScenarioBasis, member: Member | undefined): Named | null {
   return { role: member.projectRole || category, person };
 }
 
-/** What an add, a remove or a move did, from the teams before and after it. */
+/** What an add, a remove, a move or an edit did, from the teams before and after it. */
 function doneBy(
   basis: ScenarioBasis,
   change: Change | undefined,
@@ -50,6 +50,10 @@ function doneBy(
   if (change?.type === "remove") {
     const member = find(before, change.id);
     return member && { kind: "removed", member };
+  }
+  if (change?.type === "edit") {
+    const member = find(after, change.id);
+    return member && { kind: "edited", member };
   }
   if (change?.type === "move") {
     const member = find(after, change.id);

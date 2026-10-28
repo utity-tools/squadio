@@ -9,6 +9,7 @@ import { moveTargets } from "@/lib/scenarios/move-targets";
 import { type StepFocus, stepFocus } from "@/lib/scenarios/step-focus";
 
 import { AddMemberDialog } from "./add-member-dialog";
+import { EditMemberDialog } from "./edit-member-dialog";
 import { MoveMemberDialog } from "./move-member-dialog";
 
 // Keyboard parity (canvas brief, "Keyboard and focus"; ADR 0008, point 4): every change to the
@@ -30,6 +31,8 @@ export type FocusRequest = {
 export type TeamEditing = {
   /** Opens the add dialog for a report of `reportsTo`, or for the top of the team. */
   add: (reportsTo: string | null, from: HTMLElement | null) => void;
+  /** Opens the edit dialog for an assignment. */
+  edit: (id: string, from: HTMLElement | null) => void;
   /** Opens the move dialog for an assignment. */
   move: (id: string, from: HTMLElement | null) => void;
   /** Whether "Move to…" has anywhere to go. */
@@ -72,6 +75,7 @@ export function useTeamEditing(): TeamEditing | null {
 
 type Dialog =
   | { kind: "add"; reportsTo: string | null; from: HTMLElement | null }
+  | { kind: "edit"; id: string; from: HTMLElement | null }
   | { kind: "move"; id: string; from: HTMLElement | null };
 
 /**
@@ -134,6 +138,7 @@ export function TeamEditingProvider({ children }: { children: ReactNode }) {
 
   const editing: TeamEditing = {
     add: (reportsTo, from) => setDialog({ kind: "add", reportsTo, from }),
+    edit: (id, from) => setDialog({ kind: "edit", id, from }),
     move: (id, from) => setDialog({ kind: "move", id, from }),
     canMove: (id) => {
       const targets = moveTargets(store.getState().history.team, id);
@@ -178,6 +183,15 @@ export function TeamEditingProvider({ children }: { children: ReactNode }) {
         <AddMemberDialog
           reportsTo={dialog.reportsTo}
           managerName={dialog.reportsTo === null ? null : nameOf(dialog.reportsTo)}
+          dispatch={dispatchOwn}
+          onClose={close}
+          container={region}
+        />
+      )}
+      {dialog?.kind === "edit" && (
+        <EditMemberDialog
+          id={dialog.id}
+          name={nameOf(dialog.id)}
           dispatch={dispatchOwn}
           onClose={close}
           container={region}
