@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 
+import { HistoryControls } from "@/components/scenario/history-controls";
 import { ScenarioEditor } from "@/components/scenario/scenario-editor";
 import {
   LiveScenarioHeader,
@@ -48,6 +49,7 @@ export default async function ScenarioPage({
     <ScenarioEditor scenarioId={id} editing={scenario.editing} save={saveScenario}>
       <ScenarioShell
         header={<LiveScenarioHeader />}
+        actions={<HistoryControls />}
         team={<LiveScenarioTeam />}
         summary={<LiveScenarioSummary />}
       />

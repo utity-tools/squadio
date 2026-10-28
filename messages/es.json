@@ -34,6 +34,13 @@
     "span": "Duración del proyecto",
     "workingDays": "{count, plural, one {# día laborable} other {# días laborables}}"
   },
+  "ScenarioHistory": {
+    "label": "Historial de cambios",
+    "undo": "Deshacer",
+    "redo": "Rehacer",
+    "undoTitle": "Deshacer ({shortcut})",
+    "redoTitle": "Rehacer ({shortcut})"
+  },
   "ScenarioError": {
     "title": "No hemos podido abrir este escenario",
     "description": "Algo ha fallado al leerlo. Prueba otra vez dentro de un momento.",

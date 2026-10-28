@@ -34,6 +34,13 @@
     "span": "Project span",
     "workingDays": "{count, plural, one {# working day} other {# working days}}"
   },
+  "ScenarioHistory": {
+    "label": "Change history",
+    "undo": "Undo",
+    "redo": "Redo",
+    "undoTitle": "Undo ({shortcut})",
+    "redoTitle": "Redo ({shortcut})"
+  },
   "ScenarioError": {
     "title": "We couldn't open this scenario",
     "description": "Something went wrong while reading it. Try again in a moment.",

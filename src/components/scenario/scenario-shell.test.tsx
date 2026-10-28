@@ -28,6 +28,22 @@ describe("ScenarioShell", () => {
     expect(screen.getByRole("complementary", { name: "Resumen" })).toHaveAttribute("tabindex", "0");
   });
 
+  it("puts the actions before the theme switch, at the header's end", () => {
+    renderWithIntl(
+      <ScenarioShell
+        header={null}
+        actions={<button type="button">Deshacer</button>}
+        team={null}
+        summary={null}
+      />,
+    );
+
+    const banner = within(screen.getByRole("banner"));
+    const undo = banner.getByRole("button", { name: "Deshacer" });
+    const theme = banner.getByRole("radiogroup", { name: "Tema" });
+    expect(undo.compareDocumentPosition(theme) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   it("puts the theme switch in the header", () => {
     renderWithIntl(<ScenarioShell header={null} team={null} summary={null} />);
 
