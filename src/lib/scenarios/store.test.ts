@@ -15,6 +15,7 @@ import {
   team,
   tester,
 } from "./change.fixtures";
+import { hoursBasis } from "./basis.fixtures";
 import { createHistory, record, redo, undo } from "./history";
 import type { ScenarioBasis } from "./scenario-view";
 import { SAVE_DELAY_MS, type SaveOutcome, type SaveRequest, createScenarioStore } from "./store";
@@ -22,34 +23,7 @@ import { SAVE_DELAY_MS, type SaveOutcome, type SaveRequest, createScenarioStore 
 // The page's scenario store (slice 3): the change model's history behind dispatch, undo and redo,
 // with every change checked when it is dispatched (ADR 0008, point 5).
 
-const basis: ScenarioBasis = {
-  project: { name: "Project 1", client: "Client 1", pricingModel: "time_and_materials" },
-  scenario: { name: "Plan A", chosen: false },
-  categories: [
-    { id: SENIOR, name: "Senior Developer" },
-    { id: PM, name: "Project Manager" },
-  ],
-  people: [...roster.people].map(([id, person]) => ({
-    id,
-    name: `Person ${id.slice(-1)}`,
-    ...person,
-  })),
-  defaultWeeklyHours: 40,
-  engine: {
-    rateAccess: false,
-    input: {
-      scenario: { pricing: { model: "timeAndMaterials" }, assignments: [], extraCosts: [] },
-      rates: [],
-      costSettings: {
-        overheadBasisPoints: 0,
-        bufferBasisPoints: 0,
-        netAnnualHours: 1_600,
-        calendarWorkingHours: 0,
-      },
-      targetMargin: 0,
-    },
-  },
-};
+const basis = hoursBasis;
 
 /** A save that never answers, for the tests that do not save. */
 const never = () => new Promise<SaveOutcome>(() => {});

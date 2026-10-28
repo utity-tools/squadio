@@ -15,10 +15,11 @@ import {
 import { renameBasis, renameHistory, renamer } from "./rename";
 import { type ScenarioBasis, rosterOf } from "./scenario-view";
 
-// The scenario page's store (slice 3): one per page, never a module singleton, so two requests on
-// the server never share one. It holds the change model's history and runs every step through it;
-// a change is checked with Zod when it is dispatched, so an invalid one never takes an undo slot
-// (ADR 0008, point 5). The views derive what they show from `history.team` with `scenarioView`.
+// The scenario page's store (slice 3): one per scenario, kept above the page by a registry
+// (store-registry.ts), never a module singleton, so two requests on the server never share one.
+// It holds the change model's history and runs every step through it; a change is checked with
+// Zod when it is dispatched, so an invalid one never takes an undo slot (ADR 0008, point 5). The
+// views derive what they show from `history.team` with `scenarioView`.
 //
 // It saves on its own (ADR 0011, "Saving"): shortly after the last step, one save at a time, at
 // most the action's 500 changes per save. A conflict, the day's limit, a copy that is gone or
