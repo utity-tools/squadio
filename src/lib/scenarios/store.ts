@@ -1,4 +1,5 @@
 import { createStore } from "zustand/vanilla";
+import { z } from "zod";
 
 import type { Rejection, Roster } from "./apply-change";
 import { type Change, type Member, parseChange } from "./change";
@@ -35,16 +36,19 @@ const MAX_CHANGES_PER_SAVE = 500;
 export type SaveRequest = { scenarioId: string; baseVersion: number; changes: Change[] };
 
 /** What the Server Action answers, as far as the store needs it. */
-export type SaveOutcome =
-  | {
-      ok: true;
-      version: number;
-      /** The scenario saved, under the copy's id after a first save. */
-      scenarioId: string;
-      /** After a first save only: the copy's id for each template id the page may hold. */
-      renamed?: Readonly<Record<string, string>>;
-    }
-  | { ok: false; reason: string; version?: number };
+const saveOutcomeSchema = z.discriminatedUnion("ok", [
+  z.object({
+    ok: z.literal(true),
+    version: z.int(),
+    /** The scenario saved, under the copy's id after a first save. */
+    scenarioId: z.string(),
+    /** After a first save only: the copy's id for each template id the page may hold. */
+    renamed: z.record(z.string(), z.string()).optional(),
+  }),
+  z.object({ ok: z.literal(false), reason: z.string(), version: z.int().optional() }),
+]);
+
+export type SaveOutcome = z.infer<typeof saveOutcomeSchema>;
 
 /**
  * `saved`: nothing left to save. `waiting`: a save is due shortly. `saving`: one is in flight.
@@ -104,6 +108,11 @@ export type ScenarioState = {
   redo: () => boolean;
   /** Saves now, after a failed save. */
   retry: () => void;
+  /**
+   * Takes the basis the page loaded again, after the move to the copy: the history and what is
+   * left to save stay as they are.
+   */
+  adopt: (basis: ScenarioBasis) => void;
 };
 
 export type ScenarioStore = ReturnType<typeof createScenarioStore>;
@@ -123,7 +132,9 @@ export function createScenarioStore({ scenarioId, basis, team, version, save }: 
       set({ saveStatus: "saving" });
       let outcome: SaveOutcome;
       try {
-        outcome = await save({ scenarioId: id, baseVersion, changes });
+        // Anything but an answer of the expected shape is a failed save: when a response carries a
+        // redirect, Next can resolve the action to undefined.
+        outcome = saveOutcomeSchema.parse(await save({ scenarioId: id, baseVersion, changes }));
       } catch {
         outcome = { ok: false, reason: "failed" };
       }
@@ -203,6 +214,7 @@ export function createScenarioStore({ scenarioId, basis, team, version, save }: 
       retry: () => {
         if (get().saveStatus === "failed") void saveNow();
       },
+      adopt: (next) => set({ basis: next, roster: rosterOf(next) }),
     };
   });
 }
