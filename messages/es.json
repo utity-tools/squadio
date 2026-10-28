@@ -52,6 +52,27 @@
     "refused": "No se han podido guardar los cambios",
     "reload": "Recargar"
   },
+  "ScenarioAnnouncer": {
+    "margin": "Margen neto: {amount}",
+    "marginWithPercent": "Margen neto: {amount} ({percent})",
+    "marginIncomplete": "Sin margen: el escenario está incompleto",
+    "hours": "Horas efectivas: {hours}",
+    "undone": "Deshecho. {summary}",
+    "redone": "Rehecho. {summary}",
+    "rejected": "{action, select, undo {No se puede deshacer} redo {No se puede rehacer} other {No se puede hacer el cambio}}: {reason}",
+    "reasons": {
+      "no-change": "no cambia nada",
+      "cycle": "una asignación acabaría dependiendo de sí misma o de una que depende de ella",
+      "duplicate-person": "esa persona ya está en el escenario",
+      "wrong-category": "la persona es de otra categoría",
+      "inactive-person": "la persona no está activa",
+      "impossible-dates": "las fechas no son posibles",
+      "unknown-id": "la asignación, la categoría o la persona no existen",
+      "id-taken": "esa asignación ya existe",
+      "invalid": "un valor está fuera de rango",
+      "chosen": "el equipo de un escenario elegido no se puede editar"
+    }
+  },
   "ScenarioError": {
     "title": "No hemos podido abrir este escenario",
     "description": "Algo ha fallado al leerlo. Prueba otra vez dentro de un momento.",

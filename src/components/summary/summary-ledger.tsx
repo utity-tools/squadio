@@ -47,8 +47,8 @@ export function SummaryLedger({ ledger, team }: SummaryLedgerProps) {
       {ledger.warnings.length > 0 && <SummaryWarnings warnings={ledger.warnings} />}
 
       <Section title={t("headline.netMargin")} quietTitle>
-        {/* The live region of the brief: silent in v0.1, since the data does not change. */}
-        <div aria-live="polite" className="flex flex-col gap-2">
+        {/* The page's live region says the new margin (ScenarioAnnouncer), never the count. */}
+        <div className="flex flex-col gap-2">
           {ledger.complete ? (
             <>
               <p className="flex flex-wrap items-baseline gap-x-3 text-3xl font-semibold tabular-nums">

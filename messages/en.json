@@ -52,6 +52,27 @@
     "refused": "The changes could not be saved",
     "reload": "Reload"
   },
+  "ScenarioAnnouncer": {
+    "margin": "Net margin: {amount}",
+    "marginWithPercent": "Net margin: {amount} ({percent})",
+    "marginIncomplete": "No margin: the scenario is incomplete",
+    "hours": "Effective hours: {hours}",
+    "undone": "Undone. {summary}",
+    "redone": "Redone. {summary}",
+    "rejected": "{action, select, undo {Cannot undo} redo {Cannot redo} other {Cannot make the change}}: {reason}",
+    "reasons": {
+      "no-change": "it changes nothing",
+      "cycle": "an assignment would report to itself or to one of its reports",
+      "duplicate-person": "that person is already in the scenario",
+      "wrong-category": "the person belongs to another category",
+      "inactive-person": "the person is not active",
+      "impossible-dates": "the dates are not possible",
+      "unknown-id": "the assignment, category or person does not exist",
+      "id-taken": "that assignment already exists",
+      "invalid": "a value is out of range",
+      "chosen": "a chosen scenario's team cannot be edited"
+    }
+  },
   "ScenarioError": {
     "title": "We couldn't open this scenario",
     "description": "Something went wrong while reading it. Try again in a moment.",
