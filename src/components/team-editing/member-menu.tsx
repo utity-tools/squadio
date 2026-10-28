@@ -67,6 +67,7 @@ export function MemberMenu({
         )}
       </DropdownMenuTrigger>
       <DropdownMenuContent
+        container={editing.region}
         aria-label={t("actions", { name })}
         // Radix names the menu after its trigger, which the anchor does not have.
         aria-labelledby={undefined}
