@@ -98,15 +98,24 @@ export async function saveForVisitor(
 
   if (visitor) {
     const { token, context } = visitor;
-    const result = await withOrganization(db, context, async (tx) => {
-      const saved = await saveChangesIn(tx, request);
-      // The copy may have been cleaned up since the lookup: then nothing is kept.
-      if (saved.ok && (await claim(tx, token, context.organizationId)) !== "touched") {
-        throw new Error("The visitor's claim could not be touched");
-      }
-      return saved;
-    });
-    return result.ok ? { ...result, scenarioId: request.scenarioId } : result;
+    try {
+      const result = await withOrganization(db, context, async (tx) => {
+        // The touch comes first: it locks the claim before any tenant row, in the clean-up's order,
+        // so the two never deadlock. A copy cleaned up since the lookup is gone, or claimed afresh
+        // if the clean-up ended before the touch; either way nothing is kept.
+        if ((await claim(tx, token, context.organizationId)) !== "touched") {
+          throw new Rollback({ ok: false, reason: "not-found" });
+        }
+        const saved = await saveChangesIn(tx, request);
+        // A rejected save leaves the claim as it was.
+        if (!saved.ok) throw new Rollback(saved);
+        return saved;
+      });
+      return { ...result, scenarioId: request.scenarioId };
+    } catch (error) {
+      if (error instanceof Rollback) return error.result;
+      throw error;
+    }
   }
 
   const fresh = newToken();
