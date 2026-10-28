@@ -1,5 +1,5 @@
 import fc from "fast-check";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { type Change, parseChange } from "./change";
 import {
@@ -9,6 +9,7 @@ import {
   developer,
   lead,
   manager,
+  personId,
   roster,
   seatId,
   team,
@@ -16,7 +17,7 @@ import {
 } from "./change.fixtures";
 import { createHistory, record, redo, undo } from "./history";
 import type { ScenarioBasis } from "./scenario-view";
-import { createScenarioStore } from "./store";
+import { SAVE_DELAY_MS, type SaveOutcome, type SaveRequest, createScenarioStore } from "./store";
 
 // The page's scenario store (slice 3): the change model's history behind dispatch, undo and redo,
 // with every change checked when it is dispatched (ADR 0008, point 5).
@@ -50,7 +51,11 @@ const basis: ScenarioBasis = {
   },
 };
 
-const create = () => createScenarioStore({ scenarioId: seatId(99), basis, team, version: 3 });
+/** A save that never answers, for the tests that do not save. */
+const never = () => new Promise<SaveOutcome>(() => {});
+
+const create = (save: (request: SaveRequest) => Promise<SaveOutcome> = never) =>
+  createScenarioStore({ scenarioId: seatId(99), basis, team, version: 3, save });
 
 const halfDeveloper: Change = { type: "edit", id: developer.id, set: { allocation: 50 } };
 
@@ -152,5 +157,243 @@ describe("createScenarioStore", () => {
         expect(store.getState().history).toEqual(expected);
       }),
     );
+  });
+});
+
+describe("saving", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  /** A fake Server Action whose answers the test gives, one call at a time. */
+  function fakeSave() {
+    const calls: { request: SaveRequest; answer: (outcome: SaveOutcome | Error) => void }[] = [];
+    const save = (request: SaveRequest) =>
+      new Promise<SaveOutcome>((resolve, reject) => {
+        calls.push({
+          request,
+          answer: (outcome) => (outcome instanceof Error ? reject(outcome) : resolve(outcome)),
+        });
+      });
+    return { calls, save };
+  }
+
+  /** Answers a call and lets the store handle it. */
+  async function answer(
+    call: { answer: (outcome: SaveOutcome | Error) => void } | undefined,
+    outcome: SaveOutcome | Error,
+  ) {
+    if (!call) throw new Error("expected a save");
+    call.answer(outcome);
+    await vi.advanceTimersByTimeAsync(0);
+  }
+
+  const edit = (allocation: number): Change => ({
+    type: "edit",
+    id: developer.id,
+    set: { allocation },
+  });
+
+  it("is saved until something changes", () => {
+    expect(create().getState().saveStatus).toBe("saved");
+  });
+
+  it("saves shortly after the last change, all changes in one save", async () => {
+    const { calls, save } = fakeSave();
+    const store = create(save);
+    store.getState().dispatch(edit(50));
+    await vi.advanceTimersByTimeAsync(SAVE_DELAY_MS - 1);
+    store.getState().dispatch(edit(60));
+    expect(store.getState().saveStatus).toBe("waiting");
+    await vi.advanceTimersByTimeAsync(SAVE_DELAY_MS - 1);
+    expect(calls).toHaveLength(0);
+    await vi.advanceTimersByTimeAsync(1);
+
+    expect(calls.map((call) => call.request)).toEqual([
+      { scenarioId: seatId(99), baseVersion: 3, changes: [edit(50), edit(60)] },
+    ]);
+    expect(store.getState().saveStatus).toBe("saving");
+    await answer(calls[0], { ok: true, version: 4, scenarioId: seatId(99) });
+    expect(store.getState()).toMatchObject({ saveStatus: "saved", version: 4 });
+    expect(store.getState().history.pending).toEqual([]);
+  });
+
+  it("saves one at a time, and then what changed meanwhile", async () => {
+    const { calls, save } = fakeSave();
+    const store = create(save);
+    store.getState().dispatch(edit(50));
+    await vi.advanceTimersByTimeAsync(SAVE_DELAY_MS);
+    store.getState().dispatch(edit(60));
+    await vi.advanceTimersByTimeAsync(SAVE_DELAY_MS * 3);
+    expect(calls).toHaveLength(1);
+
+    await answer(calls[0], { ok: true, version: 4, scenarioId: seatId(99) });
+    expect(store.getState().history.pending).toEqual([edit(60)]);
+    await vi.advanceTimersByTimeAsync(SAVE_DELAY_MS);
+    expect(calls[1]?.request).toEqual({
+      scenarioId: seatId(99),
+      baseVersion: 4,
+      changes: [edit(60)],
+    });
+  });
+
+  it("sends at most 500 changes in one save", async () => {
+    const { calls, save } = fakeSave();
+    const store = create(save);
+    for (let step = 0; step < 501; step += 1) store.getState().dispatch(edit(step % 2 ? 40 : 60));
+    await vi.advanceTimersByTimeAsync(SAVE_DELAY_MS);
+    expect(calls[0]?.request.changes).toHaveLength(500);
+    await answer(calls[0], { ok: true, version: 4, scenarioId: seatId(99) });
+    await vi.advanceTimersByTimeAsync(SAVE_DELAY_MS);
+    expect(calls[1]?.request.changes).toHaveLength(1);
+  });
+
+  it("stops saving on a conflict, the limit or a copy that is gone", async () => {
+    for (const [outcome, status] of [
+      [{ ok: false, reason: "conflict", version: 7 }, "conflict"],
+      [{ ok: false, reason: "limit" }, "limit"],
+      [{ ok: false, reason: "not-found" }, "gone"],
+    ] as const) {
+      const { calls, save } = fakeSave();
+      const store = create(save);
+      store.getState().dispatch(edit(50));
+      await vi.advanceTimersByTimeAsync(SAVE_DELAY_MS);
+      await answer(calls[0], outcome);
+      expect(store.getState().saveStatus).toBe(status);
+      store.getState().dispatch(edit(60));
+      await vi.advanceTimersByTimeAsync(SAVE_DELAY_MS * 2);
+      expect(calls).toHaveLength(1);
+      expect(store.getState().history.pending).toEqual([edit(50), edit(60)]);
+    }
+  });
+
+  it("stops saving when the server refuses the changes themselves", async () => {
+    for (const outcome of [
+      { ok: false, reason: "cycle", index: 0 },
+      { ok: false, reason: "chosen" },
+      { ok: false, reason: "template" },
+      { ok: false, reason: "invalid" },
+    ] as const) {
+      const { calls, save } = fakeSave();
+      const store = create(save);
+      store.getState().dispatch(edit(50));
+      await vi.advanceTimersByTimeAsync(SAVE_DELAY_MS);
+      await answer(calls[0], outcome);
+      expect(store.getState().saveStatus).toBe("refused");
+      // Sending them again could never work.
+      store.getState().dispatch(edit(60));
+      store.getState().retry();
+      await vi.advanceTimersByTimeAsync(SAVE_DELAY_MS * 2);
+      expect(calls).toHaveLength(1);
+    }
+  });
+
+  it("tries again after a failed save when a step was taken during it", async () => {
+    const { calls, save } = fakeSave();
+    const store = create(save);
+    store.getState().dispatch(edit(50));
+    await vi.advanceTimersByTimeAsync(SAVE_DELAY_MS);
+    store.getState().dispatch(edit(60));
+    // The step's own timer fires while the save is still in flight.
+    await vi.advanceTimersByTimeAsync(SAVE_DELAY_MS);
+    await answer(calls[0], { ok: false, reason: "failed" });
+    expect(store.getState().saveStatus).toBe("failed");
+    await vi.advanceTimersByTimeAsync(SAVE_DELAY_MS);
+    expect(calls[1]?.request.changes).toEqual([edit(50), edit(60)]);
+  });
+
+  it("says a save failed, and tries again on the next change or on retry", async () => {
+    const { calls, save } = fakeSave();
+    const store = create(save);
+    store.getState().dispatch(edit(50));
+    await vi.advanceTimersByTimeAsync(SAVE_DELAY_MS);
+    await answer(calls[0], { ok: false, reason: "failed" });
+    expect(store.getState().saveStatus).toBe("failed");
+
+    store.getState().dispatch(edit(60));
+    await vi.advanceTimersByTimeAsync(SAVE_DELAY_MS);
+    expect(calls[1]?.request.changes).toEqual([edit(50), edit(60)]);
+    await answer(calls[1], new Error("network"));
+    expect(store.getState().saveStatus).toBe("failed");
+
+    store.getState().retry();
+    expect(calls).toHaveLength(3);
+    await answer(calls[2], { ok: true, version: 4, scenarioId: seatId(99) });
+    expect(store.getState().saveStatus).toBe("saved");
+  });
+
+  it("sends a change and its undo when both happen before the save", async () => {
+    const { calls, save } = fakeSave();
+    const store = create(save);
+    store.getState().dispatch(edit(50));
+    store.getState().undo();
+    await vi.advanceTimersByTimeAsync(SAVE_DELAY_MS);
+    // The change and its inverse both go: the server applies the same steps the page did.
+    expect(calls[0]?.request.changes).toHaveLength(2);
+  });
+
+  it("carries the history to the copy after the first save", async () => {
+    const { calls, save } = fakeSave();
+    const store = create(save);
+    store.getState().dispatch(edit(50));
+    await vi.advanceTimersByTimeAsync(SAVE_DELAY_MS);
+    // Made while the first save is in flight, so it names the template's ids.
+    store.getState().dispatch({ type: "edit", id: lead.id, set: { allocation: 70 } });
+
+    const copyOf = (id: string) => id.replace("-8000-", "-9000-");
+    const renamed = Object.fromEntries(
+      [...team.map((member) => member.id), SENIOR, PM, ...[...roster.people.keys()]].map((id) => [
+        id,
+        copyOf(id),
+      ]),
+    );
+    await answer(calls[0], { ok: true, version: 2, scenarioId: copyOf(seatId(99)), renamed });
+
+    const state = store.getState();
+    expect(state.scenarioId).toBe(copyOf(seatId(99)));
+    expect(state.version).toBe(2);
+    expect(state.history.team.map((member) => member.id)).toEqual(
+      team.map((member) => copyOf(member.id)),
+    );
+    expect(state.basis.categories.map((category) => category.id)).toEqual([
+      copyOf(SENIOR),
+      copyOf(PM),
+    ]);
+    expect(state.roster.categoryIds.has(copyOf(SENIOR))).toBe(true);
+    expect(state.history.entries[0]?.change).toEqual({
+      type: "edit",
+      id: copyOf(developer.id),
+      set: { allocation: 50 },
+    });
+
+    // The roster knows the copy's people: a person can be placed by their new id, and undone.
+    const fill: Change = {
+      type: "edit",
+      id: copyOf(developer.id),
+      set: { personId: copyOf(personId(2)) },
+    };
+    expect(store.getState().dispatch(fill)).toBe(true);
+    expect(store.getState().undo()).toBe(true);
+    const undone = {
+      type: "edit",
+      id: copyOf(developer.id),
+      set: { personId: null, weeklyHours: 40 },
+    };
+    expect(store.getState().history.pending.at(-1)).toEqual(undone);
+
+    await vi.advanceTimersByTimeAsync(SAVE_DELAY_MS);
+    expect(calls[1]?.request).toEqual({
+      scenarioId: copyOf(seatId(99)),
+      baseVersion: 2,
+      changes: [
+        { type: "edit", id: copyOf(lead.id), set: { allocation: 70 } },
+        { ...fill, set: { personId: copyOf(personId(2)), weeklyHours: 37.5 } },
+        undone,
+      ],
+    });
   });
 });
