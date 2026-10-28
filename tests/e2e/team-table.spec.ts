@@ -1,6 +1,7 @@
 import { type Locator, type Page, expect, test } from "@playwright/test";
 
 import { expectNoAxeViolations } from "./support/axe";
+import { expectHydrated } from "./support/hydration";
 
 // Needs the demo organization: `pnpm db:migrate` and `pnpm db:seed` (CI does both).
 const GUIDE_SCENARIO = "6d656d6f-0000-4000-8000-000000000200";
@@ -19,9 +20,10 @@ const footer = (page: Page) => grid(page).getByRole("row", { name: /^Total/ });
 
 /** Tabs from the view switch, the stop before the view, into the grid. */
 async function tabIntoGrid(page: Page) {
-  await expect(row(page, "Project manager")).toBeVisible();
+  await expectHydrated(row(page, "Project manager"));
   await views(page).getByRole("radio", { checked: true }).focus();
   await page.keyboard.press("Tab");
+  await expect(row(page, "Project manager")).toHaveAttribute("aria-selected", "true");
 }
 
 /** Collects the console errors of the page, hydration mismatches among them. */
