@@ -50,10 +50,11 @@ type Column = (typeof COLUMNS)[number];
 const NUMERIC = new Set<Column>(["allocation", "weeklyHours", "nominalHours", "effectiveHours"]);
 
 /**
- * Each cell's padding: tight, so the nine columns fit a laptop's table area (about 780 px), with
- * room at the start of the first one for the selected row's bar.
+ * Each cell's padding: tight, so the nine columns fit the table area left at 1280 px with the bench
+ * (about 760 px; Linux fonts need more room than macOS ones), with room at the start of the first
+ * one for the selected row's bar.
  */
-const padding = (index: number) => cn("py-2", index === 0 ? "ps-3 pe-2" : "px-2");
+const padding = (index: number) => cn("py-2", index === 0 ? "ps-3 pe-1.5" : "px-1.5");
 
 /** Text wraps, so the columns fit; numbers never break. */
 const wrapping = (column: Column) => (NUMERIC.has(column) ? "whitespace-nowrap" : "break-words");

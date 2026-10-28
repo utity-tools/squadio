@@ -1,0 +1,175 @@
+"use client";
+
+import { SearchIcon, TriangleAlertIcon, UserCheckIcon } from "lucide-react";
+import { useFormatter, useTranslations } from "next-intl";
+import { useEffect, useId, useRef, useState } from "react";
+import { useStore } from "zustand";
+
+import { useScenarioStore } from "@/components/scenario/scenario-editor";
+import { Button } from "@/components/ui/button";
+import { type BenchFilter, type BenchPerson, benchGroups } from "@/lib/bench/bench";
+import { cn } from "@/lib/utils";
+
+const FIELD =
+  "h-8 w-full min-w-0 rounded-md border bg-transparent px-2 text-sm shadow-xs placeholder:text-muted-foreground dark:bg-input/30";
+
+const NO_FILTER: BenchFilter = { query: "", categoryId: null };
+
+/** How long the count waits for typing to stop before a screen reader hears it. */
+const SETTLE_MS = 500;
+
+/** `value`, once it has stopped changing for `ms`. */
+function useSettled<T>(value: T, ms: number): T {
+  const [settled, setSettled] = useState(value);
+  useEffect(() => {
+    const timer = setTimeout(() => setSettled(value), ms);
+    return () => clearTimeout(timer);
+  }, [value, ms]);
+  return settled;
+}
+
+/**
+ * The bench (docs/glossary.md): the organization's active people by category, how busy each is
+ * today and whether the team already has them, with a search and a category filter. It holds no
+ * money, so everyone sees it. Its people become draggable and get their menu in slices 5 and 6.
+ */
+export function Bench() {
+  const t = useTranslations("Bench");
+  const format = useFormatter();
+  const store = useScenarioStore();
+  const basis = useStore(store, (state) => state.basis);
+  const team = useStore(store, (state) => state.history.team);
+  const [filter, setFilter] = useState(NO_FILTER);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const searchId = useId();
+  const categoryId = useId();
+
+  const groups = benchGroups(basis, team, filter);
+  const count = groups.reduce((sum, group) => sum + group.people.length, 0);
+  const announced = useSettled(count, SETTLE_MS);
+  const filtered = filter.query.trim() !== "" || filter.categoryId !== null;
+
+  const clear = () => {
+    setFilter(NO_FILTER);
+    // The button goes away with the empty list, so the focus goes back to the search.
+    searchRef.current?.focus();
+  };
+
+  return (
+    <div className="flex flex-col gap-4">
+      <h2 className="sr-only">{t("title")}</h2>
+      <div className="flex flex-col gap-2">
+        <label htmlFor={searchId} className="sr-only">
+          {t("search")}
+        </label>
+        <div className="relative">
+          <SearchIcon
+            aria-hidden
+            className="pointer-events-none absolute top-2 left-2 size-4 text-muted-foreground"
+          />
+          <input
+            ref={searchRef}
+            id={searchId}
+            type="search"
+            value={filter.query}
+            placeholder={t("search")}
+            onChange={(event) => setFilter({ ...filter, query: event.target.value })}
+            className={cn(FIELD, "ps-8")}
+          />
+        </div>
+        <label htmlFor={categoryId} className="sr-only">
+          {t("category")}
+        </label>
+        <select
+          id={categoryId}
+          value={filter.categoryId ?? ""}
+          onChange={(event) => setFilter({ ...filter, categoryId: event.target.value || null })}
+          className={FIELD}
+        >
+          <option value="">{t("allCategories")}</option>
+          {basis.categories.map((category) => (
+            <option key={category.id} value={category.id}>
+              {category.name}
+            </option>
+          ))}
+        </select>
+        {/*
+          The number of people the filter leaves follows each keystroke on screen; a screen reader
+          hears it once typing stops, not once per letter.
+        */}
+        <p aria-hidden className="text-xs text-muted-foreground">
+          {t("count", { count })}
+        </p>
+        <p role="status" className="sr-only">
+          {t("count", { count: announced })}
+        </p>
+      </div>
+
+      {groups.length === 0 ? (
+        <div className="flex flex-col items-start gap-2 text-sm">
+          <p>{filtered ? t("empty") : t("none")}</p>
+          {filtered && (
+            <Button variant="outline" size="xs" onClick={clear}>
+              {t("clear")}
+            </Button>
+          )}
+        </div>
+      ) : (
+        groups.map((group) => (
+          <div key={group.category.id}>
+            <h3 className="mb-2 flex items-baseline justify-between gap-2 text-sm font-semibold">
+              <span>{group.category.name}</span>
+              {/* A bare number says nothing to a screen reader: it hears "3 people". */}
+              <span aria-hidden className="text-xs font-normal text-muted-foreground">
+                {format.number(group.people.length)}
+              </span>
+              <span className="sr-only">{t("count", { count: group.people.length })}</span>
+            </h3>
+            <ul className="flex flex-col gap-2">
+              {group.people.map((person) => (
+                <BenchCard key={person.id} person={person} />
+              ))}
+            </ul>
+          </div>
+        ))
+      )}
+    </div>
+  );
+}
+
+function BenchCard({ person }: { person: BenchPerson }) {
+  const t = useTranslations("Bench");
+  const format = useFormatter();
+  const percent = format.number(person.occupancy / 100, { style: "percent" });
+  const over = person.occupancy > 100;
+
+  return (
+    <li className="flex flex-col gap-1.5 rounded-md border bg-card p-2 text-sm shadow-xs">
+      {/* The name gets the card's whole width, so it breaks between words, not inside them. */}
+      <span className="font-medium wrap-break-word">{person.name}</span>
+      {person.onTeam && (
+        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+          <UserCheckIcon aria-hidden className="size-3.5" />
+          {t("onTeam")}
+        </span>
+      )}
+      <p className="flex flex-wrap items-center justify-between gap-x-2 text-xs text-muted-foreground">
+        <span className="tabular-nums">{t("occupancy", { percent })}</span>
+        <span>{t("weeklyHours", { hours: format.number(person.weeklyHours) })}</span>
+      </p>
+      {/* The bar repeats the percentage above, which is what a screen reader reads. */}
+      <div aria-hidden className="h-1.5 overflow-hidden rounded-full bg-border">
+        <div
+          className={cn("h-full rounded-full", over ? "bg-status-bad" : "bg-primary")}
+          style={{ width: `${Math.min(person.occupancy, 100)}%` }}
+        />
+      </div>
+      {over && (
+        <p className="flex items-center gap-1 text-xs font-medium">
+          <TriangleAlertIcon aria-hidden className="size-3.5 text-status-bad" />
+          {t("overAllocated")}
+        </p>
+      )}
+    </li>
+  );
+}

@@ -22,6 +22,18 @@ describe("ScenarioShell", () => {
     expect(team.compareDocumentPosition(summary) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
+  it("puts the bench before the team, in a region of its own", () => {
+    renderWithIntl(
+      <ScenarioShell header={null} bench={<p>people</p>} team={<p>tree</p>} summary={null} />,
+    );
+
+    const bench = screen.getByRole("complementary", { name: "Banquillo" });
+    const team = screen.getByRole("main", { name: "Equipo" });
+    expect(within(bench).getByText("people")).toBeInTheDocument();
+    expect(bench).toHaveAttribute("tabindex", "0");
+    expect(bench.compareDocumentPosition(team) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   it("lets the keyboard reach the summary, which scrolls in its own rail", () => {
     renderWithIntl(<ScenarioShell header={null} team={null} summary={<p>ledger</p>} />);
 
@@ -71,6 +83,7 @@ describe("ScenarioShellSkeleton", () => {
     renderWithIntl(<ScenarioShellSkeleton />);
 
     expect(screen.getByRole("banner")).toBeInTheDocument();
+    expect(screen.getByRole("complementary", { name: "Banquillo" })).toBeInTheDocument();
     expect(screen.getByRole("main", { name: "Equipo" })).toBeInTheDocument();
     expect(screen.getByRole("complementary", { name: "Resumen" })).toBeInTheDocument();
   });

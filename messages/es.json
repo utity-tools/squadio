@@ -18,6 +18,7 @@
   },
   "ScenarioPage": {
     "title": "Escenario",
+    "bench": "Banquillo",
     "team": "Equipo",
     "summary": "Resumen",
     "loading": "Cargando el escenario…"
@@ -72,6 +73,20 @@
       "invalid": "un valor está fuera de rango",
       "chosen": "el equipo de un escenario elegido no se puede editar"
     }
+  },
+  "Bench": {
+    "title": "Banquillo",
+    "search": "Buscar persona",
+    "category": "Categoría",
+    "allCategories": "Todas las categorías",
+    "count": "{count, plural, one {# persona} other {# personas}}",
+    "occupancy": "Ocupación hoy: {percent}",
+    "overAllocated": "Sobreasignación",
+    "onTeam": "En el equipo",
+    "weeklyHours": "{hours} h/semana",
+    "none": "Todavía no hay personas activas",
+    "empty": "Nadie coincide con la búsqueda",
+    "clear": "Quitar filtros"
   },
   "ScenarioError": {
     "title": "No hemos podido abrir este escenario",

@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { z } from "zod";
 
+import { Bench } from "@/components/bench/bench";
 import { HistoryControls } from "@/components/scenario/history-controls";
 import { SaveStatus } from "@/components/scenario/save-status";
 import { ScenarioAnnouncer } from "@/components/scenario/scenario-announcer";
@@ -62,6 +63,7 @@ export default async function ScenarioPage({
             <HistoryControls />
           </>
         }
+        bench={<Bench />}
         team={<LiveScenarioTeam />}
         summary={<LiveScenarioSummary />}
       />
