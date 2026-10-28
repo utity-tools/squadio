@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { HistoryControls } from "@/components/scenario/history-controls";
 import { SaveStatus } from "@/components/scenario/save-status";
+import { ScenarioAnnouncer } from "@/components/scenario/scenario-announcer";
 import { ScenarioEditor } from "@/components/scenario/scenario-editor";
 import {
   LiveScenarioHeader,
@@ -59,6 +60,7 @@ export default async function ScenarioPage({
         team={<LiveScenarioTeam />}
         summary={<LiveScenarioSummary />}
       />
+      <ScenarioAnnouncer />
     </ScenarioEditor>
   );
 }
