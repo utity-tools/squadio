@@ -1,11 +1,12 @@
 "use client";
 
-import { SearchIcon, TriangleAlertIcon, UserCheckIcon } from "lucide-react";
+import { GripVerticalIcon, SearchIcon, TriangleAlertIcon, UserCheckIcon } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
 import { useEffect, useId, useRef, useState } from "react";
 import { useStore } from "zustand";
 
 import { useScenarioStore } from "@/components/scenario/scenario-editor";
+import { useDragState, useTeamDrag } from "@/components/team-drag/team-drag";
 import { Button } from "@/components/ui/button";
 import { type BenchFilter, type BenchPerson, benchGroups } from "@/lib/bench/bench";
 import { cn } from "@/lib/utils";
@@ -31,7 +32,8 @@ function useSettled<T>(value: T, ms: number): T {
 /**
  * The bench (docs/glossary.md): the organization's active people by category, how busy each is
  * today and whether the team already has them, with a search and a category filter. It holds no
- * money, so everyone sees it. Its people become draggable and get their menu in slices 5 and 6.
+ * money, so everyone sees it. People not on the team yet can be dragged into it; "Add to team…"
+ * lists them for the keyboard.
  */
 export function Bench() {
   const t = useTranslations("Bench");
@@ -142,9 +144,42 @@ function BenchCard({ person }: { person: BenchPerson }) {
   const format = useFormatter();
   const percent = format.number(person.occupancy / 100, { style: "percent" });
   const over = person.occupancy > 100;
+  const drag = useTeamDrag();
+  const { dragged } = useDragState();
+  const draggable = drag.enabled && !person.onTeam;
+  const dragging = dragged?.kind === "person" && dragged.personId === person.id;
 
   return (
-    <li className="flex flex-col gap-1.5 rounded-md border bg-card p-2 text-sm shadow-xs">
+    <li
+      data-bench-person={person.id}
+      // A mouse drags the whole card; a finger drags the grip, so the bench still scrolls.
+      onPointerDown={
+        draggable
+          ? (event) => {
+              const onGrip =
+                event.target instanceof Element && event.target.closest("[data-drag-grip]");
+              if (event.pointerType !== "mouse" && !onGrip) return;
+              drag.start(event, { kind: "person", personId: person.id }, person.name);
+            }
+          : undefined
+      }
+      className={cn(
+        "relative flex flex-col gap-1.5 rounded-md border bg-card p-2 text-sm shadow-xs",
+        draggable && "cursor-grab ps-6 select-none",
+        // Marked without fading it: faded text would fail contrast.
+        dragging && "border-dashed border-primary",
+      )}
+    >
+      {draggable && (
+        // A pointer's way in; the keyboard's is "Add to team…" (ADR 0008, point 4).
+        <span
+          aria-hidden
+          data-drag-grip=""
+          className="absolute inset-y-0 start-0 flex w-6 touch-none items-center justify-center text-muted-foreground"
+        >
+          <GripVerticalIcon className="size-3.5" />
+        </span>
+      )}
       {/* The name gets the card's whole width, so it breaks between words, not inside them. */}
       <span className="font-medium wrap-break-word">{person.name}</span>
       {person.onTeam && (

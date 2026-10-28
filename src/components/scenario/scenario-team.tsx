@@ -6,8 +6,10 @@ import type { TeamAssignment } from "@/lib/scenarios/scenario-view";
 import { type LayoutError, layoutTeam } from "@/lib/layout/compact-layout";
 import type { ProjectSpan } from "@/lib/scenarios/project-span";
 import { type AssignmentCard, assignmentCards } from "@/lib/team-tree/cards";
+import { cn } from "@/lib/utils";
 
 import { AddToTeamButton } from "@/components/team-editing/add-to-team-button";
+import { useDragState } from "@/components/team-drag/team-drag";
 import { useTeamEditing } from "@/components/team-editing/team-editing";
 import { useWideScreen } from "@/components/team-views/use-wide-screen";
 import { TeamViews, TeamViewsSkeleton } from "@/components/team-views/team-views";
@@ -50,9 +52,17 @@ function EmptyTeam() {
   const wide = useWideScreen();
   const teamEditing = useTeamEditing();
   const editing = wide === true ? teamEditing : null;
+  const { over } = useDragState();
 
   return (
-    <div className="flex h-full min-h-96 flex-col items-center justify-center gap-2 p-8 text-center">
+    <div
+      // The first drop target (canvas brief, "Empty scenario").
+      data-drop-root={editing ? "" : undefined}
+      className={cn(
+        "flex h-full min-h-96 flex-col items-center justify-center gap-2 p-8 text-center",
+        over?.kind === "canvas" && "outline-2 -outline-offset-2 outline-primary",
+      )}
+    >
       <UsersIcon aria-hidden className="size-8 text-muted-foreground" />
       <h2 className="font-semibold">{t("title")}</h2>
       <p className="text-sm text-muted-foreground">
