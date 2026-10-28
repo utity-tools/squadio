@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import { count } from "drizzle-orm";
+import { count, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import type { PgTable } from "drizzle-orm/pg-core";
 import { afterAll, describe, expect, it } from "vitest";
@@ -68,10 +68,10 @@ describe("seedDemo", () => {
       categories: 6,
       category_rates: 5,
       people: 15,
-      projects: 3,
+      projects: 5,
       project_pricing: 2,
-      scenarios: 5,
-      assignments: 11,
+      scenarios: 7,
+      assignments: 18,
       extra_costs: 2,
     });
   });
@@ -81,6 +81,8 @@ describe("seedDemo", () => {
     ["a T&M project over its budget cap", DEMO_IDS.overBudgetScenario, ["budgetCapExceeded"]],
     ["a category without a rate", DEMO_IDS.missingRateScenario, ["missingRate"]],
     ["a fixed-price project without a price", DEMO_IDS.missingPriceScenario, ["missingPrice"]],
+    ["a chosen scenario under way", DEMO_IDS.deliveryScenario, []],
+    ["another chosen scenario under way", DEMO_IDS.upkeepScenario, []],
   ])("gives %s its summary warnings", async (_, scenarioId, codes) => {
     await seedDemo(app);
 
@@ -89,6 +91,22 @@ describe("seedDemo", () => {
     expect(loaded?.rateAccess && loaded.result.warnings.map((warning) => warning.code)).toEqual(
       codes,
     );
+  });
+
+  it("chooses one scenario in each of two projects under way, for the bench", async () => {
+    await seedDemo(app);
+
+    const chosen = await withOrganization(app, demo, (tx) =>
+      tx
+        .select({ id: scenarios.id, projectId: scenarios.projectId })
+        .from(scenarios)
+        .where(eq(scenarios.chosen, true)),
+    );
+
+    expect(chosen.map((scenario) => scenario.id).toSorted()).toEqual(
+      [DEMO_IDS.deliveryScenario, DEMO_IDS.upkeepScenario].toSorted(),
+    );
+    expect(new Set(chosen.map((scenario) => scenario.projectId)).size).toBe(2);
   });
 
   it("leaves the same rows when run again", async () => {
