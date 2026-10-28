@@ -84,7 +84,14 @@ describe("renameBasis", () => {
       scenario: { name: "Plan A", chosen: false },
       categories: [{ id: SENIOR, name: "Senior Developer" }],
       people: [
-        { id: personId(1), name: "Person 1", categoryId: SENIOR, weeklyHours: 40, active: true },
+        {
+          id: personId(1),
+          name: "Person 1",
+          categoryId: SENIOR,
+          weeklyHours: 40,
+          active: true,
+          occupancy: 60,
+        },
       ],
       defaultWeeklyHours: 40,
       engine: {

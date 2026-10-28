@@ -10,7 +10,7 @@ import { loadScenario } from "@/db/load-scenario";
 import { type AccessContext, withOrganization } from "@/db/tenant";
 import { copyId } from "@/lib/visitors/copy-id";
 
-import { appPool, ownerPool } from "./support";
+import { SOME_DAY, appPool, ownerPool } from "./support";
 import { OWNER_ONLY_TABLES } from "./tenancy";
 
 // ADR 0011, "The copy": a visitor's copy of the demo organization, made by the app role in one
@@ -125,8 +125,8 @@ describe("copyOrganization", () => {
 
   it("loads each scenario of the copy exactly as the template's, under the derived ids", async () => {
     for (const id of [DEMO_IDS.guideScenario, DEMO_IDS.overBudgetScenario]) {
-      const original = await loadScenario(app, template, id);
-      const copied = await loadScenario(app, copy, copyId(id, copyOrg));
+      const original = await loadScenario(app, template, id, SOME_DAY);
+      const copied = await loadScenario(app, copy, copyId(id, copyOrg), SOME_DAY);
       if (!original || !copied) throw new Error("expected both scenarios to load");
 
       // Every id of the template, so the copy's can be read back as the template's.
@@ -145,7 +145,9 @@ describe("copyOrganization", () => {
     expect(await rowCounts(template)).toEqual(before);
 
     const stranger: AccessContext = { organizationId: randomUUID(), rateAccess: true };
-    expect(await loadScenario(app, stranger, copyId(DEMO_IDS.guideScenario, copyOrg))).toBeNull();
+    expect(
+      await loadScenario(app, stranger, copyId(DEMO_IDS.guideScenario, copyOrg), SOME_DAY),
+    ).toBeNull();
   });
 
   it("refuses to copy an organization onto itself", async () => {

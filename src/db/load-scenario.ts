@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq, gte, isNotNull, lte } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { z } from "zod";
 
@@ -14,6 +14,7 @@ import {
   projects,
   scenarios,
 } from "./schema";
+import { occupancy } from "@/lib/bench/occupancy";
 import { findSmallCategories } from "@/lib/rates/small-categories";
 import type { Member } from "@/lib/scenarios/change";
 import { type StoredScenario, toEngineInput, toHoursInput } from "@/lib/scenarios/engine-input";
@@ -34,7 +35,7 @@ export type EditableScenario = LoadedScenario & {
 };
 
 /** The rows everyone reads; undefined when the scenario is not in the organization. */
-async function readStructure(tx: TenantTransaction, scenarioId: string) {
+async function readStructure(tx: TenantTransaction, scenarioId: string, today: string) {
   const [scenario] = await tx
     .select({
       projectId: projects.id,
@@ -81,11 +82,36 @@ async function readStructure(tx: TenantTransaction, scenarioId: string) {
     })
     .from(people)
     .orderBy(people.name, people.id);
+  // Occupancy holds no money, so everyone reads it (domain, "How busy a person is").
+  const chosen = await tx
+    .select({
+      personId: assignments.personId,
+      allocation: assignments.allocation,
+      startDate: assignments.startDate,
+      endDate: assignments.endDate,
+    })
+    .from(assignments)
+    .innerJoin(scenarios, eq(scenarios.id, assignments.scenarioId))
+    .where(
+      and(
+        eq(scenarios.chosen, true),
+        isNotNull(assignments.personId),
+        lte(assignments.startDate, today),
+        gte(assignments.endDate, today),
+      ),
+    );
+  const busy = occupancy(chosen, today);
   const categoryNames = await tx
     .select({ id: categories.id, name: categories.name })
     .from(categories)
     .orderBy(categories.name, categories.id);
-  return { ...scenario, config: settings, team, roster, categories: categoryNames };
+  return {
+    ...scenario,
+    config: settings,
+    team,
+    roster: roster.map((person) => ({ ...person, occupancy: busy.get(person.id) ?? 0 })),
+    categories: categoryNames,
+  };
 }
 
 /** The restricted rows: none without rate access (ADR 0005). */
@@ -141,10 +167,13 @@ export async function loadScenario(
   db: NodePgDatabase,
   context: AccessContext,
   scenarioIdInput: string,
+  /** The day occupancy is measured on, `YYYY-MM-DD`; the page passes Madrid's today. */
+  today: string,
 ): Promise<EditableScenario | null> {
   const scenarioId = z.uuid().parse(scenarioIdInput);
+  const day = z.iso.date().parse(today);
   return withOrganization(db, context, async (tx) => {
-    const structure = await readStructure(tx, scenarioId);
+    const structure = await readStructure(tx, scenarioId, day);
     if (!structure) return null;
     const { projectId, pricingModel, config: settings, team } = structure;
     // The engine's inputs without a team: `scenarioView` adds it, and its year's calendar.

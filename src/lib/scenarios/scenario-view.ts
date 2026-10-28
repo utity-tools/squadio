@@ -78,6 +78,8 @@ export type RosterPerson = {
   categoryId: string;
   weeklyHours: number;
   active: boolean;
+  /** How busy the person is today, an integer percentage (domain, "How busy a person is"). */
+  occupancy: number;
 };
 
 /** Everything the page needs besides the team, to show it and recalculate it. */

@@ -23,7 +23,7 @@ import { calculateScenario } from "@/lib/costing/calculate-scenario";
 import { loadScenario } from "@/db/load-scenario";
 import { scenarioView } from "@/lib/scenarios/scenario-view";
 
-import { appPool } from "./support";
+import { SOME_DAY, appPool } from "./support";
 
 // docs/domain.md, "Loading a scenario", on the demo organization's seed.
 
@@ -42,7 +42,7 @@ const withoutRates: AccessContext = { organizationId: DEMO_ORGANIZATION_ID, rate
 
 describe("loadScenario", () => {
   it("costs the guide case with the organization's current values", async () => {
-    const loaded = await loadScenario(app, withRates, DEMO_IDS.guideScenario);
+    const loaded = await loadScenario(app, withRates, DEMO_IDS.guideScenario, SOME_DAY);
     if (!loaded?.rateAccess) throw new Error("expected a result with rate access");
 
     // The guide case, written out by hand with the 2027 calendar instead of its 1,984 hours.
@@ -147,7 +147,7 @@ describe("loadScenario", () => {
       return scenario!.id;
     });
 
-    const loaded = await loadScenario(app, context, scenarioId);
+    const loaded = await loadScenario(app, context, scenarioId, SOME_DAY);
     if (!loaded?.rateAccess) throw new Error("expected a result with rate access");
 
     expect(loaded.settings).toEqual({
@@ -160,8 +160,8 @@ describe("loadScenario", () => {
   });
 
   it("returns only the open part and the hours without rate access", async () => {
-    const full = await loadScenario(app, withRates, DEMO_IDS.guideScenario);
-    const hoursOnly = await loadScenario(app, withoutRates, DEMO_IDS.guideScenario);
+    const full = await loadScenario(app, withRates, DEMO_IDS.guideScenario, SOME_DAY);
+    const hoursOnly = await loadScenario(app, withoutRates, DEMO_IDS.guideScenario, SOME_DAY);
     if (!full?.rateAccess) throw new Error("expected a result with rate access");
 
     expect(hoursOnly).toEqual({
@@ -178,7 +178,7 @@ describe("loadScenario", () => {
 
   it("gives the page a basis that recalculates to the same view", async () => {
     for (const context of [withRates, withoutRates]) {
-      const loaded = await loadScenario(app, context, DEMO_IDS.guideScenario);
+      const loaded = await loadScenario(app, context, DEMO_IDS.guideScenario, SOME_DAY);
       if (!loaded) throw new Error("expected the guide scenario");
       const { editing, ...view } = loaded;
       expect(scenarioView(editing.basis, editing.team)).toEqual(view);
@@ -187,8 +187,36 @@ describe("loadScenario", () => {
     }
   });
 
+  it("says how busy each person is on the day given, with or without rate access", async () => {
+    const busy = async (context: AccessContext, today: string) => {
+      const loaded = await loadScenario(app, context, DEMO_IDS.guideScenario, today);
+      return Object.fromEntries(
+        (loaded?.editing.basis.people ?? [])
+          .filter((person) => person.occupancy > 0)
+          .map((person) => [person.name, person.occupancy]),
+      );
+    };
+
+    // Both chosen scenarios cover this day: Senior Developer 4 is over-allocated.
+    const underWay = {
+      "Project Manager 1": 100,
+      "Senior Developer 4": 130,
+      "Frontend Developer 3": 100,
+      "Junior Developer 3": 60,
+      "DevOps Engineer 2": 40,
+    };
+    expect(await busy(withRates, "2026-10-28")).toEqual(underWay);
+    expect(await busy(withoutRates, "2026-10-28")).toEqual(underWay);
+    // The delivery plan ended on 31 March 2027; the upkeep plan runs until 28 May.
+    expect(await busy(withRates, "2027-04-15")).toEqual({
+      "Project Manager 1": 50,
+      "Senior Developer 4": 30,
+      "DevOps Engineer 2": 40,
+    });
+  });
+
   it("puts no money in the basis without rate access", async () => {
-    const loaded = await loadScenario(app, withoutRates, DEMO_IDS.guideScenario);
+    const loaded = await loadScenario(app, withoutRates, DEMO_IDS.guideScenario, SOME_DAY);
     const { engine } = loaded?.editing.basis ?? {};
     expect(engine).toMatchObject({ rateAccess: false, input: { rates: [], targetMargin: 0 } });
     expect(engine?.input.costSettings).toMatchObject({
@@ -231,7 +259,7 @@ describe("loadScenario", () => {
     const { manager: lead, senior, frontend, devops } = DEMO_IDS.guide;
 
     for (const context of [withRates, withoutRates]) {
-      expect(await loadScenario(app, context, DEMO_IDS.guideScenario)).toMatchObject({
+      expect(await loadScenario(app, context, DEMO_IDS.guideScenario, SOME_DAY)).toMatchObject({
         project: { name: "Customer portal", client: "Demo Client", pricingModel: "fixed" },
         scenario: { name: "Plan A", chosen: false },
         team: [
@@ -277,7 +305,7 @@ describe("loadScenario", () => {
       return scenario!.id;
     });
 
-    expect(await loadScenario(app, context, scenarioId)).toEqual({
+    expect(await loadScenario(app, context, scenarioId, SOME_DAY)).toEqual({
       editing: expect.objectContaining({ team: [], version: 1 }),
       project: { name: "Support", client: "Client C", pricingModel: "time_and_materials" },
       scenario: { name: "Plan A", chosen: true },
@@ -292,7 +320,7 @@ describe("loadScenario", () => {
   it("returns null for a scenario of another organization", async () => {
     const other: AccessContext = { organizationId: randomUUID(), rateAccess: true };
 
-    expect(await loadScenario(app, other, DEMO_IDS.guideScenario)).toBeNull();
+    expect(await loadScenario(app, other, DEMO_IDS.guideScenario, SOME_DAY)).toBeNull();
   });
 
   it("leaves a fixed-price project without a price incomplete (rule l)", async () => {
@@ -338,7 +366,7 @@ describe("loadScenario", () => {
       return scenario!.id;
     });
 
-    const loaded = await loadScenario(app, context, scenarioId);
+    const loaded = await loadScenario(app, context, scenarioId, SOME_DAY);
 
     expect(loaded).toMatchObject({
       rateAccess: true,
@@ -383,9 +411,12 @@ describe("loadScenario", () => {
     });
 
     for (const rateAccess of [true, false]) {
-      const error = await loadScenario(app, { organizationId, rateAccess }, scenarioId).catch(
-        (caught: unknown) => caught,
-      );
+      const error = await loadScenario(
+        app,
+        { organizationId, rateAccess },
+        scenarioId,
+        SOME_DAY,
+      ).catch((caught: unknown) => caught);
       // The engine's validation runs before the project span could throw a CalendarError.
       expect(error).toBeInstanceOf(ZodError);
       expect((error as ZodError).issues.map((issue) => issue.path)).toEqual([
@@ -395,6 +426,6 @@ describe("loadScenario", () => {
   });
 
   it("refuses a scenario id that is not a UUID", async () => {
-    await expect(loadScenario(app, withRates, "plan-a")).rejects.toThrow(ZodError);
+    await expect(loadScenario(app, withRates, "plan-a", SOME_DAY)).rejects.toThrow(ZodError);
   });
 });
