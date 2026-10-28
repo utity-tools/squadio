@@ -18,6 +18,7 @@
   },
   "ScenarioPage": {
     "title": "Scenario",
+    "bench": "Bench",
     "team": "Team",
     "summary": "Summary",
     "loading": "Loading the scenario…"
@@ -72,6 +73,20 @@
       "invalid": "a value is out of range",
       "chosen": "a chosen scenario's team cannot be edited"
     }
+  },
+  "Bench": {
+    "title": "Bench",
+    "search": "Search people",
+    "category": "Category",
+    "allCategories": "All categories",
+    "count": "{count, plural, one {# person} other {# people}}",
+    "occupancy": "Occupancy today: {percent}",
+    "overAllocated": "Over-allocation",
+    "onTeam": "On the team",
+    "weeklyHours": "{hours} h/week",
+    "none": "No active people yet",
+    "empty": "Nobody matches the search",
+    "clear": "Clear filters"
   },
   "ScenarioError": {
     "title": "We couldn't open this scenario",

@@ -8,18 +8,22 @@ type Slots = {
   header: ReactNode;
   /** The header's right-aligned controls before the theme switch: undo, redo, the save state. */
   actions?: ReactNode;
+  /** The left column, from `xl`: people to add to the team. */
+  bench?: ReactNode;
   team: ReactNode;
   summary: ReactNode;
 };
 
 /**
  * The scenario page grid of direction A, "Ledger rail" (docs/design/canvas-brief.md): header on
- * top, the team in the centre and the summary in a fixed right rail. The left column is the v0.2
- * bench, collapsed to zero. From `md` the page holds to the screen's height, so the canvas fits
- * the window, and a long table or summary scrolls inside its own region. Below `md` the regions stack in one
- * column no wider than the screen: a wide table scrolls inside the team region, not the page.
+ * top, the team in the centre and the summary in a fixed right rail. The left column is the bench,
+ * from `xl`, 12 rem wide, so the table still fits every column at 1280 px; below it the canvas
+ * would have no room, and editing is for wide screens (mobile is read-only). From `md` the page
+ * holds to the screen's height, so the canvas fits the window, and a long table, bench or summary
+ * scrolls inside its own region. Below `md` the regions stack in
+ * one column no wider than the screen: a wide table scrolls inside the team region, not the page.
  */
-export function ScenarioShell({ header, actions, team, summary }: Slots) {
+export function ScenarioShell({ header, actions, bench, team, summary }: Slots) {
   const t = useTranslations("ScenarioPage");
 
   return (
@@ -31,7 +35,17 @@ export function ScenarioShell({ header, actions, team, summary }: Slots) {
           <ThemeSwitch />
         </div>
       </header>
-      <div className="grid flex-1 grid-cols-[minmax(0,1fr)] md:min-h-0 md:grid-cols-[0_minmax(0,1fr)_330px] md:grid-rows-[minmax(0,1fr)]">
+      <div className="grid flex-1 grid-cols-[minmax(0,1fr)] md:min-h-0 md:grid-cols-[0_minmax(0,1fr)_330px] md:grid-rows-[minmax(0,1fr)] xl:grid-cols-[12rem_minmax(0,1fr)_330px]">
+        {/* Focusable, so the keyboard can scroll the list, whose people hold no control yet. */}
+        {bench && (
+          <aside
+            aria-label={t("bench")}
+            tabIndex={0}
+            className="hidden border-e p-4 focus-visible:-outline-offset-2 xl:col-start-1 xl:row-start-1 xl:block xl:overflow-y-auto"
+          >
+            {bench}
+          </aside>
+        )}
         {/* The dot grid stays lighter than any border (canvas brief, "Themes and contrast"). */}
         <main
           aria-label={t("team")}
@@ -72,6 +86,15 @@ export function ScenarioShellSkeleton() {
             <Skeleton className="h-6 w-64" />
           </div>
         </>
+      }
+      bench={
+        <div aria-hidden className="flex flex-col gap-2">
+          <Skeleton className="h-8 w-full" />
+          <Skeleton className="h-8 w-full" />
+          {Array.from({ length: 6 }, (_, card) => (
+            <Skeleton key={card} className="h-16 w-full" />
+          ))}
+        </div>
       }
       team={
         <div aria-hidden className="flex flex-col items-center gap-6 p-8">
