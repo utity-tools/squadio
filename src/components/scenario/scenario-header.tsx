@@ -1,7 +1,7 @@
 import { CheckIcon, ChevronRightIcon } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
 
-import type { OpenScenario } from "@/db/load-scenario";
+import type { OpenScenario } from "@/lib/scenarios/scenario-view";
 import { utcDay } from "@/lib/calendar/utc-day";
 
 export type ScenarioHeaderProps = Pick<OpenScenario, "project" | "scenario" | "span">;

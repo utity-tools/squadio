@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 
-import type { TeamAssignment } from "@/db/load-scenario";
+import type { TeamAssignment } from "@/lib/scenarios/scenario-view";
 import { layoutTeam } from "@/lib/layout/compact-layout";
 import { assignmentCards } from "@/lib/team-tree/cards";
 import { renderWithIntl } from "@/test/render";

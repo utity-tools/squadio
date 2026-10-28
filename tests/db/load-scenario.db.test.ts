@@ -21,6 +21,7 @@ import { type AccessContext, withOrganization } from "@/db/tenant";
 import { calendarWorkingHours } from "@/lib/calendar/calendar";
 import { calculateScenario } from "@/lib/costing/calculate-scenario";
 import { loadScenario } from "@/db/load-scenario";
+import { scenarioView } from "@/lib/scenarios/scenario-view";
 
 import { appPool } from "./support";
 
@@ -164,6 +165,7 @@ describe("loadScenario", () => {
     if (!full?.rateAccess) throw new Error("expected a result with rate access");
 
     expect(hoursOnly).toEqual({
+      editing: expect.anything(),
       project: full.project,
       scenario: full.scenario,
       team: full.team,
@@ -172,6 +174,33 @@ describe("loadScenario", () => {
       hours: full.result.hours,
       assignments: full.result.assignments,
     });
+  });
+
+  it("gives the page a basis that recalculates to the same view", async () => {
+    for (const context of [withRates, withoutRates]) {
+      const loaded = await loadScenario(app, context, DEMO_IDS.guideScenario);
+      if (!loaded) throw new Error("expected the guide scenario");
+      const { editing, ...view } = loaded;
+      expect(scenarioView(editing.basis, editing.team)).toEqual(view);
+      expect(editing.version).toBe(1);
+      expect(editing.team.map((member) => member.id)).toEqual(view.team.map((row) => row.id));
+    }
+  });
+
+  it("puts no money in the basis without rate access", async () => {
+    const loaded = await loadScenario(app, withoutRates, DEMO_IDS.guideScenario);
+    const { engine } = loaded?.editing.basis ?? {};
+    expect(engine).toMatchObject({ rateAccess: false, input: { rates: [], targetMargin: 0 } });
+    expect(engine?.input.costSettings).toMatchObject({
+      overheadBasisPoints: 0,
+      bufferBasisPoints: 0,
+    });
+    expect(engine?.input.scenario).toEqual({
+      pricing: { model: "timeAndMaterials" },
+      assignments: [],
+      extraCosts: [],
+    });
+    expect(Object.keys(engine ?? {}).toSorted()).toEqual(["input", "rateAccess"]);
   });
 
   it("names the project, the scenario and the team for everyone", async () => {
@@ -249,6 +278,7 @@ describe("loadScenario", () => {
     });
 
     expect(await loadScenario(app, context, scenarioId)).toEqual({
+      editing: expect.objectContaining({ team: [], version: 1 }),
       project: { name: "Support", client: "Client C", pricingModel: "time_and_materials" },
       scenario: { name: "Plan A", chosen: true },
       team: [],
