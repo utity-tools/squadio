@@ -21,7 +21,7 @@ import {
 } from "@/db/schema";
 import { type AccessContext, withOrganization } from "@/db/tenant";
 
-import { appPool } from "./support";
+import { SOME_DAY, appPool } from "./support";
 
 // The demo organization's seed: synthetic, idempotent and confined to its organization.
 
@@ -86,7 +86,7 @@ describe("seedDemo", () => {
   ])("gives %s its summary warnings", async (_, scenarioId, codes) => {
     await seedDemo(app);
 
-    const loaded = await loadScenario(app, demo, scenarioId);
+    const loaded = await loadScenario(app, demo, scenarioId, SOME_DAY);
 
     expect(loaded?.rateAccess && loaded.result.warnings.map((warning) => warning.code)).toEqual(
       codes,

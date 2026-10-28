@@ -16,9 +16,30 @@ const open = {
     { id: PM, name: "Project Manager" },
   ],
   people: [
-    { id: personId(1), name: "Person 1", categoryId: SENIOR, weeklyHours: 40, active: true },
-    { id: personId(3), name: "Person 3", categoryId: PM, weeklyHours: 40, active: true },
-    { id: personId(4), name: "Person 4", categoryId: SENIOR, weeklyHours: 40, active: false },
+    {
+      id: personId(1),
+      name: "Person 1",
+      categoryId: SENIOR,
+      weeklyHours: 40,
+      active: true,
+      occupancy: 0,
+    },
+    {
+      id: personId(3),
+      name: "Person 3",
+      categoryId: PM,
+      weeklyHours: 40,
+      active: true,
+      occupancy: 0,
+    },
+    {
+      id: personId(4),
+      name: "Person 4",
+      categoryId: SENIOR,
+      weeklyHours: 40,
+      active: false,
+      occupancy: 0,
+    },
   ],
   defaultWeeklyHours: 40,
 };

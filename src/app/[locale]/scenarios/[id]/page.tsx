@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
+import { connection } from "next/server";
 import { z } from "zod";
 
 import { HistoryControls } from "@/components/scenario/history-controls";
@@ -19,6 +20,7 @@ import { loadScenario } from "@/db/load-scenario";
 import { currentAccessContext } from "@/db/request-access";
 import { assertLocale, currentLocale } from "@/i18n/locale";
 import { redirect } from "@/i18n/navigation";
+import { madridToday } from "@/lib/bench/occupancy";
 
 import { saveScenario } from "./actions";
 
@@ -39,7 +41,10 @@ export default async function ScenarioPage({
   // access (ADR 0005, amendment of 2026-10-21).
   const query = await searchParams;
   const context = await currentAccessContext(query);
-  const scenario = await loadScenario(db, context, id);
+  // The bench says how busy people are today in Madrid (docs/domain.md): a value of the request,
+  // never of a prerender.
+  await connection();
+  const scenario = await loadScenario(db, context, id, madridToday(new Date()));
   if (!scenario) {
     // A template link, followed by a visitor who has a copy, leads to their copy of it.
     const href = await copyLink(db, context, id, query);

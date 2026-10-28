@@ -20,6 +20,9 @@ export const localOnly = (url: string, name: string) => {
   return url;
 };
 
+/** A day the demo's chosen scenarios cover, for loads whose test is not about occupancy. */
+export const SOME_DAY = "2026-10-28";
+
 /** A pool that connects as the app role (squadio_app), as the app does. */
 export const appPool = (max = 10) =>
   new Pool({

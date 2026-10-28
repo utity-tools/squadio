@@ -15,6 +15,7 @@ const open = {
     id,
     name: `Person ${id.slice(-1)}`,
     ...person,
+    occupancy: 0,
   })),
   defaultWeeklyHours: 40,
 };
