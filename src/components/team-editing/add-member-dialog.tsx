@@ -16,9 +16,8 @@ import {
 import { madridToday } from "@/lib/bench/occupancy";
 import type { Change } from "@/lib/scenarios/change";
 import { newMember } from "@/lib/scenarios/new-member";
-import type { StepRejection } from "@/lib/scenarios/store";
 
-import { FIELD, RejectionText } from "./fields";
+import { FIELD, useFieldProblem } from "./fields";
 
 export type AddMemberDialogProps = {
   /** The assignment the new one reports to; null for the top of the team. */
@@ -34,11 +33,15 @@ export type AddMemberDialogProps = {
 /** A choice's value: `role:<category id>` for an open role, `person:<person id>` for a person. */
 type Choice = `role:${string}` | `person:${string}`;
 
+const isChoice = (value: string): value is Choice =>
+  value.startsWith("role:") || value.startsWith("person:");
+
 /**
  * "Add to team…" (docs/domain.md, "Changes"): a person of the bench who is not on the team yet, or
  * an open role of a category, and a project role, which starts as the category's name. The rest
- * comes from the domain's defaults: 100% for the project's span, and the person's or Config's
- * weekly hours.
+ * comes from the domain's defaults: 100% for the project's span, or for the next full month in a
+ * team without assignments, and the person's or Config's weekly hours. The form checks itself, in
+ * the page's language, instead of the browser's validation.
  */
 export function AddMemberDialog({
   reportsTo,
@@ -57,7 +60,7 @@ export function AddMemberDialog({
   const [role, setRole] = useState("");
   /** Once the role is typed, choosing someone else no longer replaces it. */
   const [roleTyped, setRoleTyped] = useState(false);
-  const [refused, setRefused] = useState<StepRejection["reason"] | null>(null);
+  const problem = useFieldProblem<"who" | "role">();
 
   const onTeam = new Set(history.team.map((member) => member.personId));
   const categoryName = new Map(basis.categories.map(({ id, name }) => [id, name]));
@@ -65,7 +68,7 @@ export function AddMemberDialog({
 
   function choose(next: Choice | "") {
     setChoice(next);
-    setRefused(null);
+    problem.clear();
     if (roleTyped || next === "") return;
     const categoryId = next.startsWith("role:")
       ? next.slice("role:".length)
@@ -75,7 +78,14 @@ export function AddMemberDialog({
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (choice === "") return;
+    if (choice === "") {
+      problem.report("who", t("whoMissing"));
+      return;
+    }
+    if (role.trim() === "") {
+      problem.report("role", t("roleMissing"));
+      return;
+    }
     const filledBy = choice.startsWith("role:")
       ? { categoryId: choice.slice("role:".length) }
       : { personId: choice.slice("person:".length) };
@@ -93,8 +103,16 @@ export function AddMemberDialog({
       onClose(true);
       return;
     }
-    setRefused(store.getState().rejection?.reason ?? "invalid");
+    problem.refused("who", store.getState().rejection?.reason ?? "invalid");
   }
+
+  const percent = format.number(1, { style: "percent" });
+  const description =
+    history.team.length === 0
+      ? t("addFirst", { percent })
+      : managerName === null
+        ? t("addAtTop", { percent })
+        : t("addUnder", { manager: managerName, percent });
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose(false)}>
@@ -104,12 +122,10 @@ export function AddMemberDialog({
         // Focus goes where the focus manager or `onClose` sends it.
         onCloseAutoFocus={(event) => event.preventDefault()}
       >
-        <form onSubmit={submit} className="flex flex-col gap-4">
+        <form noValidate onSubmit={submit} className="flex flex-col gap-4">
           <DialogHeader>
             <DialogTitle>{t("addTitle")}</DialogTitle>
-            <DialogDescription>
-              {managerName === null ? t("addAtTop") : t("addUnder", { manager: managerName })}
-            </DialogDescription>
+            <DialogDescription>{description}</DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-1.5">
             <label htmlFor={whoId} className="text-sm font-medium">
@@ -117,10 +133,13 @@ export function AddMemberDialog({
             </label>
             <select
               id={whoId}
-              required
               value={choice}
-              onChange={(event) => choose(event.target.value as Choice | "")}
+              onChange={(event) => {
+                const { value } = event.target;
+                choose(isChoice(value) ? value : "");
+              }}
               className={FIELD}
+              {...problem.fieldProps("who")}
             >
               <option value="" disabled>
                 {t("choose")}
@@ -141,6 +160,8 @@ export function AddMemberDialog({
                       <option key={person.id} value={`person:${person.id}`}>
                         {t("personOption", {
                           name: person.name,
+                          // Screen readers often skip the group's label: the option says it.
+                          category: category.name,
                           percent: format.number(person.occupancy / 100, { style: "percent" }),
                         })}
                       </option>
@@ -156,19 +177,18 @@ export function AddMemberDialog({
             </label>
             <input
               id={roleId}
-              required
               maxLength={100}
-              pattern=".*\S.*"
               value={role}
               onChange={(event) => {
                 setRole(event.target.value);
                 setRoleTyped(true);
-                setRefused(null);
+                problem.clear();
               }}
               className={FIELD}
+              {...problem.fieldProps("role")}
             />
           </div>
-          <RejectionText reason={refused} />
+          {problem.alert}
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onClose(false)}>
               {t("cancel")}

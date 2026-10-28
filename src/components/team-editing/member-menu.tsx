@@ -19,8 +19,10 @@ export type MemberMenuProps = {
   editing: TeamEditing;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** The node or row the menu belongs to: it gets focus back when the menu closes untouched. */
+  /** What had focus when the menu opened, its node, row or cell: it gets focus back on Escape. */
   owner: () => HTMLElement | null;
+  /** Called when the "…" button is pressed, so the node it belongs to is the one selected. */
+  onTriggerPress?: () => void;
   /**
    * `button`: a visible "…" for the pointer, out of the tab order, since Enter on the node opens
    * the menu. `anchor`: only a place for the menu to open from.
@@ -41,9 +43,13 @@ export function MemberMenu({
   owner,
   trigger,
   className,
+  onTriggerPress,
 }: MemberMenuProps) {
   const t = useTranslations("TeamEditing");
-  /** Set when an item takes over focus: a dialog, or the focus manager after a remove. */
+  /**
+   * Set when something else decides where focus goes: an item (a dialog, or the focus manager
+   * after a remove), or a click outside the menu, which lands where it was made.
+   */
   const handedOver = useRef(false);
   const name = editing.nameOf(id);
 
@@ -55,6 +61,7 @@ export function MemberMenu({
             type="button"
             tabIndex={-1}
             aria-label={t("actions", { name })}
+            onPointerDown={onTriggerPress}
             className={cn(
               "inline-flex size-6 items-center justify-center rounded-md border bg-background text-muted-foreground shadow-xs hover:bg-muted hover:text-foreground",
               className,
@@ -72,6 +79,9 @@ export function MemberMenu({
         // Radix names the menu after its trigger, which the anchor does not have.
         aria-labelledby={undefined}
         align="start"
+        onInteractOutside={() => {
+          handedOver.current = true;
+        }}
         onCloseAutoFocus={(event) => {
           event.preventDefault();
           if (!handedOver.current) owner()?.focus();
@@ -87,16 +97,19 @@ export function MemberMenu({
           <UserPlusIcon aria-hidden />
           {t("addReport")}
         </DropdownMenuItem>
-        <DropdownMenuItem
-          disabled={!editing.canMove(id)}
-          onSelect={() => {
-            handedOver.current = true;
-            editing.move(id, owner());
-          }}
-        >
-          <ArrowRightLeftIcon aria-hidden />
-          {t("moveTo")}
-        </DropdownMenuItem>
+        {/* Left out when there is nowhere to go: a disabled item is skipped by the arrow keys,
+            so it would only puzzle the keyboard. Worked out only while the menu is open. */}
+        {open && editing.canMove(id) && (
+          <DropdownMenuItem
+            onSelect={() => {
+              handedOver.current = true;
+              editing.move(id, owner());
+            }}
+          >
+            <ArrowRightLeftIcon aria-hidden />
+            {t("moveTo")}
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem
           variant="destructive"
           onSelect={() => {

@@ -1,4 +1,4 @@
-import { act, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { NextIntlClientProvider } from "next-intl";
 import { describe, expect, it, vi } from "vitest";
@@ -37,7 +37,14 @@ function renderTeam({
   wide = true,
   chosen = false,
   members = team,
-}: { query?: string; wide?: boolean; chosen?: boolean; members?: Member[] } = {}) {
+  save = never,
+}: {
+  query?: string;
+  wide?: boolean;
+  chosen?: boolean;
+  members?: Member[];
+  save?: () => Promise<SaveOutcome>;
+} = {}) {
   stubScreen({ wide });
   stubHistory(`/scenarios/plan${query}`);
   const stores: ScenarioStore[] = [];
@@ -47,7 +54,7 @@ function renderTeam({
       <ScenarioEditor
         scenarioId={seatId(99)}
         editing={{ basis, team: members, version: 1 }}
-        save={never}
+        save={save}
       >
         <HistoryControls />
         <Team drawing={drawing} />
@@ -83,7 +90,7 @@ describe("the team's menus", () => {
       within(menu())
         .getAllByRole("menuitem")
         .map((item) => item.textContent),
-    ).toEqual(["Añadir debajo…", "Mover a…", "Quitar del equipo"]);
+    ).toEqual(["Añadir a su cargo…", "Mover a…", "Quitar del equipo"]);
 
     await user.keyboard("{Escape}");
     expect(screen.queryByRole("menu")).not.toBeInTheDocument();
@@ -110,7 +117,7 @@ describe("the team's menus", () => {
     node("Role 4").focus();
 
     await user.keyboard("{Enter}");
-    await user.click(within(menu()).getByRole("menuitem", { name: "Añadir debajo…" }));
+    await user.click(within(menu()).getByRole("menuitem", { name: "Añadir a su cargo…" }));
     const dialog = screen.getByRole("dialog", { name: "Añadir al equipo" });
     expect(dialog).toHaveAccessibleDescription(/Dependerá de Role 4 \(vacante\)/);
     const who = within(dialog).getByRole("combobox", { name: "Persona o vacante" });
@@ -123,7 +130,7 @@ describe("the team's menus", () => {
       "Elige una persona o una vacante",
       "Vacante de Senior Developer",
       "Vacante de Project Manager",
-      expect.stringMatching(/^Person 2 · ocupación hoy 0\s%$/),
+      expect.stringMatching(/^Person 2, Senior Developer, ocupación hoy: 0\s%$/),
     ]);
 
     await user.selectOptions(who, `person:${personId(2)}`);
@@ -156,6 +163,13 @@ describe("the team's menus", () => {
       "Vacante de Project Manager",
     );
     expect(role).toHaveValue("QA");
+
+    // The form checks itself, in the page's language, and ties the problem to its field.
+    await user.clear(role);
+    await user.click(within(dialog).getByRole("button", { name: "Añadir" }));
+    expect(within(dialog).getByRole("alert")).toHaveTextContent("Escribe el rol en el proyecto.");
+    expect(role).toHaveAttribute("aria-invalid", "true");
+    expect(role).toHaveAccessibleDescription("Escribe el rol en el proyecto.");
   });
 
   it("gives focus back to the node when a dialog is cancelled", async () => {
@@ -183,7 +197,7 @@ describe("the team's menus", () => {
       within(reportsTo)
         .getAllByRole("option")
         .map((option) => option.textContent),
-    ).toEqual(["Nadie: arriba del todo", "Role 2 (Person 1)", "Role 3 (vacante)"]);
+    ).toEqual(["Nadie (encabeza el equipo)", "Role 2 (Person 1)", "Role 3 (vacante)"]);
 
     await user.selectOptions(reportsTo, "Role 2 (Person 1)");
     await user.click(within(dialog).getByRole("button", { name: "Mover" }));
@@ -220,6 +234,60 @@ describe("the team's menus", () => {
     expect(node("Role 1")).toHaveAttribute("aria-current", "true");
   });
 
+  it("follows the selection and the focus to the copy's ids after the first save", async () => {
+    const copyOf = (id: string) => id.replace("-8000-", "-9000-");
+    const ids = [...team.map((member) => member.id), seatId(99)];
+    const save = () =>
+      Promise.resolve<SaveOutcome>({
+        ok: true,
+        version: 2,
+        scenarioId: copyOf(seatId(99)),
+        renamed: Object.fromEntries(ids.map((id) => [id, copyOf(id)])),
+      });
+    const { user, redraw, store } = renderTeam({ save });
+    node("Role 4").focus();
+    await user.keyboard("{Enter}");
+    await user.click(within(menu()).getByRole("menuitem", { name: "Quitar del equipo" }));
+
+    await waitFor(() => expect(store.getState().scenarioId).toBe(copyOf(seatId(99))), {
+      timeout: 2_000,
+    });
+    redraw();
+
+    await waitFor(() => expect(node("Role 1")).toHaveFocus());
+    expect(node("Role 1")).toHaveAttribute("data-assignment", copyOf(seatId(1)));
+    expect(node("Role 1")).toHaveAttribute("aria-current", "true");
+  });
+
+  it("leaves focus where a click outside an open menu puts it", async () => {
+    const { user } = renderTeam();
+    node("Role 2").focus();
+    await user.keyboard("{Enter}");
+
+    // What a click does, short of the mouse events d3's zoom cannot take in jsdom.
+    const other = node("Role 3");
+    fireEvent.pointerDown(other);
+    other.focus();
+    fireEvent.click(other);
+    await waitFor(() => expect(screen.queryByRole("menu")).not.toBeInTheDocument());
+
+    expect(node("Role 3")).toHaveFocus();
+  });
+
+  it("gives focus back to the cell a row's menu was opened from", async () => {
+    const { user } = renderTeam({ query: "?view=table" });
+    const row = screen
+      .getAllByRole("row")
+      .find((candidate) => candidate.dataset.row === seatId(2))!;
+    const cell = within(row).getAllByRole("gridcell")[2]!;
+    cell.focus();
+
+    await user.keyboard("{Enter}");
+    expect(menu()).toBeInTheDocument();
+    await user.keyboard("{Escape}");
+    expect(cell).toHaveFocus();
+  });
+
   it("opens a row's actions with Enter in the table", async () => {
     const { user } = renderTeam({ query: "?view=table" });
     const row = screen
@@ -237,6 +305,8 @@ describe("the team's menus", () => {
     const { user, store } = renderTeam({ members: [] });
     await user.click(screen.getByRole("button", { name: "Añadir al equipo…" }));
     const dialog = screen.getByRole("dialog", { name: "Añadir al equipo" });
+    // A team without assignments starts with the next full month (docs/domain.md, "Changes").
+    expect(dialog).toHaveAccessibleDescription(/durante el mes que viene/);
     await user.selectOptions(
       within(dialog).getByRole("combobox", { name: "Persona o vacante" }),
       "Vacante de Project Manager",
@@ -261,7 +331,12 @@ describe("the team's menus", () => {
     expect(screen.queryByRole("button", { name: "Añadir al equipo…" })).not.toBeInTheDocument();
     chosen.unmount();
 
-    renderTeam({ query: "?view=table", wide: false });
+    const narrow = renderTeam({ query: "?view=table", wide: false });
+    expect(screen.queryByRole("button", { name: "Añadir al equipo…" })).not.toBeInTheDocument();
+    narrow.unmount();
+
+    renderTeam({ members: [], wide: false });
+    expect(screen.getByText("Sus asignaciones aparecerán aquí.")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Añadir al equipo…" })).not.toBeInTheDocument();
   });
 });

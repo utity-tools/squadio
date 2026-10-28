@@ -14,9 +14,8 @@ import {
 } from "@/components/ui/dialog";
 import type { Change } from "@/lib/scenarios/change";
 import { moveTargets } from "@/lib/scenarios/move-targets";
-import type { StepRejection } from "@/lib/scenarios/store";
 
-import { FIELD, RejectionText } from "./fields";
+import { FIELD, useFieldProblem } from "./fields";
 
 export type MoveMemberDialogProps = {
   id: string;
@@ -44,7 +43,7 @@ export function MoveMemberDialog({
   const fieldId = useId();
   const { managers, root } = moveTargets(store.getState().history.team, id);
   const [reportsTo, setReportsTo] = useState(root ? TOP : (managers[0] ?? TOP));
-  const [refused, setRefused] = useState<StepRejection["reason"] | null>(null);
+  const problem = useFieldProblem<"reportsTo">();
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -52,7 +51,7 @@ export function MoveMemberDialog({
       onClose(true);
       return;
     }
-    setRefused(store.getState().rejection?.reason ?? "invalid");
+    problem.refused("reportsTo", store.getState().rejection?.reason ?? "invalid");
   }
 
   return (
@@ -76,9 +75,10 @@ export function MoveMemberDialog({
               value={reportsTo}
               onChange={(event) => {
                 setReportsTo(event.target.value);
-                setRefused(null);
+                problem.clear();
               }}
               className={FIELD}
+              {...problem.fieldProps("reportsTo")}
             >
               {root && <option value={TOP}>{t("nobody")}</option>}
               {managers.map((manager) => (
@@ -88,7 +88,7 @@ export function MoveMemberDialog({
               ))}
             </select>
           </div>
-          <RejectionText reason={refused} />
+          {problem.alert}
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onClose(false)}>
               {t("cancel")}

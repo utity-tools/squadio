@@ -62,6 +62,31 @@ describe("ScenarioAnnouncer", () => {
     expect(region.textContent).toMatch(/^Rehecho\. Margen neto: /);
   });
 
+  it("says what an add, a remove or a move did, before the summary", () => {
+    const { store, region } = renderAnnouncer();
+    act(() => {
+      store.getState().dispatch({ type: "remove", id: developer.id });
+    });
+    expect(region.textContent).toMatch(/^Role 3 \(vacante\) sale del equipo\. Margen neto: /);
+
+    act(() => {
+      store.getState().dispatch({ type: "move", id: lead.id, reportsTo: null });
+    });
+    expect(region.textContent).toMatch(/^Role 2 \(Person 1\) ya no depende de nadie\. /);
+
+    act(() => {
+      store.getState().dispatch({ type: "move", id: lead.id, reportsTo: manager.id });
+    });
+    expect(region.textContent).toMatch(
+      /^Role 2 \(Person 1\) depende ahora de Role 1 \(Person 3\)\. /,
+    );
+
+    act(() => {
+      store.getState().dispatch({ type: "add", member: { ...developer, id: seatId(9) } });
+    });
+    expect(region.textContent).toMatch(/^Role 3 \(vacante\) entra en el equipo\. /);
+  });
+
   it("says nothing when a save renames the team's ids", () => {
     const { store, region } = renderAnnouncer();
     act(() => {

@@ -39,6 +39,9 @@ function renderControls({ apple = false } = {}) {
           aria-controls="none"
           tabIndex={0}
         />
+        <div role="dialog" aria-label="Mover">
+          <button type="button">Mover</button>
+        </div>
         <StoreSpy
           onStore={(store) => {
             stores.push(store);
@@ -112,7 +115,7 @@ describe("HistoryControls", () => {
     expect(undoButton()).toHaveAttribute("aria-keyshortcuts", "Meta+Z");
   });
 
-  it("leaves Ctrl+Z to a text field and to a composing input method", () => {
+  it("leaves Ctrl+Z to a text field, a dialog and a composing input method", () => {
     const store = renderControls();
     act(() => {
       store.getState().dispatch(halve);
@@ -122,6 +125,8 @@ describe("HistoryControls", () => {
       key: "z",
       ctrlKey: true,
     });
+    // A dialog's form would act on a team that changed under it.
+    fireEvent.keyDown(screen.getByRole("button", { name: "Mover" }), { key: "z", ctrlKey: true });
     fireEvent.keyDown(document.body, { key: "z", ctrlKey: true, isComposing: true });
     expect(allocation(store)).toBe(50);
   });

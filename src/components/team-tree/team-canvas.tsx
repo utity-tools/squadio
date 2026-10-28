@@ -201,6 +201,8 @@ function Canvas({
 
   function onKeyDown(event: KeyboardEvent<HTMLDivElement>) {
     if (event.altKey || event.ctrlKey || event.metaKey) return;
+    // A node's menu renders elsewhere, but its keys still bubble here through React.
+    if (!(event.target instanceof HTMLElement) || !canvas?.contains(event.target)) return;
     const zoomKey = ({ "+": "in", "=": "in", "-": "out", "0": "fit" } as const)[event.key];
     if (zoomKey) {
       event.preventDefault();
@@ -378,6 +380,8 @@ function AssignmentNode({ data: { card, selected, onPath, tabbable } }: NodeProp
             data-on-path={onPath ? "" : undefined}
             tabIndex={tabbable ? 0 : -1}
             aria-current={selected || undefined}
+            aria-haspopup={editing ? "menu" : undefined}
+            aria-keyshortcuts={editing ? "Enter" : undefined}
             onFocus={() => select(card.id)}
             style={{ width: NODE_WIDTH, height: NODE_HEIGHT }}
             className={cn(
@@ -446,10 +450,12 @@ function AssignmentNode({ data: { card, selected, onPath, tabbable } }: NodeProp
           open={menuFor === card.id}
           onOpenChange={(open) => setMenuFor(open ? card.id : null)}
           owner={() =>
-            document.querySelector<HTMLElement>(`[data-assignment="${CSS.escape(card.id)}"]`)
+            tooltips?.querySelector<HTMLElement>(`[data-assignment="${CSS.escape(card.id)}"]`) ??
+            null
           }
           trigger="button"
-          className="absolute top-2 right-2"
+          onTriggerPress={() => select(card.id)}
+          className="absolute end-2 top-2"
         />
       )}
     </>

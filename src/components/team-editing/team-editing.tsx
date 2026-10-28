@@ -125,7 +125,7 @@ export function TeamEditingProvider({ children }: { children: ReactNode }) {
   const members = new Map(view.team.map((member) => [member.id, member]));
   const nameOf = (id: string) => {
     const member = members.get(id);
-    if (!member) return id;
+    if (!member) return t("someAssignment");
     return t("member", {
       role: member.projectRole || member.category.name,
       person: member.person?.name ?? t("openRole"),
