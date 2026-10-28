@@ -343,6 +343,8 @@ describe("saving", () => {
 
     const state = store.getState();
     expect(state.scenarioId).toBe(copyOf(seatId(99)));
+    // What the page holds under a template id, such as a selection, finds the copy's id here.
+    expect(state.renamed[developer.id]).toBe(copyOf(developer.id));
     expect(state.version).toBe(2);
     expect(state.history.team.map((member) => member.id)).toEqual(
       team.map((member) => copyOf(member.id)),
