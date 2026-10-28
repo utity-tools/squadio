@@ -1,4 +1,4 @@
-import type { LoadedScenario } from "@/db/load-scenario";
+import type { LoadedScenario } from "@/lib/scenarios/scenario-view";
 import { ledger, teamSummary } from "@/lib/summary/summary";
 
 import { SummaryHours } from "@/components/summary/summary-hours";

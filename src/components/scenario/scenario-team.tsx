@@ -2,7 +2,7 @@ import { TriangleAlertIcon, UsersIcon } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
 import { Suspense } from "react";
 
-import type { TeamAssignment } from "@/db/load-scenario";
+import type { TeamAssignment } from "@/lib/scenarios/scenario-view";
 import { type LayoutError, layoutTeam } from "@/lib/layout/compact-layout";
 import type { ProjectSpan } from "@/lib/scenarios/project-span";
 import { type AssignmentCard, assignmentCards } from "@/lib/team-tree/cards";

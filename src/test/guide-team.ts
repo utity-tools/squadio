@@ -1,4 +1,4 @@
-import type { TeamAssignment } from "@/db/load-scenario";
+import type { TeamAssignment } from "@/lib/scenarios/scenario-view";
 
 // Test data for the views of the team: synthetic, like every fixture.
 
