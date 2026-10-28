@@ -28,15 +28,15 @@ There is one route with two views of the same data, plus the summary.
 
 ### 1. Header
 
-| Element         | Content                                                                           |
-| --------------- | --------------------------------------------------------------------------------- |
-| Breadcrumb      | Organization › Project (client) › Scenario; Organization from v0.5 (no table yet) |
-| Scenario name   | With a "Chosen" badge when it is the chosen scenario (rates frozen, rule b)       |
-| Pricing model   | "Fixed price" or "Time and materials"                                             |
-| Project span    | First assignment start – last assignment end, and the working days in between     |
-| View switch     | "Tree" / "Table", a segmented control (`radiogroup`); the choice is in the URL    |
-| Theme           | System, light, dark                                                               |
-| Reserved (v0.2) | Undo, redo and a save state indicator, right-aligned; absent in v0.1, not greyed  |
+| Element          | Content                                                                                      |
+| ---------------- | -------------------------------------------------------------------------------------------- |
+| Breadcrumb       | Organization › Project (client) › Scenario; Organization from v0.5 (no table yet)            |
+| Scenario name    | With a "Chosen" badge when it is the chosen scenario (rates frozen, rule b)                  |
+| Pricing model    | "Fixed price" or "Time and materials"                                                        |
+| Project span     | First assignment start – last assignment end, and the working days in between                |
+| View switch      | "Tree" / "Table", a segmented control (`radiogroup`); the choice is in the URL               |
+| Theme            | System, light, dark                                                                          |
+| Save and history | Save state, undo and redo, right-aligned before the theme (v0.2); absent in v0.1, not greyed |
 
 ### 2. Tree view (the canvas)
 
@@ -215,17 +215,17 @@ not conveyed by colour.
 
 v0.1 must leave room for these without moving anything:
 
-| v0.2 feature                  | What v0.1 reserves                                                                                                                         |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Bench** (left panel)        | The page grid has a left column; in v0.1 it is collapsed to zero, not absent from the design. The summary is never on the left             |
-| **Drag from bench to canvas** | Nodes have a drop-target highlight style (designed now, unused); the canvas has an empty-canvas drop zone (the empty state)                |
-| **Move inside the tree**      | Node cards have a grip area at the left edge and a "…" menu button slot top-right, both hidden in v0.1                                     |
-| **Keyboard parity**           | "Add to team…" / "Move to…" / "Remove" live in the node's menu; Enter on a focused node opens it. The table rows get the same menu         |
-| **Undo / redo**               | Header slot right-aligned, with ⌘Z / ⇧⌘Z. The live region that announces summary changes exists in v0.1 (silent, the data does not change) |
-| **Live recalculation**        | Summary figures animate their change with Motion (count, not bounce); reduced motion swaps instantly                                       |
-| **Optimistic locking**        | A save state indicator in the header ("Saved", "Saving…", "Changed elsewhere — reload")                                                    |
-| **Choose scenario**           | A primary action in the header, rate access only                                                                                           |
-| **Comparison (v0.3)**         | The summary is a self-contained component that can be placed two or three times side by side                                               |
+| v0.2 feature                  | What v0.1 reserves                                                                                                                                                                                                       |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Bench** (left panel)        | The page grid has a left column; in v0.1 it is collapsed to zero, not absent from the design. The summary is never on the left                                                                                           |
+| **Drag from bench to canvas** | Nodes have a drop-target highlight style (designed now, unused); the canvas has an empty-canvas drop zone (the empty state)                                                                                              |
+| **Move inside the tree**      | Node cards have a grip area at the left edge and a "…" menu button slot top-right, both hidden in v0.1                                                                                                                   |
+| **Keyboard parity**           | "Add to team…" / "Move to…" / "Remove" live in the node's menu; Enter on a focused node opens it. The table rows get the same menu                                                                                       |
+| **Undo / redo**               | Header slot right-aligned, with ⌘Z / ⇧⌘Z (Ctrl+Z, Ctrl+Shift+Z or Ctrl+Y elsewhere). A live region says the new net margin (the effective hours without rate access) after each step, and why a refused step was refused |
+| **Live recalculation**        | The net margin and the key figures animate their change with Motion (count, not bounce); other lines and reduced motion swap instantly                                                                                   |
+| **Optimistic locking**        | A save state indicator in the header ("Saved", "Saving…", "Changed elsewhere — reload")                                                                                                                                  |
+| **Choose scenario**           | A primary action in the header, rate access only                                                                                                                                                                         |
+| **Comparison (v0.3)**         | The summary is a self-contained component that can be placed two or three times side by side                                                                                                                             |
 
 ## Open questions
 
