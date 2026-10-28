@@ -19,10 +19,13 @@ fi
 
 pnpm exec next build
 
-# Call next directly: through pnpm, next-server outlives the script.
+# Call next directly: through pnpm, next-server outlives the script. `next start` still runs the
+# server as a child, so it starts in a process group of its own, which the trap stops whole.
+set -m
 node_modules/.bin/next start --port "$port" &
 server=$!
-trap 'kill "$server" 2>/dev/null || true' EXIT
+set +m
+trap 'kill -- "-$server" 2>/dev/null || true' EXIT
 
 for _ in $(seq 60); do
   curl --silent --output /dev/null "http://localhost:${port}" && break
