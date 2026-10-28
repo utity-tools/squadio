@@ -16,6 +16,7 @@ import type {
 } from "@/lib/summary/summary";
 import { cn } from "@/lib/utils";
 
+import { CountUp } from "./count-up";
 import { Figure, useSummaryFormat } from "./summary-format";
 
 export type SummaryLedgerProps = {
@@ -51,10 +52,12 @@ export function SummaryLedger({ ledger, team }: SummaryLedgerProps) {
           {ledger.complete ? (
             <>
               <p className="flex flex-wrap items-baseline gap-x-3 text-3xl font-semibold tabular-nums">
-                <span>{euros(ledger.headline.netMarginCents)}</span>
+                <span>
+                  <CountUp value={ledger.headline.netMarginCents} format={euros} />
+                </span>
                 {ledger.headline.netMarginBasisPoints !== null && (
                   <span className="text-xl text-muted-foreground">
-                    {percent(ledger.headline.netMarginBasisPoints)}
+                    <CountUp value={ledger.headline.netMarginBasisPoints} format={percent} />
                   </span>
                 )}
               </p>
@@ -76,20 +79,31 @@ export function SummaryLedger({ ledger, team }: SummaryLedgerProps) {
       <Section title={t("figures.title")}>
         <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
           <Figure term={t("figures.revenue")}>
-            {ledger.complete ? euros(ledger.figures.revenueCents) : <Unavailable />}
+            {ledger.complete ? (
+              <CountUp value={ledger.figures.revenueCents} format={euros} />
+            ) : (
+              <Unavailable />
+            )}
           </Figure>
           <Figure term={t("figures.totalCost")}>
-            {ledger.complete ? euros(ledger.figures.totalCostCents) : <Unavailable />}
+            {ledger.complete ? (
+              <CountUp value={ledger.figures.totalCostCents} format={euros} />
+            ) : (
+              <Unavailable />
+            )}
           </Figure>
           <Figure term={t("figures.effectiveRate")}>
             {ledger.complete && ledger.figures.effectiveRateCents !== null ? (
-              rate(ledger.figures.effectiveRateCents)
+              <CountUp value={ledger.figures.effectiveRateCents} format={rate} />
             ) : (
               <Unavailable />
             )}
           </Figure>
           <Figure term={t("figures.effectiveHours")}>
-            {hours(ledger.complete ? ledger.figures.effectiveHours : ledger.effectiveHours)}
+            <CountUp
+              value={ledger.complete ? ledger.figures.effectiveHours : ledger.effectiveHours}
+              format={hours}
+            />
           </Figure>
         </dl>
         <p className="mt-3 text-sm text-muted-foreground">
