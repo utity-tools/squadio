@@ -59,6 +59,23 @@ pnpm exec vercel ls --prod
 pnpm exec vercel promote <deployment-url>
 ```
 
+## Cleaning up visitor copies
+
+[`clean-up.yml`](../../.github/workflows/clean-up.yml) runs daily at 04:17 UTC in the `production`
+environment. It checks `DATABASE_OWNER_URL` with `pnpm db:check-target owner`, then
+`pnpm db:clean-up` deletes every visitor's copy of the demo with no save in 30 days, rows and claim
+([ADR 0011](../adr/0011-saving-edits-and-the-visitor-copy.md), "Clean-up"). Its log says how many it
+deleted. It needs no setup beyond the deploy's secrets; to run it by hand, **Clean up → Run
+workflow**, branch `main`.
+
+Each copy goes in its own transaction. A copy whose claim stays locked for 10 seconds is skipped:
+the run deletes the rest, names the skipped organizations in its log and fails, and the next day's
+run tries them again. The job stops after 10 minutes, enough for thousands of copies; a larger
+backlog is finished over the following days, or by running it again by hand.
+
+It runs the code on `main`, while production may still be on the previous deploy. A run that
+meets a deploy at 04:17 UTC can make one save or one day's run fail, never a half-deleted copy.
+
 ## One-time setup
 
 Done once, by the owner, in this order. Never paste connection strings, passwords or tokens into a
