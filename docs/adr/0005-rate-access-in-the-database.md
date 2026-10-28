@@ -103,3 +103,13 @@ no rows instead of salaries.
   `src/db/access.ts` now names that module. `?access=none` still only takes rate access away.
   Editing a team needs no rate access; choosing a scenario still does. The decision itself is
   unchanged.
+- **2026-10-28:** The scenario page recalculates cost and margin in the browser on every change
+  (v0.2, slice 3), so the page now receives the engine's inputs, not only its result. With rate
+  access these are each category's fully loaded annual cost or manual cost per hour, its sell rate,
+  the project's price and the cost settings: the engine's inputs, never the stored salaries and
+  social security they come from (`ScenarioBasis` in `src/lib/scenarios/scenario-view.ts`). They
+  cover every category of the organization and every small category (rule j), not only those the
+  team uses, so that adding someone of another category recalculates and warns. Without
+  rate access the page receives the hours inputs only, which hold no money, as the loader's DB test
+  checks. The decision itself is unchanged: what a user without rate access can reach is still
+  decided by the database.

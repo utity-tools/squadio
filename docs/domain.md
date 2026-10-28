@@ -302,6 +302,16 @@ An assignment date outside the calendar's years stays a validation error on that
 [Formulas](#formulas)): neither the reference year nor the project span turns it into another kind
 of error.
 
+To edit the scenario, the loader also returns its **basis**: everything the page needs besides the
+team to show it and recalculate it on every change, with the same pure function the loader runs
+(`scenarioView` in `src/lib/scenarios`). It holds the open part's project and scenario, every
+category and person of the organization (name, category, weekly hours and whether active, which
+the change model checks against), Config's default weekly hours and the engine's inputs without
+assignments. With rate access these are the engine's inputs, never the stored salaries, plus every
+small category of the organization; without it, only the hours inputs, which hold no money
+([ADR 0005](adr/0005-rate-access-in-the-database.md)). The team, as the change model's
+assignments, and the scenario's version, the base of the next save, come with it.
+
 ## Editing a scenario
 
 v0.2 lets people build a scenario's team. Every edit is a change, made the same way by dragging,
