@@ -98,6 +98,11 @@ export type ScenarioState = {
   roster: Roster;
   history: History;
   version: number;
+  /**
+   * The copy's id for each template id, once the first save made the copy; empty before. What the
+   * page holds outside the store, such as the selected assignment, follows it to the copy.
+   */
+  renamed: Readonly<Record<string, string>>;
   /** The last step refused, for the page to say why; cleared by the next step that works. */
   rejection: StepRejection | null;
   saveStatus: SaveStatus;
@@ -155,6 +160,7 @@ export function createScenarioStore({ scenarioId, basis, team, version, save }: 
         history: rename ? renameHistory(saved, rename) : saved,
         basis: next,
         roster: rename ? rosterOf(next) : get().roster,
+        renamed: outcome.renamed ? { ...get().renamed, ...outcome.renamed } : get().renamed,
         scenarioId: outcome.scenarioId,
         version: outcome.version,
         saveStatus: saved.pending.length > 0 ? "waiting" : "saved",
@@ -189,6 +195,7 @@ export function createScenarioStore({ scenarioId, basis, team, version, save }: 
       roster: rosterOf(basis),
       history: createHistory(team),
       version,
+      renamed: {},
       rejection: null,
       saveStatus: "saved",
       dispatch: (change) => {
