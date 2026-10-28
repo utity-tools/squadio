@@ -126,6 +126,29 @@ test("an assignment is moved from the table with the keyboard", async ({ page })
   await expect(row(page, "Frontend developer")).toHaveAttribute("aria-level", "3");
 });
 
+test("an assignment is edited with the keyboard", async ({ page }) => {
+  await tabIntoView(page, "tree");
+  await page.keyboard.press("ArrowDown");
+  await expect(node(page, "Tech lead")).toBeFocused();
+  await openMenu(page);
+  await expect(menu(page).getByRole("menuitem", { name: "Editar…" })).toBeFocused();
+  await page.keyboard.press("Enter");
+
+  await expect(dialog(page)).toHaveAccessibleName(/^Editar Tech lead/);
+  const allocation = dialog(page).getByRole("textbox", { name: "Dedicación (%)" });
+  // The dialog opens on its first field; allocation is two tab stops on.
+  await page.keyboard.press("Tab");
+  await page.keyboard.press("Tab");
+  await expect(allocation).toBeFocused();
+  await page.keyboard.press("ControlOrMeta+a");
+  await page.keyboard.type("50");
+  await page.keyboard.press("Enter");
+
+  await expect(dialog(page)).toHaveCount(0);
+  await expect(node(page, "Tech lead")).toBeFocused();
+  await expect(node(page, "Tech lead")).toContainText(/50\s%/);
+});
+
 for (const colorScheme of ["light", "dark"] as const) {
   test(`the menu and the dialogs have no accessibility violations in the ${colorScheme} theme`, async ({
     page,
@@ -146,6 +169,21 @@ for (const colorScheme of ["light", "dark"] as const) {
     await expect(menu(page).getByRole("menuitem", { name: "Mover a…" })).toBeFocused();
     await page.keyboard.press("Enter");
     await expect(dialog(page)).toHaveAccessibleName(/^Mover Tech lead/);
+    await expectNoAxeViolations(page);
+    await page.keyboard.press("Escape");
+    await expect(node(page, "Tech lead")).toBeFocused();
+
+    await openMenu(page);
+    await page.keyboard.press("Home");
+    await expect(menu(page).getByRole("menuitem", { name: "Editar…" })).toBeFocused();
+    await page.keyboard.press("Enter");
+    await expect(dialog(page)).toHaveAccessibleName(/^Editar Tech lead/);
+    await expectNoAxeViolations(page);
+    // With an error shown: the alert and the invalid field's border.
+    await page.keyboard.press("ControlOrMeta+a");
+    await page.keyboard.press("Backspace");
+    await page.keyboard.press("Enter");
+    await expect(dialog(page).getByRole("alert")).toHaveText("Escribe el rol en el proyecto.");
     await expectNoAxeViolations(page);
     await page.keyboard.press("Escape");
     await expect(node(page, "Tech lead")).toBeFocused();
