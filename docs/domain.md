@@ -346,8 +346,9 @@ Dragging takes the same steps as the menus, and drops only where they would act
 (`dropAction` in `src/lib/scenarios`). A person dragged from the bench onto an assignment is added
 as its report, and onto the canvas at the top of the team, with the defaults above: the drop opens
 no dialog, and "Edit…" or undo change it after. A person already on the team cannot be dropped. An
-assignment dragged onto another one moves under it, and onto the canvas to the top, only where
-"Move to…" offers it; anywhere else the drop does nothing.
+open role dragged from the bench is added the same way, with Config's weekly hours, as often as it
+is dropped. An assignment dragged onto another one moves under it, and onto the canvas to the top,
+only where "Move to…" offers it; anywhere else the drop does nothing.
 
 A change is checked against the team it applies to, and a rejected change never reaches the history
 (ADR 0008, point 5). It is rejected, with a reason the UI can show, when:
