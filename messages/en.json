@@ -41,6 +41,17 @@
     "undoTitle": "Undo ({shortcut})",
     "redoTitle": "Redo ({shortcut})"
   },
+  "SaveStatus": {
+    "saving": "Saving…",
+    "saved": "Saved",
+    "failed": "Could not save",
+    "retry": "Retry",
+    "conflict": "The scenario was saved elsewhere",
+    "limit": "No more copies of the demo can be saved today",
+    "gone": "Your copy no longer exists",
+    "refused": "The changes could not be saved",
+    "reload": "Reload"
+  },
   "ScenarioError": {
     "title": "We couldn't open this scenario",
     "description": "Something went wrong while reading it. Try again in a moment.",

@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { z } from "zod";
 
 import { HistoryControls } from "@/components/scenario/history-controls";
+import { SaveStatus } from "@/components/scenario/save-status";
 import { ScenarioEditor } from "@/components/scenario/scenario-editor";
 import {
   LiveScenarioHeader,
@@ -49,7 +50,12 @@ export default async function ScenarioPage({
     <ScenarioEditor scenarioId={id} editing={scenario.editing} save={saveScenario}>
       <ScenarioShell
         header={<LiveScenarioHeader />}
-        actions={<HistoryControls />}
+        actions={
+          <>
+            <SaveStatus />
+            <HistoryControls />
+          </>
+        }
         team={<LiveScenarioTeam />}
         summary={<LiveScenarioSummary />}
       />

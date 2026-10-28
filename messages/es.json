@@ -41,6 +41,17 @@
     "undoTitle": "Deshacer ({shortcut})",
     "redoTitle": "Rehacer ({shortcut})"
   },
+  "SaveStatus": {
+    "saving": "Guardando…",
+    "saved": "Guardado",
+    "failed": "No se ha podido guardar",
+    "retry": "Reintentar",
+    "conflict": "El escenario se ha guardado en otro sitio",
+    "limit": "Hoy no se pueden guardar más copias de la demo",
+    "gone": "Tu copia ya no existe",
+    "refused": "No se han podido guardar los cambios",
+    "reload": "Recargar"
+  },
   "ScenarioError": {
     "title": "No hemos podido abrir este escenario",
     "description": "Algo ha fallado al leerlo. Prueba otra vez dentro de un momento.",
