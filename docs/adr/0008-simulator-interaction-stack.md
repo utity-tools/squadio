@@ -84,3 +84,11 @@ Keep React Flow, Motion and Zustand, and change how each is used:
   moves the page to the visitor's copy (ADR 0011). The keyboard menus offer only the moves the
   change model accepts (`moveTargets` in `src/lib/scenarios`), so the drag's hit test of point 1
   must use it too.
+- **2026-10-28:** The drag layer of point 1 shipped as `TeamDragProvider`
+  (`src/components/team-drag`), above both the bench and the team in the scenario editor. The team
+  registers what a drop does; `dropAction` and `dropChange` in `src/lib/scenarios` decide it from
+  `moveTargets` and the roster, so
+  a drop only highlights, and only acts, where the menus would. A drop from the bench adds the
+  person with the defaults of "Add to team…" and opens no dialog. The drop zones are marked in the
+  DOM (`data-drop-root`, `data-drop-node`) and found with `elementFromPoint`; React Flow's own node
+  dragging stays off.
