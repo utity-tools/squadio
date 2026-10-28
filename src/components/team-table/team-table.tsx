@@ -85,6 +85,8 @@ export function TeamTable({
   const tEditing = useTranslations("TeamEditing");
   /** The row whose menu is open. */
   const [menuFor, setMenuFor] = useState<string | null>(null);
+  /** The row or cell the menu opened from, which gets focus back on Escape. */
+  const menuFrom = useRef<HTMLElement | null>(null);
   const format = useFormatter();
   const dayRange = useDayRange();
   const instructions = useId();
@@ -146,6 +148,7 @@ export function TeamTable({
     // Enter on a row or one of its cells opens the row's menu (canvas brief, "Keyboard parity").
     if (event.key === "Enter" && editing && focus && focus.row !== TOTALS_ROW) {
       event.preventDefault();
+      menuFrom.current = event.target as HTMLElement;
       setMenuFor(focus.row);
       return;
     }
@@ -291,6 +294,7 @@ export function TeamTable({
                       ? (event) => {
                           event.preventDefault();
                           onSelect(row.id);
+                          menuFrom.current = rowElement(row.id);
                           setMenuFor(row.id);
                         }
                       : undefined
@@ -330,7 +334,9 @@ export function TeamTable({
                           editing={editing}
                           open={menuFor === row.id}
                           onOpenChange={(open) => setMenuFor(open ? row.id : null)}
-                          owner={() => rowElement(row.id)}
+                          owner={() =>
+                            menuFrom.current?.isConnected ? menuFrom.current : rowElement(row.id)
+                          }
                           trigger="anchor"
                           className="absolute start-3 bottom-0"
                         />

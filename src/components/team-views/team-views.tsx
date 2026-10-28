@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { type ReactNode, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 
 import { AddToTeamButton } from "@/components/team-editing/add-to-team-button";
 import { useTeamEditing } from "@/components/team-editing/team-editing";
@@ -20,6 +20,7 @@ import {
 import type { AssignmentCard } from "@/lib/team-tree/cards";
 import { treeNavigation } from "@/lib/team-tree/navigation";
 
+import { useWideScreen } from "./use-wide-screen";
 import { ViewSwitch } from "./view-switch";
 
 export type TeamViewsProps = {
@@ -27,32 +28,6 @@ export type TeamViewsProps = {
   nodes: LayoutNode[];
   cards: AssignmentCard[];
 };
-
-/** Tailwind's `md`: from here up the tree is the default view, below it the table. */
-const WIDE_SCREEN = "(min-width: 48rem)";
-
-let wideScreen: MediaQueryList | undefined;
-
-/** The media query list, made once and only in the browser. */
-function wideScreenQuery() {
-  wideScreen ??= window.matchMedia(WIDE_SCREEN);
-  return wideScreen;
-}
-
-function subscribeToWidth(onChange: () => void) {
-  const media = wideScreenQuery();
-  media.addEventListener("change", onChange);
-  return () => media.removeEventListener("change", onChange);
-}
-
-/** Whether the screen is `md` or wider; null on the server and while hydrating. */
-function useWideScreen(): boolean | null {
-  return useSyncExternalStore(
-    subscribeToWidth,
-    () => wideScreenQuery().matches,
-    () => null,
-  );
-}
 
 /**
  * The two views of the team (canvas brief, "Screens"): the switch on top and only the chosen view
@@ -80,8 +55,9 @@ export function TeamViews({ team, nodes, cards }: TeamViewsProps) {
   );
   const wide = useWideScreen();
   const views = useRef<HTMLDivElement>(null);
+  // Mobile is read-only: no menus below `md`. Focus requests still apply, since undo works there.
   const editing = wide === true ? teamEditing : null;
-  const request = editing?.focusRequest ?? null;
+  const request = teamEditing?.focusRequest ?? null;
   const [handled, setHandled] = useState<number | null>(null);
   // Without a view in the URL the width decides, which the server cannot know: until the client
   // does, a placeholder holds the place, so neither view flashes nor fails to hydrate. The width
@@ -120,16 +96,16 @@ export function TeamViews({ team, nodes, cards }: TeamViewsProps) {
   }, [idsKey]);
 
   useEffect(() => {
-    if (!request || !editing) return;
+    if (!request || !teamEditing) return;
     // The URL follows a row the request expanded.
     if (view === "table") writeQuery(view, collapsed);
     if (!request.move || selected === null) {
-      editing.focusDone(request.nonce);
+      teamEditing.focusDone(request.nonce);
       return;
     }
     // The request is done once focus moved, or gave up: marking it done earlier would end this
     // effect, and its wait for the node, too soon.
-    return focusWhenDrawn(views.current, selected, () => editing.focusDone(request.nonce));
+    return focusWhenDrawn(views.current, selected, () => teamEditing.focusDone(request.nonce));
     // Once per request: the selection and collapsed rows are those it just set.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [request?.nonce]);
@@ -196,7 +172,8 @@ export function TeamViews({ team, nodes, cards }: TeamViewsProps) {
 
 /**
  * Focuses an assignment's node or row once it is drawn: the canvas may draw a new node a frame
- * late. Tries for a few frames, then calls `done` either way. Returns the cleanup that stops it.
+ * late. Tries for a few frames, then calls `done` either way. Returns the cleanup that stops it,
+ * which calls `done` too, so a request is never left behind by views that went away.
  */
 function focusWhenDrawn(views: HTMLElement | null, id: string, done?: () => void) {
   let tries = 0;
@@ -208,7 +185,10 @@ function focusWhenDrawn(views: HTMLElement | null, id: string, done?: () => void
     if (element || ++tries >= 10) done?.();
     else frame = requestAnimationFrame(focus);
   });
-  return () => cancelAnimationFrame(frame);
+  return () => {
+    cancelAnimationFrame(frame);
+    done?.();
+  };
 }
 
 /** The views before the URL is known: the switch's place and a neutral block for either view. */

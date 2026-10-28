@@ -9,6 +9,7 @@ import { type AssignmentCard, assignmentCards } from "@/lib/team-tree/cards";
 
 import { AddToTeamButton } from "@/components/team-editing/add-to-team-button";
 import { useTeamEditing } from "@/components/team-editing/team-editing";
+import { useWideScreen } from "@/components/team-views/use-wide-screen";
 import { TeamViews, TeamViewsSkeleton } from "@/components/team-views/team-views";
 
 export type ScenarioTeamProps = {
@@ -45,7 +46,10 @@ export function ScenarioTeam({ team, hours, span, withoutRate }: ScenarioTeamPro
 function EmptyTeam() {
   const t = useTranslations("TeamTree.empty");
   const tEditing = useTranslations("TeamEditing");
-  const editing = useTeamEditing();
+  // Mobile is read-only, as in the views.
+  const wide = useWideScreen();
+  const teamEditing = useTeamEditing();
+  const editing = wide === true ? teamEditing : null;
 
   return (
     <div className="flex h-full min-h-96 flex-col items-center justify-center gap-2 p-8 text-center">

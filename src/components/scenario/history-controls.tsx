@@ -18,8 +18,12 @@ function isApple() {
   return /Mac|iPhone|iPad|iPod/.test(navigator.userAgent);
 }
 
-/** Native and ARIA text fields: there, Ctrl+Z belongs to the field. */
-const TEXT_FIELDS = "input, textarea, select, [role=textbox], [role=combobox], [role=searchbox]";
+/**
+ * Native and ARIA text fields, where Ctrl+Z belongs to the field, and dialogs, whose form would
+ * otherwise act on a team that changed under it.
+ */
+const TEXT_FIELDS =
+  "input, textarea, select, [role=textbox], [role=combobox], [role=searchbox], [role=dialog]";
 
 function isEditable(target: EventTarget | null) {
   return (
