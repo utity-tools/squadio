@@ -67,10 +67,13 @@ function refusedStatus(reason: string): SaveStatus {
   return "refused";
 }
 
-/** Why the last step was refused: `invalid` is a change of the wrong shape. */
+/**
+ * Why the last step was refused: `invalid` is a change of the wrong shape, `chosen` a scenario
+ * whose team cannot be edited (docs/domain.md, "Choosing a scenario").
+ */
 export type StepRejection = {
   action: "change" | "undo" | "redo";
-  reason: Rejection | "invalid";
+  reason: Rejection | "invalid" | "chosen";
 };
 
 export type ScenarioStoreInit = {
@@ -177,6 +180,10 @@ export function createScenarioStore({ scenarioId, basis, team, version, save }: 
       rejection: null,
       saveStatus: "saved",
       dispatch: (change) => {
+        if (get().basis.scenario.chosen) {
+          set({ rejection: { action: "change", reason: "chosen" } });
+          return false;
+        }
         const parsed = parseChange(change);
         if (!parsed.success) {
           set({ rejection: { action: "change", reason: "invalid" } });

@@ -96,6 +96,20 @@ describe("createScenarioStore", () => {
     expect(store.getState().rejection).toEqual({ action: "change", reason: "cycle" });
   });
 
+  it("refuses every change to a chosen scenario, whose team cannot be edited", () => {
+    const store = createScenarioStore({
+      scenarioId: seatId(99),
+      basis: { ...basis, scenario: { ...basis.scenario, chosen: true } },
+      team,
+      version: 3,
+      save: never,
+    });
+    const before = store.getState().history;
+    expect(store.getState().dispatch(halfDeveloper)).toBe(false);
+    expect(store.getState().history).toBe(before);
+    expect(store.getState().rejection).toEqual({ action: "change", reason: "chosen" });
+  });
+
   it("clears the last rejection on the next step that works", () => {
     const store = create();
     store.getState().dispatch({ type: "move", id: manager.id, reportsTo: lead.id });
