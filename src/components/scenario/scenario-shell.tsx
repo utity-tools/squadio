@@ -4,7 +4,13 @@ import type { ReactNode } from "react";
 import { ThemeSwitch } from "@/components/theme/theme-switch";
 import { Skeleton } from "@/components/ui/skeleton";
 
-type Slots = { header: ReactNode; team: ReactNode; summary: ReactNode };
+type Slots = {
+  header: ReactNode;
+  /** The header's right-aligned controls before the theme switch: undo, redo, the save state. */
+  actions?: ReactNode;
+  team: ReactNode;
+  summary: ReactNode;
+};
 
 /**
  * The scenario page grid of direction A, "Ledger rail" (docs/design/canvas-brief.md): header on
@@ -13,14 +19,17 @@ type Slots = { header: ReactNode; team: ReactNode; summary: ReactNode };
  * the window, and a long table or summary scrolls inside its own region. Below `md` the regions stack in one
  * column no wider than the screen: a wide table scrolls inside the team region, not the page.
  */
-export function ScenarioShell({ header, team, summary }: Slots) {
+export function ScenarioShell({ header, actions, team, summary }: Slots) {
   const t = useTranslations("ScenarioPage");
 
   return (
     <div className="flex flex-1 flex-col md:max-h-dvh">
-      <header className="flex items-center justify-between gap-4 border-b px-4 py-3">
+      <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b px-4 py-3">
         <div className="min-w-0">{header}</div>
-        <ThemeSwitch />
+        <div className="ms-auto flex flex-wrap items-center justify-end gap-3">
+          {actions}
+          <ThemeSwitch />
+        </div>
       </header>
       <div className="grid flex-1 grid-cols-[minmax(0,1fr)] md:min-h-0 md:grid-cols-[0_minmax(0,1fr)_330px] md:grid-rows-[minmax(0,1fr)]">
         {/* The dot grid stays lighter than any border (canvas brief, "Themes and contrast"). */}
