@@ -410,4 +410,41 @@ describe("saving", () => {
       ],
     });
   });
+
+  it("takes an answer of another shape for a failed save, and tries again", async () => {
+    const calls: ((outcome: unknown) => void)[] = [];
+    const save = () =>
+      new Promise<SaveOutcome>((resolve) => {
+        calls.push(resolve as (outcome: unknown) => void);
+      });
+    const store = create(save);
+    store.getState().dispatch(edit(50));
+    await vi.advanceTimersByTimeAsync(SAVE_DELAY_MS);
+    calls[0]?.(undefined);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(store.getState().saveStatus).toBe("failed");
+
+    store.getState().retry();
+    calls[1]?.({ ok: true, version: 4, scenarioId: seatId(99) });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(store.getState().saveStatus).toBe("saved");
+  });
+
+  it("adopts a fresh basis and keeps its history and what is left to save", async () => {
+    const { calls, save } = fakeSave();
+    const store = create(save);
+    store.getState().dispatch(edit(50));
+    const before = store.getState().history;
+    const fresh: ScenarioBasis = {
+      ...basis,
+      categories: [...basis.categories, { id: seatId(98), name: "Tester" }],
+    };
+
+    store.getState().adopt(fresh);
+    expect(store.getState().basis).toBe(fresh);
+    expect(store.getState().roster.categoryIds.has(seatId(98))).toBe(true);
+    expect(store.getState().history).toBe(before);
+    await vi.advanceTimersByTimeAsync(SAVE_DELAY_MS);
+    expect(calls[0]?.request.changes).toEqual([edit(50)]);
+  });
 });
