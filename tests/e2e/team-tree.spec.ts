@@ -12,13 +12,15 @@ const NODE_WIDTH = 240;
 const tree = (page: Page) => page.getByRole("application", { name: "Árbol del equipo" });
 const node = (page: Page, name: RegExp) => tree(page).getByRole("button", { name });
 
-/** Tabs from the view switch, the stop before the view, into the tree once it is drawn. */
+/** Tabs from the view switch, past "Add to team…", into the tree once it is drawn. */
 async function tabIntoTree(page: Page) {
   await expect(node(page, /^Project manager/)).toBeVisible();
   await page
     .getByRole("radiogroup", { name: "Vista" })
     .getByRole("radio", { checked: true })
     .focus();
+  await page.keyboard.press("Tab");
+  await expect(page.getByRole("button", { name: "Añadir al equipo…" })).toBeFocused();
   await page.keyboard.press("Tab");
 }
 

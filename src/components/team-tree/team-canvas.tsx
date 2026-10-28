@@ -36,6 +36,8 @@ import {
   useState,
 } from "react";
 
+import { MemberMenu } from "@/components/team-editing/member-menu";
+import type { TeamEditing } from "@/components/team-editing/team-editing";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useDayRange } from "@/components/format/use-day-range";
@@ -60,18 +62,28 @@ export type TeamCanvasProps = {
   selected: string | null;
   /** Called when a node is clicked or takes focus. */
   onSelect: (id: string) => void;
+  /** The nodes' menus; null for a team that cannot be edited here. */
+  editing?: TeamEditing | null;
 };
 
 /**
  * What a node card calls when it is clicked or focused, and where tooltips go: inside the canvas,
  * so they stay in the page's landmarks.
  */
-const CanvasContext = createContext<{ select: (id: string) => void; tooltips: HTMLElement | null }>(
-  {
-    select: () => {},
-    tooltips: null,
-  },
-);
+const CanvasContext = createContext<{
+  select: (id: string) => void;
+  tooltips: HTMLElement | null;
+  editing: TeamEditing | null;
+  /** The node whose menu is open. */
+  menuFor: string | null;
+  setMenuFor: (id: string | null) => void;
+}>({
+  select: () => {},
+  tooltips: null,
+  editing: null,
+  menuFor: null,
+  setMenuFor: () => {},
+});
 
 const ARROWS: Record<string, keyof Moves> = {
   ArrowUp: "up",
@@ -102,8 +114,17 @@ export function TeamCanvas(props: TeamCanvasProps) {
   );
 }
 
-function Canvas({ team, nodes: layout, cards, selected, onSelect }: TeamCanvasProps) {
+function Canvas({
+  team,
+  nodes: layout,
+  cards,
+  selected,
+  onSelect,
+  editing = null,
+}: TeamCanvasProps) {
   const t = useTranslations("TeamTree");
+  const tEditing = useTranslations("TeamEditing");
+  const [menuFor, setMenuFor] = useState<string | null>(null);
   const instructions = useId();
   const flow = useReactFlow();
   const [canvas, setCanvas] = useState<HTMLDivElement | null>(null);
@@ -188,6 +209,12 @@ function Canvas({ team, nodes: layout, cards, selected, onSelect }: TeamCanvasPr
     }
     const target = event.target as HTMLElement;
     const id = target.closest<HTMLElement>("[data-assignment]")?.dataset.assignment;
+    // Enter opens the node's menu (canvas brief, "Keyboard parity"), instead of clicking it.
+    if (event.key === "Enter" && editing && id !== undefined) {
+      event.preventDefault();
+      setMenuFor(id);
+      return;
+    }
     const arrow = ARROWS[event.key];
     if (id === undefined || (arrow === undefined && event.key !== "Home")) return;
     event.preventDefault();
@@ -217,9 +244,10 @@ function Canvas({ team, nodes: layout, cards, selected, onSelect }: TeamCanvasPr
   }, [flow, canvas]);
 
   return (
-    <CanvasContext value={{ select, tooltips: canvas }}>
+    <CanvasContext value={{ select, tooltips: canvas, editing, menuFor, setMenuFor }}>
       <p id={instructions} className="sr-only">
         {t("instructions")}
+        {editing && ` ${tEditing("instructions")}`}
       </p>
       <ReactFlow
         ref={setCanvas}
@@ -309,7 +337,7 @@ function AssignmentNode({ data: { card, selected, onPath, tabbable } }: NodeProp
   const t = useTranslations("TeamTree");
   const format = useFormatter();
   const dayRange = useDayRange();
-  const { select, tooltips } = useContext(CanvasContext);
+  const { select, tooltips, editing, menuFor, setMenuFor } = useContext(CanvasContext);
   const hours = (value: number) => format.number(value, { maximumFractionDigits: 2 });
   const person = card.person ?? t("openRole");
   const allocation = format.number(card.allocation / 100, { style: "percent" });
@@ -359,7 +387,11 @@ function AssignmentNode({ data: { card, selected, onPath, tabbable } }: NodeProp
               selected && "border-2 bg-accent text-accent-foreground",
             )}
           >
-            <span className="w-full truncate text-sm leading-5 font-semibold">{card.title}</span>
+            <span
+              className={cn("w-full truncate text-sm leading-5 font-semibold", editing && "pe-6")}
+            >
+              {card.title}
+            </span>
             <Pause />
             <span className="flex w-full items-center gap-1 text-sm leading-5">
               <PersonIcon aria-hidden className="size-3.5 shrink-0" />
@@ -407,6 +439,19 @@ function AssignmentNode({ data: { card, selected, onPath, tabbable } }: NodeProp
           <span className="block">{t("nominalHours", { hours: hours(card.nominalHours) })}</span>
         </TooltipContent>
       </Tooltip>
+      {editing && (
+        <MemberMenu
+          id={card.id}
+          editing={editing}
+          open={menuFor === card.id}
+          onOpenChange={(open) => setMenuFor(open ? card.id : null)}
+          owner={() =>
+            document.querySelector<HTMLElement>(`[data-assignment="${CSS.escape(card.id)}"]`)
+          }
+          trigger="button"
+          className="absolute top-2 right-2"
+        />
+      )}
     </>
   );
 }

@@ -7,6 +7,8 @@ import { type LayoutError, layoutTeam } from "@/lib/layout/compact-layout";
 import type { ProjectSpan } from "@/lib/scenarios/project-span";
 import { type AssignmentCard, assignmentCards } from "@/lib/team-tree/cards";
 
+import { AddToTeamButton } from "@/components/team-editing/add-to-team-button";
+import { useTeamEditing } from "@/components/team-editing/team-editing";
 import { TeamViews, TeamViewsSkeleton } from "@/components/team-views/team-views";
 
 export type ScenarioTeamProps = {
@@ -23,7 +25,16 @@ export type ScenarioTeamProps = {
  * assignments the layout cannot draw, or else the tree and table views of the canvas brief. The
  * cards and the layout are computed once, here, for both views.
  */
-export function ScenarioTeam({ team, hours, span, withoutRate }: ScenarioTeamProps) {
+export function ScenarioTeam(props: ScenarioTeamProps) {
+  // A step taken while focus is in here moves focus with it (the focus manager).
+  return (
+    <div data-team-region="" className="h-full">
+      <TeamRegion {...props} />
+    </div>
+  );
+}
+
+function TeamRegion({ team, hours, span, withoutRate }: ScenarioTeamProps) {
   if (team.length === 0) return <EmptyTeam />;
   const cards = assignmentCards(team, hours, span, withoutRate);
   const layout = layoutTeam(team);
@@ -42,12 +53,17 @@ export function ScenarioTeam({ team, hours, span, withoutRate }: ScenarioTeamPro
 
 function EmptyTeam() {
   const t = useTranslations("TeamTree.empty");
+  const tEditing = useTranslations("TeamEditing");
+  const editing = useTeamEditing();
 
   return (
     <div className="flex h-full min-h-96 flex-col items-center justify-center gap-2 p-8 text-center">
       <UsersIcon aria-hidden className="size-8 text-muted-foreground" />
       <h2 className="font-semibold">{t("title")}</h2>
-      <p className="text-sm text-muted-foreground">{t("description")}</p>
+      <p className="text-sm text-muted-foreground">
+        {editing ? tEditing("emptyDescription") : t("description")}
+      </p>
+      {editing && <AddToTeamButton editing={editing} takesTopFocus className="mt-2" />}
     </div>
   );
 }
