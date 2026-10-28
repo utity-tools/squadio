@@ -47,7 +47,9 @@ demo template that belongs to the visitor and is found through a random token in
   the current route in the same response (Next 16, `cookies()`). With the new cookie, the template
   scenario is not the visitor's, so the page redirects to their copy of it. The action also returns
   the copy's id for each open row the page holds (`renamed`, never a restricted row's), so the
-  client can carry its history across; slice 3 decides how.
+  client can carry its history across; slice 3 decides how. The ids are those of the copy before
+  the save, so a row the save removes is renamed too, and undoing the remove brings it back under
+  the copy's id. The redirect replaces the template's history entry: back leaves the scenario.
 - **The client saves on its own,** shortly after the last change and one save at a time. The header
   shows saving, saved or failed.
 - **Writes never touch the demo template.** The action refuses to write to it, whatever the context

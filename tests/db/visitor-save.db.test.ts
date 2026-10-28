@@ -102,6 +102,14 @@ describe("saveForVisitor: the first save", () => {
     expect(result.renamed[DEMO_IDS.guide.cloud]).toBeUndefined();
   });
 
+  it("renames an assignment the first save removes, so undoing it restores the copy's row", async () => {
+    const remove = { type: "remove", id: DEMO_IDS.guide.senior } as const;
+    const result = await saveForVisitor(app, jar().cookies, { ...firstSave, changes: [remove] });
+    if (!result.ok || !result.renamed) throw new Error("expected the renamed ids");
+    const org = (await copies())[0]?.organization_id ?? "";
+    expect(result.renamed[DEMO_IDS.guide.senior]).toBe(copyId(DEMO_IDS.guide.senior, org));
+  });
+
   it("leaves no copy and no cookie when the save is rejected", async () => {
     const { cookies, sets } = jar();
     const result = await saveForVisitor(app, cookies, {
