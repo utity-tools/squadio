@@ -25,6 +25,8 @@ export type AddMemberDialogProps = {
   reportsTo: string | null;
   managerName: string | null;
   dispatch: (change: Change) => boolean;
+  /** Where the dialog renders: the team region. */
+  container: HTMLElement | null;
   /** `done` is true once the assignment was added. */
   onClose: (done: boolean) => void;
 };
@@ -43,6 +45,7 @@ export function AddMemberDialog({
   managerName,
   dispatch,
   onClose,
+  container,
 }: AddMemberDialogProps) {
   const t = useTranslations("TeamEditing");
   const format = useFormatter();
@@ -97,6 +100,7 @@ export function AddMemberDialog({
     <Dialog open onOpenChange={(open) => !open && onClose(false)}>
       <DialogContent
         closeLabel={t("close")}
+        container={container}
         // Focus goes where the focus manager or `onClose` sends it.
         onCloseAutoFocus={(event) => event.preventDefault()}
       >

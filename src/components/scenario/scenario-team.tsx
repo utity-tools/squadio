@@ -25,16 +25,7 @@ export type ScenarioTeamProps = {
  * assignments the layout cannot draw, or else the tree and table views of the canvas brief. The
  * cards and the layout are computed once, here, for both views.
  */
-export function ScenarioTeam(props: ScenarioTeamProps) {
-  // A step taken while focus is in here moves focus with it (the focus manager).
-  return (
-    <div data-team-region="" className="h-full">
-      <TeamRegion {...props} />
-    </div>
-  );
-}
-
-function TeamRegion({ team, hours, span, withoutRate }: ScenarioTeamProps) {
+export function ScenarioTeam({ team, hours, span, withoutRate }: ScenarioTeamProps) {
   if (team.length === 0) return <EmptyTeam />;
   const cards = assignmentCards(team, hours, span, withoutRate);
   const layout = layoutTeam(team);

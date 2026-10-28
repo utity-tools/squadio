@@ -73,10 +73,13 @@ export function TeamViews({ team, nodes, cards }: TeamViewsProps) {
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(() =>
     collapsedInQuery(query, ids),
   );
-  const [selection, setSelection] = useState<string | null>(null);
+  const teamEditing = useTeamEditing();
+  // After the move to the copy the views are drawn anew: they start from the remembered selection.
+  const [selection, setSelection] = useState<string | null>(
+    () => teamEditing?.memory().selected ?? null,
+  );
   const wide = useWideScreen();
   const views = useRef<HTMLDivElement>(null);
-  const teamEditing = useTeamEditing();
   const editing = wide === true ? teamEditing : null;
   const request = editing?.focusRequest ?? null;
   const [handled, setHandled] = useState<number | null>(null);
@@ -94,8 +97,27 @@ export function TeamViews({ team, nodes, cards }: TeamViewsProps) {
       if (view === "table") setCollapsed(revealRow(team, collapsed, target));
     }
   }
-  // A selection that left the team selects nothing.
-  const selected = selection !== null && ids.includes(selection) ? selection : null;
+  // A selection the first save renamed follows the assignment to the copy; one that left the
+  // team selects nothing.
+  const current =
+    selection !== null && !ids.includes(selection) && teamEditing
+      ? teamEditing.renameOf(selection)
+      : selection;
+  const selected = current !== null && ids.includes(current) ? current : null;
+
+  useEffect(() => teamEditing?.remember({ selected }), [teamEditing, selected]);
+
+  // Focus was in the team when its node went away: the first save renamed it, or the page moved
+  // to the copy and drew the team anew. It goes back to the selected assignment.
+  const idsKey = ids.join();
+  useEffect(() => {
+    const active = document.activeElement;
+    if (!teamEditing?.memory().focused || selected === null) return;
+    if (active !== null && active !== document.body) return;
+    return focusWhenDrawn(views.current, selected);
+    // Only when the team's ids change, which is when its nodes are drawn anew.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [idsKey]);
 
   useEffect(() => {
     if (!request || !editing) return;
@@ -105,18 +127,9 @@ export function TeamViews({ team, nodes, cards }: TeamViewsProps) {
       editing.focusDone(request.nonce);
       return;
     }
-    // The canvas may draw a new node a frame late. The request is done once focus moved, or gave
-    // up: marking it done earlier would end this effect, and its frame, too soon.
-    let tries = 0;
-    let frame = requestAnimationFrame(function focus() {
-      const element = views.current?.querySelector<HTMLElement>(
-        `[data-assignment="${CSS.escape(selected)}"], [data-row="${CSS.escape(selected)}"]`,
-      );
-      if (element) element.focus();
-      if (element || ++tries >= 10) editing.focusDone(request.nonce);
-      else frame = requestAnimationFrame(focus);
-    });
-    return () => cancelAnimationFrame(frame);
+    // The request is done once focus moved, or gave up: marking it done earlier would end this
+    // effect, and its wait for the node, too soon.
+    return focusWhenDrawn(views.current, selected, () => editing.focusDone(request.nonce));
     // Once per request: the selection and collapsed rows are those it just set.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [request?.nonce]);
@@ -179,6 +192,23 @@ export function TeamViews({ team, nodes, cards }: TeamViewsProps) {
       {view === null && <ViewPlaceholder />}
     </div>
   );
+}
+
+/**
+ * Focuses an assignment's node or row once it is drawn: the canvas may draw a new node a frame
+ * late. Tries for a few frames, then calls `done` either way. Returns the cleanup that stops it.
+ */
+function focusWhenDrawn(views: HTMLElement | null, id: string, done?: () => void) {
+  let tries = 0;
+  let frame = requestAnimationFrame(function focus() {
+    const element = views?.querySelector<HTMLElement>(
+      `[data-assignment="${CSS.escape(id)}"], [data-row="${CSS.escape(id)}"]`,
+    );
+    element?.focus();
+    if (element || ++tries >= 10) done?.();
+    else frame = requestAnimationFrame(focus);
+  });
+  return () => cancelAnimationFrame(frame);
 }
 
 /** The views before the URL is known: the switch's place and a neutral block for either view. */

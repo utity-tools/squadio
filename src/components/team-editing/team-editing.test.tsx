@@ -1,5 +1,6 @@
 import { act, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { NextIntlClientProvider } from "next-intl";
 import { describe, expect, it, vi } from "vitest";
 
 import { HistoryControls } from "@/components/scenario/history-controls";
@@ -14,6 +15,8 @@ import { stubReactFlowLayout } from "@/test/react-flow";
 import { renderWithIntl } from "@/test/render";
 import { StoreSpy } from "@/test/store-spy";
 
+import es from "../../../messages/es.json";
+
 vi.mock("next/navigation", () => import("@/test/navigation"));
 
 stubReactFlowLayout();
@@ -23,6 +26,11 @@ const never = () => new Promise<SaveOutcome>(() => {});
 // The team of change.fixtures.ts: the manager (Role 1, Person 3) has the lead (Role 2, Person 1)
 // and the designer (Role 4, an open role) under them; the developer (Role 3) reports to the lead
 // and the tester (Role 5) to the designer.
+
+/** The team as the page draws it; `drawing` changes its key, so it is drawn anew. */
+function Team({ drawing }: { drawing: number }) {
+  return <LiveScenarioTeam key={drawing} />;
+}
 
 function renderTeam({
   query = "?view=tree",
@@ -34,7 +42,7 @@ function renderTeam({
   stubHistory(`/scenarios/plan${query}`);
   const stores: ScenarioStore[] = [];
   const basis = { ...hoursBasis, scenario: { ...hoursBasis.scenario, chosen } };
-  const view = renderWithIntl(
+  const page = (drawing: number) => (
     <ScenarioStoreProvider>
       <ScenarioEditor
         scenarioId={seatId(99)}
@@ -42,14 +50,22 @@ function renderTeam({
         save={never}
       >
         <HistoryControls />
-        <LiveScenarioTeam />
+        <Team drawing={drawing} />
         <StoreSpy onStore={(store) => void stores.push(store)} />
       </ScenarioEditor>
-    </ScenarioStoreProvider>,
+    </ScenarioStoreProvider>
   );
+  const view = renderWithIntl(page(0));
+  /** Draws the team anew, as the page does when it moves to the copy after the first save. */
+  const redraw = () =>
+    view.rerender(
+      <NextIntlClientProvider locale="es" messages={es} timeZone="Europe/Madrid">
+        {page(1)}
+      </NextIntlClientProvider>,
+    );
   const store = stores[0];
   if (!store) throw new Error("expected a store");
-  return { ...view, store, user: userEvent.setup() };
+  return { ...view, store, redraw, user: userEvent.setup() };
 }
 
 const node = (role: string) => screen.getByRole("button", { name: new RegExp(`^${role},`) });
@@ -188,6 +204,20 @@ describe("the team's menus", () => {
     expect(nodeIds(store)).toContain(seatId(5));
     expect(undo).toHaveFocus();
     expect(node("Role 5")).toHaveAttribute("aria-current", "true");
+  });
+
+  it("keeps the selection and the focus when the page draws the team anew", async () => {
+    const { user, redraw, store } = renderTeam();
+    node("Role 4").focus();
+    await user.keyboard("{Enter}");
+    await user.click(within(menu()).getByRole("menuitem", { name: "Quitar del equipo" }));
+    await waitFor(() => expect(node("Role 1")).toHaveFocus());
+
+    redraw();
+
+    expect(nodeIds(store)).not.toContain(seatId(4));
+    await waitFor(() => expect(node("Role 1")).toHaveFocus());
+    expect(node("Role 1")).toHaveAttribute("aria-current", "true");
   });
 
   it("opens a row's actions with Enter in the table", async () => {

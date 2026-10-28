@@ -41,7 +41,27 @@ export type TeamEditing = {
   focusRequest: FocusRequest | null;
   /** Called once a view has acted on the request, so a view that mounts later ignores it. */
   focusDone: (nonce: number) => void;
+  /** The team region: menus and dialogs render in it, so they stay inside the page's landmarks. */
+  region: HTMLElement | null;
+  /** The selected assignment and whether focus was in the team, kept across the move to the copy. */
+  memory: () => FocusMemory;
+  remember: (patch: Partial<FocusMemory>) => void;
+  /** The copy's id for a template id the first save renamed; any other id as it is. */
+  renameOf: (id: string) => string;
 };
+
+/**
+ * What the views need again after the first save: the page then moves to the copy and draws the
+ * team anew, which drops their selection and the focus. `focused` turns false only when focus
+ * moves to something outside the team, not when the focused node itself goes away.
+ */
+export type FocusMemory = { selected: string | null; focused: boolean };
+
+/** One memory per store, which outlives the page (it lives in the section's layout). */
+const memories = new WeakMap<object, FocusMemory>();
+
+const recall = (store: object): FocusMemory =>
+  memories.get(store) ?? { selected: null, focused: false };
 
 const TeamEditingContext = createContext<TeamEditing | null>(null);
 
@@ -63,7 +83,10 @@ export function TeamEditingProvider({ children }: { children: ReactNode }) {
   const store = useScenarioStore();
   const view = useScenarioView();
   const [dialog, setDialog] = useState<Dialog | null>(null);
+  const [region, setRegion] = useState<HTMLDivElement | null>(null);
   const [focusRequest, setFocusRequest] = useState<FocusRequest | null>(null);
+  const remember = (patch: Partial<FocusMemory>) =>
+    void memories.set(store, { ...recall(store), ...patch });
   /** Set while a menu or dialog dispatches, so the step it takes moves focus. */
   const ownStep = useRef(false);
   /** Counts requests, also across the ones views have done with. */
@@ -120,6 +143,10 @@ export function TeamEditingProvider({ children }: { children: ReactNode }) {
     nameOf,
     focusRequest,
     focusDone: (nonce) => setFocusRequest((last) => (last?.nonce === nonce ? null : last)),
+    region,
+    memory: () => recall(store),
+    remember,
+    renameOf: (id) => store.getState().renamed[id] ?? id,
   };
 
   /** Closes a dialog; after a cancel, focus goes back to where it was opened from. */
@@ -131,17 +158,39 @@ export function TeamEditingProvider({ children }: { children: ReactNode }) {
 
   return (
     <TeamEditingContext value={editing}>
-      {children}
+      {/* A step taken while focus is in here moves focus with it. */}
+      <div
+        ref={setRegion}
+        data-team-region=""
+        className="h-full"
+        onFocus={() => remember({ focused: true })}
+        onBlur={(event) => {
+          // No related target: the window lost focus, or the focused node went away.
+          const next = event.relatedTarget;
+          if (next instanceof Node && !event.currentTarget.contains(next)) {
+            remember({ focused: false });
+          }
+        }}
+      >
+        {children}
+      </div>
       {dialog?.kind === "add" && (
         <AddMemberDialog
           reportsTo={dialog.reportsTo}
           managerName={dialog.reportsTo === null ? null : nameOf(dialog.reportsTo)}
           dispatch={dispatchOwn}
           onClose={close}
+          container={region}
         />
       )}
       {dialog?.kind === "move" && (
-        <MoveMemberDialog id={dialog.id} nameOf={nameOf} dispatch={dispatchOwn} onClose={close} />
+        <MoveMemberDialog
+          id={dialog.id}
+          nameOf={nameOf}
+          dispatch={dispatchOwn}
+          onClose={close}
+          container={region}
+        />
       )}
     </TeamEditingContext>
   );

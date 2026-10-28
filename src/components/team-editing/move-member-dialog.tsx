@@ -22,6 +22,8 @@ export type MoveMemberDialogProps = {
   id: string;
   nameOf: (id: string) => string;
   dispatch: (change: Change) => boolean;
+  /** Where the dialog renders: the team region. */
+  container: HTMLElement | null;
   /** `done` is true once the assignment moved. */
   onClose: (done: boolean) => void;
 };
@@ -30,7 +32,13 @@ export type MoveMemberDialogProps = {
 const TOP = "";
 
 /** "Move to…": who the assignment reports to, among the moves the change model accepts. */
-export function MoveMemberDialog({ id, nameOf, dispatch, onClose }: MoveMemberDialogProps) {
+export function MoveMemberDialog({
+  id,
+  nameOf,
+  dispatch,
+  onClose,
+  container,
+}: MoveMemberDialogProps) {
   const t = useTranslations("TeamEditing");
   const store = useScenarioStore();
   const fieldId = useId();
@@ -51,6 +59,7 @@ export function MoveMemberDialog({ id, nameOf, dispatch, onClose }: MoveMemberDi
     <Dialog open onOpenChange={(open) => !open && onClose(false)}>
       <DialogContent
         closeLabel={t("close")}
+        container={container}
         aria-describedby={undefined}
         onCloseAutoFocus={(event) => event.preventDefault()}
       >
