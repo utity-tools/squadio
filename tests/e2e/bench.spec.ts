@@ -10,7 +10,9 @@ const GUIDE_SCENARIO = "6d656d6f-0000-4000-8000-000000000200";
 
 const bench = (page: Page) => page.getByRole("complementary", { name: "Banquillo" });
 const search = (page: Page) => bench(page).getByRole("searchbox", { name: "Buscar persona" });
-const cards = (page: Page) => bench(page).getByRole("listitem");
+/** The people's cards, without the open roles. */
+const cards = (page: Page) => bench(page).locator("li[data-bench-person]");
+const openRoles = (page: Page) => bench(page).locator("li[data-bench-open-role]");
 
 async function openBench(page: Page) {
   await page.goto(`/scenarios/${GUIDE_SCENARIO}`);
@@ -31,6 +33,17 @@ test("the bench lists the active people by category, with how busy each is", asy
   const lead = cards(page).filter({ hasText: "Senior Developer 1" });
   await expect(lead).toContainText("En el equipo");
   await expect(bench(page)).not.toContainText("€");
+});
+
+test("the bench offers an open role of each category, until a name is searched", async ({
+  page,
+}) => {
+  await openBench(page);
+
+  await expect(openRoles(page)).toHaveCount(6);
+  await expect(openRoles(page).first()).toHaveText(/Vacante/);
+  await search(page).fill("developer 3");
+  await expect(openRoles(page)).toHaveCount(0);
 });
 
 test("the bench is filtered with the keyboard alone", async ({ page }) => {
@@ -78,6 +91,9 @@ for (const colorScheme of ["light", "dark"] as const) {
     await page.emulateMedia({ colorScheme });
     await openBench(page);
     await expect(page.locator("html")).toHaveAttribute("data-theme", colorScheme);
+    // Without a search first: the open roles only show then.
+    await expect(openRoles(page)).toHaveCount(6);
+    await expectNoAxeViolations(page);
     await search(page).fill("senior");
 
     await expectNoAxeViolations(page);

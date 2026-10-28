@@ -92,7 +92,9 @@
     "weeklyHours": "{hours} h/semana",
     "none": "Todavía no hay personas activas",
     "empty": "Nadie coincide con la búsqueda",
-    "clear": "Quitar filtros"
+    "clear": "Quitar filtros",
+    "openRole": "Vacante",
+    "openRoleOf": "Vacante ({category})"
   },
   "ScenarioError": {
     "title": "No hemos podido abrir este escenario",

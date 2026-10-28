@@ -31,11 +31,22 @@ const people = [
 const all: BenchFilter = { query: "", categoryId: null };
 
 describe("benchGroups", () => {
-  it("lists active people by category, in the categories' order, skipping empty ones", () => {
+  it("lists active people by category, in the categories' order, each after an open role", () => {
     const groups = benchGroups({ categories, people }, [], all);
-    expect(groups.map((group) => [group.category.name, group.people.map((p) => p.id)])).toEqual([
-      ["Developer", ["ana", "dani"]],
-      ["Project Manager", ["carla"]],
+    expect(
+      groups.map((group) => [group.category.name, group.openRole, group.people.map((p) => p.id)]),
+    ).toEqual([
+      ["Developer", true, ["ana", "dani"]],
+      ["Project Manager", true, ["carla"]],
+      // No one in it, but an open role of it can still join the team.
+      ["Data Engineer", true, []],
+    ]);
+  });
+
+  it("offers no open roles while searching names, and skips the categories left empty", () => {
+    const groups = benchGroups({ categories, people }, [], { query: "ana", categoryId: null });
+    expect(groups.map((group) => [group.category.name, group.openRole])).toEqual([
+      ["Developer", false],
     ]);
   });
 
@@ -61,6 +72,8 @@ describe("benchGroups", () => {
   it("keeps one category when asked", () => {
     const groups = benchGroups({ categories, people }, [], { query: "", categoryId: "c-pm" });
     expect(groups.map((group) => group.category.id)).toEqual(["c-pm"]);
+    const data = benchGroups({ categories, people }, [], { query: "", categoryId: "c-data" });
+    expect(data).toEqual([{ category: categories[2], openRole: true, people: [] }]);
   });
 
   it("lists exactly the active people the filter matches", () => {

@@ -188,6 +188,47 @@ describe("dragging from the bench", () => {
   });
 });
 
+describe("dragging an open role from the bench", () => {
+  const openRoleCard = (category: string) =>
+    [...document.querySelectorAll<HTMLElement>("[data-bench-open-role]")].find(
+      (card) => card.closest("div")?.querySelector("h3 span")?.textContent === category,
+    )!;
+  const openRolesOf = (store: ScenarioStore, categoryId: string) =>
+    store
+      .getState()
+      .history.team.filter(
+        (member) => member.personId === null && member.categoryId === categoryId,
+      );
+
+  it("adds an open role of the category under the node, as often as it is dropped", () => {
+    const { store } = renderPage();
+    const before = new Set(openRolesOf(store, SENIOR).map((member) => member.id));
+
+    drag(openRoleCard("Senior Developer"), node("Role 2"));
+    drag(openRoleCard("Senior Developer"), canvas());
+
+    const added = openRolesOf(store, SENIOR).filter((member) => !before.has(member.id));
+    expect(added).toHaveLength(2);
+    expect(added.map((member) => [member.reportsTo, member.projectRole])).toEqual(
+      expect.arrayContaining([
+        [seatId(2), "Senior Developer"],
+        [null, "Senior Developer"],
+      ]),
+    );
+  });
+
+  it("shows the open role and its category under the pointer", () => {
+    renderPage();
+
+    drag(openRoleCard("Project Manager"), node("Role 4"), { drop: false });
+    expect(document.querySelector("[data-drag-ghost]")).toHaveTextContent(
+      "Vacante (Project Manager)",
+    );
+    expect(openRoleCard("Project Manager").className).toContain("border-primary");
+    fireEvent.pointerUp(window, { ...pointer, clientX: 40, clientY: 40 });
+  });
+});
+
 describe("dragging inside the tree", () => {
   it("moves an assignment under the node it is dropped on", () => {
     const { store } = renderPage();
