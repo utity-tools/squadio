@@ -50,6 +50,13 @@
       "when": 1793227371398,
       "tag": "0006_frozen_tables",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793227914268,
+      "tag": "0007_backfill_frozen_rows",
+      "breakpoints": true
     }
   ]
 }
