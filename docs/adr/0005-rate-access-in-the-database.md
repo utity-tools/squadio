@@ -113,3 +113,8 @@ no rows instead of salaries.
   rate access the page receives the hours inputs only, which hold no money, as the loader's DB test
   checks. The decision itself is unchanged: what a user without rate access can reach is still
   decided by the database.
+- **2026-10-28:** `frozen_rates` and `frozen_cost_config` land as restricted tables (migration
+  0006), with the `rate_access` policy and FORCE ROW LEVEL SECURITY like the others. Choosing and
+  unchoosing check rate access before they write, and the policies refuse the writes anyway. The
+  backfill of migration 0007 runs as the owner, which FORCE subjects to the policies, so it sets
+  each organization's context with rate access in turn.

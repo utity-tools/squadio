@@ -86,3 +86,11 @@ custom Drizzle column type that never uses floats.
 - **2026-10-21:** The first restricted tables (`cost_config`, `category_rates`, `project_pricing`
   and `extra_costs`) land in v0.1, not v0.2; only `FrozenRate` and `FrozenCostConfig` wait for
   choosing a scenario in v0.2. The decision itself is unchanged.
+- **2026-10-28:** Calendar working hours, frozen with a chosen scenario, have up to three decimals
+  (a full-time week's hours times working days, over five). They use their own column type,
+  `yearHours`, a `numeric(8,3)` read as exact thousandths, so no float holds a value Postgres does
+  not. They are hours, not money, but they live in the restricted `frozen_cost_config`.
+  Migration 0007, a one-off backfill of the frozen rows, is the one place Postgres computes: it
+  repeats the fully loaded annual cost and the calendar working hours in SQL, with the calendar as
+  it was on that date. A DB test checks its rows against `freezeScenario`, which uses the
+  TypeScript functions.
