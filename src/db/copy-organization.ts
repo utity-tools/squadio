@@ -10,6 +10,8 @@ import {
   config,
   costConfig,
   extraCosts,
+  frozenCostConfig,
+  frozenRates,
   people,
   projectPricing,
   projects,
@@ -40,6 +42,9 @@ const COPIES: readonly Copied[] = [
   // One statement per table: reports_to is checked once all of its rows are in.
   { table: assignments, ids: ["id", "scenarioId", "categoryId", "personId", "reportsTo"] },
   { table: extraCosts, ids: ["id", "scenarioId"] },
+  // A chosen scenario stays costed as it was chosen in the copy too.
+  { table: frozenRates, ids: ["scenarioId", "categoryId"] },
+  { table: frozenCostConfig, ids: ["scenarioId"] },
 ];
 
 export const COPIED_TABLES: readonly PgTable[] = COPIES.map(({ table }) => table);

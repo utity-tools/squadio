@@ -43,6 +43,13 @@
       "when": 1793183831651,
       "tag": "0005_claim_reports_gone",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793227371398,
+      "tag": "0006_frozen_tables",
+      "breakpoints": true
     }
   ]
 }

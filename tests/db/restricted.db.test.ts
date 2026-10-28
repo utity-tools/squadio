@@ -10,6 +10,8 @@ import {
   categoryRates,
   costConfig,
   extraCosts,
+  frozenCostConfig,
+  frozenRates,
   projectPricing,
   projects,
   scenarios,
@@ -74,6 +76,27 @@ const restricted: Record<string, { table: PgTable; row: () => Record<string, unk
   "public.project_pricing": {
     table: projectPricing,
     row: () => ({ organizationId, projectId: ids.projectId, price: 20_000_000 }),
+  },
+  "public.frozen_rates": {
+    table: frozenRates,
+    row: () => ({
+      organizationId,
+      scenarioId: ids.scenarioId,
+      categoryId: ids.categoryId,
+      fullyLoadedAnnualCost: 7_112_000,
+      sellRate: 6500,
+    }),
+  },
+  "public.frozen_cost_config": {
+    table: frozenCostConfig,
+    row: () => ({
+      organizationId,
+      scenarioId: ids.scenarioId,
+      overhead: 1500,
+      buffer: 1000,
+      netAnnualHours: 1550,
+      calendarWorkingHours: 2016,
+    }),
   },
   "public.extra_costs": {
     table: extraCosts,
@@ -157,6 +180,52 @@ describe("restricted values", () => {
   });
 
   const checks: [string, (tx: TenantTransaction) => Promise<unknown>][] = [
+    [
+      "a frozen rate with both a fully loaded annual cost and a manual cost per hour",
+      (tx) =>
+        tx.insert(frozenRates).values({
+          organizationId,
+          scenarioId: ids.scenarioId,
+          categoryId: ids.categoryId,
+          fullyLoadedAnnualCost: 7_112_000,
+          manualCostPerHour: 4500,
+          sellRate: 6500,
+        }),
+    ],
+    [
+      "a frozen rate with neither cost",
+      (tx) =>
+        tx.insert(frozenRates).values({
+          organizationId,
+          scenarioId: ids.scenarioId,
+          categoryId: ids.categoryId,
+          sellRate: 6500,
+        }),
+    ],
+    [
+      "a frozen cost config with no net annual hours",
+      (tx) =>
+        tx.insert(frozenCostConfig).values({
+          organizationId,
+          scenarioId: ids.scenarioId,
+          overhead: 1500,
+          buffer: 1000,
+          netAnnualHours: 0,
+          calendarWorkingHours: 2016,
+        }),
+    ],
+    [
+      "a frozen cost config with more net annual hours than the calendar's",
+      (tx) =>
+        tx.insert(frozenCostConfig).values({
+          organizationId,
+          scenarioId: ids.scenarioId,
+          overhead: 1500,
+          buffer: 1000,
+          netAnnualHours: 2100,
+          calendarWorkingHours: 2016,
+        }),
+    ],
     [
       "a fixed extra cost with a percentage",
       (tx) =>

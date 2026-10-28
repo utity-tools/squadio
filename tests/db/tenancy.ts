@@ -35,6 +35,9 @@ export const RESTRICTED_TABLES: readonly string[] = [
   "public.category_rates",
   "public.project_pricing",
   "public.extra_costs",
+  // docs/domain.md, "What choosing freezes": a chosen scenario's rates and cost settings.
+  "public.frozen_rates",
+  "public.frozen_cost_config",
 ];
 
 /**

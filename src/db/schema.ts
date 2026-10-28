@@ -22,7 +22,14 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 
-import { MAX_WEEKLY_HOURS, basisPoints, bytea, moneyCents, weeklyHours } from "./columns";
+import {
+  MAX_WEEKLY_HOURS,
+  basisPoints,
+  bytea,
+  moneyCents,
+  weeklyHours,
+  yearHours,
+} from "./columns";
 
 const organizationId = () => uuid("organization_id").notNull();
 const id = () => uuid("id").primaryKey().defaultRandom();
@@ -298,6 +305,81 @@ export const projectPricing = pgTable(
     check("project_pricing_price_check", sql`price > 0`),
     notNegative("project_pricing", "overhead_pct"),
     notNegative("project_pricing", "buffer_pct"),
+  ],
+).enableRLS();
+
+/**
+ * A chosen scenario's rate of each category it uses, copied from category_rates when it is chosen
+ * (docs/domain.md, "What choosing freezes"): the fully loaded annual cost, rounded once to the cent
+ * as the engine takes it, or the manual cost per hour, and the sell rate. Cost per hour is derived.
+ */
+export const frozenRates = pgTable(
+  "frozen_rates",
+  {
+    organizationId: organizationId(),
+    scenarioId: uuid("scenario_id").notNull(),
+    categoryId: uuid("category_id").notNull(),
+    fullyLoadedAnnualCost: moneyCents("fully_loaded_annual_cost"),
+    manualCostPerHour: moneyCents("manual_cost_per_hour"),
+    sellRate: moneyCents("sell_rate").notNull(),
+  },
+  (t) => [
+    rateAccess(),
+    primaryKey({
+      name: "frozen_rates_pkey",
+      columns: [t.organizationId, t.scenarioId, t.categoryId],
+    }),
+    foreignKey({
+      name: "frozen_rates_scenario_fkey",
+      columns: [t.organizationId, t.scenarioId],
+      foreignColumns: [scenarios.organizationId, scenarios.id],
+    }).onDelete("cascade"),
+    // No cascade: a category a chosen scenario is costed with stays while it is chosen.
+    foreignKey({
+      name: "frozen_rates_category_fkey",
+      columns: [t.organizationId, t.categoryId],
+      foreignColumns: [categories.organizationId, categories.id],
+    }),
+    check(
+      "frozen_rates_cost_check",
+      sql`(fully_loaded_annual_cost is null) <> (manual_cost_per_hour is null)`,
+    ),
+    notNegative("frozen_rates", "fully_loaded_annual_cost"),
+    notNegative("frozen_rates", "manual_cost_per_hour"),
+    notNegative("frozen_rates", "sell_rate"),
+  ],
+).enableRLS();
+
+/**
+ * A chosen scenario's cost settings, written with its frozen rates (docs/domain.md, "What choosing
+ * freezes"): overhead and buffer as they applied, and the availability factor's two terms. The
+ * target margin is not frozen.
+ */
+export const frozenCostConfig = pgTable(
+  "frozen_cost_config",
+  {
+    organizationId: organizationId(),
+    scenarioId: uuid("scenario_id").notNull(),
+    overhead: basisPoints("overhead_pct").notNull(),
+    buffer: basisPoints("buffer_pct").notNull(),
+    netAnnualHours: integer("net_annual_hours").notNull(),
+    calendarWorkingHours: yearHours("calendar_working_hours").notNull(),
+  },
+  (t) => [
+    rateAccess(),
+    primaryKey({ name: "frozen_cost_config_pkey", columns: [t.organizationId, t.scenarioId] }),
+    foreignKey({
+      name: "frozen_cost_config_scenario_fkey",
+      columns: [t.organizationId, t.scenarioId],
+      foreignColumns: [scenarios.organizationId, scenarios.id],
+    }).onDelete("cascade"),
+    notNegative("frozen_cost_config", "overhead_pct"),
+    notNegative("frozen_cost_config", "buffer_pct"),
+    // The engine's own rule: no more net hours than the calendar has.
+    check(
+      "frozen_cost_config_hours_check",
+      sql`net_annual_hours > 0 and net_annual_hours <= calendar_working_hours`,
+    ),
   ],
 ).enableRLS();
 

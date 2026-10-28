@@ -13,6 +13,7 @@ import {
   scenarios,
 } from "./schema";
 import { DEMO_ORGANIZATION_ID, demoAccessContext } from "./access";
+import { freezeScenario } from "./choose-scenario";
 import { type TenantTransaction, withOrganization } from "./tenant";
 
 // The demo organization: the Consultancy template and the guide case team of docs/domain.md, plus
@@ -332,7 +333,7 @@ async function insertWarningScenarios(tx: TenantTransaction) {
 /**
  * Two projects under way, each with a chosen scenario covering 2026 and early 2027, the years the
  * calendar knows: the bench's occupancy (domain, "How busy a person is") then reads 40% to 130%,
- * Senior Developer 4 being over-allocated. Their frozen rates come with choosing (slice 7).
+ * Senior Developer 4 being over-allocated. Their rates and settings are frozen as choosing does.
  */
 async function insertOngoingProjects(tx: TenantTransaction) {
   const organizationId = DEMO_ORGANIZATION_ID;
@@ -457,6 +458,12 @@ async function insertOngoingProjects(tx: TenantTransaction) {
       allocation: 40,
     },
   ]);
+  // Chosen, so frozen at today's rates and settings (rule b).
+  for (const scenarioId of [DEMO_IDS.deliveryScenario, DEMO_IDS.upkeepScenario]) {
+    if ((await freezeScenario(tx, scenarioId)) !== "frozen") {
+      throw new Error(`The seed's chosen scenario ${scenarioId} has a category without a rate`);
+    }
+  }
 }
 
 /**
