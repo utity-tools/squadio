@@ -46,6 +46,9 @@ export const DEMO_IDS = {
   missingRateScenario: demoId(203),
   /** A fixed-price project without a price. */
   missingPriceScenario: demoId(204),
+  /** Chosen scenarios of two projects under way, so the bench shows how busy people are. */
+  deliveryScenario: demoId(205),
+  upkeepScenario: demoId(206),
 } as const;
 
 /** The Consultancy template: gross annual salary and sell rate per hour, in cents. */
@@ -233,6 +236,7 @@ async function insert(tx: TenantTransaction) {
   ]);
 
   await insertWarningScenarios(tx);
+  await insertOngoingProjects(tx);
 }
 
 /** One scenario per summary warning, in projects of their own so Plan A's figures stay put. */
@@ -321,6 +325,136 @@ async function insertWarningScenarios(tx: TenantTransaction) {
       categoryId: categoryId("junior"),
       personId: personId("junior", 1),
       projectRole: "Developer",
+    },
+  ]);
+}
+
+/**
+ * Two projects under way, each with a chosen scenario covering 2026 and early 2027, the years the
+ * calendar knows: the bench's occupancy (domain, "How busy a person is") then reads 40% to 130%,
+ * Senior Developer 4 being over-allocated. Their frozen rates come with choosing (slice 7).
+ */
+async function insertOngoingProjects(tx: TenantTransaction) {
+  const organizationId = DEMO_ORGANIZATION_ID;
+  const mobile = demoId(103);
+  const upkeep = demoId(104);
+  await tx.insert(projects).values([
+    {
+      id: mobile,
+      organizationId,
+      name: "Mobile app",
+      client: "Demo Retail",
+      pricingModel: "time_and_materials",
+    },
+    {
+      id: upkeep,
+      organizationId,
+      name: "Platform upkeep",
+      client: "Demo Client",
+      pricingModel: "time_and_materials",
+    },
+  ]);
+  await tx.insert(scenarios).values([
+    {
+      id: DEMO_IDS.deliveryScenario,
+      organizationId,
+      projectId: mobile,
+      name: "Delivery plan",
+      chosen: true,
+    },
+    {
+      id: DEMO_IDS.upkeepScenario,
+      organizationId,
+      projectId: upkeep,
+      name: "Run plan",
+      chosen: true,
+    },
+  ]);
+
+  const delivery = {
+    organizationId,
+    weeklyHours: 40,
+    startDate: "2026-02-02",
+    endDate: "2027-03-31",
+  };
+  const deliveryLead = demoId(350);
+  await tx.insert(assignments).values([
+    {
+      ...delivery,
+      id: deliveryLead,
+      scenarioId: DEMO_IDS.deliveryScenario,
+      categoryId: categoryId("pm"),
+      personId: personId("pm", 0),
+      projectRole: "Project manager",
+      allocation: 50,
+    },
+    {
+      ...delivery,
+      id: demoId(351),
+      scenarioId: DEMO_IDS.deliveryScenario,
+      categoryId: categoryId("senior"),
+      personId: personId("senior", 3),
+      projectRole: "Tech lead",
+      reportsTo: deliveryLead,
+      allocation: 100,
+    },
+    {
+      ...delivery,
+      id: demoId(352),
+      scenarioId: DEMO_IDS.deliveryScenario,
+      categoryId: categoryId("frontend"),
+      personId: personId("frontend", 2),
+      projectRole: "Mobile developer",
+      reportsTo: deliveryLead,
+      allocation: 100,
+    },
+    {
+      ...delivery,
+      id: demoId(353),
+      scenarioId: DEMO_IDS.deliveryScenario,
+      categoryId: categoryId("junior"),
+      personId: personId("junior", 2),
+      projectRole: "Developer",
+      reportsTo: deliveryLead,
+      allocation: 60,
+    },
+  ]);
+  const upkeepSeat = {
+    organizationId,
+    weeklyHours: 40,
+    startDate: "2026-06-01",
+    endDate: "2027-05-28",
+  };
+  const upkeepLead = demoId(360);
+  await tx.insert(assignments).values([
+    {
+      ...upkeepSeat,
+      id: upkeepLead,
+      scenarioId: DEMO_IDS.upkeepScenario,
+      categoryId: categoryId("pm"),
+      personId: personId("pm", 0),
+      projectRole: "Project manager",
+      allocation: 50,
+    },
+    {
+      ...upkeepSeat,
+      id: demoId(361),
+      scenarioId: DEMO_IDS.upkeepScenario,
+      categoryId: categoryId("senior"),
+      personId: personId("senior", 3),
+      projectRole: "Reviewer",
+      reportsTo: upkeepLead,
+      allocation: 30,
+    },
+    {
+      ...upkeepSeat,
+      id: demoId(362),
+      scenarioId: DEMO_IDS.upkeepScenario,
+      categoryId: categoryId("devops"),
+      personId: personId("devops", 1),
+      projectRole: "DevOps engineer",
+      reportsTo: upkeepLead,
+      allocation: 40,
     },
   ]);
 }
