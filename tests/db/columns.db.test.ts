@@ -3,7 +3,7 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { pgTable } from "drizzle-orm/pg-core";
 import { afterAll, describe, expect, it } from "vitest";
 
-import { basisPoints, moneyCents, weeklyHours } from "@/db/columns";
+import { basisPoints, moneyCents, weeklyHours, yearHours } from "@/db/columns";
 
 import { appPool } from "./support";
 
@@ -18,10 +18,12 @@ const table = pgTable("columns_db_test", {
   amount: moneyCents("amount"),
   percentage: basisPoints("percentage"),
   hours: weeklyHours("hours"),
+  yearHours: yearHours("year_hours"),
 });
 
 const MONEY = sql`numeric(12,2)`;
 const HUNDREDTHS = sql`numeric(5,2)`;
+const THOUSANDTHS = sql`numeric(8,3)`;
 
 /** Sends `value` through the column's driver mapping into `type`, and reads Postgres' text. */
 const throughPostgres = async (driverValue: unknown, type: SQL) => {
@@ -56,4 +58,13 @@ describe("column types in Postgres", () => {
 
     expect(table.hours.mapFromDriverValue(printed)).toBe(h);
   });
+
+  it.each([2032, 1882.14, 1887.648, 0.001, 99999.999])(
+    "keeps %d hours of a year through numeric(8,3)",
+    async (h) => {
+      const printed = await throughPostgres(table.yearHours.mapToDriverValue(h), THOUSANDTHS);
+
+      expect(table.yearHours.mapFromDriverValue(printed)).toBe(h);
+    },
+  );
 });

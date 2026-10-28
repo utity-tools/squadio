@@ -5,17 +5,25 @@ import { describe, expect, it } from "vitest";
 
 import { MAX_BASIS_POINTS, MAX_MONEY_CENTS, NumericFormatError } from "@/lib/money/numeric";
 
-import { MAX_WEEKLY_HOURS, basisPoints, moneyCents, weeklyHours } from "./columns";
+import {
+  MAX_WEEKLY_HOURS,
+  MAX_YEAR_HOURS,
+  basisPoints,
+  moneyCents,
+  weeklyHours,
+  yearHours,
+} from "./columns";
 
 // The column types of ADR 0010, checked through a table as Drizzle uses them.
 const table = pgTable("columns_test", {
   amount: moneyCents("amount"),
   percentage: basisPoints("percentage"),
   hours: weeklyHours("hours"),
+  yearHours: yearHours("year_hours"),
 });
 
 describe("column types", () => {
-  it("declares numeric(12,2) for money, numeric(5,2) for percentages and weekly hours", () => {
+  it("declares numeric(12,2) for money, numeric(5,2) for percentages and weekly hours, and numeric(8,3) for a year's hours", () => {
     const types = Object.fromEntries(
       getTableConfig(table).columns.map((column) => [column.name, column.getSQLType()]),
     );
@@ -24,6 +32,7 @@ describe("column types", () => {
       amount: "numeric(12,2)",
       percentage: "numeric(5,2)",
       hours: "numeric(5,2)",
+      year_hours: "numeric(8,3)",
     });
   });
 });
@@ -104,6 +113,47 @@ describe("weeklyHours", () => {
         const value = table.hours.mapToDriverValue(hours);
 
         expect(table.hours.mapFromDriverValue(value)).toBe(hours);
+        expect(String(hours)).toBe(String(Number(value)));
+      }),
+    );
+  });
+});
+
+describe("yearHours", () => {
+  it.each([
+    ["2032.000", 2032],
+    ["1882.140", 1882.14],
+    ["1887.648", 1887.648],
+    ["0.001", 0.001],
+  ])("reads %s as %d hours", (value, hours) => {
+    expect(table.yearHours.mapFromDriverValue(value)).toBe(hours);
+  });
+
+  it.each([
+    [2032, "2032.000"],
+    [1882.14, "1882.140"],
+    [1887.648, "1887.648"],
+  ])("writes %d hours as %s", (hours, value) => {
+    expect(table.yearHours.mapToDriverValue(hours)).toBe(value);
+  });
+
+  it.each([
+    ["four decimals", 1887.6481],
+    ["zero", 0],
+    ["a negative", -1],
+    ["NaN", Number.NaN],
+    ["more than the column holds", MAX_YEAR_HOURS + 0.001],
+  ])("rejects %s", (_case, hours) => {
+    expect(() => table.yearHours.mapToDriverValue(hours)).toThrow(NumericFormatError);
+  });
+
+  it("round-trips every year's hours with up to three decimals", () => {
+    fc.assert(
+      fc.property(fc.integer({ min: 1, max: MAX_YEAR_HOURS * 1000 }), (thousandths) => {
+        const hours = thousandths / 1000;
+        const value = table.yearHours.mapToDriverValue(hours);
+
+        expect(table.yearHours.mapFromDriverValue(value)).toBe(hours);
         expect(String(hours)).toBe(String(Number(value)));
       }),
     );
