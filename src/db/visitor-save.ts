@@ -127,11 +127,13 @@ export async function saveForVisitor(
       if (claimed !== "claimed") throw new Error(`A new visitor's claim was ${claimed}`);
 
       const templateIds = await copyOrganization(tx, DEMO_ORGANIZATION_ID, copy);
+      // Read before the save: the page also holds ids of rows the save removes, which an undo
+      // brings back under the copy's id.
+      const open = await openIds(tx);
       const translated = translateSave(request, templateIds, copy);
       const saved = await saveChangesIn(tx, translated);
       if (!saved.ok) throw new Rollback(saved);
 
-      const open = await openIds(tx);
       const renamed = Object.fromEntries(
         [...templateIds].flatMap((id) => {
           const copied = copyId(id, copy);
