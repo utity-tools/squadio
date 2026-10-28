@@ -74,3 +74,13 @@ Keep React Flow, Motion and Zustand, and change how each is used:
 - React Flow's Delete key did not remove a focused node in the PoC. The explicit "Remove" action
   covers it; find the cause before relying on the key.
 - Hiding the React Flow attribution needs a paid plan, so it stays.
+
+## Amendments
+
+- **2026-10-28:** The focus manager of point 4 follows the [canvas brief](../design/canvas-brief.md#keyboard-and-focus).
+  After a remove at the top of the team, focus goes to the first node, or to the empty team's
+  "Add to team…". A step taken from the header's undo and redo buttons selects the assignment it
+  touched but leaves focus on the button. Selection and focus also survive the first save, which
+  moves the page to the visitor's copy (ADR 0011). The keyboard menus offer only the moves the
+  change model accepts (`moveTargets` in `src/lib/scenarios`), so the drag's hit test of point 1
+  must use it too.
