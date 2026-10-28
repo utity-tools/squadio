@@ -30,7 +30,7 @@ describe("dropAction", () => {
     it("reports to the assignment it is dropped on", () => {
       expect(dropAction(team, roster, person, onNode(4))).toEqual({
         type: "add",
-        personId: personId(2),
+        filledBy: { personId: personId(2) },
         reportsTo: seatId(4),
       });
     });
@@ -38,7 +38,7 @@ describe("dropAction", () => {
     it("goes to the top of the team when dropped on the canvas", () => {
       expect(dropAction(team, roster, person, onCanvas)).toEqual({
         type: "add",
-        personId: personId(2),
+        filledBy: { personId: personId(2) },
         reportsTo: null,
       });
     });
@@ -46,7 +46,7 @@ describe("dropAction", () => {
     it("starts an empty team", () => {
       expect(dropAction([], roster, person, onCanvas)).toEqual({
         type: "add",
-        personId: personId(2),
+        filledBy: { personId: personId(2) },
         reportsTo: null,
       });
     });
@@ -69,6 +69,36 @@ describe("dropAction", () => {
 
     it("cannot report to an assignment that is not in the team", () => {
       expect(dropAction(team, roster, person, onNode(9))).toBeNull();
+    });
+  });
+
+  describe("an open role from the bench", () => {
+    const openRole = { kind: "openRole", categoryId: SENIOR } as const;
+
+    it("reports to the assignment it is dropped on, or goes to the top on the canvas", () => {
+      expect(dropAction(team, roster, openRole, onNode(4))).toEqual({
+        type: "add",
+        filledBy: { categoryId: SENIOR },
+        reportsTo: seatId(4),
+      });
+      expect(dropAction(team, roster, openRole, onCanvas)).toEqual({
+        type: "add",
+        filledBy: { categoryId: SENIOR },
+        reportsTo: null,
+      });
+    });
+
+    it("can be added again: the team already has open roles of the category", () => {
+      expect(team.some((member) => member.personId === null && member.categoryId === SENIOR)).toBe(
+        true,
+      );
+      expect(dropAction(team, roster, openRole, onNode(2))).not.toBeNull();
+    });
+
+    it("needs a category the organization knows and a manager in the team", () => {
+      const unknown = { kind: "openRole", categoryId: personId(9) } as const;
+      expect(dropAction(team, roster, unknown, onCanvas)).toBeNull();
+      expect(dropAction(team, roster, openRole, onNode(9))).toBeNull();
     });
   });
 
@@ -143,6 +173,23 @@ describe("dropChange", () => {
         reportsTo: seatId(4),
         allocation: 100,
         weeklyHours: 37.5,
+      }),
+    });
+    expect(applyChange(team, roster, change!).ok).toBe(true);
+  });
+
+  it("adds an open role with Config's weekly hours, named after its category", () => {
+    const change = dropChange(context, { kind: "openRole", categoryId: PM }, onCanvas);
+
+    expect(change).toEqual({
+      type: "add",
+      member: expect.objectContaining({
+        personId: null,
+        categoryId: PM,
+        projectRole: "Project Manager",
+        reportsTo: null,
+        allocation: 100,
+        weeklyHours: 40,
       }),
     });
     expect(applyChange(team, roster, change!).ok).toBe(true);
