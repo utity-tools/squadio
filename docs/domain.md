@@ -335,7 +335,8 @@ hours only.
 | Restore | Puts a removed assignment back exactly as it was, with the reports it had. Only undo makes it: it is the inverse of a remove                                                                        |
 
 A new assignment starts at 100% allocation and spans the project (rule d), or, in a scenario without
-assignments, the next full month. Ids of new assignments are made by the client
+assignments, the next full month. Its project role starts as its category's name, and can be
+changed. Ids of new assignments are made by the client
 (`crypto.randomUUID()`), so a change means the same thing before and after it is saved. For the
 same reason, an edit that fills an open role is recorded with the weekly hours it copied from the
 person, not left to copy them again when it is saved. Turning a person's assignment back into an
