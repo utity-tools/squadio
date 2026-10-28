@@ -4,6 +4,8 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { ZodError } from "zod";
 
+import { chooseScenario } from "@/db/choose-scenario";
+import { copyOrganization } from "@/db/copy-organization";
 import { DEMO_IDS, DEMO_ORGANIZATION_ID, seedDemo } from "@/db/demo-seed";
 import {
   assignments,
@@ -21,7 +23,8 @@ import { type AccessContext, withOrganization } from "@/db/tenant";
 import { calendarWorkingHours } from "@/lib/calendar/calendar";
 import { calculateScenario } from "@/lib/costing/calculate-scenario";
 import { loadScenario } from "@/db/load-scenario";
-import { scenarioView } from "@/lib/scenarios/scenario-view";
+import { engineInputFor, scenarioView } from "@/lib/scenarios/scenario-view";
+import { copyId } from "@/lib/visitors/copy-id";
 
 import { SOME_DAY, appPool } from "./support";
 
@@ -315,6 +318,47 @@ describe("loadScenario", () => {
       hours: { nominal: 0, effective: 0 },
       assignments: [],
     });
+  });
+
+  it("costs a chosen scenario with its frozen values, whatever changes later (rule b)", async () => {
+    const copyOrg = randomUUID();
+    const copy: AccessContext = { organizationId: copyOrg, rateAccess: true };
+    await app.transaction((tx) => copyOrganization(tx, DEMO_ORGANIZATION_ID, copyOrg));
+    const guide = copyId(DEMO_IDS.guideScenario, copyOrg);
+    expect(await chooseScenario(app, copy, { scenarioId: guide, baseVersion: 1 })).toMatchObject({
+      ok: true,
+    });
+    const before = await loadScenario(app, copy, guide, SOME_DAY);
+    if (!before?.rateAccess) throw new Error("expected a result with rate access");
+
+    // Everything rule b freezes moves: rates, overhead and buffer, and the availability factor.
+    await withOrganization(app, copy, async (tx) => {
+      await tx.update(categoryRates).set({ grossAnnualSalary: 9_000_000, sellRate: 9_900 });
+      await tx.update(costConfig).set({ overhead: 3000, buffer: 2000 });
+      await tx.update(projectPricing).set({ overhead: null, buffer: null });
+      await tx.update(config).set({ netAnnualHours: 1400, defaultWeeklyHours: 37.5 });
+    });
+    const after = await loadScenario(app, copy, guide, SOME_DAY);
+    if (!after?.rateAccess) throw new Error("expected a result with rate access");
+
+    expect(after.result).toEqual(before.result);
+    expect(after.editing.basis.engine).toMatchObject({ frozen: true });
+    // The page recalculates the chosen team to the same result.
+    expect(scenarioView(after.editing.basis, after.editing.team)).toEqual(
+      scenarioView(before.editing.basis, before.editing.team),
+    );
+    expect(
+      engineInputFor(after.editing.basis, after.editing.team).costSettings.calendarWorkingHours,
+    ).toBe(calendarWorkingHours(2027, 40));
+
+    // The target margin is not frozen: it moves the status, never the cost.
+    await withOrganization(app, copy, (tx) => tx.update(costConfig).set({ targetMargin: 9000 }));
+    const judged = await loadScenario(app, copy, guide, SOME_DAY);
+    if (!judged?.rateAccess) throw new Error("expected a result with rate access");
+    if (!judged.result.complete || !before.result.complete) throw new Error("expected costs");
+    expect(judged.result.totalCostCents).toBe(before.result.totalCostCents);
+    expect(judged.result.netMarginCents).toBe(before.result.netMarginCents);
+    expect(judged.result.marginStatus).not.toBe(before.result.marginStatus);
   });
 
   it("returns null for a scenario of another organization", async () => {

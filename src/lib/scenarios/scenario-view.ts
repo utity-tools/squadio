@@ -90,7 +90,7 @@ export type ScenarioBasis = Omit<OpenScenario, "team" | "span"> & {
   defaultWeeklyHours: number;
   /**
    * The engine's inputs with no assignments; `engineInputFor` adds the team's, and replaces the
-   * calendar working hours, which here are those of the calendar's first year.
+   * calendar working hours, which here are those of the calendar's first year, unless frozen.
    */
   engine:
     | {
@@ -99,6 +99,8 @@ export type ScenarioBasis = Omit<OpenScenario, "team" | "span"> & {
         /** Every small category of the organization; the view keeps the ones the team uses. */
         smallCategories: SmallCategory[];
         extraCosts: SummaryExtraCost[];
+        /** A chosen scenario costed with its frozen values: its calendar hours stay as frozen. */
+        frozen?: true;
       }
     | { rateAccess: false; input: EngineInput };
 };
@@ -122,10 +124,10 @@ export function engineInputFor(basis: ScenarioBasis, team: readonly Member[]): E
     scenario: { ...input.scenario, assignments },
     costSettings: {
       ...input.costSettings,
-      calendarWorkingHours: calendarWorkingHours(
-        referenceYear(assignments),
-        basis.defaultWeeklyHours,
-      ),
+      calendarWorkingHours:
+        basis.engine.rateAccess && basis.engine.frozen
+          ? input.costSettings.calendarWorkingHours
+          : calendarWorkingHours(referenceYear(assignments), basis.defaultWeeklyHours),
     },
   };
 }
