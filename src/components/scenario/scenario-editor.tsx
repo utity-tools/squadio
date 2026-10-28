@@ -3,6 +3,7 @@
 import { type ReactNode, createContext, use, useEffect, useMemo, useState } from "react";
 import { useStore } from "zustand";
 
+import { TeamDragProvider } from "@/components/team-drag/team-drag";
 import type { Member } from "@/lib/scenarios/change";
 import {
   type LoadedScenario,
@@ -58,7 +59,9 @@ export function ScenarioEditor({ scenarioId, editing, save, children }: Scenario
 
   return (
     <StoreContext value={store}>
-      <ViewContext value={view}>{children}</ViewContext>
+      <ViewContext value={view}>
+        <TeamDragProvider>{children}</TeamDragProvider>
+      </ViewContext>
     </StoreContext>
   );
 }

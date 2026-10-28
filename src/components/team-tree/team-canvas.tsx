@@ -15,6 +15,7 @@ import {
   useStore,
 } from "@xyflow/react";
 import {
+  GripVerticalIcon,
   ScanIcon,
   TriangleAlertIcon,
   UserIcon,
@@ -36,6 +37,7 @@ import {
   useState,
 } from "react";
 
+import { useDragState, useTeamDrag } from "@/components/team-drag/team-drag";
 import { MemberMenu } from "@/components/team-editing/member-menu";
 import type { TeamEditing } from "@/components/team-editing/team-editing";
 import { Button } from "@/components/ui/button";
@@ -127,6 +129,7 @@ function Canvas({
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const instructions = useId();
   const flow = useReactFlow();
+  const { over } = useDragState();
   const [canvas, setCanvas] = useState<HTMLDivElement | null>(null);
   const zoomLevel = useStore((state) => state.transform[2]);
   /** Once someone zooms or pans, resizing the canvas no longer fits the team again. */
@@ -149,8 +152,11 @@ function Canvas({
       onPath: path.has(id),
       tabbable: id === tabStop,
     },
-    // The card inside is the focusable element; the wrapper is only a position.
-    domAttributes: { "aria-roledescription": undefined },
+    // The card inside is the focusable element; the wrapper is only a position, and a drop zone.
+    domAttributes: {
+      "aria-roledescription": undefined,
+      ...(editing && { "data-drop-node": id }),
+    },
   }));
   const edges: ReportEdge[] = teamEdges(team, layout).map(({ id, source, target, points }) => ({
     id,
@@ -255,7 +261,12 @@ function Canvas({
         ref={setCanvas}
         aria-label={t("label")}
         aria-describedby={instructions}
-        className="h-full min-h-96"
+        // Drops on the canvas, outside the nodes, go to the top of the team.
+        data-drop-root={editing ? "" : undefined}
+        className={cn(
+          "h-full min-h-96",
+          over?.kind === "canvas" && "outline-2 -outline-offset-2 outline-primary",
+        )}
         // The cards scale with the canvas; their focus ring divides by the zoom to stay 2 px.
         style={{ "--zoom": zoomLevel } as CSSProperties}
         nodes={nodes}
@@ -291,6 +302,8 @@ function Canvas({
           <div
             role="group"
             aria-label={t("controls")}
+            // Dropping on the zoom buttons is not dropping on the canvas.
+            data-no-drop=""
             className="flex flex-col gap-1 rounded-md border bg-background p-1 shadow-sm"
           >
             <ControlButton label={t("zoomIn")} onClick={() => zoom("in")}>
@@ -340,6 +353,11 @@ function AssignmentNode({ data: { card, selected, onPath, tabbable } }: NodeProp
   const format = useFormatter();
   const dayRange = useDayRange();
   const { select, tooltips, editing, menuFor, setMenuFor } = useContext(CanvasContext);
+  const drag = useTeamDrag();
+  const { dragged, over } = useDragState();
+  const draggable = editing !== null && drag.enabled;
+  const dropTarget = over?.kind === "assignment" && over.id === card.id;
+  const dragging = dragged?.kind === "assignment" && dragged.id === card.id;
   const hours = (value: number) => format.number(value, { maximumFractionDigits: 2 });
   const person = card.person ?? t("openRole");
   const allocation = format.number(card.allocation / 100, { style: "percent" });
@@ -378,6 +396,7 @@ function AssignmentNode({ data: { card, selected, onPath, tabbable } }: NodeProp
             data-assignment={card.id}
             data-open-role={card.person ? undefined : ""}
             data-on-path={onPath ? "" : undefined}
+            data-drop-target={dropTarget ? "" : undefined}
             tabIndex={tabbable ? 0 : -1}
             aria-current={selected || undefined}
             aria-haspopup={editing ? "menu" : undefined}
@@ -389,6 +408,10 @@ function AssignmentNode({ data: { card, selected, onPath, tabbable } }: NodeProp
               card.person === null && "border-2 border-dashed border-muted-foreground",
               onPath && "border-foreground",
               selected && "border-2 bg-accent text-accent-foreground",
+              draggable && "ps-6",
+              // The drop-target style of the canvas brief ("Drag from bench to canvas").
+              dropTarget && "border-2 border-primary bg-primary/10",
+              dragging && "border-2 border-dashed border-primary",
             )}
           >
             <span
@@ -443,6 +466,19 @@ function AssignmentNode({ data: { card, selected, onPath, tabbable } }: NodeProp
           <span className="block">{t("nominalHours", { hours: hours(card.nominalHours) })}</span>
         </TooltipContent>
       </Tooltip>
+      {draggable && (
+        // A pointer's way to move it; the keyboard's is "Move to…" (ADR 0008, point 4).
+        <span
+          aria-hidden
+          data-drag-grip=""
+          onPointerDown={(event) =>
+            drag.start(event, { kind: "assignment", id: card.id }, card.title)
+          }
+          className="nopan nodrag absolute inset-y-0 start-0 flex w-6 cursor-grab touch-none items-center justify-center text-muted-foreground"
+        >
+          <GripVerticalIcon className="size-3.5" />
+        </span>
+      )}
       {editing && (
         <MemberMenu
           id={card.id}

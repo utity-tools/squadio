@@ -1,10 +1,21 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { type ReactNode, createContext, use, useEffect, useRef, useState } from "react";
+import {
+  type ReactNode,
+  createContext,
+  use,
+  useEffect,
+  useEffectEvent,
+  useRef,
+  useState,
+} from "react";
 
 import { useScenarioStore, useScenarioView } from "@/components/scenario/scenario-editor";
+import { useTeamDrag } from "@/components/team-drag/team-drag";
+import { madridToday } from "@/lib/bench/occupancy";
 import type { Change } from "@/lib/scenarios/change";
+import { type Dragged, type DropZone, dropAction, dropChange } from "@/lib/scenarios/drop-action";
 import { moveTargets } from "@/lib/scenarios/move-targets";
 import { type StepFocus, stepFocus } from "@/lib/scenarios/step-focus";
 
@@ -114,9 +125,7 @@ export function TeamEditingProvider({ children }: { children: ReactNode }) {
     [store],
   );
 
-  if (view.scenario.chosen) return children;
-
-  /** Dispatches from a menu or dialog: the step moves focus. */
+  /** Dispatches from a menu, a dialog or a drop: the step moves focus. */
   function dispatchOwn(change: Change) {
     ownStep.current = true;
     try {
@@ -125,6 +134,39 @@ export function TeamEditingProvider({ children }: { children: ReactNode }) {
       ownStep.current = false;
     }
   }
+
+  // Drops take the same steps as the menus, with the defaults of "Add to team…" and no dialog
+  // (docs/domain.md, "Changes"). A chosen scenario takes none.
+  const { register } = useTeamDrag();
+  const chosen = view.scenario.chosen;
+  const drop = useEffectEvent((dragged: Dragged, zone: DropZone) => {
+    const { history, basis, roster } = store.getState();
+    const change = dropChange(
+      {
+        team: history.team,
+        roster,
+        categories: basis.categories,
+        defaultWeeklyHours: basis.defaultWeeklyHours,
+        today: madridToday(new Date()),
+        newId: () => crypto.randomUUID(),
+      },
+      dragged,
+      zone,
+    );
+    if (change) dispatchOwn(change);
+  });
+  useEffect(() => {
+    if (chosen) return;
+    return register({
+      accepts: (dragged, zone) => {
+        const { history, roster } = store.getState();
+        return dropAction(history.team, roster, dragged, zone) !== null;
+      },
+      drop: (dragged, zone) => drop(dragged, zone),
+    });
+  }, [chosen, register, store]);
+
+  if (chosen) return children;
 
   const members = new Map(view.team.map((member) => [member.id, member]));
   const nameOf = (id: string) => {
