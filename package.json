@@ -16,6 +16,7 @@
     "test:db": "vitest run --config vitest.db.config.mts",
     "test:e2e": "playwright test",
     "test:e2e:prod": "next build && E2E_PROD=1 playwright test",
+    "test:e2e:linux": "scripts/e2e-linux.sh",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:seed": "tsx scripts/seed-demo.mts",
