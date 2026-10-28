@@ -80,10 +80,12 @@ export function AddMemberDialog({
     event.preventDefault();
     if (choice === "") {
       problem.report("who", t("whoMissing"));
+      document.getElementById(whoId)?.focus();
       return;
     }
     if (role.trim() === "") {
-      problem.report("role", t("roleMissing"));
+      problem.report("role", t("problems.roleMissing"));
+      document.getElementById(roleId)?.focus();
       return;
     }
     const filledBy = choice.startsWith("role:")

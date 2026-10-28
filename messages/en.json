@@ -63,6 +63,7 @@
     "removed": "{name} leaves the team.",
     "moved": "{name} now reports to {manager}.",
     "movedToTop": "{name} now reports to no one.",
+    "edited": "{name} is updated.",
     "undone": "Undone. {summary}",
     "redone": "Redone. {summary}",
     "rejected": "{action, select, undo {Cannot undo} redo {Cannot redo} other {Cannot make the change}}: {reason}",
@@ -171,8 +172,27 @@
     "emptyDescription": "Add the first person or open role.",
     "addFirst": "This is the first assignment. Starts at {percent} for next month.",
     "whoMissing": "Choose a person or an open role.",
-    "roleMissing": "Type the project role.",
-    "someAssignment": "an assignment"
+    "someAssignment": "an assignment",
+    "edit": "Edit…",
+    "editTitle": "Edit {name}",
+    "filledBy": "Person or open role",
+    "openRoleChoice": "Open role (no person)",
+    "allocation": "Allocation (%)",
+    "weeklyHours": "Weekly hours",
+    "startDate": "Start",
+    "endDate": "End",
+    "editSubmit": "Save",
+    "problems": {
+      "roleMissing": "Type the project role.",
+      "roleTooLong": "The role can be at most 100 characters.",
+      "allocationInvalid": "Allocation is a whole number from 0 to 100.",
+      "hoursInvalid": "Weekly hours must be more than 0 and at most 168, with up to two decimals.",
+      "dateInvalid": "{field, select, startDate {Type a full start date.} other {Type a full end date.}}",
+      "dateOutsideCalendar": "{field, select, startDate {The calendar has no holidays for the start's year yet.} other {The calendar has no holidays for the end's year yet.}}",
+      "datesOrder": "The end cannot be before the start."
+    },
+    "editHint": "Choosing a person sets their weekly hours, which can still be changed.",
+    "samePersonOption": "{name}{active, select, false {, inactive} other {}}, occupancy today: {percent}"
   },
   "TeamViews": {
     "label": "View",

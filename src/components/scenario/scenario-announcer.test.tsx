@@ -46,7 +46,10 @@ describe("ScenarioAnnouncer", () => {
     act(() => {
       store.getState().dispatch(halve);
     });
-    expect(region.textContent).toMatch(/^Margen neto: [\d.]+\s€ \(/);
+    // An edit says whose assignment changed first.
+    expect(region.textContent).toMatch(
+      /^Se ha actualizado Role 3 \(vacante\)\. Margen neto: [\d.]+\s€ \(/,
+    );
     const first = region.firstElementChild;
 
     act(() => {
@@ -125,7 +128,7 @@ describe("ScenarioAnnouncer", () => {
     act(() => {
       store.getState().dispatch(halve);
     });
-    expect(region.textContent).toMatch(/^Horas efectivas: /);
+    expect(region.textContent).toMatch(/^Se ha actualizado Role 3 \(vacante\)\. Horas efectivas: /);
     expect(region.textContent).not.toContain("€");
   });
 });

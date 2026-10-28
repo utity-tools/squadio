@@ -58,6 +58,8 @@ test("an assignment is removed with the keyboard, and focus stays in the tree", 
   await expect(menu(page)).toHaveAccessibleName(/^Acciones de Tech lead/);
   // The menu moves focus a frame after each arrow: wait for it before the next key.
   await page.keyboard.press("ArrowDown");
+  await expect(menu(page).getByRole("menuitem", { name: "Añadir a su cargo…" })).toBeFocused();
+  await page.keyboard.press("ArrowDown");
   await expect(menu(page).getByRole("menuitem", { name: "Mover a…" })).toBeFocused();
   await page.keyboard.press("ArrowDown");
   await expect(menu(page).getByRole("menuitem", { name: "Quitar del equipo" })).toBeFocused();
@@ -77,6 +79,8 @@ test("an assignment is removed with the keyboard, and focus stays in the tree", 
 test("a person is added below a node with the keyboard", async ({ page }) => {
   await tabIntoView(page, "tree");
   await openMenu(page);
+  await page.keyboard.press("ArrowDown");
+  await expect(menu(page).getByRole("menuitem", { name: "Añadir a su cargo…" })).toBeFocused();
   await page.keyboard.press("Enter");
 
   await expect(dialog(page)).toHaveAccessibleName("Añadir al equipo");
@@ -102,6 +106,8 @@ test("an assignment is moved from the table with the keyboard", async ({ page })
   await expect(row(page, "Frontend developer")).toBeFocused();
 
   await openMenu(page);
+  await page.keyboard.press("ArrowDown");
+  await expect(menu(page).getByRole("menuitem", { name: "Añadir a su cargo…" })).toBeFocused();
   await page.keyboard.press("ArrowDown");
   await expect(menu(page).getByRole("menuitem", { name: "Mover a…" })).toBeFocused();
   await page.keyboard.press("Enter");
@@ -145,7 +151,7 @@ for (const colorScheme of ["light", "dark"] as const) {
     await expect(node(page, "Tech lead")).toBeFocused();
 
     await openMenu(page);
-    await page.keyboard.press("Home");
+    await page.keyboard.press("ArrowDown");
     await expect(menu(page).getByRole("menuitem", { name: "Añadir a su cargo…" })).toBeFocused();
     await page.keyboard.press("Enter");
     await expect(dialog(page)).toHaveAccessibleName("Añadir al equipo");
