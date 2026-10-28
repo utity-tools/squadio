@@ -30,6 +30,18 @@ export type StoredExtraCost = {
   endDate: string | null;
 };
 
+/**
+ * A chosen scenario's frozen values (docs/domain.md, "What choosing freezes"): its rates as the
+ * engine takes them, and the settings that applied when it was chosen.
+ */
+export type FrozenValues = {
+  rates: CategoryRate[];
+  overhead: number;
+  buffer: number;
+  netAnnualHours: number;
+  calendarWorkingHours: number;
+};
+
 /** What a scenario's cost depends on, as the tables store it. Restricted rows may be missing. */
 export type StoredScenario = {
   config: { netAnnualHours: number; defaultWeeklyHours: number };
@@ -39,6 +51,8 @@ export type StoredScenario = {
   assignments: StoredAssignment[];
   extraCosts: StoredExtraCost[];
   rates: StoredCategoryRate[];
+  /** A chosen scenario's frozen values, which replace the current ones (rule b). */
+  frozen?: FrozenValues;
 };
 
 export type EngineInput = {
@@ -100,9 +114,17 @@ const availability = (stored: StoredScenario) => ({
 
 /** The full inputs, for a user with rate access. Throws without the organization's CostConfig. */
 export function toEngineInput(stored: StoredScenario): EngineInput {
-  const { costConfig, pricing } = stored;
+  const { costConfig, pricing, frozen } = stored;
   if (!costConfig) throw new Error("The organization has no cost config");
   const price = pricing?.price ?? undefined;
+  const current = {
+    rates: stored.rates.map(toEngineRate),
+    costSettings: {
+      overheadBasisPoints: pricing?.overhead ?? costConfig.overhead,
+      bufferBasisPoints: pricing?.buffer ?? costConfig.buffer,
+      ...availability(stored),
+    },
+  };
   return {
     scenario: {
       pricing:
@@ -112,12 +134,18 @@ export function toEngineInput(stored: StoredScenario): EngineInput {
       assignments: stored.assignments,
       extraCosts: stored.extraCosts.map(toExtraCost),
     },
-    rates: stored.rates.map(toEngineRate),
-    costSettings: {
-      overheadBasisPoints: pricing?.overhead ?? costConfig.overhead,
-      bufferBasisPoints: pricing?.buffer ?? costConfig.buffer,
-      ...availability(stored),
-    },
+    ...(frozen
+      ? {
+          rates: frozen.rates,
+          costSettings: {
+            overheadBasisPoints: frozen.overhead,
+            bufferBasisPoints: frozen.buffer,
+            netAnnualHours: frozen.netAnnualHours,
+            calendarWorkingHours: frozen.calendarWorkingHours,
+          },
+        }
+      : current),
+    // Rule b: the target margin is a goal, never frozen.
     targetMargin: costConfig.targetMargin,
   };
 }

@@ -114,6 +114,28 @@ describe("engineInputFor", () => {
     expect(input.costSettings.calendarWorkingHours).toBe(calendarWorkingHours(2028, 40));
     expect(input.rates).toBe(withRates.engine.input.rates);
   });
+
+  it("keeps a chosen scenario's frozen calendar working hours", () => {
+    const { engine } = withRates;
+    if (!engine.rateAccess) throw new Error("expected a basis with rate access");
+    const frozen: ScenarioBasis = {
+      ...withRates,
+      engine: {
+        ...engine,
+        frozen: true,
+        input: {
+          ...engine.input,
+          costSettings: { ...engine.input.costSettings, calendarWorkingHours: 2000 },
+        },
+      },
+    };
+
+    const input = engineInputFor(frozen, [
+      seat(7, { startDate: "2028-02-01", endDate: "2028-03-31" }),
+    ]);
+
+    expect(input.costSettings.calendarWorkingHours).toBe(2000);
+  });
 });
 
 describe("scenarioView", () => {

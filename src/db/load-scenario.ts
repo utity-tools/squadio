@@ -9,6 +9,8 @@ import {
   config,
   costConfig,
   extraCosts,
+  frozenCostConfig,
+  frozenRates,
   people,
   projectPricing,
   projects,
@@ -17,7 +19,12 @@ import {
 import { occupancy } from "@/lib/bench/occupancy";
 import { findSmallCategories } from "@/lib/rates/small-categories";
 import type { Member } from "@/lib/scenarios/change";
-import { type StoredScenario, toEngineInput, toHoursInput } from "@/lib/scenarios/engine-input";
+import {
+  type FrozenValues,
+  type StoredScenario,
+  toEngineInput,
+  toHoursInput,
+} from "@/lib/scenarios/engine-input";
 import {
   type LoadedScenario,
   type ScenarioBasis,
@@ -114,6 +121,48 @@ async function readStructure(tx: TenantTransaction, scenarioId: string, today: s
   };
 }
 
+/**
+ * A chosen scenario's frozen values (rule b), read with rate access; undefined when it has none,
+ * so it is costed with the current values until they are written.
+ */
+async function readFrozen(
+  tx: TenantTransaction,
+  scenarioId: string,
+): Promise<FrozenValues | undefined> {
+  const [settings] = await tx
+    .select()
+    .from(frozenCostConfig)
+    .where(eq(frozenCostConfig.scenarioId, scenarioId));
+  if (!settings) return undefined;
+  const rates = await tx
+    .select()
+    .from(frozenRates)
+    .where(eq(frozenRates.scenarioId, scenarioId))
+    .orderBy(frozenRates.categoryId);
+  return {
+    rates: rates.map(({ categoryId, sellRate, fullyLoadedAnnualCost, manualCostPerHour }) => {
+      if (manualCostPerHour !== null) {
+        return {
+          categoryId,
+          sellRateCents: sellRate,
+          cost: { kind: "manual" as const, costPerHourCents: manualCostPerHour },
+        };
+      }
+      // The table's check keeps exactly one of the two.
+      if (fullyLoadedAnnualCost === null) throw new Error(`Frozen rate ${categoryId} has no cost`);
+      return {
+        categoryId,
+        sellRateCents: sellRate,
+        cost: { kind: "annual" as const, fullyLoadedCents: fullyLoadedAnnualCost },
+      };
+    }),
+    overhead: settings.overhead,
+    buffer: settings.buffer,
+    netAnnualHours: settings.netAnnualHours,
+    calendarWorkingHours: settings.calendarWorkingHours,
+  };
+}
+
 /** The restricted rows: none without rate access (ADR 0005). */
 async function readMoney(tx: TenantTransaction, scenarioId: string, projectId: string) {
   const [organizationCosts] = await tx
@@ -159,9 +208,10 @@ async function readMoney(tx: TenantTransaction, scenarioId: string, projectId: s
 }
 
 /**
- * A scenario's view with the organization's current values, and what the page needs to edit it,
- * or null when the scenario is not in the organization. Without rate access the open part and its
- * hours only: never a money figure, in the view or the basis.
+ * A scenario's view with the organization's current values, or a chosen scenario's frozen ones
+ * (rule b), and what the page needs to edit it, or null when the scenario is not in the
+ * organization. Without rate access the open part and its hours only: never a money figure, in the
+ * view or the basis.
  */
 export async function loadScenario(
   db: NodePgDatabase,
@@ -185,11 +235,13 @@ export async function loadScenario(
       engine = { rateAccess: false, input: toHoursInput(stored) };
     } else {
       const money = await readMoney(tx, scenarioId, projectId);
+      const frozen = structure.chosen ? await readFrozen(tx, scenarioId) : undefined;
       engine = {
         rateAccess: true,
-        input: toEngineInput({ ...structural, ...money }),
+        input: toEngineInput({ ...structural, ...money, frozen }),
         smallCategories: findSmallCategories(structure.roster),
         extraCosts: money.extraCosts.map(({ id, label, kind }) => ({ id, label, kind })),
+        ...(frozen && { frozen: true as const }),
       };
     }
     const basis: ScenarioBasis = {

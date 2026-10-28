@@ -77,6 +77,35 @@ describe("referenceYear", () => {
 });
 
 describe("toEngineInput", () => {
+  it("costs a chosen scenario with its frozen values, but against the current target margin", () => {
+    const frozen = {
+      rates: [
+        {
+          categoryId: "senior",
+          sellRateCents: 7000,
+          cost: { kind: "annual", fullyLoadedCents: 6_000_000 },
+        } as const,
+      ],
+      overhead: 1200,
+      buffer: 800,
+      netAnnualHours: 1600,
+      calendarWorkingHours: 2000,
+    };
+    const input = toEngineInput(stored({ frozen }));
+
+    expect(input.rates).toEqual(frozen.rates);
+    expect(input.costSettings).toEqual({
+      overheadBasisPoints: 1200,
+      bufferBasisPoints: 800,
+      netAnnualHours: 1600,
+      calendarWorkingHours: 2000,
+    });
+    // Rule b: the target margin is a goal, never frozen.
+    expect(input.targetMargin).toBe(2500);
+    // The rest is the scenario's own: the price and its extra costs.
+    expect(input.scenario).toEqual(toEngineInput(stored()).scenario);
+  });
+
   it("builds the inputs from the current values", () => {
     expect(toEngineInput(stored())).toEqual({
       scenario: {
