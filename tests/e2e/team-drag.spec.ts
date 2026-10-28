@@ -97,6 +97,22 @@ test("a person dragged from the bench onto a node joins the team under it", asyn
   await expect(row(page, "Junior Developer")).toHaveCount(0);
 });
 
+test("an open role dragged from the bench joins the team, and can be dragged again", async ({
+  page,
+}) => {
+  await openTree(page);
+  const openRole = bench(page)
+    .locator("li[data-bench-open-role]")
+    .filter({ hasText: "Vacante (Junior Developer)" });
+
+  await mouseDrag(page, openRole, node(page, "Tech lead"));
+  await expect(node(page, "Junior Developer")).toBeFocused();
+  await expect(node(page, "Junior Developer")).toContainText("Vacante");
+  await mouseDrag(page, openRole, node(page, "Project manager"));
+
+  await expect(node(page, "Junior Developer")).toHaveCount(2);
+});
+
 test("an assignment dragged by its grip moves under the node it is dropped on", async ({
   page,
 }) => {
