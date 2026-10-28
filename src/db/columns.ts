@@ -52,6 +52,40 @@ export const weeklyHours = customType<{ data: number; driverData: string }>({
   fromDriver: (value) => parseBasisPoints(value) / 100,
 });
 
+/** The most a year's hours column holds: `numeric(8,3)`. */
+export const MAX_YEAR_HOURS = 99_999.999;
+
+// Up to three decimals as JavaScript prints the number.
+const YEAR_HOURS = /^\d{1,5}(\.\d{1,3})?$/;
+
+/** Positive hours with at most three decimals into the `numeric(8,3)` string Postgres prints. */
+function formatYearHours(hours: number): string {
+  const printed = String(hours);
+  if (!YEAR_HOURS.test(printed) || hours <= 0) {
+    throw new NumericFormatError(`Expected a year's hours with up to 3 decimals, got ${printed}`);
+  }
+  const [units, decimals = ""] = printed.split(".") as [string, string?];
+  return `${units}.${decimals.padEnd(3, "0")}`;
+}
+
+/** Parses the `numeric(8,3)` text Postgres prints into exact thousandths, then hours. */
+function parseYearHours(value: string): number {
+  const match = /^(\d{1,5})\.(\d{3})$/.exec(value);
+  if (!match) throw new NumericFormatError(`Expected numeric(8,3) text, got ${value}`);
+  // Exact thousandths over 1000 give the double JavaScript prints with those decimals.
+  return Number(`${match[1]}${match[2]}`) / 1000;
+}
+
+/**
+ * A year's hours in `numeric(8,3)`, such as calendar working hours (docs/domain.md, "What choosing
+ * freezes"): a full-time week's hours over the working days, which has at most three decimals.
+ */
+export const yearHours = customType<{ data: number; driverData: string }>({
+  dataType: () => "numeric(8,3)",
+  toDriver: formatYearHours,
+  fromDriver: parseYearHours,
+});
+
 /** Raw bytes, such as a hash. */
 export const bytea = customType<{ data: Buffer; driverData: Buffer }>({
   dataType: () => "bytea",
