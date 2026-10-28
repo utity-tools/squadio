@@ -92,7 +92,9 @@
     "weeklyHours": "{hours} h/week",
     "none": "No active people yet",
     "empty": "Nobody matches the search",
-    "clear": "Clear filters"
+    "clear": "Clear filters",
+    "openRole": "Open role",
+    "openRoleOf": "Open role ({category})"
   },
   "ScenarioError": {
     "title": "We couldn't open this scenario",

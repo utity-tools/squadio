@@ -46,8 +46,17 @@ function renderBench(people = basis.people) {
 }
 
 const card = (name: string) => screen.getByText(name).closest("li") as HTMLElement;
+/** The people listed, without the open roles. */
 const names = () =>
-  screen.queryAllByRole("listitem").map((item) => item.firstChild?.firstChild?.textContent);
+  screen
+    .queryAllByRole("listitem")
+    .filter((item) => item.hasAttribute("data-bench-person"))
+    .map((item) => within(item).getAllByText(/^Person/)[0]?.textContent);
+const openRoles = () =>
+  screen
+    .queryAllByRole("listitem")
+    .filter((item) => item.hasAttribute("data-bench-open-role"))
+    .map((item) => item.closest("div")?.querySelector("h3 span")?.textContent);
 
 describe("Bench", () => {
   it("lists the active people by category, with how many", () => {
@@ -69,10 +78,35 @@ describe("Bench", () => {
     expect(screen.queryAllByRole("region")).toHaveLength(0);
   });
 
-  it("says when the organization has nobody active", () => {
+  it("says when the organization has nobody active, and still offers open roles", () => {
     renderBench(basis.people.map((person) => ({ ...person, active: false })));
     expect(screen.getByText("Todavía no hay personas activas")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Quitar filtros" })).not.toBeInTheDocument();
+    expect(openRoles()).toEqual(["Senior Developer", "Project Manager"]);
+  });
+
+  it("offers an open role first in each category, with Config's weekly hours", () => {
+    renderBench();
+    const [first] = screen.getAllByRole("listitem");
+    expect(first).toHaveAttribute("data-bench-open-role");
+    expect(first).toHaveTextContent("Vacante");
+    expect(first).toHaveTextContent("40 h/semana");
+    expect(openRoles()).toEqual(["Senior Developer", "Project Manager"]);
+  });
+
+  it("hides the open roles while searching names, but keeps them for a category", async () => {
+    const user = userEvent.setup();
+    renderBench();
+
+    await user.type(screen.getByRole("searchbox", { name: "Buscar persona" }), "son 2");
+    expect(openRoles()).toEqual([]);
+
+    await user.clear(screen.getByRole("searchbox", { name: "Buscar persona" }));
+    await user.selectOptions(
+      screen.getByRole("combobox", { name: "Categoría" }),
+      "Project Manager",
+    );
+    expect(openRoles()).toEqual(["Project Manager"]);
   });
 
   it("says how busy each person is today, and when they are over-allocated", () => {
@@ -110,6 +144,26 @@ describe("Bench", () => {
       "Project Manager",
     );
     expect(names()).toEqual(["Person 3"]);
+  });
+
+  it("says nothing more for a chosen category with nobody in it than its heading and open role", async () => {
+    const user = userEvent.setup();
+    // Person 3, the only project manager, is inactive.
+    renderBench(
+      basis.people.map((person) =>
+        person.id === personId(3) ? { ...person, active: false } : person,
+      ),
+    );
+
+    await user.selectOptions(
+      screen.getByRole("combobox", { name: "Categoría" }),
+      "Project Manager",
+    );
+    expect(
+      screen.getByRole("heading", { level: 3, name: /^Project Manager\s*0 personas$/ }),
+    ).toBeInTheDocument();
+    expect(openRoles()).toEqual(["Project Manager"]);
+    expect(screen.queryByText("Nadie coincide con la búsqueda")).not.toBeInTheDocument();
   });
 
   it("offers to clear the filters when nobody matches", async () => {

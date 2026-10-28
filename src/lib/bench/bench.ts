@@ -8,7 +8,12 @@ export type BenchPerson = Pick<RosterPerson, "id" | "name" | "weeklyHours" | "oc
   onTeam: boolean;
 };
 
-export type BenchGroup = { category: { id: string; name: string }; people: BenchPerson[] };
+export type BenchGroup = {
+  category: { id: string; name: string };
+  /** Whether the group offers an open role of its category: only while no name is searched. */
+  openRole: boolean;
+  people: BenchPerson[];
+};
 
 export type BenchFilter = {
   /** Part of a name; case and accents do not matter. */
@@ -26,8 +31,9 @@ function plain(text: string): string {
 }
 
 /**
- * The bench's groups: one per category with active people the filter matches, in the categories'
- * order, each listing its people in the roster's order (by name).
+ * The bench's groups, in the categories' order, each listing its people in the roster's order (by
+ * name). Without a name to search, every category the filter keeps has a group with an open role,
+ * even one without people; while searching, only categories with people who match it do.
  */
 export function benchGroups(
   roster: { categories: readonly BenchGroup["category"][]; people: readonly RosterPerson[] },
@@ -36,13 +42,17 @@ export function benchGroups(
 ): BenchGroup[] {
   const onTeam = new Set(team.map((member) => member.personId));
   const query = plain(filter.query.trim());
+  const openRole = query === "";
   const people = roster.people.filter(
     (person) =>
       person.active &&
       (filter.categoryId === null || person.categoryId === filter.categoryId) &&
       plain(person.name).includes(query),
   );
-  return roster.categories.flatMap((category) => {
+  const categories = roster.categories.filter(
+    (category) => filter.categoryId === null || category.id === filter.categoryId,
+  );
+  return categories.flatMap((category) => {
     const members = people
       .filter((person) => person.categoryId === category.id)
       .map(({ id, name, weeklyHours, occupancy }) => ({
@@ -52,6 +62,6 @@ export function benchGroups(
         occupancy,
         onTeam: onTeam.has(id),
       }));
-    return members.length > 0 ? [{ category, people: members }] : [];
+    return members.length > 0 || openRole ? [{ category, openRole, people: members }] : [];
   });
 }
