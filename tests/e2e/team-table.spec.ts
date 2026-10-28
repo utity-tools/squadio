@@ -18,11 +18,17 @@ const row = (page: Page, title: string) =>
 const bodyRows = (page: Page) => grid(page).locator("tbody").getByRole("row");
 const footer = (page: Page) => grid(page).getByRole("row", { name: /^Total/ });
 
-/** Tabs from the view switch, the stop before the view, into the grid. */
+/** Tabs from the view switch into the grid, past "Add to team…" where the team can be edited. */
 async function tabIntoGrid(page: Page) {
   await expectHydrated(row(page, "Project manager"));
   await views(page).getByRole("radio", { checked: true }).focus();
   await page.keyboard.press("Tab");
+  // A phone is read-only: no button.
+  const add = page.getByRole("button", { name: "Añadir al equipo…" });
+  if ((await add.count()) > 0) {
+    await expect(add).toBeFocused();
+    await page.keyboard.press("Tab");
+  }
   await expect(row(page, "Project manager")).toHaveAttribute("aria-selected", "true");
 }
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { TeamEditingProvider } from "@/components/team-editing/team-editing";
 import { categoriesWithoutRate } from "@/lib/team-tree/cards";
 
 import { useScenarioView } from "./scenario-editor";
@@ -18,14 +19,16 @@ export function LiveScenarioHeader() {
 export function LiveScenarioTeam() {
   const scenario = useScenarioView();
   return (
-    <ScenarioTeam
-      team={scenario.team}
-      // Every assignment's hours, with or without rate access (ADR 0005).
-      hours={scenario.rateAccess ? scenario.result.assignments : scenario.assignments}
-      span={scenario.span}
-      // Which categories lack a rate is restricted: without rate access, no node is marked.
-      withoutRate={categoriesWithoutRate(scenario)}
-    />
+    <TeamEditingProvider>
+      <ScenarioTeam
+        team={scenario.team}
+        // Every assignment's hours, with or without rate access (ADR 0005).
+        hours={scenario.rateAccess ? scenario.result.assignments : scenario.assignments}
+        span={scenario.span}
+        // Which categories lack a rate is restricted: without rate access, no node is marked.
+        withoutRate={categoriesWithoutRate(scenario)}
+      />
+    </TeamEditingProvider>
   );
 }
 

@@ -12,6 +12,8 @@ import {
 } from "react";
 
 import { useDayRange } from "@/components/format/use-day-range";
+import { MemberMenu } from "@/components/team-editing/member-menu";
+import type { TeamEditing } from "@/components/team-editing/team-editing";
 import type { LayoutNode } from "@/lib/layout/compact-layout";
 import { type GridFocus, treegridMove } from "@/lib/team-table/keyboard";
 import { type VisibleRow, teamRows, teamTotals, visibleRows } from "@/lib/team-table/rows";
@@ -30,6 +32,8 @@ export type TeamTableProps = {
   /** The rows whose reports are hidden. */
   collapsed: ReadonlySet<string>;
   onCollapsedChange: (next: ReadonlySet<string>) => void;
+  /** The rows' menus; null for a team that cannot be edited here. */
+  editing?: TeamEditing | null;
 };
 
 /** The brief's columns, in order; the keys name their headers in "TeamTable.columns". */
@@ -75,8 +79,12 @@ export function TeamTable({
   onSelect,
   collapsed,
   onCollapsedChange,
+  editing = null,
 }: TeamTableProps) {
   const t = useTranslations("TeamTable");
+  const tEditing = useTranslations("TeamEditing");
+  /** The row whose menu is open. */
+  const [menuFor, setMenuFor] = useState<string | null>(null);
   const format = useFormatter();
   const dayRange = useDayRange();
   const instructions = useId();
@@ -128,9 +136,19 @@ export function TeamTable({
     if (focus.row !== TOTALS_ROW && focus.row !== selected) onSelect(focus.row);
   }
 
+  /** The row's own element, which gets focus back when its menu closes untouched. */
+  const rowElement = (id: string) =>
+    table.current?.querySelector<HTMLElement>(`[data-row="${CSS.escape(id)}"]`) ?? null;
+
   function onKeyDown(event: KeyboardEvent<HTMLTableElement>) {
     if (event.altKey || event.metaKey || event.shiftKey) return;
     const focus = focusOf(event.target);
+    // Enter on a row or one of its cells opens the row's menu (canvas brief, "Keyboard parity").
+    if (event.key === "Enter" && editing && focus && focus.row !== TOTALS_ROW) {
+      event.preventDefault();
+      setMenuFor(focus.row);
+      return;
+    }
     const move =
       focus && treegridMove(event.key, focus, navigable, COLUMNS.length, { ctrl: event.ctrlKey });
     if (!move) return;
@@ -219,6 +237,7 @@ export function TeamTable({
     <>
       <p id={instructions} className="sr-only">
         {t("instructions")}
+        {editing && ` ${tEditing("instructions")}`}
       </p>
       {/* A table wider than its area scrolls inside it, not the page, with a shadow at each edge
           that has more to show. */}
@@ -266,6 +285,16 @@ export function TeamTable({
                   aria-expanded={row.hasChildren ? row.expanded : undefined}
                   aria-selected={isSelected}
                   tabIndex={rowTabStop?.column === null ? 0 : -1}
+                  // The pointer's way to the menu: a right click on the row.
+                  onContextMenu={
+                    editing
+                      ? (event) => {
+                          event.preventDefault();
+                          onSelect(row.id);
+                          setMenuFor(row.id);
+                        }
+                      : undefined
+                  }
                   className={cn(
                     "cursor-pointer border-b focus-visible:-outline-offset-2",
                     isSelected ? "bg-selected text-selected-foreground" : "hover:bg-muted/50",
@@ -295,6 +324,17 @@ export function TeamTable({
                         />
                       )}
                       {value(row, column)}
+                      {editing && index === 0 && (
+                        <MemberMenu
+                          id={row.id}
+                          editing={editing}
+                          open={menuFor === row.id}
+                          onOpenChange={(open) => setMenuFor(open ? row.id : null)}
+                          owner={() => rowElement(row.id)}
+                          trigger="anchor"
+                          className="absolute start-3 bottom-0"
+                        />
+                      )}
                     </td>
                   ))}
                 </tr>

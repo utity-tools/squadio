@@ -1,8 +1,10 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { type ReactNode, useState, useSyncExternalStore } from "react";
+import { type ReactNode, useEffect, useRef, useState, useSyncExternalStore } from "react";
 
+import { AddToTeamButton } from "@/components/team-editing/add-to-team-button";
+import { useTeamEditing } from "@/components/team-editing/team-editing";
 import { TeamTable } from "@/components/team-table/team-table";
 import { TeamCanvas } from "@/components/team-tree/team-canvas";
 import type { LayoutNode } from "@/lib/layout/compact-layout";
@@ -16,6 +18,7 @@ import {
   viewInQuery,
 } from "@/lib/team-views/query";
 import type { AssignmentCard } from "@/lib/team-tree/cards";
+import { treeNavigation } from "@/lib/team-tree/navigation";
 
 import { ViewSwitch } from "./view-switch";
 
@@ -56,6 +59,10 @@ function useWideScreen(): boolean | null {
  * below. They share one selection, kept in memory, so the node selected in the tree is the row
  * selected in the table and the reverse. The view and the table's collapsed rows are mirrored in
  * the URL with `history.replaceState`: no new history entries and no trip to the server.
+ *
+ * Where the team can be edited, from `md` up (mobile is read-only), each node and row gets its
+ * menu, the bar an "Add to team…" button, and the focus manager's requests select the assignment a
+ * step touched and, when asked, focus it.
  */
 export function TeamViews({ team, nodes, cards }: TeamViewsProps) {
   const query = useSearchParams();
@@ -68,12 +75,51 @@ export function TeamViews({ team, nodes, cards }: TeamViewsProps) {
   );
   const [selection, setSelection] = useState<string | null>(null);
   const wide = useWideScreen();
+  const views = useRef<HTMLDivElement>(null);
+  const teamEditing = useTeamEditing();
+  const editing = wide === true ? teamEditing : null;
+  const request = editing?.focusRequest ?? null;
+  const [handled, setHandled] = useState<number | null>(null);
   // Without a view in the URL the width decides, which the server cannot know: until the client
   // does, a placeholder holds the place, so neither view flashes nor fails to hydrate. The width
   // decides once: zooming in or turning a tablet must not unmount the view that has focus.
   if (view === null && wide !== null) setView(defaultView(wide));
+  // A focus request selects the assignment a step touched, or the top of the team; in the table,
+  // the managers above it expand. Focusing it waits for the render that draws it (below).
+  if (request && request.nonce !== handled) {
+    setHandled(request.nonce);
+    const target = "id" in request.target ? request.target.id : treeNavigation(team, nodes).root;
+    if (target !== null && ids.includes(target)) {
+      setSelection(target);
+      if (view === "table") setCollapsed(revealRow(team, collapsed, target));
+    }
+  }
   // A selection that left the team selects nothing.
   const selected = selection !== null && ids.includes(selection) ? selection : null;
+
+  useEffect(() => {
+    if (!request || !editing) return;
+    // The URL follows a row the request expanded.
+    if (view === "table") writeQuery(view, collapsed);
+    if (!request.move || selected === null) {
+      editing.focusDone(request.nonce);
+      return;
+    }
+    // The canvas may draw a new node a frame late. The request is done once focus moved, or gave
+    // up: marking it done earlier would end this effect, and its frame, too soon.
+    let tries = 0;
+    let frame = requestAnimationFrame(function focus() {
+      const element = views.current?.querySelector<HTMLElement>(
+        `[data-assignment="${CSS.escape(selected)}"], [data-row="${CSS.escape(selected)}"]`,
+      );
+      if (element) element.focus();
+      if (element || ++tries >= 10) editing.focusDone(request.nonce);
+      else frame = requestAnimationFrame(focus);
+    });
+    return () => cancelAnimationFrame(frame);
+    // Once per request: the selection and collapsed rows are those it just set.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [request?.nonce]);
 
   /** Mirrors the state in the URL, from the URL as it is now, keeping every other parameter. */
   function writeQuery(nextView: TeamView | null, nextCollapsed: ReadonlySet<string>) {
@@ -99,9 +145,10 @@ export function TeamViews({ team, nodes, cards }: TeamViewsProps) {
   }
 
   return (
-    <div className="flex h-full flex-col">
+    <div ref={views} className="flex h-full flex-col">
       <ViewBar>
         <ViewSwitch view={view} onViewChange={changeView} />
+        {editing && <AddToTeamButton editing={editing} />}
       </ViewBar>
       {view === "tree" && (
         <div className="min-h-96 flex-1">
@@ -111,6 +158,7 @@ export function TeamViews({ team, nodes, cards }: TeamViewsProps) {
             cards={cards}
             selected={selected}
             onSelect={setSelection}
+            editing={editing}
           />
         </div>
       )}
@@ -124,6 +172,7 @@ export function TeamViews({ team, nodes, cards }: TeamViewsProps) {
             onSelect={setSelection}
             collapsed={collapsed}
             onCollapsedChange={changeCollapsed}
+            editing={editing}
           />
         </div>
       )}
@@ -145,7 +194,11 @@ export function TeamViewsSkeleton() {
 }
 
 function ViewBar({ children }: { children: ReactNode }) {
-  return <div className="border-b bg-background px-4 py-2">{children}</div>;
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-2 border-b bg-background px-4 py-2">
+      {children}
+    </div>
+  );
 }
 
 /** A neutral block in the place of a view not chosen yet: it fits the tree and the table alike. */
