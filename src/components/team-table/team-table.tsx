@@ -11,7 +11,7 @@ import {
   useState,
 } from "react";
 
-import { utcDay } from "@/lib/calendar/utc-day";
+import { useDayRange } from "@/components/format/use-day-range";
 import type { LayoutNode } from "@/lib/layout/compact-layout";
 import { type GridFocus, treegridMove } from "@/lib/team-table/keyboard";
 import { type VisibleRow, teamRows, teamTotals, visibleRows } from "@/lib/team-table/rows";
@@ -77,6 +77,7 @@ export function TeamTable({
 }: TeamTableProps) {
   const t = useTranslations("TeamTable");
   const format = useFormatter();
+  const dayRange = useDayRange();
   const instructions = useId();
   const table = useRef<HTMLTableElement>(null);
   /** The focused cell's column, kept for the row it belongs to; null while the row has focus. */
@@ -202,12 +203,7 @@ export function TeamTable({
         return hours(card.allocatedWeeklyHours);
       case "dates":
         return card.dates ? (
-          <span className="whitespace-nowrap">
-            {format.dateTimeRange(utcDay(card.dates.start), utcDay(card.dates.end), {
-              dateStyle: "medium",
-              timeZone: "UTC",
-            })}
-          </span>
+          <span className="whitespace-nowrap">{dayRange(card.dates.start, card.dates.end)}</span>
         ) : (
           <span className="text-muted-foreground">{t("wholeProject")}</span>
         );

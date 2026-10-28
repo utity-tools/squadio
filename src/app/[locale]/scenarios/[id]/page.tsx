@@ -3,17 +3,21 @@ import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 
-import { ScenarioHeader } from "@/components/scenario/scenario-header";
+import { ScenarioEditor } from "@/components/scenario/scenario-editor";
+import {
+  LiveScenarioHeader,
+  LiveScenarioSummary,
+  LiveScenarioTeam,
+} from "@/components/scenario/scenario-live";
 import { ScenarioShell } from "@/components/scenario/scenario-shell";
-import { ScenarioSummary } from "@/components/scenario/scenario-summary";
-import { ScenarioTeam } from "@/components/scenario/scenario-team";
 import { db } from "@/db/client";
 import { copyLink } from "@/db/copy-link";
 import { loadScenario } from "@/db/load-scenario";
 import { currentAccessContext } from "@/db/request-access";
 import { assertLocale, currentLocale } from "@/i18n/locale";
 import { redirect } from "@/i18n/navigation";
-import { categoriesWithoutRate } from "@/lib/team-tree/cards";
+
+import { saveScenario } from "./actions";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("ScenarioPage");
@@ -41,25 +45,12 @@ export default async function ScenarioPage({
   }
 
   return (
-    <ScenarioShell
-      header={
-        <ScenarioHeader
-          project={scenario.project}
-          scenario={scenario.scenario}
-          span={scenario.span}
-        />
-      }
-      team={
-        <ScenarioTeam
-          team={scenario.team}
-          // Every assignment's hours, with or without rate access (ADR 0005).
-          hours={scenario.rateAccess ? scenario.result.assignments : scenario.assignments}
-          span={scenario.span}
-          // Which categories lack a rate is restricted: without rate access, no node is marked.
-          withoutRate={categoriesWithoutRate(scenario)}
-        />
-      }
-      summary={<ScenarioSummary scenario={scenario} />}
-    />
+    <ScenarioEditor scenarioId={id} editing={scenario.editing} save={saveScenario}>
+      <ScenarioShell
+        header={<LiveScenarioHeader />}
+        team={<LiveScenarioTeam />}
+        summary={<LiveScenarioSummary />}
+      />
+    </ScenarioEditor>
   );
 }

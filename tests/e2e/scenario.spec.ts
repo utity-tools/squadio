@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 import { expectNoAxeViolations } from "./support/axe";
+import { expectHydrated } from "./support/hydration";
 
 // Needs the demo organization: `pnpm db:migrate` and `pnpm db:seed` (CI does both).
 const GUIDE_SCENARIO = "6d656d6f-0000-4000-8000-000000000200";
@@ -20,6 +21,22 @@ test("a demo scenario opens with its header, team and summary", async ({ page })
   await expect(page.getByRole("main", { name: "Equipo" })).toBeVisible();
   await expect(page.getByRole("complementary", { name: "Resumen" })).toBeVisible();
   await expect(page.getByRole("radiogroup", { name: "Tema" })).toBeVisible();
+});
+
+test("the scenario page hydrates without errors, in both languages", async ({ page }) => {
+  // The page is drawn again in the browser from the store (slice 3): any text the browser formats
+  // differently from the server, such as a date range, is a hydration error.
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  for (const path of [`/scenarios/${GUIDE_SCENARIO}`, `/en/scenarios/${GUIDE_SCENARIO}`]) {
+    await page.goto(path);
+    await expect(page.getByRole("heading", { level: 1, name: "Plan A" })).toBeVisible();
+    await expectHydrated(page.getByRole("heading", { level: 1, name: "Plan A" }));
+  }
+  expect(errors).toEqual([]);
 });
 
 test("the scenario page speaks English under /en", async ({ page }) => {
