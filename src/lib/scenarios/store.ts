@@ -189,6 +189,13 @@ export function createScenarioStore({ scenarioId, basis, team, version, save }: 
       return true;
     };
 
+    /** Whether a chosen scenario refuses the step: its team cannot be edited, nor undone. */
+    const refusedAsChosen = (action: StepRejection["action"]) => {
+      if (!get().basis.scenario.chosen) return false;
+      set({ rejection: { action, reason: "chosen" } });
+      return true;
+    };
+
     return {
       scenarioId,
       basis,
@@ -199,10 +206,7 @@ export function createScenarioStore({ scenarioId, basis, team, version, save }: 
       rejection: null,
       saveStatus: "saved",
       dispatch: (change) => {
-        if (get().basis.scenario.chosen) {
-          set({ rejection: { action: "change", reason: "chosen" } });
-          return false;
-        }
+        if (refusedAsChosen("change")) return false;
         const parsed = parseChange(change);
         if (!parsed.success) {
           set({ rejection: { action: "change", reason: "invalid" } });
@@ -212,10 +216,12 @@ export function createScenarioStore({ scenarioId, basis, team, version, save }: 
         return step("change", record(history, roster, parsed.data));
       },
       undo: () => {
+        if (refusedAsChosen("undo")) return false;
         const { history, roster } = get();
         return step("undo", undo(history, roster));
       },
       redo: () => {
+        if (refusedAsChosen("redo")) return false;
         const { history, roster } = get();
         return step("redo", redo(history, roster));
       },
