@@ -294,58 +294,146 @@ describe("calculateScenario: rates", () => {
     // 3,120 nominal hours × 1,550 / 1,896.364.
     expect(result.hours.effective).toBeCloseTo(2550.143, 3);
   });
+});
 
-  it("makes the result incomplete when a category has no rate (rule k)", () => {
-    const result = calculateScenario(
-      { ...guideCase, assignments: [...guideCase.assignments, assignment("qa", "qa", 100)] },
-      rates,
-      costSettings,
-      TARGET_MARGIN,
-    );
+describe("calculateScenario: partial results", () => {
+  const qa = assignment("qa", "qa", 100);
+  const withoutRate: Scenario = { ...guideCase, assignments: [...guideCase.assignments, qa] };
+  const withoutPrice: Scenario = { ...guideCase, pricing: { model: "fixed" } };
+  const noRate = { undetermined: [{ code: "missingRate", categoryIds: ["qa"] }] };
+  const noPrice = { undetermined: [{ code: "missingPrice" }] };
+  const partial = (scenario: Scenario) => {
+    const result = calculateScenario(scenario, rates, costSettings, TARGET_MARGIN);
+    if (result.complete) throw new Error("expected a partial result");
+    return result;
+  };
 
-    expect(result).toEqual({
+  it("computes every line it can without a category's rate, and marks the rest (rule k)", () => {
+    expect(partial(withoutRate)).toEqual({
       complete: false,
       hours: { nominal: 4160, effective: 3250 },
       assignments: expect.any(Array),
+      staffCostCents: noRate,
+      staffCostByCategory: [
+        { categoryId: "pm", effectiveHours: 406.25, costPerHourCents: 4842, costCents: 1967036 },
+        { categoryId: "senior", effectiveHours: 812.5, costPerHourCents: 4588, costCents: 3728065 },
+        {
+          categoryId: "frontend",
+          effectiveHours: 812.5,
+          costPerHourCents: 3743,
+          costCents: 3041371,
+        },
+        {
+          categoryId: "devops",
+          effectiveHours: 406.25,
+          costPerHourCents: 4419,
+          costCents: 1795363,
+        },
+        { categoryId: "qa", effectiveHours: 812.5, costPerHourCents: noRate, costCents: noRate },
+      ],
+      extraCosts: [{ id: "cloud", amountCents: 596667 }],
+      directCostCents: noRate,
+      overheadCents: noRate,
+      bufferCents: noRate,
+      totalCostCents: noRate,
+      revenueCents: 20000000,
+      directMarginCents: noRate,
+      directMarginBasisPoints: noRate,
+      netMarginCents: noRate,
+      netMarginBasisPoints: noRate,
+      // 200,000 € over 3,250 effective hours.
+      effectiveRateCents: 6154,
+      marginStatus: null,
       warnings: [{ code: "missingRate", categoryIds: ["qa"] }],
     });
-    expect(result).not.toHaveProperty("totalCostCents");
   });
 
-  it("makes the result incomplete when a fixed price is missing (rule l)", () => {
-    const result = calculateScenario(
-      { ...guideCase, pricing: { model: "fixed" } },
-      rates,
-      costSettings,
-      TARGET_MARGIN,
-    );
-
-    expect(result).toEqual({
+  it("computes every cost without a fixed price, and leaves revenue and margin undetermined (rule l)", () => {
+    expect(partial(withoutPrice)).toEqual({
       complete: false,
       hours: { nominal: 3120, effective: 2437.5 },
       assignments: expect.any(Array),
+      staffCostCents: 10531835,
+      staffCostByCategory: expect.any(Array),
+      extraCosts: [{ id: "cloud", amountCents: 596667 }],
+      directCostCents: 11128502,
+      overheadCents: 1579775,
+      bufferCents: 1270828,
+      totalCostCents: 13979105,
+      revenueCents: noPrice,
+      directMarginCents: noPrice,
+      directMarginBasisPoints: noPrice,
+      netMarginCents: noPrice,
+      netMarginBasisPoints: noPrice,
+      effectiveRateCents: noPrice,
+      marginStatus: null,
       warnings: [{ code: "missingPrice" }],
     });
-    expect(result).not.toHaveProperty("revenueCents");
   });
 
-  it("warns about a missing rate and a missing price together", () => {
-    const result = calculateScenario(
-      {
-        ...guideCase,
-        pricing: { model: "fixed" },
-        assignments: [...guideCase.assignments, assignment("qa", "qa", 100)],
-      },
-      rates,
-      costSettings,
-      TARGET_MARGIN,
-    );
+  it("names everything a line is missing, rates first, each once", () => {
+    const result = partial({
+      ...withoutPrice,
+      assignments: [
+        ...withoutRate.assignments,
+        assignment("qa 2", "qa", 50),
+        assignment("ux", "ux", 50),
+      ],
+    });
 
-    expect(result.complete).toBe(false);
+    const both = {
+      undetermined: [{ code: "missingRate", categoryIds: ["qa", "ux"] }, { code: "missingPrice" }],
+    };
+    expect(result.netMarginCents).toEqual(both);
+    expect(result.netMarginBasisPoints).toEqual(both);
+    expect(result.totalCostCents).toEqual({
+      undetermined: [{ code: "missingRate", categoryIds: ["qa", "ux"] }],
+    });
     expect(result.warnings).toEqual([
-      { code: "missingRate", categoryIds: ["qa"] },
+      { code: "missingRate", categoryIds: ["qa", "ux"] },
       { code: "missingPrice" },
     ]);
+  });
+
+  it("keeps overhead with only the price missing, though a cost over revenue is not", () => {
+    const share: ExtraCost = { id: "share", kind: "percentage", basisPoints: 500, base: "revenue" };
+    const result = partial({ ...withoutPrice, extraCosts: [share] });
+
+    expect(result.extraCosts).toEqual([{ id: "share", amountCents: noPrice }]);
+    expect(result.overheadCents).toBe(1579775);
+    expect(result.directCostCents).toEqual(noPrice);
+    expect(result.bufferCents).toEqual(noPrice);
+    expect(result.totalCostCents).toEqual(noPrice);
+  });
+
+  it("leaves a cost over staff cost undetermined without a rate", () => {
+    const share: ExtraCost = {
+      id: "share",
+      kind: "percentage",
+      basisPoints: 500,
+      base: "staffCost",
+    };
+    const result = partial({ ...withoutRate, extraCosts: [share] });
+
+    expect(result.extraCosts).toEqual([{ id: "share", amountCents: noRate }]);
+  });
+
+  it("leaves T&M revenue undetermined without a rate, and does not judge the budget cap (rule e)", () => {
+    const result = partial({
+      ...withoutRate,
+      pricing: { model: "timeAndMaterials", budgetCapCents: 1 },
+    });
+
+    expect(result.revenueCents).toEqual(noRate);
+    expect(result.effectiveRateCents).toEqual(noRate);
+    expect(result.warnings).toEqual([{ code: "missingRate", categoryIds: ["qa"] }]);
+  });
+
+  it("has no effective rate without effective hours, whatever revenue is", () => {
+    const result = partial({ ...withoutPrice, assignments: [], extraCosts: [] });
+
+    expect(result.effectiveRateCents).toBeNull();
+    expect(result.netMarginBasisPoints).toEqual(noPrice);
   });
 });
 

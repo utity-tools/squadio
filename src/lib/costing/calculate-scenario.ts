@@ -197,52 +197,104 @@ type Hours = {
   assignments: { id: string; nominalHours: number; effectiveHours: number }[];
 };
 
-/**
- * One category's share of staff cost; never per person (ADR 0003, docs/domain.md "Staff cost by
- * category").
- */
-export type CategoryStaffCost = {
-  categoryId: string;
-  effectiveHours: number;
-  /**
-   * Rounded for display only: the cost comes from the exact cost per hour, so effective hours
-   * times this figure need not give `costCents`. Never recompute the cost from it.
-   */
-  costPerHourCents: number;
-  costCents: number;
-};
+/** What leaves a line undetermined: a category's rate (rule k) or a fixed price (rule l). */
+export type Missing = Extract<Warning, { code: "missingRate" | "missingPrice" }>;
 
-export type CompleteResult = Hours & {
-  complete: true;
+/**
+ * A line that missing data leaves without an amount, never 0, with all it is missing (docs/domain.md,
+ * "Partial results").
+ */
+export type Undetermined = { undetermined: Missing[] };
+
+/**
+ * The lines of a result. `Line` is an amount in cents; `Ratio` is a margin % or an effective rate,
+ * null where it does not apply (no revenue, no effective hours).
+ */
+type Lines<Line, Ratio> = {
   /** The sum of the category lines, each rounded once. */
-  staffCostCents: number;
+  staffCostCents: Line;
   /** In the order each category first appears in the assignments. */
-  staffCostByCategory: CategoryStaffCost[];
-  extraCosts: { id: string; amountCents: number }[];
-  directCostCents: number;
-  overheadCents: number;
-  bufferCents: number;
-  totalCostCents: number;
-  revenueCents: number;
-  directMarginCents: number;
+  staffCostByCategory: {
+    categoryId: string;
+    effectiveHours: number;
+    /**
+     * Rounded for display only: the cost comes from the exact cost per hour, so effective hours
+     * times this figure need not give `costCents`. Never recompute the cost from it.
+     */
+    costPerHourCents: Line;
+    costCents: Line;
+  }[];
+  extraCosts: { id: string; amountCents: Line }[];
+  directCostCents: Line;
+  overheadCents: Line;
+  bufferCents: Line;
+  totalCostCents: Line;
+  revenueCents: Line;
+  directMarginCents: Line;
   /** Over revenue; null without revenue. */
-  directMarginBasisPoints: number | null;
-  netMarginCents: number;
-  netMarginBasisPoints: number | null;
+  directMarginBasisPoints: Ratio;
+  netMarginCents: Line;
+  netMarginBasisPoints: Ratio;
   /** Revenue per effective hour; null without effective hours. */
-  effectiveRateCents: number | null;
-  /** Judged on the rounded net margin %; without revenue, null unless the net margin is negative. */
+  effectiveRateCents: Ratio;
+  /**
+   * Judged on the rounded net margin %; without revenue, null unless the net margin is negative.
+   * Null too with an undetermined net margin.
+   */
   marginStatus: MarginStatus | null;
   warnings: Warning[];
 };
 
 /**
- * A category without a rate leaves the scenario without cost, never with a cost of 0 (rule k), and
- * a fixed price without a price leaves it without revenue, never a revenue of 0 (rule l).
+ * One category's share of staff cost; never per person (ADR 0003, docs/domain.md "Staff cost by
+ * category").
  */
-export type IncompleteResult = Hours & { complete: false; warnings: Warning[] };
+export type CategoryStaffCost = CompleteResult["staffCostByCategory"][number];
 
-export type ScenarioResult = CompleteResult | IncompleteResult;
+export type CompleteResult = Hours & { complete: true } & Lines<number, number | null>;
+
+/**
+ * Some rate or the fixed price is missing: every line that does not need it is computed exactly as
+ * in a complete result, and the others are undetermined, never 0 (rules k and l).
+ */
+export type PartialResult = Hours & { complete: false } & Lines<
+    number | Undetermined,
+    number | null | Undetermined
+  >;
+
+export type ScenarioResult = CompleteResult | PartialResult;
+
+/** Whether a line has an amount (or a ratio, or null where none applies). */
+export const isDetermined = <T>(line: T | Undetermined): line is T =>
+  typeof line !== "object" || line === null || !("undetermined" in line);
+
+/** Everything the lines miss, each category once, rates first. */
+function missingOf(lines: readonly unknown[]): Missing[] {
+  const categories = new Set<string>();
+  let price = false;
+  for (const line of lines) {
+    if (isDetermined(line)) continue;
+    for (const missing of (line as Undetermined).undetermined) {
+      if (missing.code === "missingPrice") price = true;
+      else for (const category of missing.categoryIds) categories.add(category);
+    }
+  }
+  return [
+    ...(categories.size > 0
+      ? [{ code: "missingRate" as const, categoryIds: [...categories] }]
+      : []),
+    ...(price ? [{ code: "missingPrice" as const }] : []),
+  ];
+}
+
+/** `compute` over the lines' amounts, or undetermined with all they miss. */
+function from<T>(
+  lines: readonly (number | Undetermined)[],
+  compute: (...amounts: number[]) => T,
+): T | Undetermined {
+  const missing = missingOf(lines);
+  return missing.length > 0 ? { undetermined: missing } : compute(...(lines as number[]));
+}
 
 const ONE_HUNDRED = Rational.of(100);
 const TEN_THOUSAND = Rational.of(10_000);
@@ -322,32 +374,25 @@ export function calculateScenario(
     })),
   };
 
-  const missing = [
+  const missingRates = [
     ...new Set(
       scenario.assignments.map((a) => a.categoryId).filter((category) => !rates.has(category)),
     ),
   ];
   const { pricing } = scenario;
-  const fixedPriceCents = pricing.model === "fixed" ? pricing.priceCents : undefined;
-  const incomplete: Warning[] = [
-    ...(missing.length > 0 ? [{ code: "missingRate" as const, categoryIds: missing }] : []),
-    ...(pricing.model === "fixed" && fixedPriceCents === undefined
-      ? [{ code: "missingPrice" as const }]
-      : []),
-  ];
-  if (incomplete.length > 0) {
-    return { complete: false, ...hours, warnings: incomplete };
-  }
 
+  const costPerHour = ({ cost }: z.infer<typeof categoryRateSchema>) =>
+    cost.kind === "manual"
+      ? Rational.of(cost.costPerHourCents)
+      : Rational.of(cost.fullyLoadedCents).dividedBy(netAnnualHours);
   const rateOf = (categoryId: string) => {
     const rate = rates.get(categoryId);
     if (!rate) throw new Error(`No rate for ${categoryId}`);
     return rate;
   };
-  const costPerHour = ({ cost }: z.infer<typeof categoryRateSchema>) =>
-    cost.kind === "manual"
-      ? Rational.of(cost.costPerHourCents)
-      : Rational.of(cost.fullyLoadedCents).dividedBy(netAnnualHours);
+  const noRate = (categoryId: string): Undetermined => ({
+    undetermined: [{ code: "missingRate", categoryIds: [categoryId] }],
+  });
 
   // Staff cost is built from the category lines, each rounded once (rule g).
   const categoryHours = new Map<string, Rational>();
@@ -356,24 +401,31 @@ export function calculateScenario(
     categoryHours.set(assignment.categoryId, hours.plus(effective));
   }
   const staffCostByCategory = [...categoryHours].map(([categoryId, categoryEffective]) => {
-    const perHour = costPerHour(rateOf(categoryId));
+    const rate = rates.get(categoryId);
+    const perHour = rate && costPerHour(rate);
     return {
       categoryId,
       effectiveHours: categoryEffective.toNumber(),
-      costPerHourCents: perHour.round(),
-      costCents: categoryEffective.times(perHour).round(),
+      costPerHourCents: perHour ? perHour.round() : noRate(categoryId),
+      costCents: perHour ? categoryEffective.times(perHour).round() : noRate(categoryId),
     };
   });
-  const staffCostCents = staffCostByCategory.reduce((total, line) => total + line.costCents, 0);
+  const staffCostCents = from(
+    staffCostByCategory.map((line) => line.costCents),
+    (...costs) => costs.reduce((total, cost) => total + cost, 0),
+  );
 
-  // A fixed price without a price returned above, so only T&M reaches the sum.
-  const revenueCents =
-    fixedPriceCents ??
-    sum(
-      assignments.map(({ assignment, effective }) =>
-        effective.times(Rational.of(rateOf(assignment.categoryId).sellRateCents)),
-      ),
-    ).round();
+  // In T&M the sell rates live in the rates, so one missing rate leaves revenue undetermined.
+  const revenueCents: number | Undetermined =
+    pricing.model === "fixed"
+      ? (pricing.priceCents ?? { undetermined: [{ code: "missingPrice" }] })
+      : missingRates.length > 0
+        ? { undetermined: [{ code: "missingRate", categoryIds: missingRates }] }
+        : sum(
+            assignments.map(({ assignment, effective }) =>
+              effective.times(Rational.of(rateOf(assignment.categoryId).sellRateCents)),
+            ),
+          ).round();
 
   // Without dates, a recurring cost spans the project (rule d).
   const projectSpan = projectSpanDates(scenario.assignments);
@@ -391,29 +443,49 @@ export function calculateScenario(
       }
       case "percentage": {
         const base = extra.base === "staffCost" ? staffCostCents : revenueCents;
-        return { id: extra.id, amountCents: percentage(extra.basisPoints, base) };
+        return {
+          id: extra.id,
+          amountCents: from([base], (cents) => percentage(extra.basisPoints, cents)),
+        };
       }
     }
   });
 
-  // Each result line is rounded once and built from the rounded lines above it (rule g).
-  const directCostCents =
-    staffCostCents + extraCosts.reduce((total, extra) => total + extra.amountCents, 0);
-  const overheadCents = percentage(costSettings.overheadBasisPoints, staffCostCents);
-  const bufferCents = percentage(costSettings.bufferBasisPoints, directCostCents + overheadCents);
-  const totalCostCents = directCostCents + overheadCents + bufferCents;
-  const directMarginCents = revenueCents - directCostCents;
-  const netMarginCents = revenueCents - totalCostCents;
+  // Each result line is rounded once and built from the rounded lines above it (rule g); a line
+  // that needs an undetermined one is undetermined too.
+  const directCostCents = from(
+    [staffCostCents, ...extraCosts.map((extra) => extra.amountCents)],
+    (...costs) => costs.reduce((total, cost) => total + cost, 0),
+  );
+  const overheadCents = from([staffCostCents], (cents) =>
+    percentage(costSettings.overheadBasisPoints, cents),
+  );
+  const bufferCents = from([directCostCents, overheadCents], (direct, overhead) =>
+    percentage(costSettings.bufferBasisPoints, direct + overhead),
+  );
+  const totalCostCents = from(
+    [directCostCents, overheadCents, bufferCents],
+    (direct, overhead, buffer) => direct + overhead + buffer,
+  );
+  const directMarginCents = from(
+    [revenueCents, directCostCents],
+    (revenue, cost) => revenue - cost,
+  );
+  const netMarginCents = from([revenueCents, totalCostCents], (revenue, cost) => revenue - cost);
 
-  const netMarginBasisPoints = marginBasisPoints("net margin %", netMarginCents, revenueCents);
+  const marginPercent = (name: string, margin: number | Undetermined) =>
+    from([margin, revenueCents], (cents, revenue) => marginBasisPoints(name, cents, revenue));
+  const netMarginBasisPoints = marginPercent("net margin %", netMarginCents);
   const marginStatus: MarginStatus | null =
-    netMarginCents < 0
-      ? "red"
-      : netMarginBasisPoints === null
-        ? null
-        : netMarginBasisPoints >= targetMargin
-          ? "green"
-          : "amber";
+    !isDetermined(netMarginCents) || !isDetermined(netMarginBasisPoints)
+      ? null
+      : netMarginCents < 0
+        ? "red"
+        : netMarginBasisPoints === null
+          ? null
+          : netMarginBasisPoints >= targetMargin
+            ? "green"
+            : "amber";
 
   const lines = {
     ...Object.fromEntries(
@@ -430,15 +502,24 @@ export function calculateScenario(
     netMarginCents,
   };
   for (const [line, value] of Object.entries(lines)) {
-    if (Math.abs(value) > MAX_MONEY_CENTS) {
+    if (isDetermined(value) && Math.abs(value) > MAX_MONEY_CENTS) {
       throw new RangeError(`${line} (${value} cents) does not fit numeric(12,2)`);
     }
   }
 
-  const warnings: Warning[] = [];
+  const warnings: Warning[] = [
+    ...(missingRates.length > 0
+      ? [{ code: "missingRate" as const, categoryIds: missingRates }]
+      : []),
+    ...(pricing.model === "fixed" && pricing.priceCents === undefined
+      ? [{ code: "missingPrice" as const }]
+      : []),
+  ];
+  // The cap is judged only against a determined revenue (rule e).
   if (
     pricing.model === "timeAndMaterials" &&
     pricing.budgetCapCents !== undefined &&
+    isDetermined(revenueCents) &&
     revenueCents > pricing.budgetCapCents
   ) {
     warnings.push({
@@ -448,8 +529,8 @@ export function calculateScenario(
     });
   }
 
-  return {
-    complete: true,
+  const result: PartialResult = {
+    complete: false,
     ...hours,
     staffCostCents,
     staffCostByCategory,
@@ -460,13 +541,27 @@ export function calculateScenario(
     totalCostCents,
     revenueCents,
     directMarginCents,
-    directMarginBasisPoints: marginBasisPoints("direct margin %", directMarginCents, revenueCents),
+    directMarginBasisPoints: marginPercent("direct margin %", directMarginCents),
     netMarginCents,
     netMarginBasisPoints,
+    // Not applicable without effective hours, whatever revenue is.
     effectiveRateCents: effectiveHours.isZero()
       ? null
-      : roundRatio("effective rate", Rational.of(revenueCents).dividedBy(effectiveHours)),
+      : from([revenueCents], (revenue) =>
+          roundRatio("effective rate", Rational.of(revenue).dividedBy(effectiveHours)),
+        ),
     marginStatus,
     warnings,
   };
+  // Complete when no line misses anything; the cast only narrows what this check proves.
+  const everyLine = [
+    ...Object.values(lines),
+    ...staffCostByCategory.map((line) => line.costPerHourCents),
+    result.directMarginBasisPoints,
+    result.netMarginBasisPoints,
+    result.effectiveRateCents,
+  ];
+  return missingOf(everyLine).length === 0
+    ? ({ ...result, complete: true } as CompleteResult)
+    : result;
 }

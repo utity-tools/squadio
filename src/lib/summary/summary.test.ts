@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
 
-import type { CompleteResult, IncompleteResult } from "@/lib/costing/calculate-scenario";
+import type { CompleteResult, PartialResult } from "@/lib/costing/calculate-scenario";
 
 import { type SummaryInput, ledger, teamSummary } from "./summary";
 
@@ -143,9 +143,27 @@ describe("ledger", () => {
   });
 
   it("leaves an incomplete result without money, naming the categories without a rate", () => {
-    const incomplete: IncompleteResult = {
+    const missing = {
+      undetermined: [
+        { code: "missingRate" as const, categoryIds: ["devops", "pm"] },
+        { code: "missingPrice" as const },
+      ],
+    };
+    const incomplete: PartialResult = {
+      ...complete,
       complete: false,
-      ...hours,
+      staffCostCents: missing,
+      directCostCents: missing,
+      overheadCents: missing,
+      bufferCents: missing,
+      totalCostCents: missing,
+      revenueCents: missing,
+      directMarginCents: missing,
+      directMarginBasisPoints: missing,
+      netMarginCents: missing,
+      netMarginBasisPoints: missing,
+      effectiveRateCents: missing,
+      marginStatus: null,
       warnings: [{ code: "missingRate", categoryIds: ["devops", "pm"] }, { code: "missingPrice" }],
     };
 

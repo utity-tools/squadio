@@ -10,12 +10,33 @@ const hours = { nominal: 2860, effective: 2181.59 };
 
 const open = { team: guideTeam, span: guideSpan };
 
+const noPrice = { undetermined: [{ code: "missingPrice" as const }] };
+
 describe("ScenarioSummary", () => {
   it("shows the ledger with rate access", () => {
     const scenario: ScenarioSummaryProps["scenario"] = {
       ...open,
       rateAccess: true,
-      result: { complete: false, hours, assignments: [], warnings: [{ code: "missingPrice" }] },
+      result: {
+        complete: false,
+        hours,
+        assignments: [],
+        staffCostCents: 10_531_835,
+        staffCostByCategory: [],
+        extraCosts: [],
+        directCostCents: 10_531_835,
+        overheadCents: 1_579_775,
+        bufferCents: 1_211_161,
+        totalCostCents: 13_322_771,
+        revenueCents: noPrice,
+        directMarginCents: noPrice,
+        directMarginBasisPoints: noPrice,
+        netMarginCents: noPrice,
+        netMarginBasisPoints: noPrice,
+        effectiveRateCents: noPrice,
+        marginStatus: null,
+        warnings: [{ code: "missingPrice" }],
+      },
       smallCategories: [],
       settings: {
         overheadBasisPoints: 1500,
