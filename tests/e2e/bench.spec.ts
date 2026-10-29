@@ -4,8 +4,8 @@ import { expectNoAxeViolations } from "./support/axe";
 import { expectHydrated } from "./support/hydration";
 
 // Needs the demo organization: `pnpm db:migrate` and `pnpm db:seed` (CI does both). The bench shows
-// from `xl`; Playwright's desktop viewport is 1280 px wide. Occupancy depends on the day the test
-// runs, so it is checked by its shape, not its value.
+// from `xl`; Playwright's desktop viewport is 1280 px wide. The seed anchors its ongoing scenarios
+// to the day it runs (docs/domain.md, "The demo's dates"), so today's occupancy is known.
 const GUIDE_SCENARIO = "6d656d6f-0000-4000-8000-000000000200";
 
 const bench = (page: Page) => page.getByRole("complementary", { name: "Banquillo" });
@@ -33,6 +33,22 @@ test("the bench lists the active people by category, with how busy each is", asy
   const lead = cards(page).filter({ hasText: "Senior Developer 1" });
   await expect(lead).toContainText("En el equipo");
   await expect(bench(page)).not.toContainText("€");
+});
+
+test("the bench shows today's occupancy of the ongoing projects, whatever the date", async ({
+  page,
+}) => {
+  await openBench(page);
+
+  const card = (name: string) => cards(page).filter({ hasText: name });
+  await expect(card("Senior Developer 4")).toContainText(/Ocupación hoy: 130\s%/);
+  await expect(card("Senior Developer 4")).toContainText("Sobreasignación");
+  await expect(card("Project Manager 1")).toContainText(/Ocupación hoy: 100\s%/);
+  await expect(card("Frontend Developer 3")).toContainText(/Ocupación hoy: 100\s%/);
+  await expect(card("Junior Developer 3")).toContainText(/Ocupación hoy: 60\s%/);
+  await expect(card("DevOps Engineer 2")).toContainText(/Ocupación hoy: 40\s%/);
+  await expect(card("Senior Developer 1")).toContainText(/Ocupación hoy: 0\s%/);
+  await expect(card("Senior Developer 1")).not.toContainText("Sobreasignación");
 });
 
 test("the bench offers an open role of each category, until a name is searched", async ({
