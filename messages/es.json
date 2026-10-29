@@ -3,7 +3,9 @@
     "description": "Simulador de staffing para consultoras: arma el equipo de un proyecto y ve el coste y el margen al momento."
   },
   "Home": {
-    "tagline": "Arma el equipo de un proyecto y ve el coste y el margen antes de comprometerte."
+    "tagline": "Arma el equipo de un proyecto y ve el coste y el margen antes de comprometerte.",
+    "tryDemo": "Probar la demo",
+    "demoNote": "Todos los nombres y cifras son ficticios. Tus cambios se guardan en una copia solo para ti."
   },
   "NotFound": {
     "title": "No encontramos esta página",

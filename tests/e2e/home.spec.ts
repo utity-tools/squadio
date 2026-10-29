@@ -11,6 +11,16 @@ test("home page introduces Squadio in Spanish", async ({ page }) => {
   await expect(page.getByText(/Arma el equipo de un proyecto/)).toBeVisible();
 });
 
+test("the home page leads to the demo's guide scenario", async ({ page }) => {
+  // Needs the demo organization: `pnpm db:migrate` and `pnpm db:seed` (CI does both).
+  await page.goto("/");
+
+  await page.getByRole("link", { name: "Probar la demo" }).click();
+
+  await expect(page).toHaveURL(/\/scenarios\/6d656d6f-0000-4000-8000-000000000200$/);
+  await expect(page.getByRole("heading", { level: 1, name: "Plan A" })).toBeVisible();
+});
+
 test("home page speaks English under /en", async ({ page }) => {
   await page.goto("/en");
 
