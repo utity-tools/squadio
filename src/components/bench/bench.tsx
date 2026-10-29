@@ -20,6 +20,8 @@ import {
   type BenchPerson,
   benchGroups,
 } from "@/lib/bench/bench";
+import { utcDay } from "@/lib/calendar/utc-day";
+import { plainSpaces } from "@/lib/format/plain-spaces";
 import type { Dragged } from "@/lib/scenarios/drop-action";
 import { cn } from "@/lib/utils";
 
@@ -47,7 +49,12 @@ function useSettled<T>(value: T, ms: number): T {
  * money, so everyone sees it. People not on the team yet, and an open role of each category, can
  * be dragged into it; "Add to team…" lists them for the keyboard.
  */
-export function Bench() {
+export function Bench({
+  day,
+}: {
+  /** The day occupancy was measured on, `YYYY-MM-DD`: the one the page loaded it for. */
+  day: string;
+}) {
   const t = useTranslations("Bench");
   const format = useFormatter();
   const store = useScenarioStore();
@@ -117,6 +124,15 @@ export function Bench() {
         </p>
         <p role="status" className="sr-only">
           {t("count", { count: announced })}
+        </p>
+        {/*
+          A scenario may take place months from now: occupancy is today's, and only what the
+          organization's chosen scenarios register (docs/plan.md, "Load is what Squadio knows").
+        */}
+        <p className="text-xs text-muted-foreground">
+          {t("occupancyNote", {
+            day: plainSpaces(format.dateTime(utcDay(day), { dateStyle: "long", timeZone: "UTC" })),
+          })}
         </p>
       </div>
 

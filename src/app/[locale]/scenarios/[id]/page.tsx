@@ -46,7 +46,8 @@ export default async function ScenarioPage({
   // The bench says how busy people are today in Madrid (docs/domain.md): a value of the request,
   // never of a prerender.
   await connection();
-  const scenario = await loadScenario(db, context, id, madridToday(new Date()));
+  const today = madridToday(new Date());
+  const scenario = await loadScenario(db, context, id, today);
   if (!scenario) {
     // A template link, followed by a visitor who has a copy, leads to their copy of it.
     const href = await copyLink(db, context, id, query);
@@ -65,7 +66,7 @@ export default async function ScenarioPage({
             <ScenarioChoice scenarioId={id} send={setScenarioChoice} />
           </>
         }
-        bench={<Bench />}
+        bench={<Bench day={today} />}
         team={<LiveScenarioTeam />}
         summary={<LiveScenarioSummary />}
       />

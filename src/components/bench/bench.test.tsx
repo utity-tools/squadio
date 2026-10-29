@@ -31,7 +31,7 @@ function renderBench(people = basis.people) {
         editing={{ basis: { ...basis, people }, team, version: 1 }}
         save={never}
       >
-        <Bench />
+        <Bench day="2026-10-29" />
         <StoreSpy
           onStore={(store) => {
             stores.push(store);
@@ -116,6 +116,15 @@ describe("Bench", () => {
     expect(card("Person 3")).toHaveTextContent("Ocupación hoy: 50 %");
     expect(within(card("Person 3")).queryByText("Sobreasignación")).not.toBeInTheDocument();
     expect(card("Person 2")).toHaveTextContent("37,5 h/semana");
+  });
+
+  it("says which day occupancy is measured on, and that it is not availability during the project", () => {
+    renderBench();
+    expect(
+      screen.getByText(
+        "Ocupación a 29 de octubre de 2026, según los escenarios elegidos en Squadio. No es la disponibilidad durante el proyecto.",
+      ),
+    ).toBeInTheDocument();
   });
 
   it("marks who is on the team, following each change", () => {

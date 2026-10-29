@@ -125,6 +125,7 @@
     "allCategories": "Todas las categorías",
     "count": "{count, plural, one {# persona} other {# personas}}",
     "occupancy": "Ocupación hoy: {percent}",
+    "occupancyNote": "Ocupación a {day}, según los escenarios elegidos en Squadio. No es la disponibilidad durante el proyecto.",
     "overAllocated": "Sobreasignación",
     "onTeam": "En el equipo",
     "weeklyHours": "{hours} h/semana",

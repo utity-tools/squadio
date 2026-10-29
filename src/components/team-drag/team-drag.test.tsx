@@ -46,7 +46,7 @@ function renderPage({
         editing={{ basis, team: members, version: 1 }}
         save={() => new Promise<SaveOutcome>(() => {})}
       >
-        <Bench />
+        <Bench day="2026-10-29" />
         <LiveScenarioTeam />
         <StoreSpy onStore={(store) => void stores.push(store)} />
       </ScenarioEditor>
