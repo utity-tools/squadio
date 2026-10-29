@@ -7,7 +7,7 @@ import { type ScenarioHeaderProps, ScenarioHeader } from "./scenario-header";
 
 const guide: ScenarioHeaderProps = {
   project: { name: "Customer portal", client: "Demo Client", pricingModel: "fixed" },
-  scenario: { name: "Plan A", chosen: false },
+  scenario: { name: "Plan A", chosen: false, otherChosen: null },
   span: { start: "2027-04-01", end: "2027-09-29", workingDays: 130 },
 };
 
@@ -40,7 +40,9 @@ describe("ScenarioHeader", () => {
   });
 
   it("marks the chosen scenario", () => {
-    renderWithIntl(<ScenarioHeader {...guide} scenario={{ name: "Plan A", chosen: true }} />);
+    renderWithIntl(
+      <ScenarioHeader {...guide} scenario={{ name: "Plan A", chosen: true, otherChosen: null }} />,
+    );
 
     expect(screen.getByText("Elegido")).toBeInTheDocument();
   });
@@ -63,7 +65,7 @@ describe("ScenarioHeader", () => {
       <ScenarioHeader
         {...guide}
         project={{ ...guide.project, pricingModel: "time_and_materials" }}
-        scenario={{ name: "Plan A", chosen: true }}
+        scenario={{ name: "Plan A", chosen: true, otherChosen: null }}
         span={{ start: "2027-04-01", end: "2027-04-01", workingDays: 1 }}
       />,
       { locale: "en" },

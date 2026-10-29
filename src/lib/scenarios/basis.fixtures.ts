@@ -6,7 +6,7 @@ import type { ScenarioBasis } from "./scenario-view";
 
 const open = {
   project: { name: "Project 1", client: "Client 1", pricingModel: "time_and_materials" as const },
-  scenario: { name: "Plan A", chosen: false },
+  scenario: { name: "Plan A", chosen: false, otherChosen: null },
   categories: [
     { id: SENIOR, name: "Senior Developer" },
     { id: PM, name: "Project Manager" },

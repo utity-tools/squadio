@@ -1,4 +1,4 @@
-import { and, eq, gte, isNotNull, lte } from "drizzle-orm";
+import { and, eq, gte, isNotNull, lte, ne } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { z } from "zod";
 
@@ -112,8 +112,20 @@ async function readStructure(tx: TenantTransaction, scenarioId: string, today: s
     .select({ id: categories.id, name: categories.name })
     .from(categories)
     .orderBy(categories.name, categories.id);
+  // Rule i: a project has one chosen scenario at most, the one choosing this one would replace.
+  const [otherChosen] = await tx
+    .select({ name: scenarios.name })
+    .from(scenarios)
+    .where(
+      and(
+        eq(scenarios.projectId, scenario.projectId),
+        eq(scenarios.chosen, true),
+        ne(scenarios.id, scenarioId),
+      ),
+    );
   return {
     ...scenario,
+    otherChosen: otherChosen?.name ?? null,
     config: settings,
     team,
     roster: roster.map((person) => ({ ...person, occupancy: busy.get(person.id) ?? 0 })),
@@ -246,7 +258,11 @@ export async function loadScenario(
     }
     const basis: ScenarioBasis = {
       project: { name: structure.project, client: structure.client, pricingModel },
-      scenario: { name: structure.name, chosen: structure.chosen },
+      scenario: {
+        name: structure.name,
+        chosen: structure.chosen,
+        otherChosen: structure.otherChosen,
+      },
       categories: structure.categories,
       people: structure.roster,
       defaultWeeklyHours: settings.defaultWeeklyHours,

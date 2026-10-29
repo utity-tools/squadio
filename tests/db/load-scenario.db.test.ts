@@ -264,7 +264,7 @@ describe("loadScenario", () => {
     for (const context of [withRates, withoutRates]) {
       expect(await loadScenario(app, context, DEMO_IDS.guideScenario, SOME_DAY)).toMatchObject({
         project: { name: "Customer portal", client: "Demo Client", pricingModel: "fixed" },
-        scenario: { name: "Plan A", chosen: false },
+        scenario: { name: "Plan A", chosen: false, otherChosen: null },
         team: [
           seat(lead, "Project manager", "Project Manager", "Project Manager 1", 50, null),
           seat(senior, "Tech lead", "Senior Developer", "Senior Developer 1", 100, lead),
@@ -311,12 +311,44 @@ describe("loadScenario", () => {
     expect(await loadScenario(app, context, scenarioId, SOME_DAY)).toEqual({
       editing: expect.objectContaining({ team: [], version: 1 }),
       project: { name: "Support", client: "Client C", pricingModel: "time_and_materials" },
-      scenario: { name: "Plan A", chosen: true },
+      scenario: { name: "Plan A", chosen: true, otherChosen: null },
       team: [],
       span: null,
       rateAccess: false,
       hours: { nominal: 0, effective: 0 },
       assignments: [],
+    });
+  });
+
+  it("names the project's other chosen scenario, which choosing this one replaces", async () => {
+    const organizationId = randomUUID();
+    await app.transaction((tx) => copyOrganization(tx, DEMO_ORGANIZATION_ID, organizationId));
+    const context: AccessContext = { organizationId, rateAccess: true };
+    const planA = copyId(DEMO_IDS.guideScenario, organizationId);
+    const planB = copyId(DEMO_IDS.leanScenario, organizationId);
+    const scenarioOf = async (id: string, rateAccess: boolean) =>
+      (await loadScenario(app, { ...context, rateAccess }, id, SOME_DAY))?.scenario;
+
+    expect(await scenarioOf(planA, true)).toEqual({
+      name: "Plan A",
+      chosen: false,
+      otherChosen: null,
+    });
+    expect(await chooseScenario(app, context, { scenarioId: planB, baseVersion: 1 })).toMatchObject(
+      { ok: true },
+    );
+    for (const rateAccess of [true, false]) {
+      expect(await scenarioOf(planA, rateAccess)).toEqual({
+        name: "Plan A",
+        chosen: false,
+        otherChosen: "Plan B",
+      });
+    }
+    // A chosen scenario is the project's only one.
+    expect(await scenarioOf(planB, true)).toEqual({
+      name: "Plan B",
+      chosen: true,
+      otherChosen: null,
     });
   });
 
