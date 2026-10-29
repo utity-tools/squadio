@@ -200,3 +200,14 @@ organization, as ADR 0005 already requires for rate access.
   copy, both with rate access and both built in `currentAccessContext()`.
 - **ADR 0006:** the seed on every deploy replaces the demo template only. Visitors' copies are other
   organizations and are left alone.
+
+## Amendments
+
+- **2026-10-29:** The copy is made on the **first write**, a save or a choice: choosing or
+  unchoosing a scenario ([domain](../domain.md#choosing-a-scenario)) never touches the demo
+  template either, so a visitor without a copy gets one in the same transaction, as on a first save.
+  Both go through one path, `src/db/visitor-write.ts`: claim, copy, write and cookie, with a refused
+  write or the daily limit leaving no copy and no cookie. A save runs without rate access; a choice
+  runs with the request's, so its Server Action takes the page's `?access=none`, which can only
+  take rate access away. The firewall rule needs no change: a first choice is also a POST with the
+  `Next-Action` header and without the cookie.
