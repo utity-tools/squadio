@@ -13,6 +13,7 @@ import {
   type ExtraCost,
   type Scenario,
   calculateScenario,
+  isDetermined,
 } from "./calculate-scenario";
 
 const CATEGORIES = ["senior", "junior", "frontend", "devops", "pm"];
@@ -91,7 +92,13 @@ const pricingArb: fc.Arbitrary<Scenario["pricing"]> = fc.oneof(
     model: fc.constant("fixed" as const),
     priceCents: fc.integer({ min: 100_000, max: 1_000_000_000 }),
   }),
-  fc.constant({ model: "timeAndMaterials" as const }),
+  fc.record(
+    {
+      model: fc.constant("timeAndMaterials" as const),
+      budgetCapCents: fc.integer({ min: 1, max: 1_000_000_000 }),
+    },
+    { requiredKeys: ["model"] },
+  ),
 );
 
 const listOf = <T>(make: (id: string) => fc.Arbitrary<T>, maxLength: number) =>
@@ -330,6 +337,72 @@ describe("costing invariants", () => {
         // Positive before rounding: it only shows as 0 cents below half a cent per hour.
         else if (exact >= 0.5 + 1e-6) expect(result.effectiveRateCents).toBeGreaterThan(0);
       }),
+    );
+  });
+
+  it("never changes a line it had determined, nor the hours, when the missing data is filled in", () => {
+    fc.assert(
+      fc.property(
+        scenarioArb,
+        ratesArb,
+        costSettingsArb,
+        fc.subarray(CATEGORIES),
+        fc.boolean(),
+        (scenario, rates, costSettings, withoutRate, withoutPrice) => {
+          const filled = complete(scenario, rates, costSettings, TARGET_MARGIN);
+          const partial = calculateScenario(
+            withoutPrice && scenario.pricing.model === "fixed"
+              ? { ...scenario, pricing: { model: "fixed" } }
+              : scenario,
+            rates.filter((rate) => !withoutRate.includes(rate.categoryId)),
+            costSettings,
+            TARGET_MARGIN,
+          );
+
+          expect(partial.hours).toEqual(filled.hours);
+          expect(partial.assignments).toEqual(filled.assignments);
+          const { staffCostByCategory, extraCosts, marginStatus, warnings } = partial;
+          const lines = [
+            "staffCostCents",
+            "directCostCents",
+            "overheadCents",
+            "bufferCents",
+            "totalCostCents",
+            "revenueCents",
+            "directMarginCents",
+            "directMarginBasisPoints",
+            "netMarginCents",
+            "netMarginBasisPoints",
+            "effectiveRateCents",
+          ] as const;
+          for (const name of lines) {
+            const line = partial[name];
+            if (isDetermined(line)) expect(line, name).toBe(filled[name]);
+          }
+          staffCostByCategory.forEach((line, index) => {
+            const whole = filled.staffCostByCategory[index];
+            expect(line.effectiveHours).toBe(whole?.effectiveHours);
+            if (isDetermined(line.costCents)) expect(line.costCents).toBe(whole?.costCents);
+            if (isDetermined(line.costPerHourCents)) {
+              expect(line.costPerHourCents).toBe(whole?.costPerHourCents);
+            }
+          });
+          extraCosts.forEach((extra, index) => {
+            if (isDetermined(extra.amountCents)) {
+              expect(extra.amountCents).toBe(filled.extraCosts[index]?.amountCents);
+            }
+          });
+          // A status is judged only on a determined net margin, and then it is the same.
+          if (isDetermined(partial.netMarginCents)) expect(marginStatus).toBe(filled.marginStatus);
+          else expect(marginStatus).toBeNull();
+          // The missing data is warned about, and the cap only with a determined revenue.
+          expect(warnings.filter((w) => w.code === "budgetCapExceeded")).toEqual(
+            isDetermined(partial.revenueCents)
+              ? filled.warnings.filter((w) => w.code === "budgetCapExceeded")
+              : [],
+          );
+        },
+      ),
     );
   });
 });
