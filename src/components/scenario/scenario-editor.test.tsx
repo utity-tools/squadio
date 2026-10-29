@@ -75,7 +75,10 @@ describe("ScenarioEditor", () => {
       store.getState().dispatch({ type: "edit", id: developer.id, set: { allocation: 50 } });
       store.setState({ scenarioId: seatId(98) });
     });
-    const copyBasis = { ...hoursBasis, scenario: { name: "Plan A", chosen: false } };
+    const copyBasis = {
+      ...hoursBasis,
+      scenario: { name: "Plan A", chosen: false, otherChosen: null },
+    };
     rerender({ scenarioId: seatId(98), editing: { basis: copyBasis, team, version: 4 } });
 
     expect(screen.getByText("50% · 1")).toBeInTheDocument();
@@ -84,7 +87,10 @@ describe("ScenarioEditor", () => {
 
   it("keeps the copy's basis when the template's page is shown again", () => {
     const { store, rerender } = renderEditor();
-    const copyBasis = { ...hoursBasis, scenario: { name: "Plan A", chosen: false } };
+    const copyBasis = {
+      ...hoursBasis,
+      scenario: { name: "Plan A", chosen: false, otherChosen: null },
+    };
     act(() => {
       store.setState({ scenarioId: seatId(98), basis: copyBasis });
     });

@@ -81,7 +81,7 @@ describe("renameBasis", () => {
   it("renames the categories, people, rates and small categories", () => {
     const basis: ScenarioBasis = {
       project: { name: "Project 1", client: "Client 1", pricingModel: "fixed" },
-      scenario: { name: "Plan A", chosen: false },
+      scenario: { name: "Plan A", chosen: false, otherChosen: null },
       categories: [{ id: SENIOR, name: "Senior Developer" }],
       people: [
         {

@@ -285,7 +285,8 @@ creates them), so a missing one is an error, never an incomplete result.
 
 Everyone gets the open part, read only from open tables:
 
-- the project's name, client and pricing model, and the scenario's name and whether it is chosen;
+- the project's name, client and pricing model, the scenario's name and whether it is chosen, and
+  the name of the project's other chosen scenario, if any, which choosing this one replaces (rule i);
 - the team: each assignment's project role, category (id and name), person (id and name, or none
   for an open role), reports to, weekly hours, allocation and dates, in the order of their start
   date;
