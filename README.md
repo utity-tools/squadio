@@ -3,11 +3,12 @@
 Staffing simulator for consultancies: build a project team by dragging people or open roles
 into a scenario and see cost, margin and effective rate update live, before you commit.
 
-**v0.1 is live** at [squadio.utitytools.com](https://squadio.utitytools.com): the costing engine and
-a read-only scenario canvas over a synthetic demo organization. Editing scenarios comes in v0.2
+**v0.2 is live** at [squadio.utitytools.com](https://squadio.utitytools.com): edit a scenario of a
+synthetic demo organization and watch cost and margin follow every change. Your edits go to your
+own copy of the demo, kept for 30 days after your last save. Scenario comparison comes in v0.3
 (see the [roadmap](docs/plan.md#roadmap)).
 
-![The demo's Plan A: the team as a tree, and the summary rail with net margin, key figures, result lines and staff cost by category](docs/images/tree-light.png)
+![The demo's Plan A in the editor: the bench of people with today's occupancy, the team as a tree, and the summary rail with net margin, key figures and result lines](docs/images/editor-light.png)
 
 ## Try the demo
 
@@ -20,12 +21,13 @@ Every figure and name is synthetic.
 | [Over budget](https://squadio.utitytools.com/en/scenarios/6d656d6f-0000-4000-8000-000000000202)                            | Time and materials above its budget cap                                 |
 | [Missing rate](https://squadio.utitytools.com/en/scenarios/6d656d6f-0000-4000-8000-000000000203)                           | A category without a rate: no cost, never 0 €, and a marker on the node |
 | [Missing price](https://squadio.utitytools.com/en/scenarios/6d656d6f-0000-4000-8000-000000000204)                          | A fixed-price project without a price                                   |
+| [Delivery plan](https://squadio.utitytools.com/en/scenarios/6d656d6f-0000-4000-8000-000000000205)                          | A chosen scenario: frozen rates and a locked team, until unchosen       |
 
 Spanish is the default locale; drop `/en` from a link to see it in Spanish.
 
 <p>
-  <img src="docs/images/table-dark.png" alt="The same team as an accessible table in the dark theme" width="49%">
-  <img src="docs/images/no-rate-access.png" alt="Plan A without rate access: team and hours, no money" width="49%">
+  <img src="docs/images/choose-dark.png" alt="Choosing Plan A in the dark theme: the dialog says what is frozen and that the team gets locked" width="49%">
+  <img src="docs/images/no-rate-access.png" alt="Plan A without rate access: team, hours and the bench, no money" width="49%">
 </p>
 
 ## How it works
@@ -42,6 +44,15 @@ Spanish is the default locale; drop `/en` from a link to see it in Spanish.
   [ADR 0005](docs/adr/0005-rate-access-in-the-database.md)).
 - **Two views of one team:** a tree drawn with React Flow and a compact layout, and an ARIA
   treegrid that is the default on narrow screens and the one screen readers get.
+- **Every edit is a change the store can undo.** People and open roles are added from the bench by
+  dragging, or from menus with the keyboard alone; ⌘Z and ⇧⌘Z (Ctrl+Z and Ctrl+Y elsewhere) undo
+  and redo, and a pure change model rejects what the domain forbids. Changes are saved against a
+  version, so a stale tab gets a conflict instead of overwriting newer work.
+- **A visitor's first save makes their copy** of the demo, behind an anonymous cookie, and a daily
+  job deletes copies idle for 30 days
+  ([ADR 0011](docs/adr/0011-saving-edits-and-the-visitor-copy.md)).
+- **Choosing a scenario freezes it:** its rates and cost settings are copied as they are that day,
+  and its team is locked until it is unchosen. The bench's occupancy comes from chosen scenarios.
 
 The vocabulary is in the [glossary](docs/glossary.md) and every decision in [docs/adr](docs/adr).
 
