@@ -79,3 +79,12 @@ The steps and the rollback live in [`docs/operations/deploy.md`](../operations/d
   ([ADR 0011](0011-saving-edits-and-the-visitor-copy.md)), so the seed on every deploy keeps
   replacing the demo template only and never touches the copies. A daily workflow, also in the
   `production` environment and as `squadio_owner`, deletes copies idle for 30 days.
+- **2026-10-29:** Production also reseeds the demo template daily, in a second job of the clean-up
+  workflow, with the same steps as the deploy (`vercel pull`, the seed as `squadio_app`, the smoke
+  test). The demo's ongoing scenarios are anchored to the day the seed runs, so without a deploy
+  for months the bench would read 0% again. The reseed runs the code of the commit production last
+  deployed, never `main`'s tip, so it keeps this ADR's rule that production only runs code that
+  passed CI and was migrated. It is skipped while a deploy is queued or running, and shares the
+  `deploy-production` concurrency group for the rest, checking the deployed commit again once it
+  holds the group. The cost: a deploy queued in the seconds
+  after that check can replace the reseed or be replaced by it, and is then run again by hand.
