@@ -94,3 +94,5 @@ enabled **and forced**, and its policies in the same migration, all keyed on one
   `withOrganization(db, { organizationId, rateAccess }, fn)`, which sets `app.organization_id` and
   `app.rate_access` in the same transaction ([ADR 0005](0005-rate-access-in-the-database.md)). The
   decision itself is unchanged.
+- **2026-10-29:** Sign-in moves to v0.3 ([ADR 0012](0012-sign-in-and-membership.md)), whose second
+  slice settles Better Auth's tables. The decision itself is unchanged.

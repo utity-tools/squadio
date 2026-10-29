@@ -118,3 +118,6 @@ no rows instead of salaries.
   unchoosing check rate access before they write, and the policies refuse the writes anyway. The
   backfill of migration 0007 runs as the owner, which FORCE subjects to the policies, so it sets
   each organization's context with rate access in turn.
+- **2026-10-29:** Sign-in moves to v0.3 ([ADR 0012](0012-sign-in-and-membership.md)): the access
+  context comes from the signed-in member, and until invitations (v0.5) the only member of an
+  organization is its owner, with rate access. The decision itself is unchanged.

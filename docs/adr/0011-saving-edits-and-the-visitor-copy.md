@@ -211,3 +211,8 @@ organization, as ADR 0005 already requires for rate access.
   runs with the request's, so its Server Action takes the page's `?access=none`, which can only
   take rate access away. The firewall rule needs no change: a first choice is also a POST with the
   `Next-Action` header and without the cookie.
+- **2026-10-29:** Sign-in moves to v0.3 and settles the open consequence about claiming a copy
+  ([ADR 0012](0012-sign-in-and-membership.md)): a signed-in visitor may adopt their copy, by an
+  explicit action, as a new organization, which leaves `visitor_copies` and the clean-up. It is
+  never merged into another organization. Starting templates change too: an organization starts
+  empty or from an adopted copy, and the copy function stays the base of v0.6's example scenarios.

@@ -107,3 +107,6 @@ when the pull request closes.
   The template stays empty.
 - **2026-10-26:** Production now runs the same seed on every deploy, instead of by hand
   ([ADR 0006](0006-deploys-from-github-actions.md)).
+- **2026-10-29:** Real data can reach production from v0.3, not v0.5, once the sign-up switch is on
+  ([ADR 0012](0012-sign-in-and-membership.md)). The safeguard is unchanged: the preview template is
+  never reset from production, so previews never copy its data.
