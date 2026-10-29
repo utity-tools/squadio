@@ -8,7 +8,8 @@ model is in [ADR 0002](adr/0002-cost-model.md).
 
 All of it is one pure function per scenario in `src/lib/costing`,
 `calculateScenario(scenario, rates, costSettings, targetMargin)`. It saves nothing: it returns the
-result and the UI renders it.
+result and the UI renders it. A result line it cannot compute because data is missing is
+undetermined, never 0 ([Partial results](#partial-results)).
 
 - `rates` give each category a sell rate and an exact cost per hour: the fully loaded annual cost
   over net annual hours, or the manual cost per hour when one is set. A derived cost per hour is
@@ -20,8 +21,8 @@ result and the UI renders it.
   is not chosen they come from the current CostConfig (or the project's overrides in
   ProjectPricing) and Config; for a chosen scenario they are its FrozenCostConfig.
 - `targetMargin` always comes from the current CostConfig: it is never frozen (rule b).
-- `scenario` carries its assignments, its extra costs and the project's pricing model and price
-  (from ProjectPricing, not frozen).
+- `scenario` carries its assignments, its extra costs, the project's pricing model and price
+  (from ProjectPricing, not frozen) and the project's planned period, if any (not frozen).
 
 Current and frozen inputs have the same shape, so the engine does not know whether a scenario is
 chosen.
@@ -33,21 +34,21 @@ database keeps organizations apart ([ADR 0004](adr/0004-tenant-isolation-with-rl
 only in the entities marked **Restricted**, which users without rate access cannot read at all
 ([ADR 0005](adr/0005-rate-access-in-the-database.md)): the rest describe structure and hours.
 
-| Entity           | Key fields                                                                                                                                                        | Notes                                                                                                                                                      |
-| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Organization     | id, name, starting template                                                                                                                                       | The tenant. No table until auth lands in v0.5 and brings Better Auth's organization table; until then `organization_id` is a bare uuid with no foreign key |
-| Config           | net annual hours (1,550, whole hours), default weekly hours (40)                                                                                                  | One per organization. The holiday calendar is the national one in v1, a code constant (rule h)                                                             |
-| CostConfig       | overhead %, buffer %, target margin %                                                                                                                             | One per organization. Restricted. The target margin may be negative: a project taken at a loss on purpose                                                  |
-| Category         | id, name                                                                                                                                                          | Its money lives in CategoryRate                                                                                                                            |
-| CategoryRate     | category, gross annual salary (or monthly × number of payments), social security % (31%), other yearly costs, manual cost per hour?, sell rate                    | One per category. Restricted. Cost per hour is derived unless set manually. The monthly form is input only, stored as the annual salary                    |
-| Person           | id, name, category, weekly hours, area?, active                                                                                                                   | No individual salary                                                                                                                                       |
-| Project          | id, name, client, pricing model (fixed or T&M)                                                                                                                    | Its money lives in ProjectPricing                                                                                                                          |
-| ProjectPricing   | project, price, overhead %?, buffer %?                                                                                                                            | One per project. Restricted. Empty overrides fall back to CostConfig                                                                                       |
-| Scenario         | id, project, name, chosen, version                                                                                                                                | `version` provides optimistic locking; choosing and unchoosing move it on too. Choosing writes its frozen tables (rule b)                                  |
-| FrozenRate       | scenario, category, fully loaded annual cost or manual cost per hour, sell rate                                                                                   | Written when a scenario is chosen (rule b). Restricted. Cost per hour is derived as in CategoryRate, never stored rounded                                  |
-| FrozenCostConfig | scenario, overhead %, buffer %, net annual hours, calendar working hours                                                                                          | One per chosen scenario, written with its FrozenRates (rule b). Restricted                                                                                 |
-| Assignment       | id, scenario, category, person?, project role, reports to?, weekly hours, allocation %, start date, end date                                                      | No person = open role. `reports to` builds the team tree; deleting an assignment clears `reports to` on those that pointed to it                           |
-| ExtraCost        | id, scenario, label?, kind (fixed, recurring, percentage), amount (fixed, recurring) or percentage with its base (staff cost or revenue), dates? (recurring only) | Belongs to the scenario: another team may need different infrastructure. Restricted                                                                        |
+| Entity           | Key fields                                                                                                                                                        | Notes                                                                                                                                                                                                          |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Organization     | id, name                                                                                                                                                          | The tenant. No table until sign-in lands in v0.3 and brings Better Auth's organization table ([ADR 0012](adr/0012-sign-in-and-membership.md)); until then `organization_id` is a bare uuid with no foreign key |
+| Config           | net annual hours (1,550, whole hours), default weekly hours (40)                                                                                                  | One per organization. The holiday calendar is the national one in v1, a code constant (rule h)                                                                                                                 |
+| CostConfig       | overhead %, buffer %, target margin %                                                                                                                             | One per organization. Restricted. The target margin may be negative: a project taken at a loss on purpose                                                                                                      |
+| Category         | id, name                                                                                                                                                          | Its money lives in CategoryRate                                                                                                                                                                                |
+| CategoryRate     | category, gross annual salary (or monthly × number of payments), social security % (31%), other yearly costs, manual cost per hour?, sell rate                    | One per category. Restricted. Cost per hour is derived unless set manually. The monthly form is input only, stored as the annual salary                                                                        |
+| Person           | id, name, category, weekly hours, area?, active                                                                                                                   | No individual salary                                                                                                                                                                                           |
+| Project          | id, name, client, pricing model (fixed or T&M), planned start?, planned end?, description?                                                                        | Its money lives in ProjectPricing. The planned period has both dates or neither (v0.3, [Planned period](#planned-period)); the description is 1 to 500 characters and not blank                                |
+| ProjectPricing   | project, price, overhead %?, buffer %?                                                                                                                            | One per project. Restricted. Empty overrides fall back to CostConfig                                                                                                                                           |
+| Scenario         | id, project, name, chosen, version                                                                                                                                | `version` provides optimistic locking; choosing and unchoosing move it on too. Choosing writes its frozen tables (rule b)                                                                                      |
+| FrozenRate       | scenario, category, fully loaded annual cost or manual cost per hour, sell rate                                                                                   | Written when a scenario is chosen (rule b). Restricted. Cost per hour is derived as in CategoryRate, never stored rounded                                                                                      |
+| FrozenCostConfig | scenario, overhead %, buffer %, net annual hours, calendar working hours                                                                                          | One per chosen scenario, written with its FrozenRates (rule b). Restricted                                                                                                                                     |
+| Assignment       | id, scenario, category, person?, project role, reports to?, weekly hours, allocation %, start date, end date                                                      | No person = open role. `reports to` builds the team tree; deleting an assignment clears `reports to` on those that pointed to it                                                                               |
+| ExtraCost        | id, scenario, label?, kind (fixed, recurring, percentage), amount (fixed, recurring) or percentage with its base (staff cost or revenue), dates? (recurring only) | Belongs to the scenario: another team may need different infrastructure. Restricted                                                                                                                            |
 
 ## Formulas
 
@@ -153,20 +154,22 @@ Rounding (rule g):
 
 A recurring extra cost is an amount per month, prorated by day per calendar month: each month it
 covers adds the amount × the days covered / the days in that month, so a whole month costs exactly
-the amount. Without dates it spans the project (rule d); in a scenario with no assignments there is
-no project span, so an undated recurring cost there is a validation error on that extra cost.
+the amount. Without dates it spans the project's planned period, or else the project span (rule d);
+so an undated recurring cost is a validation error on that extra cost only when the scenario has no
+assignments and the project has no planned period: then there is no span.
 
 Margin status compares the net margin %, as rounded to basis points, with the target margin:
 **green** at or above the target, **amber** below the target with a net margin of zero or more,
 **red** with a negative net margin, whatever the target. Without revenue there is no margin %, so there is no status
-either, unless the net margin is negative, which is **red**.
+either, unless the net margin is negative, which is **red**. With an undetermined net margin there is
+no status at all.
 
 Validation: every input is checked with Zod before any calculation, and an invalid one fails with
 the path of the field, never a silent result. Missing (`null` or `undefined` where a value is
 required), `NaN`, infinite and empty values are all invalid, as are money that is not integer
 cents and percentages that are not integer basis points. A sell rate of 0 € is valid (internal or
 unbilled work); a fixed price and a T&M budget cap, when set, are at least 1 cent, so a fixed price
-always has revenue, and without one the scenario is incomplete (rule l). Weekly hours are above 0 and at most 168, in hundredths. Assignment, extra cost and category rate ids do
+always has revenue, and without one revenue is undetermined (rule l). Weekly hours are above 0 and at most 168, in hundredths. Assignment, extra cost and category rate ids do
 not repeat, an assignment reports to another assignment of the same scenario, and a recurring cost
 has both dates or neither (the issue points at the missing one). An extra cost's label, when set,
 is 1 to 100 characters and not blank.
@@ -176,7 +179,8 @@ The UI shows both nominal hours (to plan) and effective hours (for cost and bill
 ### Staff cost by category
 
 Costs are shown per category, never per person ([ADR 0003](adr/0003-structure-not-people.md)), so
-a complete result breaks staff cost down into one line per category of the scenario:
+every result, complete or partial, breaks staff cost down into one line per category of the
+scenario:
 
 - **Which categories:** every category with at least one assignment in the scenario, even when its
   effective hours are 0 (allocation 0%), in the order each first appears in the assignments. A
@@ -190,7 +194,8 @@ a complete result breaks staff cost down into one line per category of the scena
   display only, like the effective rate. The cost never comes from it, so the shown cost per hour
   times the hours may differ from the cost by a few cents.
 
-An incomplete result (rule k) has no lines, since it has no cost. The lines are money, so they are
+A category without a rate (rule k) has its line, with its effective hours and an undetermined cost
+and cost per hour; the categories with a rate keep theirs. The lines are money, so they are
 restricted like every other result line (ADR 0005).
 
 The small-category warning of rule j is not part of the calculation: it depends on how many active
@@ -201,6 +206,52 @@ Showing whole euros is formatting, not a second rounding: rounded to the euro on
 can differ from the staff cost line by up to half a euro per category (in the guide case they add
 up to 105,319 € against 105,318 €). Where the lines are shown in whole euros, they keep their exact
 cents in the data.
+
+### Partial results
+
+A result is made of lines, and each line is in one of four states:
+
+| State          | Meaning                                                                       | Shown as                                                    |
+| -------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| Determined     | Computed from inputs that are all known, exactly as for a complete result     | The amount                                                  |
+| Undetermined   | An input it needs is missing: a category's rate (rule k) or a fixed price (l) | No amount, never 0, and what is missing                     |
+| Not applicable | The line has no meaning for these inputs, whatever is filled in               | No amount, and why (no revenue for a margin %, for example) |
+| Invalid        | An input breaks a validation rule                                             | The whole result fails with the field's path                |
+
+Invalid input never gives a partial result: validation runs first and fails as before. Only missing
+data is undetermined.
+
+Which line depends on which:
+
+- **Staff cost of a category:** undetermined without its rate. **Staff cost:** undetermined if any
+  category's line is.
+- **A fixed or recurring extra cost:** always determined. **A percentage extra cost:** undetermined
+  if its base (staff cost or revenue) is.
+- **Revenue:** with a fixed price, the price, or undetermined without one. In T&M, undetermined if
+  any category of the team has no rate, since its sell rate lives in the rate.
+- **Direct cost** (staff cost and each extra cost), **overhead** (staff cost), **buffer** (direct
+  cost and overhead) and **total cost** (direct cost, overhead and buffer): each is undetermined if
+  any line it is computed from is. With only a price missing and a percentage cost over revenue,
+  overhead stays determined while direct cost, buffer and total cost do not.
+- **Direct and net margin:** undetermined if revenue or the cost they subtract is.
+- **Margin %:** undetermined with an undetermined margin; not applicable with a revenue of 0.
+- **Effective rate:** not applicable without effective hours, whatever revenue is; otherwise
+  undetermined with undetermined revenue.
+- **Budget cap warning (rule e):** judged only with determined revenue. With undetermined revenue it
+  is not judged, and the UI never says the cap holds.
+- **Hours** (nominal and effective) never depend on money: they are always determined.
+- **Margin status:** none unless the net margin is determined (see [Formulas](#formulas)).
+
+A determined line is computed and rounded exactly as in a complete result, only from determined,
+rounded lines, so filling in the missing data never changes the lines that were already shown (an
+invariant below). The overflow check of [Formulas](#formulas) applies to determined lines; filling
+in the data can still make the whole result fail with it. A subtotal of the determined lines is
+never shown as a total: where the total is undetermined, the UI says what is missing (each category
+without a rate, the missing price) instead. The complete result, with every line determined, keeps
+the guide case and the invariants as its tests.
+
+Choosing is unchanged: a missing rate still blocks it and a missing price does not
+([Choosing a scenario](#choosing-a-scenario)).
 
 ### Why effective hours
 
@@ -217,15 +268,15 @@ cost exactly the fully loaded annual cost (see the first invariant below).
 | a   | Weekly hours          | Stored on the assignment: copied from the person when one is placed (add or edit), or from Config for a new open role; an edit may change them                                                                                                                           |
 | b   | Choosing freezes      | Choosing a scenario freezes its category rates (FrozenRate) and its overhead %, buffer % and availability factor (FrozenCostConfig). Target margin is not frozen. Other scenarios always use current values. See [What choosing freezes](#what-choosing-freezes)         |
 | c   | Over-allocation       | Per person and week: chosen scenarios of other projects plus the scenario being edited. Never two scenarios of the same project                                                                                                                                          |
-| d   | Recurring extra costs | Prorated by day. Without dates they span the project, from the first assignment start to the last end                                                                                                                                                                    |
+| d   | Recurring extra costs | Prorated by day. Without dates they span the project's planned period, or, without one, the project span: from the first assignment start to the last end                                                                                                                |
 | e   | Price in T&M          | An optional budget cap with a warning. Percentages "over price" use the calculated revenue                                                                                                                                                                               |
 | f   | Margin %              | Over revenue                                                                                                                                                                                                                                                             |
 | g   | Money                 | Euros in `numeric(12,2)` in Postgres, integer cents in TypeScript; money-bearing percentages in `numeric(5,2)`, basis points in TypeScript; allocation an integer from 0 to 100 ([ADR 0010](adr/0010-money-in-postgres.md)). Rounded once per result line, EUR only      |
 | h   | Holidays              | One national calendar in v1, kept as a constant in code, not in the database; a known limitation. Choosing a scenario freezes its calendar working hours but not the working days of its assignments, so changing the constant still moves the hours of chosen scenarios |
 | i   | Chosen scenario       | At most one per project, enforced by a partial unique index                                                                                                                                                                                                              |
 | j   | Salary leaks          | Without rate access, no costs or margins: restricted entities return no rows (ADR 0005). A warning when a category has 1 or 2 active people, since its cost reveals a salary. See [Small categories](#small-categories)                                                  |
-| k   | Missing rate          | A category without a rate makes its scenarios incomplete: they show a warning and no cost, never a cost of 0                                                                                                                                                             |
-| l   | Missing price         | A fixed-price project without a price makes its scenarios incomplete, as in rule k: a warning and no cost or margin, never a revenue of 0                                                                                                                                |
+| k   | Missing rate          | A category without a rate leaves its staff cost line undetermined, and every line that depends on it, never a cost of 0. The other lines are still shown. See [Partial results](#partial-results)                                                                        |
+| l   | Missing price         | A fixed-price project without a price leaves revenue undetermined, and every line that depends on it, never a revenue of 0. Costs that do not depend on revenue are still shown. See [Partial results](#partial-results)                                                 |
 
 ### Small categories
 
@@ -262,10 +313,16 @@ outside the scenario:
   stored as its two terms, net annual hours and calendar working hours, so the frozen factor is
   exactly the one the scenario was costed with, with no rounding.
 
+**Until revisions exist, a chosen scenario is not a record of its result.** What it keeps is the
+list above and nothing more: its result can still move with what is not frozen, and unchoosing
+deletes the frozen rows. The UI calls it chosen, never frozen or approved as a whole. Revisions that
+never change are proposed for v0.5 ([ADR 0013](adr/0013-scenario-revisions.md)).
+
 **Target margin is not frozen.** It is a goal, not a cost: changing it never changes a chosen
 scenario's cost or margin, only its green, amber or red status, which is always judged against the
-organization's current target. The project's price, the scenario's extra costs and the holiday
-calendar are not frozen either, so a chosen scenario's margin can still move with them.
+organization's current target. The project's price and planned period, the scenario's extra costs
+and the holiday calendar are not frozen either, so a chosen scenario's margin can still move with
+them: a new planned period moves its undated recurring costs although its team is locked.
 
 **Without rate access** FrozenCostConfig returns no rows, so for those users a chosen scenario's
 effective hours use the current Config. They see no cost or margin, so the difference only shows in
@@ -279,13 +336,14 @@ inputs of `calculateScenario` with the pure functions of `src/lib/scenarios`, as
 chosen scenario read with rate access, from its FrozenRates and FrozenCostConfig. The demo seed
 freezes its two chosen scenarios the way choosing does. A chosen scenario without frozen rows,
 chosen before slice 7 and skipped by its backfill because a category has no rate, is costed with
-the current values and stays incomplete (rule k) until it is chosen again.
+the current values and keeps undetermined lines (rule k) until it is chosen again.
 Every organization has its Config and CostConfig from the moment it exists (the starting template
-creates them), so a missing one is an error, never an incomplete result.
+creates them), so a missing one is an error, never a partial result.
 
 Everyone gets the open part, read only from open tables:
 
-- the project's name, client and pricing model, the scenario's name and whether it is chosen, and
+- the project's name, client, pricing model, planned period and description, the scenario's name and
+  whether it is chosen, and
   the name of the project's other chosen scenario, if any, which choosing this one replaces (rule i);
 - the team: each assignment's project role, category (id and name), person (id and name, or none
   for an open role), reports to, weekly hours, allocation and dates, in the order of their start
@@ -293,7 +351,7 @@ Everyone gets the open part, read only from open tables:
 - the project span, from the first assignment start to the last assignment end (rule d), with its
   working days; a scenario without assignments has none.
 
-The organization's name is not part of it: there is no Organization table until v0.5.
+The organization's name is not part of it: there is no Organization table until v0.3.
 
 - **With rate access** it adds the engine's result, the small-category warning of rule j for
   each category of the scenario that has 1 or 2 active people, and what the summary shows next to
@@ -311,8 +369,8 @@ To edit the scenario, the loader also returns its **basis**: everything the page
 team to show it and recalculate it on every change, with the same pure function the loader runs
 (`scenarioView` in `src/lib/scenarios`). It holds the open part's project and scenario, every
 category and person of the organization (name, category, weekly hours and whether active, which
-the change model checks against), Config's default weekly hours and the engine's inputs without
-assignments. With rate access these are the engine's inputs, never the stored salaries, plus every
+the change model checks against), Config's default weekly hours, the project's planned period (new
+assignments start from it, and it holds no money) and the engine's inputs without assignments. With rate access these are the engine's inputs, never the stored salaries, plus every
 small category of the organization; for a chosen scenario its frozen rates, which cover only the
 categories its team uses, since its team cannot be edited; without it, only the hours inputs, which hold no money
 ([ADR 0005](adr/0005-rate-access-in-the-database.md)). The team, as the change model's
@@ -339,8 +397,9 @@ hours only.
 | Edit    | Changes an assignment's project role, allocation, weekly hours or dates, fills an open role with a person, changes who fills it, or turns a person's assignment back into an open role              |
 | Restore | Puts a removed assignment back exactly as it was, with the reports it had. Only undo makes it: it is the inverse of a remove                                                                        |
 
-A new assignment starts at 100% allocation and spans the project (rule d), or, in a scenario without
-assignments, the next full month. Its project role starts as its category's name, and can be
+A new assignment starts at 100% allocation and spans the project's planned period, or else the
+project span (rule d), or, in a scenario without assignments of a project without a planned period,
+the next full month. Its project role starts as its category's name, and can be
 changed. Ids of new assignments are made by the client
 (`crypto.randomUUID()`), so a change means the same thing before and after it is saved. For the
 same reason, an edit that fills an open role is recorded with the weekly hours it copied from the
@@ -431,9 +490,9 @@ rows, and writes the new scenario's FrozenRates (one per category it uses) and i
 FrozenCostConfig, read from the current values. Unchoosing, also with rate access only, deletes its
 frozen rows. Both move the scenario's version on, like a save, so a page holding an older version
 gets a conflict instead of overwriting the choice. A scenario with a category without a rate cannot
-be chosen: there is no rate to freeze (rule k). That is the only rule that blocks choosing: an
-incomplete scenario for another reason (a missing price, a date outside the calendar) can be
-chosen, and its calendar working hours are those of the calendar's first year, as the engine uses.
+be chosen: there is no rate to freeze (rule k). That is the only rule that blocks choosing: a
+scenario with undetermined revenue (a missing price), or one whose dates fall outside the calendar,
+can be chosen, and its calendar working hours are those of the calendar's first year, as the engine uses.
 Choosing what is chosen, or unchoosing what is not, is refused as changing nothing, and the demo
 template is never chosen or unchosen: only its visitors' copies are
 ([ADR 0011](adr/0011-saving-edits-and-the-visitor-copy.md)).
@@ -442,11 +501,40 @@ template is never chosen or unchosen: only its visitors' copies are
 choosing would have no frozen rate, while writing one needs rate access that editing does not. To
 change it, unchoose it, edit it and choose it again, which freezes the current values.
 
+## Planned period
+
+From v0.3 a project may have a planned period, a start and an end date, and a short description
+for whoever reads its proposal. The period is a reference, not a limit:
+
+- **New assignments start from it:** an add spans the planned period instead of the project span,
+  as [Changes](#changes) says. An assignment's own dates stay editable.
+- **It never refuses an assignment.** One that starts before it or ends after it is flagged on the
+  team, with how far outside it falls; so is a planned period the team as a whole does not cover,
+  from its first start to its last end.
+- **Undated recurring costs follow it** (rule d), in every scenario of the project, so all of them
+  are costed over the same months. Without a planned period they follow each scenario's project span,
+  as before.
+- **Changing it keeps every assignment as it was.** What moves is the undated recurring costs, so the
+  form that changes it says which ones will follow, names the chosen scenario whose cost will move
+  with them, if any, and the summary recalculates. Shifting the
+  assignments with it would be a separate, explicit action, not part of v0.3.
+- **Its dates follow the calendar's rules** (rule h): inside the listed years, start not after end.
+
+**Existing projects get none.** A migration cannot derive one: the project span belongs to each
+scenario, and different scenarios of one project have different spans, so any value would change
+the cost of some scenario without anyone asking. Their results stay exactly as they are until
+someone sets a planned period.
+
+The description is 1 to 500 characters, not blank, and holds no money, so everyone who sees the
+project sees it.
+
 ## Configuration per organization
 
 Each organization creates its own categories and sets every number. A salary can be entered per year
-or per month with the number of payments (2,100 €/month × 14 = 29,400 €/year). On sign-up the
-organization picks a starting template (Consultancy, Startup, Design agency) and edits it.
+or per month with the number of payments (2,100 €/month × 14 = 29,400 €/year). From v0.3 an
+organization starts empty, with the Consultancy template's Config and CostConfig and no categories,
+or as a member's adopted visitor's copy ([ADR 0012](adr/0012-sign-in-and-membership.md)). Example
+scenarios to start from come in v0.6; templates for other sectors wait for evidence.
 
 The Consultancy template, also used by the demo organization (Madrid, 2026, indicative). The demo's
 first scenario is the guide case team, costed with the 2027 calendar rather than the guide case's
@@ -468,7 +556,8 @@ buffer 10%, target margin 25%.
 The first test of the costing engine. Fixed price of 200,000 € over 26 weeks, from 1 April to
 29 September 2027 (130 working days, no national holiday on a weekday): Senior Developer at 100%,
 Frontend Developer at 100%, DevOps Engineer at 50%, Project Manager at 50%, all at 40 hours a week,
-and cloud at 1,000 € a month with no dates of its own, so it spans the project. Calendar working
+and cloud at 1,000 € a month with no dates of its own, so it spans the project (the seed sets no
+planned period, so these figures stay pinned). Calendar working
 hours are 1,984. Figures are rounded to the euro here; the test pins the exact cents.
 
 | Line                                 |                  Amount |
@@ -511,6 +600,8 @@ Property-based tests (fast-check) check these on random scenarios:
   more than half a cent per category away from the exact total.
 - With revenue above zero, the effective rate is positive before rounding (without effective hours
   there is none).
+- Filling in a partial result's missing rates and price never changes a line it had determined, nor
+  its hours.
 
 And on random sequences of changes, undo, redo and saves (see
 [Editing a scenario](#editing-a-scenario)):
