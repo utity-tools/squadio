@@ -87,6 +87,17 @@ describe("HistoryControls", () => {
     expect(allocation(store)).toBe(50);
   });
 
+  it("shows undo and redo unavailable once the scenario is chosen", () => {
+    const store = renderControls();
+    act(() => {
+      store.getState().dispatch(halve);
+      store.getState().undo();
+      store.getState().adopt({ ...hoursBasis, scenario: { ...hoursBasis.scenario, chosen: true } });
+    });
+    expect(undoButton()).toHaveAttribute("aria-disabled", "true");
+    expect(redoButton()).toHaveAttribute("aria-disabled", "true");
+  });
+
   it("undoes with Ctrl+Z and redoes with Ctrl+Shift+Z or Ctrl+Y outside a Mac", () => {
     const store = renderControls();
     act(() => {

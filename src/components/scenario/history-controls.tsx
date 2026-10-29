@@ -41,6 +41,8 @@ export function HistoryControls() {
   const t = useTranslations("ScenarioHistory");
   const store = useScenarioStore();
   const history = useStore(store, (state) => state.history);
+  // A chosen scenario's team cannot be edited, so its history cannot be stepped through either.
+  const chosen = useStore(store, (state) => state.basis.scenario.chosen);
   // The server does not know the platform: it renders Ctrl, and a Mac shows ⌘ once hydrated.
   const apple = useSyncExternalStore(subscribeNever, isApple, () => false);
 
@@ -59,14 +61,14 @@ export function HistoryControls() {
   const buttons = [
     {
       action: "undo",
-      enabled: canUndo(history),
+      enabled: !chosen && canUndo(history),
       Icon: Undo2Icon,
       shortcut: apple ? "⌘Z" : "Ctrl+Z",
       keys: apple ? "Meta+Z" : "Control+Z",
     },
     {
       action: "redo",
-      enabled: canRedo(history),
+      enabled: !chosen && canRedo(history),
       Icon: Redo2Icon,
       shortcut: apple ? "⇧⌘Z" : "Ctrl+Shift+Z",
       keys: apple ? "Shift+Meta+Z" : "Control+Shift+Z Control+Y",

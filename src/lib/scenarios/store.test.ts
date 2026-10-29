@@ -84,6 +84,21 @@ describe("createScenarioStore", () => {
     expect(store.getState().rejection).toEqual({ action: "change", reason: "chosen" });
   });
 
+  it("refuses undo and redo once the scenario is chosen, keeping the history", () => {
+    const store = create();
+    store.getState().dispatch(halfDeveloper);
+    store.getState().dispatch({ type: "edit", id: developer.id, set: { allocation: 75 } });
+    store.getState().undo();
+    // The page chose the scenario: it loads again as chosen, and the store takes its basis.
+    store.getState().adopt({ ...basis, scenario: { ...basis.scenario, chosen: true } });
+    const before = store.getState().history;
+    expect(store.getState().undo()).toBe(false);
+    expect(store.getState().rejection).toEqual({ action: "undo", reason: "chosen" });
+    expect(store.getState().redo()).toBe(false);
+    expect(store.getState().rejection).toEqual({ action: "redo", reason: "chosen" });
+    expect(store.getState().history).toBe(before);
+  });
+
   it("clears the last rejection on the next step that works", () => {
     const store = create();
     store.getState().dispatch({ type: "move", id: manager.id, reportsTo: lead.id });
