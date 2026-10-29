@@ -53,6 +53,40 @@
     "refused": "No se han podido guardar los cambios",
     "reload": "Recargar"
   },
+  "ScenarioChoice": {
+    "choose": {
+      "button": "Elegir escenario",
+      "busy": "Eligiendo…",
+      "title": "¿Elegir «{name}»?",
+      "description": "Se congelan las tarifas de sus categorías, el overhead, el buffer y la disponibilidad de hoy; el precio, los costes extra y el margen objetivo no. Su equipo deja de poder editarse hasta que quites la elección.",
+      "replaces": "«{name}» dejará de ser el escenario elegido del proyecto: se descartan sus valores congelados y su equipo se podrá editar de nuevo.",
+      "missingRate": "No se puede elegir: {count, plural, one {falta la tarifa de {categories}} other {faltan las tarifas de {categories}}}, y no hay nada que congelar."
+    },
+    "unchoose": {
+      "button": "Quitar la elección",
+      "busy": "Quitando la elección…",
+      "title": "¿Quitar la elección de «{name}»?",
+      "description": "Se descartan sus tarifas y su configuración de costes congeladas: el escenario vuelve a calcularse con los valores actuales y su equipo se puede editar de nuevo."
+    },
+    "waiting": {
+      "unsaved": "Los cambios aún no se han guardado: podrás continuar en cuanto se guarden.",
+      "saveFailed": "No se han podido guardar los cambios: reinténtalo desde la cabecera para continuar.",
+      "stopped": "Esta página ya no puede guardar cambios: recárgala para continuar.",
+      "limit": "Hoy no se pueden crear más copias de la demo. Vuelve a intentarlo mañana."
+    },
+    "refused": {
+      "missing-rate": "No se puede elegir: a una categoría del equipo le falta la tarifa.",
+      "limit": "Hoy no se pueden crear más copias de la demo. Vuelve a intentarlo mañana.",
+      "conflict": "El escenario ha cambiado en otra pestaña. Recarga la página.",
+      "not-found": "Tu copia ya no existe. Recarga la página.",
+      "unsaved": "Los cambios aún no se han guardado: podrás continuar en cuanto se guarden.",
+      "failed": "No se ha podido guardar la elección. Vuelve a intentarlo."
+    },
+    "chosen": "Se ha elegido «{name}».",
+    "unchosen": "Se ha quitado la elección de «{name}».",
+    "cancel": "Cancelar",
+    "close": "Cerrar"
+  },
   "ScenarioAnnouncer": {
     "margin": "Margen neto: {amount}",
     "marginWithPercent": "Margen neto: {amount} ({percent})",
