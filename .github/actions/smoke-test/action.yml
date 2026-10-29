@@ -1,0 +1,38 @@
+name: Smoke test the guide scenario
+description: >-
+  Checks that production's guide scenario page answers 200 and shows the guide scenario's name,
+  retrying for about two minutes.
+
+inputs:
+  failure-hint:
+    description: What to do when the page never shows the guide scenario, added to the error.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    # A page that reads the database, through the production domain. It must answer 200 and show the
+    # guide scenario's name: a scenario that is not found also answers 200, because the page
+    # streams, so the status alone would miss a missing seed. Retries cover the domain moving to a
+    # new deployment.
+    - name: Smoke test the guide scenario
+      shell: bash
+      env:
+        # DEMO_IDS.guideScenario and GUIDE_SCENARIO_NAME in src/db/demo-seed.ts.
+        PAGE: https://squadio.utitytools.com/scenarios/6d656d6f-0000-4000-8000-000000000200
+        EXPECTED: Plan A
+        HINT: ${{ inputs.failure-hint }}
+      run: |
+        body=$(mktemp)
+        for attempt in 1 2 3 4 5; do
+          status=$(curl --silent --output "$body" --write-out '%{http_code}' --max-time 20 \
+            "$PAGE") || status=000
+          if [ "$status" = 200 ] && grep --quiet --fixed-strings "$EXPECTED" "$body"; then
+            exit 0
+          fi
+          echo "::notice::$PAGE answered $status without the guide scenario (attempt $attempt)."
+          if [ "$attempt" -eq 5 ]; then break; fi
+          sleep $((attempt * 10))
+        done
+        echo "::error::$PAGE never showed the guide scenario. $HINT"
+        exit 1
