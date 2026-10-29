@@ -3,7 +3,9 @@
     "description": "Staffing simulator for consultancies: build a project team, see cost and margin live."
   },
   "Home": {
-    "tagline": "Build a project team and see cost and margin before you commit."
+    "tagline": "Build a project team and see cost and margin before you commit.",
+    "tryDemo": "Try the demo",
+    "demoNote": "Every name and figure is made up. Your changes are saved to a copy only you can see."
   },
   "NotFound": {
     "title": "We couldn't find this page",
