@@ -135,7 +135,9 @@ export function ScenarioChoice({ scenarioId, send }: ScenarioChoiceProps) {
         </DialogTrigger>
         <DialogContent aria-busy={busy}>
           <DialogHeader>
-            <DialogTitle>{t(`${action}.title`, { name })}</DialogTitle>
+            <DialogTitle>
+              {t(blocked ? "choose.blockedTitle" : `${action}.title`, { name })}
+            </DialogTitle>
             <DialogDescription asChild>
               <div className="flex flex-col gap-2">
                 {blocked ? (

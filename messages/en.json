@@ -58,9 +58,10 @@
       "button": "Choose scenario",
       "busy": "Choosing…",
       "title": "Choose “{name}”?",
+      "blockedTitle": "“{name}” cannot be chosen",
       "description": "Today's rates of its categories, overhead, buffer and availability are frozen; the price, extra costs and target margin are not. Its team can no longer be edited until you unchoose the scenario.",
       "replaces": "“{name}” will no longer be the project's chosen scenario: its frozen values are discarded and its team can be edited again.",
-      "missingRate": "It cannot be chosen: {categories} {count, plural, one {has} other {have}} no rate, so there is nothing to freeze."
+      "missingRate": "{categories} {count, plural, one {has} other {have}} no rate, so there is nothing to freeze."
     },
     "unchoose": {
       "button": "Unchoose",

@@ -91,7 +91,8 @@ test("unchoosing a chosen scenario of the demo, from the keyboard, unlocks its t
 test("a team with a category without a rate cannot be chosen, and says why", async ({ page }) => {
   await open(page, MISSING_RATE_SCENARIO);
   await chooseButton(page).click();
-  await expect(dialog(page)).toContainText("falta la tarifa de Data Engineer");
+  await expect(dialog(page)).toHaveAccessibleName(/^No se puede elegir «.+»$/);
+  await expect(dialog(page)).toContainText("Falta la tarifa de Data Engineer");
   await expect(dialog(page).getByRole("button", { name: "Elegir escenario" })).toHaveCount(0);
   for (const colorScheme of ["light", "dark"] as const) {
     await page.emulateMedia({ colorScheme });
