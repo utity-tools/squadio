@@ -8,29 +8,94 @@ rate update live, before you commit. Simulating your own company is just another
 
 The consultancy or company that has to decide which team takes a project, and at what price.
 Managers and directors see rates, costs and margins; everyone else sees projects and teams only.
+Consultancies come first; startups estimating internal work without revenue are a later segment,
+still to be checked with users.
 
 ## Main screen
 
 - **Bench** (left): the organization's people grouped by category, with how busy each one is.
 - **Scenario team** (right): a tree (project manager on top, team below). Drop people or open roles
   on it; cost, margin and the margin status recalculate on every move.
-- **Comparison:** two or three scenarios of the same project side by side.
+- **Comparison (v0.4):** two or three scenarios of the same project side by side.
 - **Accessible view:** the same data and the same actions as a tree or table that works with the
   keyboard and screen readers.
 
 ## Roadmap
 
 Every version ships something that can be shown. v0.1 shipped on 2026-10-26
-([handoff 0011](sessions/0011-read-only-canvas.md)).
+([handoff 0011](sessions/0011-read-only-canvas.md)) and v0.2 on 2026-10-29
+([handoff 0017](sessions/0017-seed-dates-daily-reseed-and-v02.md)).
 
-| Version | Scope                                                                                           |
-| ------- | ----------------------------------------------------------------------------------------------- |
-| v0.1    | Costing engine, with the guide case as the first test. Read-only canvas with seed data          |
-| v0.2    | Scenarios: drag people and open roles, live cost and margin, undo and redo                      |
-| v0.3    | Scenario comparison, duplicate scenarios, merge teams with animation                            |
-| v0.4    | Deterministic health checks: over-allocation, seniority mix, PM ratio, single points of failure |
-| v0.5    | Auth, multi-tenancy, organization templates, public demo, CSV import                            |
-| v1.0    | AI assistant on top of the health checks ([ADR 0003](adr/0003-structure-not-people.md))         |
+After v0.2 the owner reviewed the product's UX and its definition, and the roadmap was planned
+again on 2026-10-29. The review lives in a private repository (`utity-tools/squadio-research`,
+commit `24b53fd`); what it decided is written here, in [the domain](domain.md) and in the ADRs, so
+none of it needs that repository to be understood. Its main finding: the job is not only to build a
+team but to prepare, compare and share a proposal and then choose, and the first version people can
+use for real needs their own data before anything else. No user has been interviewed yet: the
+decisions below are the owner's, not evidence of use.
+
+| Version             | Complete path it ships                                                                                                                                                                                                                                                          |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| v0.1                | Costing engine, with the guide case as the first test. Read-only canvas with seed data                                                                                                                                                                                          |
+| v0.2                | Scenarios: drag people and open roles, live cost and margin, undo and redo                                                                                                                                                                                                      |
+| Now                 | The home page leads to the demo. The bench says clearly that occupancy is today's. Interviews with consultancy managers: whoever prepares a proposal and whoever receives it                                                                                                    |
+| v0.3 · Prepare      | Sign in, create an organization (empty, or from one's visitor's copy), enter its categories with their costs, its people and open roles, create a project with a planned period and a description, and get an estimate that shows what it can compute when some data is missing |
+| v0.4 · Compare      | Duplicate scenarios, compare two or three side by side, and see each person's load week by week against the projects registered in Squadio: over-allocation (rule c), the first health check                                                                                    |
+| v0.5 · Share        | Revisions that never change, an authenticated link to one, a reviewer who sends back an alternative derived from it, choosing a revision, and the invitations sharing needs                                                                                                     |
+| v0.6 · Faster start | CSV import with a template, a preview and an all-or-nothing confirm, and a picker of example scenarios                                                                                                                                                                          |
+| Later, on evidence  | The other health checks (seniority mix, PM ratio, single points of failure), formal approval, other segments and sectors, and the AI assistant ([ADR 0003](adr/0003-structure-not-people.md))                                                                                   |
+
+### Accepted and proposed
+
+**Accepted** by the owner on 2026-10-29:
+
+- The order above, and that v0.3 is for real use with the organization's own data, not another
+  demo. Consultancies first.
+- Sign-in with GitHub and Google only, an empty organization or an explicit adoption of the
+  visitor's copy as a new organization, and the server resolving membership before any tenant
+  query ([ADR 0012](adr/0012-sign-in-and-membership.md)).
+- Partial results, the planned period and the project's description, as
+  [the domain](domain.md#partial-results) specifies them.
+- Chosen scenarios of other projects are the commitments that load a person; nothing else is.
+- Merging teams with animation leaves the roadmap. Formal approval waits for evidence.
+
+**Proposed**, to be decided before the version that needs it:
+
+- Revisions that never change ([ADR 0013](adr/0013-scenario-revisions.md), v0.5).
+- Whether a reviewer gets a link only or also an exported document, and what someone without rate
+  access receives (v0.5).
+- Roles beyond the organization's owner, which arrive with invitations (v0.5).
+- Microsoft sign-in, once interviews ask for it.
+- What the CSV import holds: categories, rates and people, and whether it also brings committed
+  assignments of other projects (v0.6).
+
+### Service limits
+
+- **Sign-up for real data stays off in production** until the owner has reviewed how the data is
+  processed: the effective terms and regions of Vercel, Neon, Google and GitHub, who can reach the
+  data, and what deleting keeps. v0.3's code can reach `main` before that, behind a switch that is
+  off in production ([ADR 0012](adr/0012-sign-in-and-membership.md)). v0.3.0 is tagged after the
+  review, and the switch is turned on by the owner. A privacy page, OAuth and a delete button are
+  not by themselves proof of compliance, and the README will not claim it.
+- **The demo stays anonymous and synthetic.** Visitors keep their copy as today
+  ([ADR 0011](adr/0011-saving-edits-and-the-visitor-copy.md)) and are never asked for real names.
+- **"Chosen" keeps today's guarantees only** ([what choosing freezes](domain.md#what-choosing-freezes)).
+  It is not a record of an approved result until revisions exist.
+- **Load is what Squadio knows.** A person's load comes from the chosen scenarios registered here;
+  an empty week means nothing is registered, not that the person is free.
+
+### v0.3 slices
+
+v0.3 ships in five pull requests or more, tests first, in this order. Access and deletion are
+designed from the second slice on, not added at the end.
+
+| #   | Slice                   | Done when                                                                                                                                                                                                                                                                                                                                                                                |
+| --- | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Partial results         | The engine returns every line it can compute and marks the others undetermined, with why ([partial results](domain.md#partial-results)), and the summary shows them that way. A complete result is unchanged: the guide case and the invariants still pass as they are. Pure, so it also improves the demo                                                                               |
+| 2   | Identity and membership | Sign-in with GitHub and Google behind the sign-up switch, an empty organization or the adopted visitor's copy, membership resolved on the server before `withOrganization`, and the owner deleting the organization or their account. DB tests prove a member cannot reach another organization and that rate access follows the member ([ADR 0012](adr/0012-sign-in-and-membership.md)) |
+| 3   | Own data                | Inside a project's flow, with rate access, create and edit categories with their costs, people and open roles, and a project with its name, client and pricing model; the categories' costs are entered without leaving the project. Small categories warn (rule j)                                                                                                                      |
+| 4   | Project and period      | The project's planned period and description: new assignments start from the planned period, undated recurring costs follow it, and assignments outside it are flagged, never refused ([planned period](domain.md#planned-period)). Slice 3's project form grows into this one, never a second form                                                                                      |
+| 5   | v0.3 release            | The owner's processing review is done and the switch is on in production. Handoff, README with new screenshots, tag `v0.3.0`                                                                                                                                                                                                                                                             |
 
 ### v0.2 slices
 
@@ -74,6 +139,10 @@ manager ship in v0.2, not as later polish. The spike also left patterns and trap
 - Several currencies or countries, contractors.
 - Per-person cost adjustments, productivity by seniority, schedule effects (Brooks's law).
 - A monorepo.
+- Merging teams with animation, an early idea from when Squadio simulated reorganizations: nothing
+  so far says consultancies need it more than duplicating and comparing.
+- Formal approval with its own states, until interviews show it is needed (v0.5 shares and lets
+  someone choose, without an approval workflow).
 
 ## Principles
 
