@@ -9,15 +9,23 @@ import { copyId } from "./copy-id";
 
 type SaveRequest = { scenarioId: string; baseVersion: number; changes: readonly Change[] };
 
+/** The copy's id for a template id; any other id, such as a new assignment's, stays as it is. */
+export function translateId(
+  value: string,
+  templateIds: ReadonlySet<string>,
+  copyOrganizationId: string,
+): string {
+  // Postgres returns ids in lowercase; a client may send them in any case.
+  return templateIds.has(value.toLowerCase()) ? copyId(value, copyOrganizationId) : value;
+}
+
 /** The same save, against the copy of the template whose rows have `templateIds`. */
 export function translateSave<T extends SaveRequest>(
   request: T,
   templateIds: ReadonlySet<string>,
   copyOrganizationId: string,
 ): T & { changes: Change[] } {
-  // Postgres returns ids in lowercase; a client may send them in any case.
-  const id = (value: string) =>
-    templateIds.has(value.toLowerCase()) ? copyId(value, copyOrganizationId) : value;
+  const id = (value: string) => translateId(value, templateIds, copyOrganizationId);
   const changes = request.changes.map((change) => renameChange(change, id));
   return { ...request, scenarioId: id(request.scenarioId), changes };
 }

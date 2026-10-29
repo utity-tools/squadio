@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import type { Change, Member } from "@/lib/scenarios/change";
 
 import { copyId } from "./copy-id";
-import { translateSave } from "./translate";
+import { translateId, translateSave } from "./translate";
 
 const ORG = "0b0e6c1a-5d2f-4c3e-9a8b-7f6e5d4c3b2a";
 const t = (n: number) => `6d656d6f-0000-4000-8000-${String(n).padStart(12, "0")}`;
@@ -86,5 +86,12 @@ describe("translateSave", () => {
     expect(
       translateSave({ scenarioId: upper, baseVersion: 1, changes: [] }, template, ORG).scenarioId,
     ).toBe(c(t(200)));
+  });
+});
+
+describe("translateId", () => {
+  it("renames a template id, whatever its case, and keeps any other", () => {
+    expect(translateId(t(200).toUpperCase(), template, ORG)).toBe(c(t(200)));
+    expect(translateId(NEW_SEAT, template, ORG)).toBe(NEW_SEAT);
   });
 });
