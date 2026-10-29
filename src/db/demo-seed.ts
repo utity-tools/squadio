@@ -16,24 +16,23 @@ import { DEMO_ORGANIZATION_ID, demoAccessContext } from "./access";
 import { freezeScenario } from "./choose-scenario";
 import { type TenantTransaction, withOrganization } from "./tenant";
 import { NATIONAL_HOLIDAYS } from "@/lib/calendar/calendar";
+import { GUIDE_SCENARIO_ID, demoId } from "@/lib/demo/demo-ids";
 import { type OngoingSpans, ongoingSpans } from "@/lib/demo/ongoing-spans";
 
 // The demo organization: the Consultancy template and the guide case team of docs/domain.md, plus
-// one scenario per summary warning, with synthetic people only. Fixed ids, so links to the demo
-// keep working after a reseed.
+// one scenario per summary warning, with synthetic people only. Fixed ids (demo-ids.ts), so links
+// to the demo keep working after a reseed.
 
 export { DEMO_ORGANIZATION_ID };
 
 const DEMO = demoAccessContext;
-
-const demoId = (n: number) => `6d656d6f-0000-4000-8000-${String(n).padStart(12, "0")}`;
 
 /** The guide scenario's name, which the deploy's smoke test looks for on its page. */
 export const GUIDE_SCENARIO_NAME = "Plan A";
 
 export const DEMO_IDS = {
   project: demoId(100),
-  guideScenario: demoId(200),
+  guideScenario: GUIDE_SCENARIO_ID,
   leanScenario: demoId(201),
   /** Plan A's seats and its cloud cost. */
   guide: {
