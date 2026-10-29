@@ -13,7 +13,7 @@ import { type AccessContext, withOrganization } from "@/db/tenant";
 import type { Change, Member } from "@/lib/scenarios/change";
 import { copyId } from "@/lib/visitors/copy-id";
 
-import { appPool } from "./support";
+import { SOME_DAY, appPool } from "./support";
 
 // ADR 0011, "Saving": changes saved against a version, re-checked on the stored team.
 
@@ -31,7 +31,7 @@ let scenarioId: string;
 const seat = (templateId: string) => copyId(templateId, copyOrg);
 
 beforeEach(async () => {
-  await seedDemo(app);
+  await seedDemo(app, SOME_DAY);
   copyOrg = randomUUID();
   visitor = { organizationId: copyOrg, rateAccess: false };
   scenarioId = seat(DEMO_IDS.guideScenario);

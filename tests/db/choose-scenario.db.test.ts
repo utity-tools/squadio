@@ -21,7 +21,7 @@ import { calendarWorkingHours } from "@/lib/calendar/calendar";
 import { toEngineRate } from "@/lib/rates/engine-rate";
 import { copyId } from "@/lib/visitors/copy-id";
 
-import { appPool, waitForLockWaiter } from "./support";
+import { SOME_DAY, appPool, waitForLockWaiter } from "./support";
 
 // docs/domain.md, "Choosing a scenario" and "What choosing freezes": rules b and i, in one
 // transaction, with rate access only. Synthetic data: a visitor's copy of the demo.
@@ -37,7 +37,7 @@ let withRates: AccessContext;
 const id = (templateId: string) => copyId(templateId, copyOrg);
 
 beforeEach(async () => {
-  await seedDemo(app);
+  await seedDemo(app, SOME_DAY);
   copyOrg = randomUUID();
   withRates = { organizationId: copyOrg, rateAccess: true };
   await app.transaction((tx) => copyOrganization(tx, DEMO_ORGANIZATION_ID, copyOrg));

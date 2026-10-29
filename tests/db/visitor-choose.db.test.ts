@@ -11,7 +11,7 @@ import type { CookieJar } from "@/db/visitor-write";
 import { copyId } from "@/lib/visitors/copy-id";
 import { VISITOR_COOKIE } from "@/lib/visitors/token";
 
-import { appPool, ownerPool } from "./support";
+import { SOME_DAY, appPool, ownerPool } from "./support";
 
 // docs/domain.md, "Choosing a scenario", and ADR 0011: a visitor chooses or unchooses a scenario
 // of their copy. Without one, the first choice makes it, like a first save. Synthetic data only.
@@ -25,7 +25,7 @@ afterAll(async () => {
 });
 
 beforeEach(async () => {
-  await seedDemo(app);
+  await seedDemo(app, SOME_DAY);
   await owner.query("delete from visitor_copies");
 });
 

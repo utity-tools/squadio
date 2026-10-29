@@ -33,7 +33,7 @@ const rowCounts = (context: AccessContext) =>
   });
 
 beforeAll(async () => {
-  await seedDemo(app);
+  await seedDemo(app, SOME_DAY);
   await app.transaction((tx) => copyOrganization(tx, DEMO_ORGANIZATION_ID, copyOrg));
 });
 

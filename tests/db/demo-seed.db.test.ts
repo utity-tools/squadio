@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import { count, eq } from "drizzle-orm";
+import { count, eq, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import type { PgTable } from "drizzle-orm/pg-core";
 import { afterAll, describe, expect, it } from "vitest";
@@ -14,12 +14,15 @@ import {
   config,
   costConfig,
   extraCosts,
+  frozenCostConfig,
   people,
   projectPricing,
   projects,
   scenarios,
 } from "@/db/schema";
 import { type AccessContext, withOrganization } from "@/db/tenant";
+import { NATIONAL_HOLIDAYS, calendarWorkingHours } from "@/lib/calendar/calendar";
+import { ongoingSpans } from "@/lib/demo/ongoing-spans";
 
 import { SOME_DAY, appPool } from "./support";
 
@@ -60,7 +63,7 @@ const demo: AccessContext = { organizationId: DEMO_ORGANIZATION_ID, rateAccess: 
 
 describe("seedDemo", () => {
   it("fills every table of the demo organization", async () => {
-    await seedDemo(app);
+    await seedDemo(app, SOME_DAY);
 
     expect(await countsIn(demo)).toEqual({
       config: 1,
@@ -84,7 +87,7 @@ describe("seedDemo", () => {
     ["a chosen scenario under way", DEMO_IDS.deliveryScenario, []],
     ["another chosen scenario under way", DEMO_IDS.upkeepScenario, []],
   ])("gives %s its summary warnings", async (_, scenarioId, codes) => {
-    await seedDemo(app);
+    await seedDemo(app, SOME_DAY);
 
     const loaded = await loadScenario(app, demo, scenarioId, SOME_DAY);
 
@@ -94,7 +97,7 @@ describe("seedDemo", () => {
   });
 
   it("chooses one scenario in each of two projects under way, for the bench", async () => {
-    await seedDemo(app);
+    await seedDemo(app, SOME_DAY);
 
     const chosen = await withOrganization(app, demo, (tx) =>
       tx
@@ -109,11 +112,60 @@ describe("seedDemo", () => {
     expect(new Set(chosen.map((scenario) => scenario.projectId)).size).toBe(2);
   });
 
+  it("anchors the ongoing scenarios to the day it runs, and the guide case to 2027", async () => {
+    const today = "2028-03-15";
+    await seedDemo(app, today);
+
+    const dates = (scenarioId: string) =>
+      withOrganization(app, demo, (tx) =>
+        tx
+          .selectDistinct({ start: assignments.startDate, end: assignments.endDate })
+          .from(assignments)
+          .where(eq(assignments.scenarioId, scenarioId)),
+      );
+    const spans = ongoingSpans(today, Object.keys(NATIONAL_HOLIDAYS).map(Number));
+    expect(await dates(DEMO_IDS.deliveryScenario)).toEqual([spans.delivery]);
+    expect(await dates(DEMO_IDS.upkeepScenario)).toEqual([spans.upkeep]);
+    expect(await dates(DEMO_IDS.guideScenario)).toEqual([
+      { start: "2027-04-01", end: "2027-09-29" },
+    ]);
+
+    // Frozen with the calendar of their earliest start, as choosing does.
+    const frozen = await withOrganization(app, demo, (tx) =>
+      tx
+        .select({ hours: frozenCostConfig.calendarWorkingHours })
+        .from(frozenCostConfig)
+        .where(
+          inArray(frozenCostConfig.scenarioId, [
+            DEMO_IDS.deliveryScenario,
+            DEMO_IDS.upkeepScenario,
+          ]),
+        ),
+    );
+    expect(frozen).toEqual([
+      { hours: calendarWorkingHours(2027, 40) },
+      { hours: calendarWorkingHours(2027, 40) },
+    ]);
+
+    // The bench has people busy on that day.
+    const loaded = await loadScenario(app, demo, DEMO_IDS.guideScenario, today);
+    expect(loaded?.editing.basis.people.filter((person) => person.occupancy > 0)).toHaveLength(5);
+  });
+
+  it("fails on a day outside the calendar's years, leaving the previous rows", async () => {
+    await seedDemo(app, SOME_DAY);
+    const before = await countsIn(demo);
+
+    await expect(seedDemo(app, "2031-06-01")).rejects.toThrow(/needs a new year/);
+
+    expect(await countsIn(demo)).toEqual(before);
+  });
+
   it("leaves the same rows when run again", async () => {
-    await seedDemo(app);
+    await seedDemo(app, SOME_DAY);
     const first = await countsIn(demo);
 
-    await seedDemo(app);
+    await seedDemo(app, SOME_DAY);
 
     expect(await countsIn(demo)).toEqual(first);
   });
@@ -124,7 +176,7 @@ describe("seedDemo", () => {
       tx.insert(categories).values({ organizationId: other.organizationId, name: "Designer" }),
     );
 
-    await seedDemo(app);
+    await seedDemo(app, SOME_DAY);
 
     expect((await countsIn(other)).categories).toBe(1);
     await withOrganization(app, other, (tx) => tx.delete(categories));

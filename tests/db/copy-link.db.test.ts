@@ -8,7 +8,7 @@ import { copyOrganization } from "@/db/copy-organization";
 import { DEMO_IDS, DEMO_ORGANIZATION_ID, seedDemo } from "@/db/demo-seed";
 import { copyId } from "@/lib/visitors/copy-id";
 
-import { appPool } from "./support";
+import { SOME_DAY, appPool } from "./support";
 
 // ADR 0011, "The copy": a template link leads a visitor with a copy to their copy of it.
 
@@ -17,7 +17,7 @@ const org = randomUUID();
 const visitor = { organizationId: org, rateAccess: true };
 
 beforeAll(async () => {
-  await seedDemo(app);
+  await seedDemo(app, SOME_DAY);
   await app.transaction((tx) => copyOrganization(tx, DEMO_ORGANIZATION_ID, org));
 });
 

@@ -8,6 +8,7 @@ import { Pool } from "pg";
 import { z } from "zod";
 
 import { seedDemo } from "@/db/demo-seed";
+import { madridToday } from "@/lib/bench/occupancy";
 
 // @next/env is CommonJS: its named exports only exist on the default one in ESM.
 nextEnv.loadEnvConfig(process.cwd(), true, { info: () => {}, error: console.error });
@@ -16,7 +17,7 @@ nextEnv.loadEnvConfig(process.cwd(), true, { info: () => {}, error: console.erro
 const { DATABASE_URL } = z.object({ DATABASE_URL: z.url() }).parse(process.env);
 const pool = new Pool({ connectionString: DATABASE_URL, max: 1 });
 try {
-  await seedDemo(drizzle(pool));
+  await seedDemo(drizzle(pool), madridToday(new Date()));
   console.log("Seeded the demo organization.");
 } finally {
   await pool.end();
