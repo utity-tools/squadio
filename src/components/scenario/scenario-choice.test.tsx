@@ -179,9 +179,10 @@ describe("ScenarioChoice", () => {
   it("explains that a category without a rate cannot be chosen, offering no confirmation", async () => {
     const { send, user } = renderChoice({ basis: withoutRates([PM]) });
     await user.click(chooseButton());
-    const dialog = screen.getByRole("dialog");
+    // The title asks nothing, since there is nothing to confirm.
+    const dialog = screen.getByRole("dialog", { name: "No se puede elegir «Plan A»" });
     expect(dialog).toHaveAccessibleDescription(
-      "No se puede elegir: falta la tarifa de Project Manager, y no hay nada que congelar.",
+      "Falta la tarifa de Project Manager, así que no hay nada que congelar.",
     );
     expect(within(dialog).queryByRole("button", { name: "Elegir escenario" })).toBeNull();
     expect(send).not.toHaveBeenCalled();
@@ -191,7 +192,7 @@ describe("ScenarioChoice", () => {
     const { user } = renderChoice({ basis: withoutRates([PM, SENIOR]) });
     await user.click(chooseButton());
     expect(screen.getByRole("dialog")).toHaveAccessibleDescription(
-      "No se puede elegir: faltan las tarifas de Senior Developer y Project Manager, y no hay nada que congelar.",
+      "Faltan las tarifas de Senior Developer y Project Manager, así que no hay nada que congelar.",
     );
   });
 

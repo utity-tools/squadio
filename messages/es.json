@@ -58,9 +58,10 @@
       "button": "Elegir escenario",
       "busy": "Eligiendo…",
       "title": "¿Elegir «{name}»?",
+      "blockedTitle": "No se puede elegir «{name}»",
       "description": "Se congelan las tarifas de sus categorías, el overhead, el buffer y la disponibilidad de hoy; el precio, los costes extra y el margen objetivo no. Su equipo deja de poder editarse hasta que quites la elección.",
       "replaces": "«{name}» dejará de ser el escenario elegido del proyecto: se descartan sus valores congelados y su equipo se podrá editar de nuevo.",
-      "missingRate": "No se puede elegir: {count, plural, one {falta la tarifa de {categories}} other {faltan las tarifas de {categories}}}, y no hay nada que congelar."
+      "missingRate": "{count, plural, one {Falta la tarifa de {categories}} other {Faltan las tarifas de {categories}}}, así que no hay nada que congelar."
     },
     "unchoose": {
       "button": "Quitar la elección",
