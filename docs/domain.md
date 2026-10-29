@@ -406,6 +406,24 @@ money, so everyone sees it. Week by week over-allocation, with the scenario bein
 health check. The bench also marks who is already on the team being edited, since a person can be
 on a scenario only once.
 
+### The demo's dates
+
+The demo seed keeps the guide case's fixed 2027 dates, so its figures here, in the README and in the
+tests never change. Its two ongoing projects, whose chosen scenarios give the bench its occupancy,
+are anchored instead to the day the seed runs, in `Europe/Madrid`:
+
+- **Delivery plan:** from the first working day of the month 8 months back to the last working day
+  of the month 5 months ahead.
+- **Run plan:** from the first working day of the month 4 months back to the last working day of the
+  month 7 months ahead.
+
+Both are clamped to the years the national calendar lists (rule h), and never start after or end
+before the seed's day, so they always cover it: on the calendar's first or last day off, covering it
+wins and a span starts or ends on that day. A seed run on a day outside those years fails: the
+calendar needs a new year. Each scenario is frozen with the calendar of its reference year, as
+choosing does. Production reseeds only on deploy (ADR 0006), so its spans follow the last deploy's
+day.
+
 ### Choosing a scenario
 
 Choosing a scenario needs rate access and does what rule b says, in one transaction: it marks it
