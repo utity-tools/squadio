@@ -77,7 +77,8 @@
       "unknown-id": "the assignment, category or person does not exist",
       "id-taken": "that assignment already exists",
       "invalid": "a value is out of range",
-      "chosen": "a chosen scenario's team cannot be edited"
+      "chosen": "a chosen scenario's team cannot be edited",
+      "choosing": "the scenario's choice is being saved"
     }
   },
   "Bench": {
