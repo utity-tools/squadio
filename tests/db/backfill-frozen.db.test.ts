@@ -20,7 +20,7 @@ import {
 import { type AccessContext, withOrganization } from "@/db/tenant";
 import { copyId } from "@/lib/visitors/copy-id";
 
-import { appPool, ownerPool } from "./support";
+import { SOME_DAY, appPool, ownerPool } from "./support";
 
 // Migration 0007: the scenarios chosen before choosing froze anything (the demo seed's, and the
 // visitor copies made from it) get the frozen rows choosing would have written. It runs once as
@@ -125,7 +125,7 @@ const frozenOf = (context: AccessContext, templateId: string) =>
   });
 
 beforeEach(async () => {
-  await seedDemo(app);
+  await seedDemo(app, SOME_DAY);
 });
 
 describe("the backfill of frozen rows", () => {

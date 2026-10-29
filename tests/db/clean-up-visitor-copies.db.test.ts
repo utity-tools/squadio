@@ -9,7 +9,7 @@ import { withOrganization } from "@/db/tenant";
 import { type CookieJar, saveForVisitor } from "@/db/visitor-save";
 import { hashToken } from "@/lib/visitors/token";
 
-import { appPool, ownerPool, waitForLockWaiter } from "./support";
+import { SOME_DAY, appPool, ownerPool, waitForLockWaiter } from "./support";
 
 // ADR 0011, "Clean-up": a copy is deleted after 30 days without a save, by the owner role.
 
@@ -23,7 +23,7 @@ afterAll(async () => {
 });
 
 beforeEach(async () => {
-  await seedDemo(app);
+  await seedDemo(app, SOME_DAY);
   await owner.query("delete from visitor_copies");
 });
 

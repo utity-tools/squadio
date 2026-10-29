@@ -15,6 +15,8 @@ import {
 import { DEMO_ORGANIZATION_ID, demoAccessContext } from "./access";
 import { freezeScenario } from "./choose-scenario";
 import { type TenantTransaction, withOrganization } from "./tenant";
+import { NATIONAL_HOLIDAYS } from "@/lib/calendar/calendar";
+import { type OngoingSpans, ongoingSpans } from "@/lib/demo/ongoing-spans";
 
 // The demo organization: the Consultancy template and the guide case team of docs/domain.md, plus
 // one scenario per summary warning, with synthetic people only. Fixed ids, so links to the demo
@@ -81,7 +83,7 @@ async function clear(tx: TenantTransaction) {
   await tx.delete(config);
 }
 
-async function insert(tx: TenantTransaction) {
+async function insert(tx: TenantTransaction, spans: OngoingSpans) {
   const organizationId = DEMO_ORGANIZATION_ID;
   await tx.insert(config).values({ organizationId, netAnnualHours: 1550, defaultWeeklyHours: 40 });
   await tx
@@ -237,7 +239,7 @@ async function insert(tx: TenantTransaction) {
   ]);
 
   await insertWarningScenarios(tx);
-  await insertOngoingProjects(tx);
+  await insertOngoingProjects(tx, spans);
 }
 
 /** One scenario per summary warning, in projects of their own so Plan A's figures stay put. */
@@ -331,11 +333,11 @@ async function insertWarningScenarios(tx: TenantTransaction) {
 }
 
 /**
- * Two projects under way, each with a chosen scenario covering 2026 and early 2027, the years the
- * calendar knows: the bench's occupancy (domain, "How busy a person is") then reads 40% to 130%,
- * Senior Developer 4 being over-allocated. Their rates and settings are frozen as choosing does.
+ * Two projects under way, each with a chosen scenario covering the seed's day (domain, "The demo's
+ * dates"): the bench's occupancy (domain, "How busy a person is") then reads 40% to 130%, Senior
+ * Developer 4 being over-allocated. Their rates and settings are frozen as choosing does.
  */
-async function insertOngoingProjects(tx: TenantTransaction) {
+async function insertOngoingProjects(tx: TenantTransaction, spans: OngoingSpans) {
   const organizationId = DEMO_ORGANIZATION_ID;
   const mobile = demoId(103);
   const upkeep = demoId(104);
@@ -375,8 +377,8 @@ async function insertOngoingProjects(tx: TenantTransaction) {
   const delivery = {
     organizationId,
     weeklyHours: 40,
-    startDate: "2026-02-02",
-    endDate: "2027-03-31",
+    startDate: spans.delivery.start,
+    endDate: spans.delivery.end,
   };
   const deliveryLead = demoId(350);
   await tx.insert(assignments).values([
@@ -423,8 +425,8 @@ async function insertOngoingProjects(tx: TenantTransaction) {
   const upkeepSeat = {
     organizationId,
     weeklyHours: 40,
-    startDate: "2026-06-01",
-    endDate: "2027-05-28",
+    startDate: spans.upkeep.start,
+    endDate: spans.upkeep.end,
   };
   const upkeepLead = demoId(360);
   await tx.insert(assignments).values([
@@ -467,13 +469,16 @@ async function insertOngoingProjects(tx: TenantTransaction) {
 }
 
 /**
- * Replaces the demo organization's data with the seed, in one transaction with rate access: a
- * reseed leaves the same rows, and a failure leaves the previous ones. Touches no other
- * organization, since Row Level Security scopes every statement (ADR 0004).
+ * Replaces the demo organization's data with the seed for `today` (`YYYY-MM-DD`, in Madrid), in
+ * one transaction with rate access: a reseed on the same day leaves the same rows, and a failure
+ * leaves the previous ones. Touches no other organization, since Row Level Security scopes every
+ * statement (ADR 0004).
  */
-export async function seedDemo(db: NodePgDatabase): Promise<void> {
+export async function seedDemo(db: NodePgDatabase, today: string): Promise<void> {
+  // A day outside the calendar fails, leaving the previous rows.
+  const spans = ongoingSpans(today, Object.keys(NATIONAL_HOLIDAYS).map(Number));
   await withOrganization(db, DEMO, async (tx) => {
     await clear(tx);
-    await insert(tx);
+    await insert(tx, spans);
   });
 }

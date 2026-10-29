@@ -33,7 +33,7 @@ import { SOME_DAY, appPool } from "./support";
 const app = drizzle(appPool(1));
 
 beforeAll(async () => {
-  await seedDemo(app);
+  await seedDemo(app, SOME_DAY);
 });
 
 afterAll(async () => {
@@ -210,7 +210,7 @@ describe("loadScenario", () => {
     };
     expect(await busy(withRates, "2026-10-28")).toEqual(underWay);
     expect(await busy(withoutRates, "2026-10-28")).toEqual(underWay);
-    // The delivery plan ended on 31 March 2027; the upkeep plan runs until 28 May.
+    // Seeded on SOME_DAY: the delivery plan ended on 31 March 2027; the upkeep plan runs until 31 May.
     expect(await busy(withRates, "2027-04-15")).toEqual({
       "Project Manager 1": 50,
       "Senior Developer 4": 30,

@@ -11,7 +11,7 @@ import type { Change } from "@/lib/scenarios/change";
 import { copyId } from "@/lib/visitors/copy-id";
 import { VISITOR_COOKIE, hashToken, newToken } from "@/lib/visitors/token";
 
-import { appPool, ownerPool } from "./support";
+import { SOME_DAY, appPool, ownerPool } from "./support";
 
 // ADR 0011: a visitor's save, which makes their copy of the demo on the first one.
 
@@ -24,7 +24,7 @@ afterAll(async () => {
 });
 
 beforeEach(async () => {
-  await seedDemo(app);
+  await seedDemo(app, SOME_DAY);
   await owner.query("delete from visitor_copies");
 });
 
