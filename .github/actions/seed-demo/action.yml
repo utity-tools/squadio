@@ -1,0 +1,28 @@
+name: Seed the demo organization
+description: >-
+  Replaces the synthetic demo organization as squadio_app, with the DATABASE_URL that `vercel pull`
+  wrote for production. Run `vercel pull --environment=production` first.
+
+runs:
+  using: composite
+  steps:
+    # DATABASE_URL comes from the variables `vercel pull` wrote, so Vercel stays the only place it
+    # is set. It is masked before use and reaches the seed through the environment, never as an
+    # argument. The seed replaces the demo in one transaction with fixed ids: the running deployment
+    # never sees it half-written, and its links keep working.
+    - name: Seed the demo organization
+      shell: bash
+      run: |
+        # Node's own parser: unlike @next/env, it leaves a `$` in the value alone.
+        url=$(node --eval '
+          const { readFileSync } = require("node:fs");
+          const { parseEnv } = require("node:util");
+          const pulled = parseEnv(readFileSync(".vercel/.env.production.local", "utf8"));
+          process.stdout.write(pulled.DATABASE_URL ?? "");
+        ')
+        # A Secret variable is pulled empty (docs/incidents/2026-10-23-migrations-in-neondb.md).
+        if [ -z "$url" ]; then echo "::error::vercel pull wrote no DATABASE_URL."; exit 1; fi
+        echo "::add-mask::$url"
+        # The seed's deletes rely on Row Level Security, which only binds squadio_app.
+        DATABASE_URL="$url" pnpm db:check-target app
+        DATABASE_URL="$url" pnpm db:seed
