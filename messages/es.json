@@ -77,7 +77,8 @@
       "unknown-id": "la asignación, la categoría o la persona no existen",
       "id-taken": "esa asignación ya existe",
       "invalid": "un valor está fuera de rango",
-      "chosen": "el equipo de un escenario elegido no se puede editar"
+      "chosen": "el equipo de un escenario elegido no se puede editar",
+      "choosing": "la elección del escenario se está guardando"
     }
   },
   "Bench": {

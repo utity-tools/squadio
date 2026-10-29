@@ -18,7 +18,13 @@ import {
 import { hoursBasis } from "./basis.fixtures";
 import { createHistory, record, redo, undo } from "./history";
 import type { ScenarioBasis } from "./scenario-view";
-import { SAVE_DELAY_MS, type SaveOutcome, type SaveRequest, createScenarioStore } from "./store";
+import {
+  type ChoiceRequest,
+  SAVE_DELAY_MS,
+  type SaveOutcome,
+  type SaveRequest,
+  createScenarioStore,
+} from "./store";
 
 // The page's scenario store (slice 3): the change model's history behind dispatch, undo and redo,
 // with every change checked when it is dispatched (ADR 0008, point 5).
@@ -437,5 +443,164 @@ describe("saving", () => {
     expect(store.getState().history).toBe(before);
     await vi.advanceTimersByTimeAsync(SAVE_DELAY_MS);
     expect(calls[0]?.request.changes).toEqual([edit(50)]);
+  });
+});
+
+describe("choosing", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  const chosenBasis = { ...basis, scenario: { ...basis.scenario, chosen: true } };
+
+  it("sends the choice with the version the page shows, and takes the new one", async () => {
+    const store = create(async () => ({ ok: true, version: 4, scenarioId: seatId(99) }));
+    const send = vi.fn(async (request: ChoiceRequest) => ({
+      ok: true,
+      version: request.baseVersion + 1,
+      scenarioId: request.scenarioId,
+    }));
+    expect(await store.getState().setChoice(true, send)).toEqual({ ok: true });
+    expect(send).toHaveBeenCalledWith({ scenarioId: seatId(99), baseVersion: 3, chosen: true });
+    // The team locks at once; the page loads its frozen basis next.
+    expect(store.getState()).toMatchObject({ version: 4, saveStatus: "saved" });
+    expect(store.getState().basis.scenario.chosen).toBe(true);
+    expect(store.getState().dispatch(halfDeveloper)).toBe(false);
+  });
+
+  it("unchooses, unlocking the team only with the basis the page loads next", async () => {
+    const store = createScenarioStore({
+      scenarioId: seatId(99),
+      basis: chosenBasis,
+      team,
+      version: 3,
+      save: never,
+    });
+    const send = async () => ({ ok: true, version: 4, scenarioId: seatId(99) });
+    expect(await store.getState().setChoice(false, send)).toEqual({ ok: true });
+    // Its basis still holds the frozen rates, which cover only the team's categories.
+    expect(store.getState()).toMatchObject({ version: 4, basis: chosenBasis });
+    expect(store.getState().dispatch(halfDeveloper)).toBe(false);
+    store.getState().adopt(basis);
+    expect(store.getState().dispatch(halfDeveloper)).toBe(true);
+  });
+
+  it("takes no step while a choice is on its way, so it is made on the team sent", async () => {
+    const store = create();
+    store.getState().dispatch(halfDeveloper);
+    store.setState({ saveStatus: "saved", history: { ...store.getState().history, pending: [] } });
+    let answer: (outcome: unknown) => void = () => {};
+    const choice = store.getState().setChoice(
+      true,
+      () =>
+        new Promise<unknown>((resolve) => {
+          answer = resolve;
+        }),
+    );
+    const before = store.getState().history;
+    expect(store.getState().undo()).toBe(false);
+    expect(store.getState().rejection).toEqual({ action: "undo", reason: "choosing" });
+    expect(store.getState().dispatch(halfDeveloper)).toBe(false);
+    expect(store.getState().history).toBe(before);
+    answer({ ok: false, reason: "missing-rate" });
+    await choice;
+    // A refused choice leaves the team editable again.
+    expect(store.getState().undo()).toBe(true);
+  });
+
+  it("waits for nothing to be left to save, never sending a choice on an older team", async () => {
+    const store = create(never);
+    store.getState().dispatch(halfDeveloper);
+    const send = vi.fn();
+    expect(await store.getState().setChoice(true, send)).toEqual({ ok: false, reason: "unsaved" });
+    await vi.advanceTimersByTimeAsync(SAVE_DELAY_MS);
+    expect(store.getState().saveStatus).toBe("saving");
+    expect(await store.getState().setChoice(true, send)).toEqual({ ok: false, reason: "unsaved" });
+    expect(send).not.toHaveBeenCalled();
+  });
+
+  it("moves to the copy that the first choice made", async () => {
+    const store = create();
+    const copyOf = (id: string) => id.replace("-8000-", "-9000-");
+    const renamed = Object.fromEntries(
+      [...team.map((member) => member.id), SENIOR, PM].map((id) => [id, copyOf(id)]),
+    );
+    const send = async () => ({ ok: true, version: 2, scenarioId: copyOf(seatId(99)), renamed });
+    expect(await store.getState().setChoice(true, send)).toEqual({ ok: true });
+    const state = store.getState();
+    expect(state).toMatchObject({ scenarioId: copyOf(seatId(99)), version: 2 });
+    expect(state.renamed[developer.id]).toBe(copyOf(developer.id));
+    expect(state.history.team.map((member) => member.id)).toEqual(
+      team.map((member) => copyOf(member.id)),
+    );
+    expect(state.basis.categories.map((category) => category.id)).toEqual([
+      copyOf(SENIOR),
+      copyOf(PM),
+    ]);
+    expect(state.basis.scenario.chosen).toBe(true);
+  });
+
+  it("says why a choice is refused, changing nothing", async () => {
+    for (const outcome of [
+      { ok: false, reason: "missing-rate" },
+      { ok: false, reason: "limit" },
+      { ok: false, reason: "no-rate-access" },
+    ]) {
+      const store = create();
+      const before = store.getState();
+      expect(await store.getState().setChoice(true, async () => outcome)).toEqual(outcome);
+      expect(store.getState()).toMatchObject({
+        version: 3,
+        saveStatus: "saved",
+        basis: before.basis,
+      });
+    }
+  });
+
+  it("stops saving when the scenario changed elsewhere or the copy is gone", async () => {
+    for (const [outcome, status] of [
+      [{ ok: false, reason: "conflict", version: 7 }, "conflict"],
+      [{ ok: false, reason: "not-found" }, "gone"],
+    ] as const) {
+      const store = create();
+      expect(await store.getState().setChoice(true, async () => outcome)).toEqual({
+        ok: false,
+        reason: outcome.reason,
+      });
+      expect(store.getState().saveStatus).toBe(status);
+    }
+  });
+
+  it("takes an error or an answer of another shape for a failed choice", async () => {
+    for (const send of [
+      async () => {
+        throw new Error("offline");
+      },
+      async () => undefined,
+    ]) {
+      const store = create();
+      expect(await store.getState().setChoice(true, send)).toEqual({
+        ok: false,
+        reason: "failed",
+      });
+      expect(store.getState()).toMatchObject({ version: 3, saveStatus: "saved" });
+    }
+  });
+
+  it("refuses a second choice while one is on its way", async () => {
+    const store = create();
+    let answer: (outcome: unknown) => void = () => {};
+    const slow = () =>
+      new Promise<unknown>((resolve) => {
+        answer = resolve;
+      });
+    const first = store.getState().setChoice(true, slow);
+    expect(await store.getState().setChoice(true, slow)).toEqual({ ok: false, reason: "unsaved" });
+    answer({ ok: true, version: 4, scenarioId: seatId(99) });
+    expect(await first).toEqual({ ok: true });
   });
 });
