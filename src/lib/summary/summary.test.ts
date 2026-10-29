@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
 
-import type { CompleteResult, IncompleteResult } from "@/lib/costing/calculate-scenario";
+import type { CompleteResult, PartialResult } from "@/lib/costing/calculate-scenario";
 
 import { type SummaryInput, ledger, teamSummary } from "./summary";
 
@@ -143,9 +143,50 @@ describe("ledger", () => {
   });
 
   it("leaves an incomplete result without money, naming the categories without a rate", () => {
-    const incomplete: IncompleteResult = {
+    const missing = {
+      undetermined: [
+        { code: "missingRate" as const, categoryIds: ["devops", "pm"] },
+        { code: "missingPrice" as const },
+      ],
+    };
+    const noRate = (categoryId: string) => ({
+      undetermined: [{ code: "missingRate" as const, categoryIds: [categoryId] }],
+    });
+    const incomplete: PartialResult = {
+      ...complete,
       complete: false,
-      ...hours,
+      staffCostByCategory: [
+        {
+          categoryId: "pm",
+          effectiveHours: 396.65,
+          costPerHourCents: noRate("pm"),
+          costCents: noRate("pm"),
+        },
+        {
+          categoryId: "senior",
+          effectiveHours: 1190,
+          costPerHourCents: 4588,
+          costCents: 4_000_000,
+        },
+        {
+          categoryId: "devops",
+          effectiveHours: 396.62,
+          costPerHourCents: noRate("devops"),
+          costCents: noRate("devops"),
+        },
+      ],
+      staffCostCents: missing,
+      directCostCents: missing,
+      overheadCents: missing,
+      bufferCents: missing,
+      totalCostCents: missing,
+      revenueCents: missing,
+      directMarginCents: missing,
+      directMarginBasisPoints: missing,
+      netMarginCents: missing,
+      netMarginBasisPoints: missing,
+      effectiveRateCents: missing,
+      marginStatus: null,
       warnings: [{ code: "missingRate", categoryIds: ["devops", "pm"] }, { code: "missingPrice" }],
     };
 
