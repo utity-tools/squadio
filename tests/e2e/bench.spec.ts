@@ -49,6 +49,10 @@ test("the bench shows today's occupancy of the ongoing projects, whatever the da
   await expect(card("DevOps Engineer 2")).toContainText(/Ocupación hoy: 40\s%/);
   await expect(card("Senior Developer 1")).toContainText(/Ocupación hoy: 0\s%/);
   await expect(card("Senior Developer 1")).not.toContainText("Sobreasignación");
+  // The scenario takes place in 2027: the bench says the day it measures and what it is not.
+  await expect(bench(page)).toContainText(
+    /Ocupación a \d{1,2} de \p{L}+ de \d{4}, según los escenarios elegidos en Squadio\. No es la disponibilidad durante el proyecto\./u,
+  );
 });
 
 test("the bench offers an open role of each category, until a name is searched", async ({
