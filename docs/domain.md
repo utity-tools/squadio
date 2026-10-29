@@ -421,8 +421,7 @@ Both are clamped to the years the national calendar lists (rule h), and never st
 before the seed's day, so they always cover it: on the calendar's first or last day off, covering it
 wins and a span starts or ends on that day. A seed run on a day outside those years fails: the
 calendar needs a new year. Each scenario is frozen with the calendar of its reference year, as
-choosing does. Production reseeds only on deploy (ADR 0006), so its spans follow the last deploy's
-day.
+choosing does. Production reseeds on every deploy and daily (ADR 0006), so its spans follow today.
 
 ### Choosing a scenario
 
