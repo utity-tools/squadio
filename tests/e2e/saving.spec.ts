@@ -73,7 +73,10 @@ test("a failed save says so, and saves on retry", async ({ page }) => {
   await openGuide(page);
 
   await remove(page, "Tech lead");
-  await expect(banner(page).getByRole("status")).toHaveText("No se ha podido guardar");
+  // The header has two status regions: the save state's and the choice's.
+  await expect(
+    banner(page).getByRole("status").getByText("No se ha podido guardar", { exact: true }),
+  ).toBeVisible();
   for (const colorScheme of ["light", "dark"] as const) {
     await page.emulateMedia({ colorScheme });
     await expect(page.locator("html")).toHaveAttribute("data-theme", colorScheme);

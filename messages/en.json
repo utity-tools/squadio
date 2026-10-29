@@ -53,6 +53,40 @@
     "refused": "The changes could not be saved",
     "reload": "Reload"
   },
+  "ScenarioChoice": {
+    "choose": {
+      "button": "Choose scenario",
+      "busy": "Choosing…",
+      "title": "Choose “{name}”?",
+      "description": "Today's rates of its categories, overhead, buffer and availability are frozen; the price, extra costs and target margin are not. Its team can no longer be edited until you unchoose the scenario.",
+      "replaces": "“{name}” will no longer be the project's chosen scenario: its frozen values are discarded and its team can be edited again.",
+      "missingRate": "It cannot be chosen: {categories} {count, plural, one {has} other {have}} no rate, so there is nothing to freeze."
+    },
+    "unchoose": {
+      "button": "Unchoose",
+      "busy": "Unchoosing…",
+      "title": "Unchoose “{name}”?",
+      "description": "Its frozen rates and cost config are discarded: the scenario is costed with the current values again, and its team can be edited."
+    },
+    "waiting": {
+      "unsaved": "The changes are not saved yet: you can go on as soon as they are.",
+      "saveFailed": "The changes could not be saved: retry from the header to go on.",
+      "stopped": "This page can no longer save changes: reload it to go on.",
+      "limit": "No more copies of the demo can be made today. Try again tomorrow."
+    },
+    "refused": {
+      "missing-rate": "It cannot be chosen: a category of the team has no rate.",
+      "limit": "No more copies of the demo can be made today. Try again tomorrow.",
+      "conflict": "The scenario changed in another tab. Reload the page.",
+      "not-found": "Your copy no longer exists. Reload the page.",
+      "unsaved": "The changes are not saved yet: you can go on as soon as they are.",
+      "failed": "The choice could not be saved. Try again."
+    },
+    "chosen": "“{name}” is chosen.",
+    "unchosen": "“{name}” is no longer chosen.",
+    "cancel": "Cancel",
+    "close": "Close"
+  },
   "ScenarioAnnouncer": {
     "margin": "Net margin: {amount}",
     "marginWithPercent": "Net margin: {amount} ({percent})",

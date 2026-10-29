@@ -1,6 +1,15 @@
 "use client";
 
-import { type ReactNode, createContext, use, useEffect, useMemo, useState } from "react";
+import {
+  type ReactNode,
+  type RefObject,
+  createContext,
+  use,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useStore } from "zustand";
 
 import { TeamDragProvider } from "@/components/team-drag/team-drag";
@@ -18,12 +27,33 @@ const StoreContext = createContext<ScenarioStore | null>(null);
 const ViewContext = createContext<LoadedScenario | null>(null);
 
 /**
+ * The choice a page sent and has not yet shown as made: whether the scenario ends up chosen, or
+ * null. It lives above the page, so the copy's page, after the move a first choice makes, can
+ * give the focus back and say the choice was made.
+ */
+export type PendingChoice = RefObject<boolean | null>;
+
+const PendingChoiceContext = createContext<PendingChoice | null>(null);
+
+/**
  * Holds the scenario store above the scenario page, in the section's layout, so the redirect to
  * the visitor's copy after the first save keeps the history (ADR 0011, slice 3).
  */
 export function ScenarioStoreProvider({ children }: { children: ReactNode }) {
   const [registry] = useState(createStoreRegistry);
-  return <RegistryContext value={registry}>{children}</RegistryContext>;
+  const pendingChoice = useRef<boolean | null>(null);
+  return (
+    <RegistryContext value={registry}>
+      <PendingChoiceContext value={pendingChoice}>{children}</PendingChoiceContext>
+    </RegistryContext>
+  );
+}
+
+/** The choice the page sent and has not shown as made yet, kept across the move to the copy. */
+export function usePendingChoice(): PendingChoice {
+  const pending = use(PendingChoiceContext);
+  if (!pending) throw new Error("usePendingChoice needs a ScenarioStoreProvider above it");
+  return pending;
 }
 
 export type ScenarioEditorProps = {
