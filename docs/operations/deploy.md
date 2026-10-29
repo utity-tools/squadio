@@ -59,14 +59,17 @@ pnpm exec vercel ls --prod
 pnpm exec vercel promote <deployment-url>
 ```
 
-## Cleaning up visitor copies
+## Cleaning up visitor copies and reseeding the demo
 
 [`clean-up.yml`](../../.github/workflows/clean-up.yml) runs daily at 04:17 UTC in the `production`
-environment. It checks `DATABASE_OWNER_URL` with `pnpm db:check-target owner`, then
-`pnpm db:clean-up` deletes every visitor's copy of the demo with no save in 30 days, rows and claim
+environment, with two independent jobs. To run it by hand, **Clean up → Run workflow**, branch
+`main`. It needs no setup beyond the deploy's secrets and variables.
+
+**Delete idle visitor copies.** It checks `DATABASE_OWNER_URL` with
+`pnpm db:check-target owner`, then `pnpm db:clean-up` deletes every visitor's copy of the demo with
+no save in 30 days, rows and claim
 ([ADR 0011](../adr/0011-saving-edits-and-the-visitor-copy.md), "Clean-up"). Its log says how many it
-deleted. It needs no setup beyond the deploy's secrets; to run it by hand, **Clean up → Run
-workflow**, branch `main`.
+deleted.
 
 Each copy goes in its own transaction. A copy whose claim stays locked for 10 seconds is skipped:
 the run deletes the rest, names the skipped organizations in its log and fails, and the next day's
@@ -75,6 +78,26 @@ backlog is finished over the following days, or by running it again by hand.
 
 It runs the code on `main`, while production may still be on the previous deploy. A run that
 meets a deploy at 04:17 UTC can make one save or one day's run fail, never a half-deleted copy.
+
+**Reseed the demo template.** A first job, without secrets, finds the commit production last
+deployed: the newest Deploy run whose deploy job succeeded. The reseed runs that commit's code, not
+`main`'s tip, which can be ahead of production's schema. It runs the deploy's `vercel pull`, without
+the build, then steps 5 and 7: the seed as `squadio_app` and the smoke test. The demo's ongoing
+scenarios then follow today ([domain](../domain.md), "The demo's dates"); visitors' copies are left
+alone. A failed reseed leaves the previous demo, since the seed is one transaction, and tomorrow's
+run tries again. A reseed failing every day on the date means the national calendar needs a new
+year (rule h).
+
+- **A deploy is queued or running:** the reseed is skipped, since that deploy seeds anyway.
+- **A deploy that starts in the seconds after that check:** the reseed shares the deploy's
+  concurrency group. Once it holds the group, it checks again and gives way if a newer deploy ran
+  meanwhile, since that deploy has seeded. The group also keeps only one pending run, so either one
+  can replace the other. A replaced deploy shows as
+  **cancelled** (not failed, so GitHub sends no email) around 04:17 UTC: run
+  **Deploy → Run workflow** by hand.
+- **After a `vercel rollback`:** production runs an older deployment than the last Deploy run, so
+  the reseed would use newer code. Pause the schedule (**Clean up → ⋯ → Disable workflow**) until a
+  new deploy is promoted.
 
 ## One-time setup
 
