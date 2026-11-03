@@ -67,7 +67,7 @@ environment, with two independent jobs. To run it by hand, **Clean up → Run wo
 
 **Delete idle visitor copies.** It checks `DATABASE_OWNER_URL` with
 `pnpm db:check-target owner`, then `pnpm db:clean-up` deletes every visitor's copy of the demo with
-no save in 30 days, rows and claim
+no save in 30 days, rows, claim and organization row
 ([ADR 0011](../adr/0011-saving-edits-and-the-visitor-copy.md), "Clean-up"). Its log says how many it
 deleted.
 

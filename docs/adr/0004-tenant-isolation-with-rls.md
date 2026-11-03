@@ -100,3 +100,8 @@ enabled **and forced**, and its policies in the same migration, all keyed on one
   organizations; the guard checks them as a schema of accounts
   ([ADR 0012, amendments](0012-sign-in-and-membership.md#amendments)). The decision itself is
   unchanged.
+- **2026-11-03:** Every tenant table's `organization_id` references `auth.organization` without a
+  cascade, since a cascade would delete rows without RLS; a DB test checks it. Migration 0009
+  lifts FORCE ROW LEVEL SECURITY for its own backfill and restores it in the same transaction
+  ([ADR 0012, amendments](0012-sign-in-and-membership.md#amendments)). The decision itself is
+  unchanged.

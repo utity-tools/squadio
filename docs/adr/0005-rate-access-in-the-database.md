@@ -121,3 +121,10 @@ no rows instead of salaries.
 - **2026-10-29:** Sign-in moves to v0.3 ([ADR 0012](0012-sign-in-and-membership.md)): the access
   context comes from the signed-in member, and until invitations (v0.5) the only member of an
   organization is its owner, with rate access. The decision itself is unchanged.
+- **2026-11-03:** The member's context lands in `src/db/access.ts`, next to the visitor's:
+  `memberOf` resolves the session's membership, `capabilitiesFor` (`src/lib/membership`) maps the
+  owner, v0.3's only role, to rate access, and `memberAccessContext` and `memberEditContext` build
+  the page's and the write's contexts, both with the member's rate access; `?access=none` still
+  only takes it away. A role v0.3 does not know gets no context at all
+  ([ADR 0012, amendments](0012-sign-in-and-membership.md#amendments)). The decision itself is
+  unchanged.
