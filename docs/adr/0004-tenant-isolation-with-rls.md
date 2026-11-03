@@ -96,3 +96,7 @@ enabled **and forced**, and its policies in the same migration, all keyed on one
   decision itself is unchanged.
 - **2026-10-29:** Sign-in moves to v0.3 ([ADR 0012](0012-sign-in-and-membership.md)), whose second
   slice settles Better Auth's tables. The decision itself is unchanged.
+- **2026-11-03:** Better Auth's tables live in their own `auth` schema without RLS, read across
+  organizations; the guard checks them as a schema of accounts
+  ([ADR 0012, amendments](0012-sign-in-and-membership.md#amendments)). The decision itself is
+  unchanged.

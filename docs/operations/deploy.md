@@ -297,6 +297,52 @@ New Rule:
 
 Review Changes, then Publish. Hobby allows one rate limit rule per project, so this is it.
 
+### 8. Sign-in
+
+GitHub and Google sign-in ([ADR 0012](../adr/0012-sign-in-and-membership.md)). Production handles
+the providers' callbacks for itself and for every preview, through Better Auth's OAuth proxy, so
+each provider gets one app for production and one for local development. Sign-up stays off in
+production until the owner's processing review.
+
+**GitHub**, at <https://github.com/settings/developers>, two OAuth Apps (not GitHub Apps):
+
+| App             | Homepage URL                     | Authorization callback URL                                |
+| --------------- | -------------------------------- | --------------------------------------------------------- |
+| `Squadio`       | `https://squadio.utitytools.com` | `https://squadio.utitytools.com/api/auth/callback/github` |
+| `Squadio (dev)` | `http://localhost:3000`          | `http://localhost:3000/api/auth/callback/github`          |
+
+**Google**, in a Google Cloud project of its own (`squadio`):
+
+- **OAuth consent screen:** External, publishing status **Testing**, the owner as the only test
+  user, scopes `openid`, `email` and `profile`. Testing keeps every other Google account out until
+  the processing review, whatever the sign-up switch says.
+- **Credentials, OAuth client ID, Web application:** `Squadio` with authorized redirect URI
+  `https://squadio.utitytools.com/api/auth/callback/google`, and `Squadio (dev)` with
+  `http://localhost:3000/api/auth/callback/google`.
+
+Keep every client ID and secret in the password manager. Generate the Better Auth secrets there
+too (32 random bytes, base64): production's `BETTER_AUTH_SECRET`, a different one for the
+previews, and one `OAUTH_PROXY_SECRET` that both share and nothing else holds. Whoever holds it can
+sign in as anyone on a preview, though not on production, which completes no proxied sign-in.
+
+Vercel, each value pasted at the prompt. The auth variables are read at run time only, never by
+`vercel pull` or the build, so they are **Sensitive**, unlike `DATABASE_URL` (step 4):
+
+```bash
+for name in BETTER_AUTH_SECRET OAUTH_PROXY_SECRET GITHUB_CLIENT_ID GITHUB_CLIENT_SECRET \
+  GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET; do
+  pnpm exec vercel env add "$name" production --sensitive
+done
+pnpm exec vercel env ls production
+```
+
+`SIGN_UP_ENABLED` stays unset in production, which keeps sign-up off; the owner sets it to `true`
+after the processing review. The previews' variables are in [the preview runbook](preview.md).
+
+Locally, add the same names to `.env.local` with the dev apps' clients, your own secrets and
+`SIGN_UP_ENABLED=true` (see `.env.example`). The E2E tests expect sign-up off, and the servers
+they start set it so: `pnpm test:e2e` reuses a running `pnpm dev`, so stop it first.
+
 ## Rotating credentials
 
 - **Database passwords** (`squadio_app` shown; the same for `squadio_owner`). Not in the SQL
@@ -322,3 +368,10 @@ Review Changes, then Publish. Hobby allows one rate limit rule per project, so t
   5. Update `DATABASE_URL` in Vercel and redeploy (for `squadio_owner`: `DATABASE_OWNER_URL` in
      GitHub).
 - **Vercel token:** create the new one, update `VERCEL_TOKEN`, then revoke the old one.
+- **`BETTER_AUTH_SECRET`:** replace it in Vercel and redeploy. Every session ends, so everyone
+  signs in again.
+- **`OAUTH_PROXY_SECRET`:** replace it in production and preview together, then redeploy
+  production; open previews pick it up on their next push. A sign-in under way fails and is started
+  again.
+- **GitHub or Google client secret:** generate a new one in the provider, replace it in Vercel
+  (production and preview), redeploy, then delete the old one in the provider.

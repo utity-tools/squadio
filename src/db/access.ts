@@ -6,8 +6,9 @@ import { hashToken, parseToken } from "@/lib/visitors/token";
 import type { AccessContext } from "./tenant";
 
 // ADR 0005, "One access context", as amended by ADR 0011: every request's context is built from
-// here, the page's (accessContextFor) and the save's (editContextFor). Until sign-in lands in v0.5 there are two: the demo template, and a visitor's copy of it
-// found through the cookie's token. Both have rate access. Seeds and scripts use this module too,
+// here, the page's (accessContextFor) and the save's (editContextFor). Until members get theirs in
+// v0.3's slice 2b there are two: the demo template, and a visitor's copy of it found through the
+// cookie's token. Both have rate access. Seeds and scripts use this module too,
 // so it is not server-only; the request side lives in request-access.ts.
 // `?access=none` shows the state without rate access; it can only take access away.
 
