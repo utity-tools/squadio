@@ -16,6 +16,7 @@ const slug = `synthetic-${crypto.randomUUID()}`;
 
 let cookie = "";
 let organizationId = "";
+let memberId = "";
 
 beforeAll(async () => {
   cookie = await signInOnPreview(auth, email);
@@ -26,6 +27,11 @@ beforeAll(async () => {
     body: { name: "Synthetic Consulting", slug, userId: user.rows[0]?.id },
   });
   organizationId = organization?.id ?? "";
+  const membership = await pool.query<{ id: string }>(
+    `select id from auth.member where organization_id = $1`,
+    [organizationId],
+  );
+  memberId = membership.rows[0]?.id ?? "";
 });
 
 afterAll(async () => {
@@ -61,6 +67,21 @@ describe("the organization plugin, from the browser", () => {
 
     expect(response.status).toBe(403);
   });
+
+  it.each([
+    ["leave", () => ({ organizationId })],
+    ["remove-member", () => ({ organizationId, memberIdOrEmail: email })],
+    ["update-member-role", () => ({ organizationId, memberId, role: "member" })],
+  ])(
+    "cannot %s, so the member's role and rate access stay as the server set them",
+    async (path, body) => {
+      const response = await browser(path, body());
+
+      expect(response.status).toBe(404);
+      const row = await pool.query(`select role from auth.member where id = $1`, [memberId]);
+      expect(row.rows).toEqual([{ role: "owner" }]);
+    },
+  );
 
   it.each([
     ["update", { organizationId, data: { name: "Renamed" } }],
