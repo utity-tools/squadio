@@ -324,5 +324,24 @@
       "noSpan": "No dates: the scenario has no team",
       "note": "Costs and margins are visible to people with rate access."
     }
+  },
+  "Account": {
+    "signIn": "Sign in",
+    "signOut": "Sign out",
+    "signedInAs": "Signed in as",
+    "signOutFailed": "We couldn't sign you out. Try again."
+  },
+  "SignIn": {
+    "title": "Sign in",
+    "titleFailed": "Sign-in failed",
+    "heading": "Sign in to Squadio",
+    "intro": "Sign in with your GitHub or Google account. Squadio only keeps your name, your email, the link to your profile picture and your GitHub or Google ID and, for each session, the IP address and browser you sign in from.",
+    "github": "Continue with GitHub",
+    "google": "Continue with Google",
+    "failed": "We couldn't sign you in. Try again.",
+    "closed": "You can't sign in with an account yet. Meanwhile you can try the demo, no account needed.",
+    "tryDemo": "Try the demo",
+    "signedIn": "You're signed in as {name}.",
+    "home": "Back to the home page"
   }
 }

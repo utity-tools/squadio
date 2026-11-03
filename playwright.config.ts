@@ -33,5 +33,7 @@ export default defineConfig({
         url: `http://localhost:${PORT}`,
         reuseExistingServer: !useProdBuild,
         timeout: 120_000,
+        // The tests expect sign-up off, as in production until the processing review (ADR 0012).
+        env: { SIGN_UP_ENABLED: "false" },
       },
 });

@@ -122,7 +122,18 @@ jobs:
       - run: docker compose up -d --wait
       - run: pnpm db:migrate
       - run: pnpm db:seed
-      - run: pnpm test:e2e:prod
+      # Built without the auth variables, as production's build is: they are read at run time only.
+      - run: pnpm build
+      # The server gets them, synthetic like .env.test's: no provider knows these clients.
+      - run: pnpm exec playwright test
+        env:
+          E2E_PROD: "1"
+          BETTER_AUTH_SECRET: synthetic-test-auth-secret-0123456789abcdef
+          OAUTH_PROXY_SECRET: synthetic-test-proxy-secret-0123456789abcdef
+          GITHUB_CLIENT_ID: synthetic-test-github-client-id
+          GITHUB_CLIENT_SECRET: synthetic-test-github-client-secret
+          GOOGLE_CLIENT_ID: synthetic-test-google-client-id
+          GOOGLE_CLIENT_SECRET: synthetic-test-google-client-secret
       - if: ${{ failure() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
