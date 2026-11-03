@@ -8,6 +8,7 @@ import { useFormatter, useTranslations } from "next-intl";
 import { type ReactNode, useId } from "react";
 
 import type {
+  Amount,
   CategoryLine,
   Ledger,
   LedgerLine,
@@ -17,7 +18,7 @@ import type {
 import { cn } from "@/lib/utils";
 
 import { CountUp } from "./count-up";
-import { Figure, useSummaryFormat } from "./summary-format";
+import { Figure, useSummaryFormat, useWhyNoAmount } from "./summary-format";
 
 export type SummaryLedgerProps = {
   ledger: Ledger;
@@ -25,7 +26,7 @@ export type SummaryLedgerProps = {
   team: Pick<TeamSummary, "people" | "openRoles">;
 };
 
-type Status = NonNullable<Extract<Ledger, { complete: true }>["headline"]["status"]>;
+type Status = NonNullable<Ledger["headline"]["status"]>;
 
 const STATUS_STYLE: Record<Status, { className: string; Icon: typeof CircleCheckIcon }> = {
   green: { className: "bg-status-ok text-status-ok-foreground", Icon: CircleCheckIcon },
@@ -41,6 +42,7 @@ const STATUS_STYLE: Record<Status, { className: string; Icon: typeof CircleCheck
 export function SummaryLedger({ ledger, team }: SummaryLedgerProps) {
   const t = useTranslations("Summary");
   const { euros, percent, hours, rate } = useSummaryFormat();
+  const { headline, figures } = ledger;
 
   return (
     <div className="flex flex-col gap-6">
@@ -49,61 +51,50 @@ export function SummaryLedger({ ledger, team }: SummaryLedgerProps) {
       <Section title={t("headline.netMargin")} quietTitle>
         {/* The page's live region says the new margin (ScenarioAnnouncer), never the count. */}
         <div className="flex flex-col gap-2">
-          {ledger.complete ? (
-            <>
-              <p className="flex flex-wrap items-baseline gap-x-3 text-3xl font-semibold tabular-nums">
-                <span>
-                  <CountUp value={ledger.headline.netMarginCents} format={euros} />
+          {typeof headline.netMarginCents === "number" ? (
+            <p className="flex flex-wrap items-baseline gap-x-3 text-3xl font-semibold tabular-nums">
+              <span>
+                <CountUp value={headline.netMarginCents} format={euros} />
+              </span>
+              {typeof headline.netMarginBasisPoints === "number" && (
+                <span className="text-xl text-muted-foreground">
+                  <CountUp value={headline.netMarginBasisPoints} format={percent} />
                 </span>
-                {ledger.headline.netMarginBasisPoints !== null && (
-                  <span className="text-xl text-muted-foreground">
-                    <CountUp value={ledger.headline.netMarginBasisPoints} format={percent} />
-                  </span>
-                )}
-              </p>
-              <div className="flex flex-wrap items-center gap-2 text-sm">
-                {ledger.headline.status && <StatusBadge status={ledger.headline.status} />}
-                <span className="text-muted-foreground">
-                  {t("headline.target", {
-                    percent: percent(ledger.headline.targetMarginBasisPoints),
-                  })}
-                </span>
-              </div>
-            </>
+              )}
+            </p>
           ) : (
-            <p className="text-lg font-semibold">{t("headline.incomplete")}</p>
+            <p className="text-2xl font-semibold">
+              <Value amount={headline.netMarginCents} format={euros} />
+            </p>
           )}
+          {typeof headline.netMarginBasisPoints === "object" &&
+            headline.netMarginBasisPoints.state === "notApplicable" && (
+              <p className="text-sm text-muted-foreground">
+                {t("headline.percentNotApplicable", { reason: t("reasons.noRevenue") })}
+              </p>
+            )}
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            {headline.status && <StatusBadge status={headline.status} />}
+            <span className="text-muted-foreground">
+              {t("headline.target", { percent: percent(headline.targetMarginBasisPoints) })}
+            </span>
+          </div>
         </div>
       </Section>
 
       <Section title={t("figures.title")}>
         <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
           <Figure term={t("figures.revenue")}>
-            {ledger.complete ? (
-              <CountUp value={ledger.figures.revenueCents} format={euros} />
-            ) : (
-              <Unavailable />
-            )}
+            <Value amount={figures.revenueCents} format={euros} counts />
           </Figure>
           <Figure term={t("figures.totalCost")}>
-            {ledger.complete ? (
-              <CountUp value={ledger.figures.totalCostCents} format={euros} />
-            ) : (
-              <Unavailable />
-            )}
+            <Value amount={figures.totalCostCents} format={euros} counts />
           </Figure>
           <Figure term={t("figures.effectiveRate")}>
-            {ledger.complete && ledger.figures.effectiveRateCents !== null ? (
-              <CountUp value={ledger.figures.effectiveRateCents} format={rate} />
-            ) : (
-              <Unavailable />
-            )}
+            <Value amount={figures.effectiveRateCents} format={rate} counts />
           </Figure>
           <Figure term={t("figures.effectiveHours")}>
-            <CountUp
-              value={ledger.complete ? ledger.figures.effectiveHours : ledger.effectiveHours}
-              format={hours}
-            />
+            <CountUp value={figures.effectiveHours} format={hours} />
           </Figure>
         </dl>
         <p className="mt-3 text-sm text-muted-foreground">
@@ -113,20 +104,16 @@ export function SummaryLedger({ ledger, team }: SummaryLedgerProps) {
         </p>
       </Section>
 
-      {ledger.complete && (
-        <>
-          <Section title={t("lines.title")}>
-            <table aria-label={t("lines.title")} className="w-full text-sm">
-              <tbody>
-                {ledger.lines.map((line) => (
-                  <ResultLine key={line.key === "extraCost" ? line.id : line.key} line={line} />
-                ))}
-              </tbody>
-            </table>
-          </Section>
-          {ledger.categories.length > 0 && <CategoryTable categories={ledger.categories} />}
-        </>
-      )}
+      <Section title={t("lines.title")}>
+        <table aria-label={t("lines.title")} className="w-full text-sm">
+          <tbody>
+            {ledger.lines.map((line) => (
+              <ResultLine key={line.key === "extraCost" ? line.id : line.key} line={line} />
+            ))}
+          </tbody>
+        </table>
+      </Section>
+      {ledger.categories.length > 0 && <CategoryTable categories={ledger.categories} />}
     </div>
   );
 }
@@ -158,14 +145,35 @@ function Section({
   );
 }
 
-/** A dash where a money figure would be, with its reason for screen readers (rules k and l). */
-function Unavailable() {
+/**
+ * A line's amount, or why it has none: "Undetermined" and what it misses, never 0 € (rules k and
+ * l), or "Not applicable" and why (docs/domain.md, "Partial results"). `counts` animates a figure
+ * between amounts; a line that gains or loses its amount swaps at once.
+ */
+function Value({
+  amount,
+  format,
+  counts = false,
+  ownRate = false,
+}: {
+  amount: Amount;
+  format: (value: number) => string;
+  counts?: boolean;
+  ownRate?: boolean;
+}) {
   const t = useTranslations("Summary");
+  const whyNoAmount = useWhyNoAmount();
+  if (typeof amount === "number")
+    return counts ? <CountUp value={amount} format={format} /> : format(amount);
+
   return (
-    <>
-      <span aria-hidden>—</span>
-      <span className="sr-only">{t("unavailable")}</span>
-    </>
+    // The reason wraps in the narrow rail; the space keeps the two apart for every screen reader.
+    <span className="inline-flex flex-col whitespace-normal">
+      <span>{t(amount.state)} </span>
+      <span className="text-xs font-normal text-muted-foreground">
+        {whyNoAmount(amount, { ownRate })}
+      </span>
+    </span>
   );
 }
 
@@ -206,13 +214,21 @@ function ResultLine({ line }: { line: LedgerLine }) {
         return t(line.key);
     }
   })();
+  const isMargin = line.key === "directMargin" || line.key === "netMargin";
   const amount =
-    (line.key === "directMargin" || line.key === "netMargin") && line.basisPoints !== null
-      ? tSummary("amountWithPercent", {
+    isMargin && typeof line.cents === "number" ? (
+      typeof line.basisPoints === "number" ? (
+        tSummary("amountWithPercent", {
           amount: euros(line.cents),
           percent: percent(line.basisPoints),
         })
-      : euros(line.cents);
+      ) : (
+        // Its margin % has no meaning without revenue; the headline says why.
+        tSummary("amountPercentNotApplicable", { amount: euros(line.cents) })
+      )
+    ) : (
+      <Value amount={line.cents} format={euros} />
+    );
   // Totals stand out from the lines they add up.
   const total = ["directCost", "totalCost", "netMargin"].includes(line.key);
 
@@ -273,8 +289,17 @@ function CategoryTable({ categories }: { categories: CategoryLine[] }) {
           )}
           <tr>
             <td className={figure}>{hours(line.effectiveHours)}</td>
-            <td className={figure}>{cents(line.costPerHourCents)}</td>
-            <td className={figure}>{euros(line.costCents)}</td>
+            {typeof line.costCents === "number" && typeof line.costPerHourCents === "number" ? (
+              <>
+                <td className={figure}>{cents(line.costPerHourCents)}</td>
+                <td className={figure}>{euros(line.costCents)}</td>
+              </>
+            ) : (
+              // Without its rate the category has neither: one cell says so for both.
+              <td colSpan={2} className={figure}>
+                <Value amount={line.costCents} format={euros} ownRate />
+              </td>
+            )}
           </tr>
         </tbody>
       ))}

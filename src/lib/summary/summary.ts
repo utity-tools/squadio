@@ -1,4 +1,9 @@
-import type { MarginStatus, ScenarioResult } from "@/lib/costing/calculate-scenario";
+import {
+  type MarginStatus,
+  type ScenarioResult,
+  type Undetermined,
+  isDetermined,
+} from "@/lib/costing/calculate-scenario";
 import type { SmallCategory } from "@/lib/rates/small-categories";
 import type { ProjectSpan } from "@/lib/scenarios/project-span";
 
@@ -28,19 +33,28 @@ export type SummaryInput = {
   }[];
 };
 
+/**
+ * A result line's amount, or why it has none (docs/domain.md, "Partial results"): undetermined
+ * names what is missing, by category name; not applicable says why it has no meaning.
+ */
+export type Amount =
+  | number
+  | { state: "undetermined"; missing: { categories: string[]; price: boolean } }
+  | { state: "notApplicable"; reason: "noRevenue" | "noEffectiveHours" };
+
 /** A result line, in the order of the calculation, rounded once as the engine returns it. */
 export type LedgerLine =
-  | { key: "staffCost"; cents: number; effectiveHours: number }
+  | { key: "staffCost"; cents: Amount; effectiveHours: number }
   | {
       key: "extraCost";
       id: string;
       label: string | null;
       kind: SummaryInput["extraCosts"][number]["kind"];
-      cents: number;
+      cents: Amount;
     }
-  | { key: "directCost" | "totalCost" | "revenue"; cents: number }
-  | { key: "overhead" | "buffer"; cents: number; basisPoints: number }
-  | { key: "directMargin" | "netMargin"; cents: number; basisPoints: number | null };
+  | { key: "directCost" | "totalCost" | "revenue"; cents: Amount }
+  | { key: "overhead" | "buffer"; cents: Amount; basisPoints: number }
+  | { key: "directMargin" | "netMargin"; cents: Amount; basisPoints: Amount };
 
 /** One category's staff cost, with rule j's headcount when its rate reveals a salary. */
 export type CategoryLine = {
@@ -48,8 +62,8 @@ export type CategoryLine = {
   name: string;
   effectiveHours: number;
   /** Rounded for display only (docs/domain.md, "Staff cost by category"). */
-  costPerHourCents: number;
-  costCents: number;
+  costPerHourCents: Amount;
+  costCents: Amount;
   /** Null unless the category has 1 or 2 active people (rule j). */
   activePeople: 1 | 2 | null;
 };
@@ -60,32 +74,28 @@ export type SummaryWarning =
   | { code: "missingPrice" }
   | { code: "budgetCapExceeded"; revenueCents: number; budgetCapCents: number };
 
-export type Ledger =
-  | {
-      complete: true;
-      headline: {
-        netMarginCents: number;
-        netMarginBasisPoints: number | null;
-        status: MarginStatus | null;
-        targetMarginBasisPoints: number;
-      };
-      figures: {
-        revenueCents: number;
-        totalCostCents: number;
-        effectiveRateCents: number | null;
-        effectiveHours: number;
-      };
-      lines: LedgerLine[];
-      categories: CategoryLine[];
-      warnings: SummaryWarning[];
-    }
-  /** Rules k and l: no money at all, never a 0 €. */
-  | {
-      complete: false;
-      effectiveHours: number;
-      targetMarginBasisPoints: number;
-      warnings: SummaryWarning[];
-    };
+/**
+ * The summary with rate access. A partial result keeps every determined line; the others say what
+ * they miss, and no subtotal of the determined ones stands in for a total.
+ */
+export type Ledger = {
+  headline: {
+    netMarginCents: Amount;
+    netMarginBasisPoints: Amount;
+    /** Null with an undetermined net margin, or without revenue unless it is negative. */
+    status: MarginStatus | null;
+    targetMarginBasisPoints: number;
+  };
+  figures: {
+    revenueCents: Amount;
+    totalCostCents: Amount;
+    effectiveRateCents: Amount;
+    effectiveHours: number;
+  };
+  lines: LedgerLine[];
+  categories: CategoryLine[];
+  warnings: SummaryWarning[];
+};
 
 /**
  * The categories' names by id, from the team. The loader's result only names categories of the
@@ -115,49 +125,81 @@ export function ledger({
       : warning,
   );
   const effectiveHours = result.hours.effective;
-  const { targetMarginBasisPoints } = settings;
-  if (!result.complete)
-    return { complete: false, effectiveHours, targetMarginBasisPoints, warnings };
+
+  const amount = (line: number | Undetermined): Amount =>
+    isDetermined(line)
+      ? line
+      : {
+          state: "undetermined",
+          missing: {
+            categories: line.undetermined.flatMap((missing) =>
+              missing.code === "missingRate" ? missing.categoryIds.map(nameOf) : [],
+            ),
+            price: line.undetermined.some((missing) => missing.code === "missingPrice"),
+          },
+        };
+  // The engine's null: a margin % without revenue, an effective rate without effective hours.
+  const ratio =
+    (reason: "noRevenue" | "noEffectiveHours") =>
+    (line: number | null | Undetermined): Amount =>
+      line === null ? { state: "notApplicable", reason } : amount(line);
+  const marginPercent = ratio("noRevenue");
 
   const extraOf = new Map(extraCosts.map((extra) => [extra.id, extra]));
   const small = new Map(smallCategories.map((line) => [line.categoryId, line.activePeople]));
   return {
-    complete: true,
     headline: {
-      netMarginCents: result.netMarginCents,
-      netMarginBasisPoints: result.netMarginBasisPoints,
+      netMarginCents: amount(result.netMarginCents),
+      netMarginBasisPoints: marginPercent(result.netMarginBasisPoints),
       // The engine's, as docs/domain.md defines it: never judged a second time here.
       status: result.marginStatus,
-      targetMarginBasisPoints,
+      targetMarginBasisPoints: settings.targetMarginBasisPoints,
     },
     figures: {
-      revenueCents: result.revenueCents,
-      totalCostCents: result.totalCostCents,
-      effectiveRateCents: result.effectiveRateCents,
+      revenueCents: amount(result.revenueCents),
+      totalCostCents: amount(result.totalCostCents),
+      effectiveRateCents: ratio("noEffectiveHours")(result.effectiveRateCents),
       effectiveHours,
     },
     lines: [
-      { key: "staffCost", cents: result.staffCostCents, effectiveHours },
+      { key: "staffCost", cents: amount(result.staffCostCents), effectiveHours },
       ...result.extraCosts.map(({ id, amountCents }): LedgerLine => {
         const extra = extraOf.get(id);
         if (!extra) throw new Error(`Extra cost ${id} has no label or kind`);
-        return { key: "extraCost", id, label: extra.label, kind: extra.kind, cents: amountCents };
+        return {
+          key: "extraCost",
+          id,
+          label: extra.label,
+          kind: extra.kind,
+          cents: amount(amountCents),
+        };
       }),
-      { key: "directCost", cents: result.directCostCents },
-      { key: "overhead", cents: result.overheadCents, basisPoints: settings.overheadBasisPoints },
-      { key: "buffer", cents: result.bufferCents, basisPoints: settings.bufferBasisPoints },
-      { key: "totalCost", cents: result.totalCostCents },
-      { key: "revenue", cents: result.revenueCents },
+      { key: "directCost", cents: amount(result.directCostCents) },
+      {
+        key: "overhead",
+        cents: amount(result.overheadCents),
+        basisPoints: settings.overheadBasisPoints,
+      },
+      { key: "buffer", cents: amount(result.bufferCents), basisPoints: settings.bufferBasisPoints },
+      { key: "totalCost", cents: amount(result.totalCostCents) },
+      { key: "revenue", cents: amount(result.revenueCents) },
       {
         key: "directMargin",
-        cents: result.directMarginCents,
-        basisPoints: result.directMarginBasisPoints,
+        cents: amount(result.directMarginCents),
+        basisPoints: marginPercent(result.directMarginBasisPoints),
       },
-      { key: "netMargin", cents: result.netMarginCents, basisPoints: result.netMarginBasisPoints },
+      {
+        key: "netMargin",
+        cents: amount(result.netMarginCents),
+        basisPoints: marginPercent(result.netMarginBasisPoints),
+      },
     ],
     categories: result.staffCostByCategory.map((line) => ({
-      ...line,
+      categoryId: line.categoryId,
       name: nameOf(line.categoryId),
+      effectiveHours: line.effectiveHours,
+      costPerHourCents: amount(line.costPerHourCents),
+      costCents: amount(line.costCents),
       activePeople: small.get(line.categoryId) ?? null,
     })),
     warnings,

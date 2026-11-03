@@ -62,7 +62,6 @@ const input: SummaryInput = {
 describe("ledger", () => {
   it("puts the net margin, its status and the target in the headline", () => {
     const summary = ledger(input);
-    if (!summary.complete) throw new Error("expected a complete ledger");
 
     expect(summary.headline).toEqual({
       netMarginCents: 5_430_000,
@@ -74,7 +73,6 @@ describe("ledger", () => {
 
   it("gives the key figures: revenue, total cost, effective rate and effective hours", () => {
     const summary = ledger(input);
-    if (!summary.complete) throw new Error("expected a complete ledger");
 
     expect(summary.figures).toEqual({
       revenueCents: 15_000_000,
@@ -86,7 +84,6 @@ describe("ledger", () => {
 
   it("lists the result lines in the order of the calculation", () => {
     const summary = ledger(input);
-    if (!summary.complete) throw new Error("expected a complete ledger");
 
     expect(summary.lines).toEqual([
       { key: "staffCost", cents: 7_000_000, effectiveHours: 1983.27 },
@@ -104,7 +101,6 @@ describe("ledger", () => {
 
   it("names each category's staff cost and flags the small ones (rule j)", () => {
     const summary = ledger(input);
-    if (!summary.complete) throw new Error("expected a complete ledger");
 
     expect(summary.categories).toEqual([
       {
@@ -142,25 +138,27 @@ describe("ledger", () => {
     ]);
   });
 
-  it("leaves an incomplete result without money, naming the categories without a rate", () => {
-    const missing = {
+  describe("with a partial result", () => {
+    const rateOf = (...categoryIds: string[]) => ({
+      undetermined: [{ code: "missingRate" as const, categoryIds }],
+    });
+    const price = { undetermined: [{ code: "missingPrice" as const }] };
+    const both = {
       undetermined: [
         { code: "missingRate" as const, categoryIds: ["devops", "pm"] },
         { code: "missingPrice" as const },
       ],
     };
-    const noRate = (categoryId: string) => ({
-      undetermined: [{ code: "missingRate" as const, categoryIds: [categoryId] }],
-    });
-    const incomplete: PartialResult = {
+    // DevOps and the PM without a rate, the price kept: costs and margins are undetermined.
+    const withoutRates: PartialResult = {
       ...complete,
       complete: false,
       staffCostByCategory: [
         {
           categoryId: "pm",
           effectiveHours: 396.65,
-          costPerHourCents: noRate("pm"),
-          costCents: noRate("pm"),
+          costPerHourCents: rateOf("pm"),
+          costCents: rateOf("pm"),
         },
         {
           categoryId: "senior",
@@ -171,33 +169,135 @@ describe("ledger", () => {
         {
           categoryId: "devops",
           effectiveHours: 396.62,
-          costPerHourCents: noRate("devops"),
-          costCents: noRate("devops"),
+          costPerHourCents: rateOf("devops"),
+          costCents: rateOf("devops"),
         },
       ],
-      staffCostCents: missing,
-      directCostCents: missing,
-      overheadCents: missing,
-      bufferCents: missing,
-      totalCostCents: missing,
-      revenueCents: missing,
-      directMarginCents: missing,
-      directMarginBasisPoints: missing,
-      netMarginCents: missing,
-      netMarginBasisPoints: missing,
-      effectiveRateCents: missing,
+      staffCostCents: rateOf("pm", "devops"),
+      directCostCents: rateOf("pm", "devops"),
+      overheadCents: rateOf("pm", "devops"),
+      bufferCents: rateOf("pm", "devops"),
+      totalCostCents: rateOf("pm", "devops"),
+      directMarginCents: rateOf("pm", "devops"),
+      directMarginBasisPoints: rateOf("pm", "devops"),
+      netMarginCents: rateOf("pm", "devops"),
+      netMarginBasisPoints: rateOf("pm", "devops"),
       marginStatus: null,
-      warnings: [{ code: "missingRate", categoryIds: ["devops", "pm"] }, { code: "missingPrice" }],
+      warnings: [{ code: "missingRate", categoryIds: ["pm", "devops"] }],
     };
+    const missing = (categories: string[], price = false) => ({
+      state: "undetermined",
+      missing: { categories, price },
+    });
+    const noRates = missing(["Project Manager", "DevOps Engineer"]);
 
-    expect(ledger({ ...input, result: incomplete })).toEqual({
-      complete: false,
-      effectiveHours: 1983.27,
-      targetMarginBasisPoints: 2500,
-      warnings: [
-        { code: "missingRate", categories: ["DevOps Engineer", "Project Manager"] },
-        { code: "missingPrice" },
-      ],
+    it("keeps every determined line and names what the others miss", () => {
+      expect(ledger({ ...input, result: withoutRates })).toEqual({
+        headline: {
+          netMarginCents: noRates,
+          netMarginBasisPoints: noRates,
+          status: null,
+          targetMarginBasisPoints: 2500,
+        },
+        figures: {
+          revenueCents: 15_000_000,
+          totalCostCents: noRates,
+          effectiveRateCents: 7563,
+          effectiveHours: 1983.27,
+        },
+        lines: [
+          { key: "staffCost", cents: noRates, effectiveHours: 1983.27 },
+          { key: "extraCost", id: "cloud", label: "Cloud", kind: "recurring", cents: 600_000 },
+          { key: "extraCost", id: "licence", label: null, kind: "fixed", cents: 50_000 },
+          { key: "directCost", cents: noRates },
+          { key: "overhead", cents: noRates, basisPoints: 1500 },
+          { key: "buffer", cents: noRates, basisPoints: 1000 },
+          { key: "totalCost", cents: noRates },
+          { key: "revenue", cents: 15_000_000 },
+          { key: "directMargin", cents: noRates, basisPoints: noRates },
+          { key: "netMargin", cents: noRates, basisPoints: noRates },
+        ],
+        categories: [
+          {
+            categoryId: "pm",
+            name: "Project Manager",
+            effectiveHours: 396.65,
+            costPerHourCents: missing(["Project Manager"]),
+            costCents: missing(["Project Manager"]),
+            activePeople: null,
+          },
+          {
+            categoryId: "senior",
+            name: "Senior Developer",
+            effectiveHours: 1190,
+            costPerHourCents: 4588,
+            costCents: 4_000_000,
+            activePeople: null,
+          },
+          {
+            categoryId: "devops",
+            name: "DevOps Engineer",
+            effectiveHours: 396.62,
+            costPerHourCents: missing(["DevOps Engineer"]),
+            costCents: missing(["DevOps Engineer"]),
+            activePeople: 2,
+          },
+        ],
+        warnings: [{ code: "missingRate", categories: ["Project Manager", "DevOps Engineer"] }],
+      });
+    });
+
+    it("names a missing price, alone or with the rates", () => {
+      const withoutPrice: PartialResult = {
+        ...complete,
+        complete: false,
+        revenueCents: price,
+        directMarginCents: price,
+        directMarginBasisPoints: price,
+        netMarginCents: price,
+        netMarginBasisPoints: price,
+        effectiveRateCents: price,
+        marginStatus: null,
+        warnings: [{ code: "missingPrice" }],
+      };
+      const summary = ledger({ ...input, result: withoutPrice });
+
+      expect(summary.figures).toEqual({
+        revenueCents: missing([], true),
+        totalCostCents: 9_570_000,
+        effectiveRateCents: missing([], true),
+        effectiveHours: 1983.27,
+      });
+      expect(summary.warnings).toEqual([{ code: "missingPrice" }]);
+
+      const withNeither = { ...withoutRates, netMarginCents: both, warnings: both.undetermined };
+      expect(ledger({ ...input, result: withNeither }).headline.netMarginCents).toEqual(
+        missing(["DevOps Engineer", "Project Manager"], true),
+      );
+    });
+  });
+
+  it("says why a margin % or an effective rate does not apply", () => {
+    const noRevenue: CompleteResult = {
+      ...complete,
+      directMarginBasisPoints: null,
+      netMarginBasisPoints: null,
+      effectiveRateCents: null,
+    };
+    const summary = ledger({ ...input, result: noRevenue });
+
+    expect(summary.headline.netMarginBasisPoints).toEqual({
+      state: "notApplicable",
+      reason: "noRevenue",
+    });
+    expect(summary.figures.effectiveRateCents).toEqual({
+      state: "notApplicable",
+      reason: "noEffectiveHours",
+    });
+    expect(summary.lines.at(-1)).toEqual({
+      key: "netMargin",
+      cents: 5_430_000,
+      basisPoints: { state: "notApplicable", reason: "noRevenue" },
     });
   });
 
@@ -211,7 +311,6 @@ describe("ledger", () => {
         { ...input, team: [], result: empty },
       ]) {
         const summary = ledger(scenario);
-        if (!summary.complete) throw new Error("expected a complete ledger");
 
         expect(summary.headline.status).toBe(marginStatus);
       }

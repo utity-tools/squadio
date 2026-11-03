@@ -114,10 +114,10 @@ export function ScenarioAnnouncer() {
   const summary = (scenario: LoadedScenario) => {
     if (!scenario.rateAccess) return t("hours", { hours: hours(scenario.hours.effective) });
     const summed = ledger(scenario);
-    if (!summed.complete) return t("marginIncomplete");
     const { headline } = summed;
+    if (typeof headline.netMarginCents !== "number") return t("marginIncomplete");
     const amount = euros(headline.netMarginCents);
-    return headline.netMarginBasisPoints === null
+    return typeof headline.netMarginBasisPoints !== "number"
       ? t("margin", { amount })
       : t("marginWithPercent", { amount, percent: percent(headline.netMarginBasisPoints) });
   };
