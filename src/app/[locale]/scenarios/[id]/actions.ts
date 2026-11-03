@@ -7,17 +7,16 @@ import { z } from "zod";
 import { keepsRateAccess } from "@/db/access";
 import { choiceInputSchema } from "@/db/choose-scenario";
 import { db } from "@/db/client";
+import { currentMember } from "@/db/request-access";
 import { saveInputSchema } from "@/db/save-scenario";
-import {
-  type VisitorChoiceResult,
-  chooseForVisitor,
-  unchooseForVisitor,
-} from "@/db/visitor-choose";
-import { type VisitorSaveResult, saveForVisitor } from "@/db/visitor-save";
+import { saveScenarioFor, setChoiceFor } from "@/db/scenario-writes";
+import type { VisitorChoiceResult } from "@/db/visitor-choose";
+import type { VisitorSaveResult } from "@/db/visitor-save";
 
 // ADR 0011, "Saving", and docs/domain.md, "Choosing a scenario": the Server Actions that save a
 // scenario's changes and choose or unchoose it. The request can be sent without the page, so the
-// input is checked here; who it acts for comes from the cookie alone, never from the input.
+// input is checked here; who it acts for comes from the session's member or the cookie, resolved
+// on the server (ADR 0012), never from the input.
 
 /** Something unexpected went wrong; nothing was written, and the page says so (ADR 0011). */
 type Failed = { ok: false; reason: "failed" };
@@ -37,7 +36,8 @@ export async function saveScenario(input: unknown): Promise<SaveScenarioResult> 
   const parsed = saveInputSchema.safeParse(input);
   if (!parsed.success) return { ok: false, reason: "invalid" };
   try {
-    return await saveForVisitor(db, await cookies(), parsed.data);
+    const writer = { member: await currentMember(), jar: await cookies() };
+    return await saveScenarioFor(db, writer, parsed.data);
   } catch (error) {
     // A thrown action would replace the page with its error boundary; the header shows "failed".
     console.error(`saveScenario failed: ${describe(error)}`);
@@ -61,8 +61,11 @@ export async function setScenarioChoice(input: unknown): Promise<ScenarioChoiceR
   if (!parsed.success) return { ok: false, reason: "invalid" };
   const { chosen, access, ...choice } = parsed.data;
   try {
-    const step = chosen ? chooseForVisitor : unchooseForVisitor;
-    const result = await step(db, await cookies(), choice, keepsRateAccess({ access }));
+    const writer = { member: await currentMember(), jar: await cookies() };
+    const result = await setChoiceFor(db, writer, choice, {
+      chosen,
+      rateAccess: keepsRateAccess({ access }),
+    });
     // The page loads again with the scenario's frozen values, or its current ones.
     if (result.ok) refresh();
     return result;

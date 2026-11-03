@@ -3,14 +3,19 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { memberAccessContext, memberEditContext, memberOf } from "@/db/access";
-import { copyOrganization } from "@/db/copy-organization";
-import { DEMO_IDS, DEMO_ORGANIZATION_ID, seedDemo } from "@/db/demo-seed";
+import { DEMO_IDS, seedDemo } from "@/db/demo-seed";
 import { loadScenario } from "@/db/load-scenario";
 import { categories, categoryRates, scenarios } from "@/db/schema";
 import { withOrganization } from "@/db/tenant";
 import { copyId } from "@/lib/visitors/copy-id";
 
 import { PREVIEW_URL, authAt, emailFor, signInOnPreview } from "./auth";
+import {
+  type TestMember,
+  ownerOfACopy as ownerOfAnyCopy,
+  sessionOf as sessionOfMember,
+  userIdOf as userIdOfAccount,
+} from "./members";
 import { SOME_DAY, appPool, newOrganization } from "./support";
 
 // ADR 0012, "Membership and the access context": the server resolves session → member →
@@ -22,42 +27,20 @@ const pool = appPool(2);
 const app = drizzle(pool);
 const auth = authAt(app, { at: "preview", signUp: true });
 
-type Account = { email: string; cookie: string; userId: string; organizationId: string };
-let ada: Account;
-let bob: Account;
+let ada: TestMember;
+let bob: TestMember;
 
-const userIdOf = async (email: string) =>
-  (await pool.query<{ id: string }>(`select id from auth."user" where email = $1`, [email])).rows[0]
-    ?.id ?? "";
+const userIdOf = (email: string) => userIdOfAccount(pool, email);
+const ownerOfACopy = (label: string) => ownerOfAnyCopy(pool, app, auth, label);
+const sessionOf = (member: TestMember) => sessionOfMember(auth, member);
 
-/** Signs an account in and makes it the owner of a new organization with the demo's rows. */
-async function ownerOfACopy(label: string): Promise<Account> {
-  const email = emailFor(label);
-  const cookie = await signInOnPreview(auth, email);
-  const userId = await userIdOf(email);
-  const organizationId = await newOrganization(app);
-  await pool.query(
-    `insert into auth.member (organization_id, user_id, role) values ($1, $2, 'owner')`,
-    [organizationId, userId],
-  );
-  await app.transaction((tx) => copyOrganization(tx, DEMO_ORGANIZATION_ID, organizationId));
-  return { email, cookie, userId, organizationId };
-}
-
-/** What the server reads from the request: Better Auth's session for the account's cookie. */
-async function sessionOf(account: Account) {
-  const session = await auth.api.getSession({ headers: new Headers({ cookie: account.cookie }) });
-  if (!session) throw new Error("expected a session");
-  return { userId: session.user.id, activeOrganizationId: session.session.activeOrganizationId };
-}
-
-const setActive = (account: Account, organizationId: string | null) =>
+const setActive = (account: TestMember, organizationId: string | null) =>
   pool.query(`update auth.session set active_organization_id = $2 where user_id = $1`, [
     account.userId,
     organizationId,
   ]);
 
-const setRole = (account: Account, role: string) =>
+const setRole = (account: TestMember, role: string) =>
   pool.query(`update auth.member set role = $2 where user_id = $1 and organization_id = $3`, [
     account.userId,
     role,
