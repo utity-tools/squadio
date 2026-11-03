@@ -91,9 +91,9 @@
     "close": "Cerrar"
   },
   "ScenarioAnnouncer": {
-    "margin": "Margen neto: {amount}",
+    "marginPercentNotApplicable": "Margen neto: {amount}. {percent}.",
     "marginWithPercent": "Margen neto: {amount} ({percent})",
-    "marginIncomplete": "Sin margen: el escenario está incompleto",
+    "marginUndetermined": "Margen neto indeterminado. {missing}.",
     "hours": "Horas efectivas: {hours}",
     "did": "{what} {summary}",
     "added": "{name} entra en el equipo.",

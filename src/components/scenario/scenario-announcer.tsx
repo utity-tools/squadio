@@ -3,7 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 
-import { useSummaryFormat } from "@/components/summary/summary-format";
+import { useSummaryFormat, useWhyNoAmount } from "@/components/summary/summary-format";
 import type { Change, Member } from "@/lib/scenarios/change";
 import type { LoadedScenario, ScenarioBasis } from "@/lib/scenarios/scenario-view";
 import type { StepRejection } from "@/lib/scenarios/store";
@@ -66,17 +66,20 @@ function doneBy(
 
 /**
  * The page's live region (canvas brief, "Undo / redo"): after each step it says the new net
- * margin, or the effective hours without rate access, after saying an undo or redo was done; after
- * a refused step, why it was refused. A save says nothing here.
+ * margin, or what it misses while undetermined, or the effective hours without rate access, after
+ * saying an undo or redo was done; after a refused step, why it was refused. A save says nothing
+ * here.
  * Each announcement is a new node, so a screen reader speaks it even when its text repeats. The
  * counting figures stay out of it: only the final value is heard.
  */
 export function ScenarioAnnouncer() {
   const t = useTranslations("ScenarioAnnouncer");
   const tEditing = useTranslations("TeamEditing");
+  const tSummary = useTranslations("Summary");
   const store = useScenarioStore();
   const view = useScenarioView();
   const { euros, percent, hours } = useSummaryFormat();
+  const whyNoAmount = useWhyNoAmount();
   const [announcement, setAnnouncement] = useState<Announcement | null>(null);
 
   useEffect(
@@ -115,10 +118,18 @@ export function ScenarioAnnouncer() {
     if (!scenario.rateAccess) return t("hours", { hours: hours(scenario.hours.effective) });
     const summed = ledger(scenario);
     const { headline } = summed;
-    if (typeof headline.netMarginCents !== "number") return t("marginIncomplete");
+    if (typeof headline.netMarginCents !== "number") {
+      return t("marginUndetermined", { missing: whyNoAmount(headline.netMarginCents) });
+    }
     const amount = euros(headline.netMarginCents);
     return typeof headline.netMarginBasisPoints !== "number"
-      ? t("margin", { amount })
+      ? t("marginPercentNotApplicable", {
+          amount,
+          // The headline's words: a margin % never applies without revenue.
+          percent: tSummary("headline.percentNotApplicable", {
+            reason: tSummary("reasons.noRevenue"),
+          }),
+        })
       : t("marginWithPercent", { amount, percent: percent(headline.netMarginBasisPoints) });
   };
 

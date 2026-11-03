@@ -91,9 +91,9 @@
     "close": "Close"
   },
   "ScenarioAnnouncer": {
-    "margin": "Net margin: {amount}",
+    "marginPercentNotApplicable": "Net margin: {amount}. {percent}.",
     "marginWithPercent": "Net margin: {amount} ({percent})",
-    "marginIncomplete": "No margin: the scenario is incomplete",
+    "marginUndetermined": "Net margin undetermined. {missing}.",
     "hours": "Effective hours: {hours}",
     "did": "{what} {summary}",
     "added": "{name} joins the team.",
