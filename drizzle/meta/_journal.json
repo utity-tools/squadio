@@ -71,6 +71,13 @@
       "when": 1793726741817,
       "tag": "0009_organization_foreign_keys",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793727500627,
+      "tag": "0010_release_visitor_copy",
+      "breakpoints": true
     }
   ]
 }

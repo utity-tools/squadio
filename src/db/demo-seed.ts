@@ -18,6 +18,7 @@ import { ensureDemoOrganization } from "./organizations";
 import { type TenantTransaction, withOrganization } from "./tenant";
 import { NATIONAL_HOLIDAYS } from "@/lib/calendar/calendar";
 import { GUIDE_SCENARIO_ID, demoId } from "@/lib/demo/demo-ids";
+import { CONSULTANCY_CONFIG, CONSULTANCY_COST_CONFIG } from "@/lib/organizations/consultancy";
 import { type OngoingSpans, ongoingSpans } from "@/lib/demo/ongoing-spans";
 
 // The demo organization: the Consultancy template and the guide case team of docs/domain.md, plus
@@ -85,10 +86,8 @@ async function clear(tx: TenantTransaction) {
 
 async function insert(tx: TenantTransaction, spans: OngoingSpans) {
   const organizationId = DEMO_ORGANIZATION_ID;
-  await tx.insert(config).values({ organizationId, netAnnualHours: 1550, defaultWeeklyHours: 40 });
-  await tx
-    .insert(costConfig)
-    .values({ organizationId, overhead: 1500, buffer: 1000, targetMargin: 2500 });
+  await tx.insert(config).values({ organizationId, ...CONSULTANCY_CONFIG });
+  await tx.insert(costConfig).values({ organizationId, ...CONSULTANCY_COST_CONFIG });
 
   await tx
     .insert(categories)
