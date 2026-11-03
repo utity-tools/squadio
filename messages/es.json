@@ -324,5 +324,24 @@
       "noSpan": "Sin fechas: el escenario no tiene equipo",
       "note": "Los costes y márgenes los ven las personas con acceso a tarifas."
     }
+  },
+  "Account": {
+    "signIn": "Entrar",
+    "signOut": "Cerrar sesión",
+    "signedInAs": "Has entrado como",
+    "signOutFailed": "No se ha podido cerrar la sesión. Vuelve a intentarlo."
+  },
+  "SignIn": {
+    "title": "Entrar",
+    "titleFailed": "No se ha podido entrar",
+    "heading": "Entrar en Squadio",
+    "intro": "Entra con tu cuenta de GitHub o de Google. Squadio solo guarda tu nombre, tu correo electrónico, el enlace a tu foto de perfil y tu identificador en GitHub o Google y, de cada sesión, la dirección IP y el navegador desde los que entras.",
+    "github": "Continuar con GitHub",
+    "google": "Continuar con Google",
+    "failed": "No se ha podido entrar. Vuelve a intentarlo.",
+    "closed": "Todavía no se puede entrar con una cuenta. Mientras tanto puedes probar la demo, sin cuenta.",
+    "tryDemo": "Probar la demo",
+    "signedIn": "Ya has entrado como {name}.",
+    "home": "Volver al inicio"
   }
 }

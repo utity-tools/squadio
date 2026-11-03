@@ -21,8 +21,9 @@ pnpm exec next build
 
 # Call next directly: through pnpm, next-server outlives the script. `next start` still runs the
 # server as a child, so it starts in a process group of its own, which the trap stops whole.
+# Sign-up off, as the tests expect and production has it until the processing review (ADR 0012).
 set -m
-node_modules/.bin/next start --port "$port" &
+SIGN_UP_ENABLED=false node_modules/.bin/next start --port "$port" &
 server=$!
 set +m
 trap 'kill -- "-$server" 2>/dev/null || true' EXIT
