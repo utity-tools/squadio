@@ -216,3 +216,9 @@ organization, as ADR 0005 already requires for rate access.
   explicit action, as a new organization, which leaves `visitor_copies` and the clean-up. It is
   never merged into another organization. Starting templates change too: an organization starts
   empty or from an adopted copy, and the copy function stays the base of v0.6's example scenarios.
+- **2026-11-03:** Every copy has its row in `auth.organization`, which its tenant rows and its
+  claim reference ([ADR 0012, amendments](0012-sign-in-and-membership.md#amendments)): the first
+  write creates it in the same transaction, before the claim, so a refused write or the daily limit
+  leaves none; the clean-up deletes it after the claim. A third `SECURITY DEFINER` function,
+  `app.release_visitor_copy`, takes an adopted copy out of `visitor_copies`. The decision itself is
+  unchanged.

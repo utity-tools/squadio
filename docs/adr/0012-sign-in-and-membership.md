@@ -189,3 +189,37 @@ Decided when the code lands, as amendments here (settled on 2026-11-03, see
     they can be **Sensitive**, unlike `DATABASE_URL`
     ([ADR 0006](0006-deploys-from-github-actions.md)).
   - Telemetry is off.
+- **2026-11-03, slice 2b (organizations and membership):** how the server creates organizations
+  and resolves the member.
+  - **Every `organization_id` references `auth.organization`** (migration 0009), the tenant tables'
+    and `visitor_copies'`, **without a cascade**: Postgres runs cascades without RLS (ADR 0005), so
+    deleting an organization means deleting its rows first, inside its own context (slice 2d), and
+    a delete that forgets one fails. The migration backfills a row for the demo, every visitor's
+    copy and any other organization with rows; to see those it lifts FORCE ROW LEVEL SECURITY for
+    its own reads and restores it in the same transaction, and the guard test checks every tenant
+    table is forced. The seed writes the demo's row, a visitor's first write its copy's, and the
+    clean-up deletes it last. Better Auth's slug is derived from the id; Squadio never shows it.
+  - **The example flag is a column,** `auth.organization.example`, which Better Auth does not know.
+    The organization page shows a banner while it is set.
+  - **The server writes organizations and memberships itself,** with Drizzle, in one transaction
+    (`src/db/start-organization.ts`): the organization's row, its owner's membership, its tenant
+    rows and the session's active organization. An empty one gets the Consultancy template's
+    Config and CostConfig (`src/lib/organizations/consultancy.ts`), which the demo seed uses too.
+    Adopting renames the copy, flags it and calls `app.release_visitor_copy` (migration 0010),
+    which locks the claim before any other row, in the save's and the clean-up's order. A DB test
+    lists it with ADR 0011's two as the only `SECURITY DEFINER` functions.
+  - **The browser cannot change memberships either:** the organization plugin also refuses
+    leaving, removing a member and changing a member's role, since rate access follows the role.
+  - **Membership is resolved in `src/db/access.ts`:** `memberOf` reads the session's active
+    organization and accepts it only among the account's memberships; without one it takes the
+    earliest. `capabilitiesFor` (`src/lib/membership`) maps the owner to rate access, editing and
+    choosing, and any other role to no member at all. `memberAccessContext` and
+    `memberEditContext` build the member's contexts.
+  - **The scenario id picks the context, never grants it.** The scenario page and its Server
+    Actions act in the member's organization when it holds the scenario, and as a visitor
+    otherwise (`src/db/scenario-writes.ts`), so the demo stays a visitor's for a signed-in
+    account. A member's choice needs the member's rate access and the page's.
+  - **The organization page** (`/organization`) shows the member's organization, or, to an
+    account without one, the two ways to start it; sign-in lands there. An account with several,
+    which only the server makes today, works in its active one; a way to switch waits for
+    invitations (v0.5).
