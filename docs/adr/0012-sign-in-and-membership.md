@@ -99,7 +99,8 @@ membership in the organization and builds the access context from it before any 
 
 ### Left to slice 2
 
-Decided when the code lands, as amendments here:
+Decided when the code lands, as amendments here (settled on 2026-11-03, see
+[Amendments](#amendments)):
 
 - Where Better Auth's tables live (a schema of their own or `public`), which role reads them, and
   how they fit ADR 0004's guard test, since some have no `organization_id` and some are read across
@@ -139,3 +140,52 @@ Decided when the code lands, as amendments here:
   member is an owner with rate access.
 - **ADR 0011:** a signed-in visitor may adopt their copy as a new organization, which takes it out
   of the clean-up.
+
+## Amendments
+
+- **2026-11-03, slice 2 (sign-in base):** the open points of "Left to slice 2", and how previews
+  sign in.
+  - **Better Auth's tables live in a schema of their own, `auth`** (migration 0008): its core
+    tables, the organization plugin's `organization`, `member` and `invitation`, and the rate limit,
+    which counts in the database because serverless instances share no memory. The app role reads
+    and writes them and cannot create objects there. They have no RLS: accounts, sessions and
+    memberships are read across organizations, and membership decides which context the server
+    sets. ADR 0004's guard treats `auth` as a schema of accounts, so its tables need no tenant
+    policy while its money and view checks still apply. Ids are uuids, so an organization's id fits
+    the tenant tables' `organization_id`.
+  - **Tenant tables gain a foreign key to `auth.organization`** in the next slice, with an
+    organization row for the demo and for each visitor's copy.
+  - **An adopted organization is flagged as the demo's example at the organization level,** and
+    the UI shows a banner while the flag is set.
+  - **The active organization is kept in the session** (the organization plugin's
+    `active_organization_id`), checked on the server against the account's memberships on every
+    request. URLs do not carry it.
+  - **The organization plugin is limited to v0.3's model:** the browser cannot create, change or
+    delete organizations (the server creates them in slice 2b and deletes them with their data in
+    slice 2d), an organization has at most one member and no invitations. The plugin refuses to
+    start without its `invitation` table, which stays empty.
+  - **Previews sign in through production with Better Auth's OAuth proxy.** GitHub and Google
+    know one callback per provider, production's, and a preview's address changes with every pull
+    request. A preview sends the provider to production's callback; production exchanges the code,
+    writes nothing, and sends the profile back to the preview's own alias encrypted with
+    `OAUTH_PROXY_SECRET`, which only production and the previews hold; the preview creates the
+    account in its own branch database. No other origin is trusted: the preview names its alias
+    itself, never from the request. Whoever holds the secret can forge a profile, so only previews
+    serve the endpoint that completes a proxied sign-in: production serves none, and a forged
+    profile signs no one in there. On a preview it can, and only this repository's branches get
+    previews. So production holds GitHub and Google OAuth apps before the processing review. Sign-up
+    stays off there, which refuses every new account through a database hook and sends the person
+    back to the sign-in page, and Google's consent screen stays in testing with the owner as its
+    only test user, so the providers process no one else's data until the review. A preview cannot
+    sign in until production runs the same Better Auth version with the proxy, so the slice that
+    brings it is checked on the next pull request's preview, and Better Auth is pinned to an exact
+    version that production and previews upgrade together.
+  - **Accounts keep no provider token:** Squadio never calls GitHub's or Google's APIs, so a
+    database hook drops the tokens before they are stored (and Better Auth would encrypt any that
+    got through). An account keeps a name, an email, the link to a profile picture and the
+    provider's id; each session, the IP address and browser it was started from. The sign-in page
+    says so.
+  - **The auth variables are read at run time only,** so builds still hold no secret; in Vercel
+    they can be **Sensitive**, unlike `DATABASE_URL`
+    ([ADR 0006](0006-deploys-from-github-actions.md)).
+  - Telemetry is off.

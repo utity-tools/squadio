@@ -36,6 +36,31 @@ or from a terminal linked to the project:
 pnpm exec vercel curl / --deployment https://squadio-pr-<number>.vercel.app
 ```
 
+## Signing in on a preview
+
+A preview signs in with production's GitHub and Google apps through Better Auth's OAuth proxy
+([ADR 0012](../adr/0012-sign-in-and-membership.md#amendments)): the provider returns to production,
+which sends the profile back to the preview encrypted with `OAUTH_PROXY_SECRET`, and the account is
+created in the preview's own branch. It only works once production runs the same Better Auth
+version with the proxy. Vercel, Preview environment, each secret pasted at the prompt:
+
+```bash
+for name in BETTER_AUTH_SECRET OAUTH_PROXY_SECRET GITHUB_CLIENT_ID GITHUB_CLIENT_SECRET \
+  GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET; do
+  pnpm exec vercel env add "$name" preview --sensitive
+done
+printf '%s' 'https://squadio.utitytools.com' |
+  pnpm exec vercel env add AUTH_PRODUCTION_URL preview --no-sensitive
+printf '%s' 'true' | pnpm exec vercel env add SIGN_UP_ENABLED preview --no-sensitive
+pnpm exec vercel env ls preview
+```
+
+`BETTER_AUTH_SECRET` is the previews' own, not production's; `OAUTH_PROXY_SECRET` and the GitHub
+and Google clients are production's. Previews only come from this repository's branches, never from
+forks or Dependabot, so no outside code reads the proxy secret. Whoever holds it can sign in as
+anyone on a preview, never on production, which serves no endpoint that completes a proxied
+sign-in.
+
 ## The template branch
 
 `preview-template` is a normal child of `production`, created on 2026-10-21 while production held

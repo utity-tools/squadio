@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { keepsRateAccess } from "./access";
 
 describe("keepsRateAccess", () => {
-  it("keeps rate access by default until sign-in lands in v0.5", () => {
+  it("keeps rate access by default until members get their context (v0.3, slice 2b)", () => {
     expect(keepsRateAccess()).toBe(true);
     expect(keepsRateAccess({})).toBe(true);
   });

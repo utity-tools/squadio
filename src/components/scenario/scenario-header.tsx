@@ -8,7 +8,8 @@ export type ScenarioHeaderProps = Pick<OpenScenario, "project" | "scenario" | "s
 
 /**
  * The header of the canvas brief: breadcrumb, scenario name with its Chosen badge, pricing model
- * and project span. The organization joins the breadcrumb when it has a table (v0.5).
+ * and project span. The organization joins the breadcrumb once tenant tables reference it (v0.3,
+ * slice 2b).
  */
 export function ScenarioHeader({ project, scenario, span }: ScenarioHeaderProps) {
   const t = useTranslations("ScenarioHeader");
