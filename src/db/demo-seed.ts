@@ -62,7 +62,7 @@ const TEMPLATE = [
   { key: "pm", name: "Project Manager", gross: 5_500_000, sell: 7000, people: 3 },
 ] as const;
 
-/** A category without a rate or people, so a scenario that uses it has no cost (rule k). */
+/** A category without a rate or people: a scenario that uses it has a partial result (rule k). */
 const UNRATED_CATEGORY = { id: demoId(15), name: "Data Engineer" };
 
 type CategoryKey = (typeof TEMPLATE)[number]["key"];

@@ -1,6 +1,8 @@
 import { useFormatter, useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 
+import type { Amount } from "@/lib/summary/summary";
+
 // Shared by both summaries, with and without rate access: formats only, never data.
 
 /** The figures' formats: whole euros, percentages to one decimal, hours to two. */
@@ -23,6 +25,30 @@ export function useSummaryFormat() {
       format.number(basisPoints / 10_000, { style: "percent", maximumFractionDigits: 1 }),
     hours: (value: number) =>
       t("hours", { hours: format.number(value, { maximumFractionDigits: 2 }) }),
+  };
+}
+
+/**
+ * Why a line has no amount: what an undetermined one misses, or why one does not apply
+ * (docs/domain.md, "Partial results"). `ownRate` shortens a category's own line to "No rate", since
+ * the category names the line.
+ */
+export function useWhyNoAmount() {
+  const t = useTranslations("Summary");
+  const format = useFormatter();
+  return (amount: Exclude<Amount, number>, { ownRate = false } = {}) => {
+    if (amount.state === "notApplicable") return t(`reasons.${amount.reason}`);
+    const { categories, price } = amount.missing;
+    if (categories.length === 0) {
+      // The engine never leaves a line undetermined without naming what it misses.
+      if (!price) throw new Error("An undetermined line misses nothing");
+      return t("missing.price");
+    }
+    if (ownRate) return t("missing.ownRate");
+    const list = format.list(categories);
+    return price
+      ? t("missing.rateAndPrice", { categories: list })
+      : t("missing.rate", { categories: list });
   };
 }
 

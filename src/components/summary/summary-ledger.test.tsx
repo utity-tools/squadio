@@ -8,10 +8,7 @@ import { SummaryLedger } from "./summary-ledger";
 
 // docs/design/canvas-brief.md, "4. Summary" and "States".
 
-type CompleteLedger = Extract<Ledger, { complete: true }>;
-
-const complete: CompleteLedger = {
-  complete: true,
+const complete: Ledger = {
   headline: {
     netMarginCents: 5_430_000,
     netMarginBasisPoints: 3620,
@@ -91,16 +88,39 @@ describe("SummaryLedger", () => {
     expect(within(section("Margen neto")).getByText(word)).toBeInTheDocument();
   });
 
-  it("shows no status without one (no revenue)", () => {
-    const ledger = {
+  it("shows no status without revenue, and says why the margin % does not apply", () => {
+    const ledger: Ledger = {
       ...complete,
-      headline: { ...complete.headline, netMarginBasisPoints: null, status: null },
+      headline: {
+        ...complete.headline,
+        netMarginBasisPoints: { state: "notApplicable", reason: "noRevenue" },
+        status: null,
+      },
+      lines: complete.lines.map((line) =>
+        line.key === "directMargin" || line.key === "netMargin"
+          ? { ...line, basisPoints: { state: "notApplicable", reason: "noRevenue" } }
+          : line,
+      ),
+      figures: {
+        ...complete.figures,
+        effectiveRateCents: { state: "notApplicable", reason: "noEffectiveHours" },
+      },
     };
     renderWithIntl(<SummaryLedger ledger={ledger} team={team} />);
 
     const headline = section("Margen neto");
     expect(within(headline).queryByText(/objetivo$|Pérdidas/)).not.toBeInTheDocument();
     expect(plain(headline)).toContain("54.300 €");
+    expect(plain(headline)).toContain("Margen % no aplicable. Sin ingresos");
+    const margins = within(section("Desglose")).getAllByRole("row").slice(-2).map(plain);
+    expect(margins).toEqual([
+      "Margen directo73.500 € (% no aplicable)",
+      "Margen neto54.300 € (% no aplicable)",
+    ]);
+    const figures = within(section("Cifras clave"));
+    expect(plain(figures.getByText("Tarifa efectiva").nextElementSibling!)).toBe(
+      "No aplicable Sin horas efectivas",
+    );
   });
 
   it("gives the key figures in whole euros, the rate in cents per hour", () => {
@@ -154,7 +174,7 @@ describe("SummaryLedger", () => {
   });
 
   it("warns when revenue goes over the T&M budget cap", () => {
-    const ledger: CompleteLedger = {
+    const ledger: Ledger = {
       ...complete,
       warnings: [
         { code: "budgetCapExceeded", revenueCents: 15_000_000, budgetCapCents: 12_000_000 },
@@ -172,37 +192,125 @@ describe("SummaryLedger", () => {
     ).toBeInTheDocument();
   });
 
-  it("replaces every money figure of an incomplete scenario with a dash, never 0 €", () => {
-    const { container } = renderWithIntl(
-      <SummaryLedger
-        ledger={{
-          complete: false,
-          effectiveHours: 1983.27,
-          targetMarginBasisPoints: 2500,
-          warnings: [
-            { code: "missingRate", categories: ["DevOps Engineer", "Project Manager"] },
-            { code: "missingPrice" },
-          ],
-        }}
-        team={team}
-      />,
-    );
+  describe("with a partial result", () => {
+    const missing = (categories: string[], price = false) =>
+      ({ state: "undetermined", missing: { categories, price } }) as const;
+    const noRates = missing(["DevOps Engineer", "Project Manager"]);
+    const all = missing(["DevOps Engineer", "Project Manager"], true);
+    // DevOps and the PM without a rate, and no price: the senior's line and the extra cost keep
+    // their amounts, as the engine computes them.
+    const partial: Ledger = {
+      ...complete,
+      headline: {
+        ...complete.headline,
+        netMarginCents: all,
+        netMarginBasisPoints: all,
+        status: null,
+      },
+      figures: {
+        ...complete.figures,
+        revenueCents: missing([], true),
+        totalCostCents: noRates,
+        effectiveRateCents: missing([], true),
+      },
+      lines: [
+        { key: "staffCost", cents: noRates, effectiveHours: 1983.27 },
+        { key: "extraCost", id: "cloud", label: "Cloud", kind: "recurring", cents: 600_000 },
+        { key: "directCost", cents: noRates },
+        { key: "overhead", cents: noRates, basisPoints: 1500 },
+        { key: "buffer", cents: noRates, basisPoints: 1000 },
+        { key: "totalCost", cents: noRates },
+        { key: "revenue", cents: missing([], true) },
+        { key: "directMargin", cents: all, basisPoints: all },
+        { key: "netMargin", cents: all, basisPoints: all },
+      ],
+      categories: [
+        complete.categories[0]!,
+        {
+          ...complete.categories[1]!,
+          costPerHourCents: missing(["DevOps Engineer"]),
+          costCents: missing(["DevOps Engineer"]),
+        },
+      ],
+      warnings: [
+        { code: "missingRate", categories: ["DevOps Engineer", "Project Manager"] },
+        { code: "missingPrice" },
+      ],
+    };
 
-    expect(plain(container)).not.toContain("€");
-    expect(screen.getByRole("heading", { name: "Falta una tarifa" })).toBeVisible();
-    expect(
-      screen.getByText(
-        "DevOps Engineer y Project Manager no tienen tarifa, así que el escenario no tiene coste.",
-      ),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Falta el precio" })).toBeVisible();
-    expect(
-      within(section("Margen neto")).getByText("Sin margen: el escenario está incompleto"),
-    ).toBeVisible();
-    const figures = within(section("Cifras clave"));
-    expect(figures.getAllByText("No disponible: el escenario está incompleto")).toHaveLength(3);
-    expect(plain(figures.getByText("Horas efectivas").nextElementSibling!)).toBe("1983,27 h");
-    expect(screen.queryByRole("region", { name: "Desglose" })).not.toBeInTheDocument();
+    it("says the net margin is undetermined and what it misses, with no status", () => {
+      renderWithIntl(<SummaryLedger ledger={partial} team={team} />);
+
+      const headline = section("Margen neto");
+      expect(plain(headline)).toContain(
+        "Indeterminado Sin tarifa: DevOps Engineer y Project Manager. Sin precio",
+      );
+      expect(within(headline).queryByText(/En objetivo|Bajo objetivo|Pérdidas/)).toBeNull();
+      expect(plain(headline)).toContain("objetivo 25 %");
+      expect(plain(headline)).not.toContain("€");
+    });
+
+    it("keeps the determined lines and names what each other line misses, never 0 €", () => {
+      renderWithIntl(<SummaryLedger ledger={partial} team={team} />);
+
+      const figures = within(section("Cifras clave"));
+      const value = (term: string) => plain(figures.getByText(term).nextElementSibling!);
+      expect(value("Ingresos")).toBe("Indeterminado Sin precio");
+      expect(value("Coste total")).toBe(
+        "Indeterminado Sin tarifa: DevOps Engineer y Project Manager",
+      );
+      expect(value("Tarifa efectiva")).toBe("Indeterminado Sin precio");
+      const rows = within(section("Desglose"))
+        .getAllByRole("row")
+        .map((row) => plain(row));
+      const rates = "Indeterminado Sin tarifa: DevOps Engineer y Project Manager";
+      expect(rows).toEqual([
+        `Coste de personal (1983,27 h efectivas)${rates}`,
+        "Cloud6000 €",
+        `Coste directo${rates}`,
+        `Overhead (15 %)${rates}`,
+        `Buffer (10 %)${rates}`,
+        `Coste total${rates}`,
+        "IngresosIndeterminado Sin precio",
+        `Margen directo${rates}. Sin precio`,
+        `Margen neto${rates}. Sin precio`,
+      ]);
+      expect(plain(section("Desglose"))).not.toMatch(/\b0 €/);
+    });
+
+    it("leaves a category without a rate undetermined, the others with their cost", () => {
+      renderWithIntl(<SummaryLedger ledger={partial} team={team} />);
+
+      const table = screen.getByRole("table", { name: "Coste de personal por categoría" });
+      const groups = within(table).getAllByRole("rowgroup").slice(1);
+      const rows = (group: HTMLElement) => within(group).getAllByRole("row").map(plain);
+      expect(rows(groups[0]!)).toEqual(["Senior Developer", "1190 h45,88 €59.200 €"]);
+      expect(rows(groups[1]!)).toEqual([
+        "DevOps Engineer",
+        "Categoría pequeña: su tarifa puede revelar un salario",
+        "396,62 hIndeterminado Sin tarifa",
+      ]);
+    });
+
+    it("warns about each missing rate and the missing price", () => {
+      renderWithIntl(<SummaryLedger ledger={partial} team={team} />);
+
+      expect(screen.getByRole("heading", { name: "Falta una tarifa" })).toBeVisible();
+      expect(
+        screen.getByText(
+          "DevOps Engineer y Project Manager no tienen tarifa: su coste y lo que depende de él quedan indeterminados.",
+        ),
+      ).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: "Falta el precio" })).toBeVisible();
+    });
+
+    it("speaks English under /en", () => {
+      renderWithIntl(<SummaryLedger ledger={partial} team={team} />, { locale: "en" });
+
+      expect(plain(section("Net margin"))).toContain(
+        "Undetermined No rate: DevOps Engineer and Project Manager. No price",
+      );
+    });
   });
 
   it("speaks English under /en", () => {

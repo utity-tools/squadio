@@ -148,7 +148,7 @@
     "effectiveHours": "{hours} h effective",
     "nominalHours": "{hours} h nominal",
     "missingRate": "No rate",
-    "missingRateDetail": "Its category has no rate, so the scenario has no cost.",
+    "missingRateDetail": "Its category has no rate: its cost is undetermined.",
     "controls": "Canvas controls",
     "zoomIn": "Zoom in",
     "zoomOut": "Zoom out",
@@ -241,13 +241,25 @@
     "table": "Table"
   },
   "Summary": {
-    "unavailable": "Not available: the scenario is incomplete",
+    "undetermined": "Undetermined",
+    "notApplicable": "Not applicable",
+    "missing": {
+      "rate": "No rate: {categories}",
+      "price": "No price",
+      "rateAndPrice": "No rate: {categories}. No price",
+      "ownRate": "No rate"
+    },
+    "reasons": {
+      "noRevenue": "No revenue",
+      "noEffectiveHours": "No effective hours"
+    },
     "hours": "{hours} h",
     "rate": "{amount}/h",
     "amountWithPercent": "{amount} ({percent})",
+    "amountPercentNotApplicable": "{amount} (% not applicable)",
     "headline": {
       "netMargin": "Net margin",
-      "incomplete": "No margin: the scenario is incomplete",
+      "percentNotApplicable": "Margin % not applicable. {reason}",
       "target": "target {percent}",
       "status": {
         "green": "On target",
@@ -288,11 +300,11 @@
     "warnings": {
       "missingRate": {
         "title": "A rate is missing",
-        "description": "{categories} {count, plural, one {has} other {have}} no rate, so the scenario has no cost."
+        "description": "{categories} {count, plural, one {has} other {have}} no rate: {count, plural, one {its} other {their}} cost and what depends on it are undetermined."
       },
       "missingPrice": {
         "title": "The price is missing",
-        "description": "The project is fixed price and has no price, so the scenario has no revenue or margin."
+        "description": "The project is fixed price and has no price: revenue, margin and what depends on them are undetermined."
       },
       "budgetCapExceeded": {
         "title": "Budget cap exceeded",

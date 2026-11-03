@@ -148,7 +148,7 @@
     "effectiveHours": "{hours} h efectivas",
     "nominalHours": "{hours} h nominales",
     "missingRate": "Sin tarifa",
-    "missingRateDetail": "Su categoría no tiene tarifa, así que el escenario no tiene coste.",
+    "missingRateDetail": "Su categoría no tiene tarifa: su coste queda indeterminado.",
     "controls": "Controles del lienzo",
     "zoomIn": "Acercar",
     "zoomOut": "Alejar",
@@ -241,13 +241,25 @@
     "table": "Tabla"
   },
   "Summary": {
-    "unavailable": "No disponible: el escenario está incompleto",
+    "undetermined": "Indeterminado",
+    "notApplicable": "No aplicable",
+    "missing": {
+      "rate": "Sin tarifa: {categories}",
+      "price": "Sin precio",
+      "rateAndPrice": "Sin tarifa: {categories}. Sin precio",
+      "ownRate": "Sin tarifa"
+    },
+    "reasons": {
+      "noRevenue": "Sin ingresos",
+      "noEffectiveHours": "Sin horas efectivas"
+    },
     "hours": "{hours} h",
     "rate": "{amount}/h",
     "amountWithPercent": "{amount} ({percent})",
+    "amountPercentNotApplicable": "{amount} (% no aplicable)",
     "headline": {
       "netMargin": "Margen neto",
-      "incomplete": "Sin margen: el escenario está incompleto",
+      "percentNotApplicable": "Margen % no aplicable. {reason}",
       "target": "objetivo {percent}",
       "status": {
         "green": "En objetivo",
@@ -288,11 +300,11 @@
     "warnings": {
       "missingRate": {
         "title": "Falta una tarifa",
-        "description": "{categories} no {count, plural, one {tiene} other {tienen}} tarifa, así que el escenario no tiene coste."
+        "description": "{categories} no {count, plural, one {tiene} other {tienen}} tarifa: su coste y lo que depende de él quedan indeterminados."
       },
       "missingPrice": {
         "title": "Falta el precio",
-        "description": "El proyecto es de precio cerrado y no tiene precio, así que el escenario no tiene ingresos ni margen."
+        "description": "El proyecto es de precio cerrado y no tiene precio: los ingresos, el margen y lo que depende de ellos quedan indeterminados."
       },
       "budgetCapExceeded": {
         "title": "Tope de presupuesto superado",

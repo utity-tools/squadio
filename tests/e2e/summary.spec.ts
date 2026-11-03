@@ -103,57 +103,79 @@ test("a T&M scenario above its budget cap warns and keeps its margin", async ({ 
   await expect(rail(page).getByRole("listitem")).toHaveCount(1);
   // The cap is a warning, not the margin's status: the headline keeps its figure and status.
   const headline = region(page, "Margen neto");
-  await expect(headline).not.toContainText("Sin margen");
+  await expect(headline).not.toContainText("Indeterminado");
   await expect(headline.getByText(/^(En objetivo|Bajo objetivo|Pérdidas)$/)).toBeVisible();
   await expect(region(page, "Cifras clave")).toContainText(figure("51.565 €"));
   await expect(region(page, "Desglose")).toBeVisible();
 });
 
-for (const { what, scenario, title, description, hours } of [
-  {
-    what: "a category without a rate",
-    scenario: MISSING_RATE_SCENARIO,
-    title: "Falta una tarifa",
-    description: "Data Engineer no tiene tarifa, así que el escenario no tiene coste.",
+test("without a category's rate the rail keeps every line it can and names what is missing", async ({
+  page,
+}) => {
+  await page.goto(`/scenarios/${MISSING_RATE_SCENARIO}`);
+
+  const card = warning(page, "Falta una tarifa");
+  await expect(card).toContainText(
+    "Data Engineer no tiene tarifa: su coste y lo que depende de él quedan indeterminados.",
+  );
+  await expect(card).toHaveClass(/border-status-warn/);
+  // T&M: the revenue needs the rate too, so the budget cap is not judged (rule e).
+  await expect(rail(page).getByRole("listitem")).toHaveCount(1);
+
+  const headline = region(page, "Margen neto");
+  await expect(headline).toContainText("Indeterminado Sin tarifa: Data Engineer");
+  await expect(headline.getByText(/^(En objetivo|Bajo objetivo|Pérdidas)$/)).toHaveCount(0);
+  await expect(headline).not.toContainText("€");
+
+  const figures = region(page, "Cifras clave").getByRole("definition");
+  await expect(figures).toHaveText([
+    "Indeterminado Sin tarifa: Data Engineer",
+    "Indeterminado Sin tarifa: Data Engineer",
+    "Indeterminado Sin tarifa: Data Engineer",
     // A senior full time and the Data Engineer at half: 1.5 full-time seats, half of Plan A's three.
-    hours: "1189,96 h",
-  },
-  {
-    what: "a fixed-price project without a price",
-    scenario: MISSING_PRICE_SCENARIO,
-    title: "Falta el precio",
-    description:
-      "El proyecto es de precio cerrado y no tiene precio, así que el escenario no tiene ingresos ni margen.",
-    hours: "793,31 h",
-  },
-]) {
-  test(`a scenario with ${what} warns and shows no money figure`, async ({ page }) => {
-    await page.goto(`/scenarios/${scenario}`);
+    figure("1189,96 h"),
+  ]);
 
-    const card = warning(page, title);
-    await expect(card).toContainText(description);
-    await expect(card).toHaveClass(/border-status-warn/);
-    await expect(rail(page).getByRole("listitem")).toHaveCount(1);
-    await expect(region(page, "Margen neto")).toContainText(
-      "Sin margen: el escenario está incompleto",
-    );
+  // Screen readers hear the state and what is missing as separate words.
+  await expect(figures.first()).toMatchAriaSnapshot(
+    `- definition: "Indeterminado Sin tarifa: Data Engineer"`,
+  );
 
-    // Revenue, total cost and the effective rate show a dash, and screen readers hear the reason
-    // instead of the dash.
-    const figures = region(page, "Cifras clave").getByRole("definition");
-    for (const n of [0, 1, 2]) {
-      const value = figures.nth(n);
-      await expect(value).toContainText("—");
-      await expect(value).toMatchAriaSnapshot(
-        `- definition: "No disponible: el escenario está incompleto"`,
-      );
-    }
-    // The hours need no rate or price.
-    await expect(figures.nth(3)).toHaveText(figure(hours));
-    await expect(region(page, "Desglose")).toHaveCount(0);
-    await expect(rail(page).getByRole("table")).toHaveCount(0);
-  });
-}
+  // The senior's line keeps its cost; the Data Engineer's says it has no rate.
+  const categories = rail(page).getByRole("table", { name: "Coste de personal por categoría" });
+  const group = (name: string) => categories.getByRole("rowgroup").filter({ hasText: name });
+  await expect(group("Senior Developer")).toContainText(figure("\\d[\\d.]* €"));
+  await expect(group("Data Engineer")).toContainText("Indeterminado Sin tarifa");
+  await expect(group("Data Engineer")).not.toContainText("€");
+  await expect(region(page, "Desglose").getByRole("row").first()).toContainText(
+    "Indeterminado Sin tarifa: Data Engineer",
+  );
+});
+
+test("without a fixed price the rail keeps every cost and leaves revenue and margin undetermined", async ({
+  page,
+}) => {
+  await page.goto(`/scenarios/${MISSING_PRICE_SCENARIO}`);
+
+  const card = warning(page, "Falta el precio");
+  await expect(card).toContainText(
+    "El proyecto es de precio cerrado y no tiene precio: los ingresos, el margen y lo que depende de ellos quedan indeterminados.",
+  );
+  await expect(rail(page).getByRole("listitem")).toHaveCount(1);
+  await expect(region(page, "Margen neto")).toContainText("Indeterminado Sin precio");
+
+  const figures = region(page, "Cifras clave").getByRole("definition");
+  await expect(figures).toHaveText([
+    "Indeterminado Sin precio",
+    figure("24.842 €"),
+    "Indeterminado Sin precio",
+    figure("793,31 h"),
+  ]);
+  const lines = region(page, "Desglose").getByRole("row");
+  await expect(lines.filter({ hasText: "Coste total" })).toContainText(figure("24.842 €"));
+  await expect(lines.filter({ hasText: "Ingresos" })).toContainText("Indeterminado Sin precio");
+  await expect(lines.filter({ hasText: "Margen neto" })).toContainText("Indeterminado Sin precio");
+});
 
 test("the warnings speak English under /en", async ({ page }) => {
   const summary = (page: Page) => page.getByRole("complementary", { name: "Summary" });
@@ -166,10 +188,10 @@ test("the warnings speak English under /en", async ({ page }) => {
   await page.goto(`/en/scenarios/${MISSING_RATE_SCENARIO}`);
   await expect(
     summary(page).getByRole("listitem").filter({ hasText: "A rate is missing" }),
-  ).toContainText("Data Engineer has no rate, so the scenario has no cost.");
+  ).toContainText("Data Engineer has no rate: its cost and what depends on it are undetermined.");
   await expect(
     summary(page).getByRole("region", { name: "Key figures" }).getByRole("definition").first(),
-  ).toMatchAriaSnapshot(`- definition: "Not available: the scenario is incomplete"`);
+  ).toHaveText("Undetermined No rate: Data Engineer");
 });
 
 for (const [warned, scenario] of [
