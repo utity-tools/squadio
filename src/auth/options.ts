@@ -79,8 +79,15 @@ export function authOptions({ db, appUrl, env }: AuthInputs) {
     },
     // Serverless instances share no memory, so the rate limit counts in the database.
     rateLimit: { storage: "database", modelName: "rateLimit" },
-    // Organizations change only through the server until slice 2d deletes them with their data.
-    disabledPaths: ["/organization/update"],
+    // Organizations and memberships change only through the server (ADR 0012): the browser cannot
+    // rename an organization, nor leave, remove or change a member, since the member's role is what
+    // their rate access follows. Slice 2d deletes organizations with their data, on the server.
+    disabledPaths: [
+      "/organization/update",
+      "/organization/leave",
+      "/organization/remove-member",
+      "/organization/update-member-role",
+    ],
     advanced: {
       cookiePrefix: "squadio",
       // auth-schema.ts: the database generates uuids.
