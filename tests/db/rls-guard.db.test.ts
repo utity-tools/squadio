@@ -282,6 +282,31 @@ describe("tenancy guard", () => {
     expect(await findTenancyViolations(owner)).toEqual([]);
   });
 
+  it("finds every organization_id outside auth referencing auth.organization, without a cascade", async () => {
+    // ADR 0012: an organization's rows go first, inside its own context, since Postgres runs
+    // cascades without RLS (ADR 0005); a cascade or a missing reference fails here.
+    const { rows } = await owner.execute<{ table: string; reference: string | null }>(sql`
+      select format('%I.%I', n.nspname, c.relname) as table,
+             (select f.confdeltype::text
+                from pg_constraint f
+               where f.conrelid = c.oid
+                 and f.contype = 'f'
+                 and f.conkey = array[a.attnum]
+                 and f.confrelid = 'auth.organization'::regclass) as reference
+        from pg_attribute a
+        join pg_class c on c.oid = a.attrelid
+        join pg_namespace n on n.oid = c.relnamespace
+       where a.attname = 'organization_id'
+         and not a.attisdropped
+         and c.relkind in ('r', 'p')
+         and n.nspname = 'public'
+       order by 1`);
+
+    expect(rows.length).toBeGreaterThan(0);
+    // 'a' is no action: deleting an organization with rows fails.
+    expect(rows.filter((row) => row.reference !== "a")).toEqual([]);
+  });
+
   it("reports each way a relation can break tenancy, and leaves a correct one alone", async () => {
     const suffix = randomUUID().replaceAll("-", "");
     // Postgres truncates identifiers past 63 bytes, which would make two names collide.

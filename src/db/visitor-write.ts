@@ -8,6 +8,7 @@ import { VISITOR_COOKIE, VISITOR_COOKIE_MAX_AGE, hashToken, newToken } from "@/l
 
 import { DEMO_ORGANIZATION_ID, editContextFor } from "./access";
 import { copyOrganization } from "./copy-organization";
+import { VISITOR_COPY_NAME, insertOrganization } from "./organizations";
 import { assignments, categories, people, projects, scenarios } from "./schema";
 import { type TenantTransaction, setAccessContext, withOrganization } from "./tenant";
 
@@ -126,6 +127,9 @@ export async function writeForVisitor<Refused extends { ok: false }>(
   const copy = randomUUID();
   try {
     const result = await db.transaction(async (tx) => {
+      // The claim and the copy's rows reference the organization's row (ADR 0012), so it comes
+      // first; a refused write or the limit rolls it back with everything else.
+      await insertOrganization(tx, { id: copy, name: VISITOR_COPY_NAME });
       const claimed = await claim(tx, fresh, copy);
       if (claimed === "limit") throw new Rollback<Refused>({ ok: false, reason: "limit" });
       if (claimed !== "claimed") throw new Error(`A new visitor's claim was ${claimed}`);

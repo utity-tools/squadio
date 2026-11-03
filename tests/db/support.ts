@@ -1,4 +1,8 @@
+import { randomUUID } from "node:crypto";
+
 import { loadEnvConfig } from "@next/env";
+import { sql } from "drizzle-orm";
+import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 
 import { parseServerEnv, parseToolingEnv } from "@/lib/env/schema";
@@ -63,3 +67,41 @@ export async function waitForLockWaiter(timeoutMs = 5_000) {
     await pool.end();
   }
 }
+
+/** The name of the organizations tests create: synthetic, like all test data. */
+export const SYNTHETIC_ORGANIZATION = "Synthetic organization";
+
+/**
+ * Writes a new organization's row in auth.organization, which every tenant row and visitor's claim
+ * references (ADR 0012), and returns its id. Works with a pool or a Drizzle database, as the app
+ * role or the owner.
+ */
+export async function newOrganization(
+  db: Pool | NodePgDatabase,
+  id: string = randomUUID(),
+): Promise<string> {
+  const slug = `organization-${id}`;
+  if (db instanceof Pool) {
+    await db.query("insert into auth.organization (id, name, slug) values ($1, $2, $3)", [
+      id,
+      SYNTHETIC_ORGANIZATION,
+      slug,
+    ]);
+  } else {
+    await db.execute(
+      sql`insert into auth.organization (id, name, slug) values (${id}, ${SYNTHETIC_ORGANIZATION}, ${slug})`,
+    );
+  }
+  return id;
+}
+
+/** SQL that claims `count` new visitors' copies (ADR 0011, "Abuse"), each with its organization. */
+export const claimCopies = (count: number) => `
+  with organizations as (
+    insert into auth.organization (id, name, slug)
+    select id, 'Synthetic organization', 'organization-' || id
+      from (select gen_random_uuid() as id from generate_series(1, ${count})) generated
+    returning id
+  )
+  insert into visitor_copies (token_hash, organization_id)
+  select sha256(id::text::bytea), id from organizations`;

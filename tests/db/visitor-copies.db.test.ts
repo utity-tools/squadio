@@ -1,9 +1,9 @@
-import { createHash, randomBytes, randomUUID } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 
 import type { Pool } from "pg";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 
-import { appPool, ownerPool, waitForLockWaiter } from "./support";
+import { appPool, claimCopies, newOrganization, ownerPool, waitForLockWaiter } from "./support";
 
 // ADR 0011, "The visitor table": visitor_copies maps a visitor's token hash to their copy of the
 // demo organization. The app role reaches it only through two SECURITY DEFINER functions.
@@ -45,7 +45,7 @@ describe("visitor_copies", () => {
     await expect(
       app.query("insert into visitor_copies (token_hash, organization_id) values ($1, $2)", [
         tokenHash(),
-        randomUUID(),
+        await newOrganization(owner),
       ]),
     ).rejects.toThrow(/permission denied/);
   });
@@ -62,7 +62,7 @@ describe("visitor_copies", () => {
     await expect(
       owner.query("insert into visitor_copies (token_hash, organization_id) values ($1, $2)", [
         Buffer.alloc(16),
-        randomUUID(),
+        await newOrganization(owner),
       ]),
     ).rejects.toThrow(/visitor_copies_token_hash_check/);
   });
@@ -75,14 +75,14 @@ describe("app.claim_visitor_copy and app.visitor_organization", () => {
 
   it("maps a claimed token to its organization", async () => {
     const hash = tokenHash();
-    const organizationId = randomUUID();
+    const organizationId = await newOrganization(owner);
     expect(await claim(hash, organizationId)).toBe("claimed");
     expect(await organizationOf(hash)).toBe(organizationId);
   });
 
   it("touches a claimed copy on the next save, and refuses another organization", async () => {
     const hash = tokenHash();
-    const organizationId = randomUUID();
+    const organizationId = await newOrganization(owner);
     await claim(hash, organizationId);
     await owner.query("update visitor_copies set last_saved_at = now() - interval '3 days'");
 
@@ -91,12 +91,12 @@ describe("app.claim_visitor_copy and app.visitor_organization", () => {
       "select last_saved_at > now() - interval '1 minute' as fresh from visitor_copies",
     );
     expect(rows).toEqual([{ fresh: true }]);
-    expect(await claim(hash, randomUUID())).toBe("taken");
+    expect(await claim(hash, await newOrganization(owner))).toBe("taken");
   });
 
   it("reports a copy cleaned up while its touch waited as gone", async () => {
     const hash = tokenHash();
-    const organizationId = randomUUID();
+    const organizationId = await newOrganization(owner);
     await claim(hash, organizationId);
 
     // The clean-up locks the claim, the save's touch waits for it, then the clean-up deletes it.
@@ -116,26 +116,23 @@ describe("app.claim_visitor_copy and app.visitor_organization", () => {
   });
 
   it("refuses an organization that already has a visitor", async () => {
-    const organizationId = randomUUID();
+    const organizationId = await newOrganization(owner);
     await claim(tokenHash(), organizationId);
     expect(await claim(tokenHash(), organizationId)).toBe("taken");
   });
 
   it("stops new copies at the daily limit, but keeps touching existing ones", async () => {
     const hash = tokenHash();
-    const organizationId = randomUUID();
+    const organizationId = await newOrganization(owner);
     await claim(hash, organizationId);
-    await owner.query(`
-      insert into visitor_copies (token_hash, organization_id)
-      select sha256(gen_random_uuid()::text::bytea), gen_random_uuid()
-        from generate_series(1, 199)`);
+    await owner.query(claimCopies(199));
 
-    expect(await claim(tokenHash(), randomUUID())).toBe("limit");
+    expect(await claim(tokenHash(), await newOrganization(owner))).toBe("limit");
     expect(await claim(hash, organizationId)).toBe("touched");
 
     // Copies older than a day no longer count.
     await owner.query("update visitor_copies set created_at = now() - interval '25 hours'");
-    expect(await claim(tokenHash(), randomUUID())).toBe("claimed");
+    expect(await claim(tokenHash(), await newOrganization(owner))).toBe("claimed");
   });
 
   it("never maps a visitor to the demo template", async () => {

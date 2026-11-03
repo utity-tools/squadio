@@ -2,7 +2,8 @@
 // `organization_id`, Row Level Security enabled and forced (FORCE is added in the migration, which
 // Drizzle does not model) and the tenant policy (ADR 0004). Foreign keys between tenant tables are
 // composite, so a row can only point inside its own organization. The organization's own table is
-// Better Auth's, in src/db/auth-schema.ts (ADR 0012).
+// Better Auth's, in src/db/auth-schema.ts (ADR 0012): every organization_id references it, without
+// a cascade, so deleting an organization means deleting its rows first, inside its own context.
 import { sql } from "drizzle-orm";
 import {
   boolean,
@@ -30,8 +31,13 @@ import {
   weeklyHours,
   yearHours,
 } from "./columns";
+import { organization } from "./auth-schema";
 
-const organizationId = () => uuid("organization_id").notNull();
+/** The tenant column: an organization's id, never deleted from under its rows (ADR 0012). */
+const organizationId = () =>
+  uuid("organization_id")
+    .notNull()
+    .references(() => organization.id);
 const id = () => uuid("id").primaryKey().defaultRandom();
 
 /** The only policy a structural table has: its organization's rows, for every command. */
@@ -71,7 +77,9 @@ const weeklyHoursCheck = (table: string, column: string) =>
 export const config = pgTable(
   "config",
   {
-    organizationId: uuid("organization_id").primaryKey(),
+    organizationId: uuid("organization_id")
+      .primaryKey()
+      .references(() => organization.id),
     netAnnualHours: integer("net_annual_hours").notNull(),
     defaultWeeklyHours: weeklyHours("default_weekly_hours").notNull(),
   },
@@ -241,7 +249,9 @@ const notNegative = (table: string, column: string) =>
 export const costConfig = pgTable(
   "cost_config",
   {
-    organizationId: uuid("organization_id").primaryKey(),
+    organizationId: uuid("organization_id")
+      .primaryKey()
+      .references(() => organization.id),
     overhead: basisPoints("overhead_pct").notNull(),
     buffer: basisPoints("buffer_pct").notNull(),
     /** Can be negative: a project taken at a loss on purpose. */
@@ -443,7 +453,10 @@ export const visitorCopies = pgTable(
   "visitor_copies",
   {
     tokenHash: bytea("token_hash").primaryKey(),
-    organizationId: uuid("organization_id").notNull().unique(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .unique()
+      .references(() => organization.id),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     lastSavedAt: timestamp("last_saved_at", { withTimezone: true }).notNull().defaultNow(),
   },

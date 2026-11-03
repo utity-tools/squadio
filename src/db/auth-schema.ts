@@ -93,6 +93,9 @@ export const organization = authSchema.table("organization", {
   logo: text("logo"),
   metadata: text("metadata"),
   createdAt: createdAt(),
+  // ADR 0012: an organization adopted from a visitor's copy holds the demo's synthetic example, not
+  // its own data, and the UI says so while this is set. Better Auth does not know the column.
+  example: boolean("example").notNull().default(false),
 });
 
 export const member = authSchema.table(

@@ -64,6 +64,13 @@
       "when": 1793720641256,
       "tag": "0008_auth_schema",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1793726741817,
+      "tag": "0009_organization_foreign_keys",
+      "breakpoints": true
     }
   ]
 }

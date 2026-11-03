@@ -1,12 +1,11 @@
-import { randomUUID } from "node:crypto";
-
-import { count, eq, inArray } from "drizzle-orm";
+import { count, eq, inArray, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import type { PgTable } from "drizzle-orm/pg-core";
 import { afterAll, describe, expect, it } from "vitest";
 
 import { DEMO_IDS, DEMO_ORGANIZATION_ID, seedDemo } from "@/db/demo-seed";
 import { loadScenario } from "@/db/load-scenario";
+import { DEMO_ORGANIZATION } from "@/db/organizations";
 import {
   assignments,
   categories,
@@ -24,7 +23,7 @@ import { type AccessContext, withOrganization } from "@/db/tenant";
 import { NATIONAL_HOLIDAYS, calendarWorkingHours } from "@/lib/calendar/calendar";
 import { ongoingSpans } from "@/lib/demo/ongoing-spans";
 
-import { SOME_DAY, appPool } from "./support";
+import { SOME_DAY, appPool, newOrganization } from "./support";
 
 // The demo organization's seed: synthetic, idempotent and confined to its organization.
 
@@ -62,6 +61,15 @@ const countsIn = (context: AccessContext) =>
 const demo: AccessContext = { organizationId: DEMO_ORGANIZATION_ID, rateAccess: true };
 
 describe("seedDemo", () => {
+  it("gives the demo organization its row, which its tenant rows reference", async () => {
+    await seedDemo(app, SOME_DAY);
+
+    const { rows } = await app.execute<{ name: string; slug: string; example: boolean }>(
+      sql`select name, slug, example from auth.organization where id = ${DEMO_ORGANIZATION_ID}`,
+    );
+    expect(rows).toEqual([{ name: DEMO_ORGANIZATION.name, slug: "demo", example: false }]);
+  });
+
   it("fills every table of the demo organization", async () => {
     await seedDemo(app, SOME_DAY);
 
@@ -171,7 +179,7 @@ describe("seedDemo", () => {
   });
 
   it("leaves other organizations alone", async () => {
-    const other: AccessContext = { organizationId: randomUUID(), rateAccess: true };
+    const other: AccessContext = { organizationId: await newOrganization(app), rateAccess: true };
     await withOrganization(app, other, (tx) =>
       tx.insert(categories).values({ organizationId: other.organizationId, name: "Designer" }),
     );

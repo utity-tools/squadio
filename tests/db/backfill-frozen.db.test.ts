@@ -1,4 +1,4 @@
-import { randomBytes, randomUUID } from "node:crypto";
+import { randomBytes } from "node:crypto";
 import { readFileSync } from "node:fs";
 
 import { eq } from "drizzle-orm";
@@ -20,7 +20,7 @@ import {
 import { type AccessContext, withOrganization } from "@/db/tenant";
 import { copyId } from "@/lib/visitors/copy-id";
 
-import { SOME_DAY, appPool, ownerPool } from "./support";
+import { SOME_DAY, appPool, newOrganization, ownerPool } from "./support";
 
 // Migration 0007: the scenarios chosen before choosing froze anything (the demo seed's, and the
 // visitor copies made from it) get the frozen rows choosing would have written. It runs once as
@@ -37,7 +37,7 @@ afterAll(async () => {
 
 /** A visitor's copy of the demo, claimed so the backfill finds it, with no frozen rows at all. */
 async function unfrozenCopy() {
-  const organizationId = randomUUID();
+  const organizationId = await newOrganization(app);
   await app.transaction((tx) => copyOrganization(tx, DEMO_ORGANIZATION_ID, organizationId));
   await owner.query("insert into visitor_copies (token_hash, organization_id) values ($1, $2)", [
     randomBytes(32),

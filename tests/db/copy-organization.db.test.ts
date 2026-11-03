@@ -10,7 +10,7 @@ import { loadScenario } from "@/db/load-scenario";
 import { type AccessContext, withOrganization } from "@/db/tenant";
 import { copyId } from "@/lib/visitors/copy-id";
 
-import { SOME_DAY, appPool, ownerPool } from "./support";
+import { SOME_DAY, appPool, newOrganization, ownerPool } from "./support";
 import { OWNER_ONLY_TABLES } from "./tenancy";
 
 // ADR 0011, "The copy": a visitor's copy of the demo organization, made by the app role in one
@@ -34,6 +34,7 @@ const rowCounts = (context: AccessContext) =>
 
 beforeAll(async () => {
   await seedDemo(app, SOME_DAY);
+  await newOrganization(app, copyOrg);
   await app.transaction((tx) => copyOrganization(tx, DEMO_ORGANIZATION_ID, copyOrg));
 });
 
@@ -91,8 +92,9 @@ describe("copyOrganization", () => {
   });
 
   it("returns the template ids it renamed", async () => {
+    const fresh = await newOrganization(app);
     const renamed = await app.transaction((tx) =>
-      copyOrganization(tx, DEMO_ORGANIZATION_ID, randomUUID()),
+      copyOrganization(tx, DEMO_ORGANIZATION_ID, fresh),
     );
     for (const id of [
       DEMO_IDS.project,
@@ -106,7 +108,7 @@ describe("copyOrganization", () => {
   });
 
   it("leaves the transaction in the copy's context without rate access", async () => {
-    const other = randomUUID();
+    const other = await newOrganization(app);
     const context = await app.transaction(async (tx) => {
       await copyOrganization(tx, DEMO_ORGANIZATION_ID, other);
       const { rows } = await tx.execute<{ organization: string; rates: boolean }>(
@@ -141,7 +143,8 @@ describe("copyOrganization", () => {
 
   it("leaves the template untouched and the copy invisible to other organizations", async () => {
     const before = await rowCounts(template);
-    await app.transaction((tx) => copyOrganization(tx, DEMO_ORGANIZATION_ID, randomUUID()));
+    const fresh = await newOrganization(app);
+    await app.transaction((tx) => copyOrganization(tx, DEMO_ORGANIZATION_ID, fresh));
     expect(await rowCounts(template)).toEqual(before);
 
     const stranger: AccessContext = { organizationId: randomUUID(), rateAccess: true };

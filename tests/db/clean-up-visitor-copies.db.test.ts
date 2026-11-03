@@ -63,12 +63,15 @@ const rowsOf = (organizationId: string) =>
     return total;
   });
 
+const organizationRow = async (organizationId: string) =>
+  (await owner.query("select id from auth.organization where id = $1", [organizationId])).rows;
+
 const claims = async () =>
   (await owner.query<{ organization_id: string }>("select organization_id from visitor_copies"))
     .rows;
 
 describe("cleanUpVisitorCopies", () => {
-  it("deletes a copy idle for over 30 days, every row and its claim", async () => {
+  it("deletes a copy idle for over 30 days, every row, its claim and its organization", async () => {
     const { organizationId } = await makeCopy();
     expect(await rowsOf(organizationId)).toBeGreaterThan(0);
     await idleFor(organizationId, 31);
@@ -76,6 +79,7 @@ describe("cleanUpVisitorCopies", () => {
     expect(await cleanUpVisitorCopies(asOwner)).toEqual({ deleted: 1, failed: [] });
     expect(await rowsOf(organizationId)).toBe(0);
     expect(await claims()).toEqual([]);
+    expect(await organizationRow(organizationId)).toEqual([]);
   });
 
   it("keeps a copy saved within 30 days, and the demo template", async () => {
