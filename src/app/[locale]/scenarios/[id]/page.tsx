@@ -19,7 +19,8 @@ import { ScenarioShell } from "@/components/scenario/scenario-shell";
 import { db } from "@/db/client";
 import { copyLink } from "@/db/copy-link";
 import { loadScenario } from "@/db/load-scenario";
-import { currentAccessContext } from "@/db/request-access";
+import { currentAccessContext, currentMember } from "@/db/request-access";
+import { memberPageContext } from "@/db/scenario-writes";
 import { assertLocale, currentLocale } from "@/i18n/locale";
 import { redirect } from "@/i18n/navigation";
 import { madridToday } from "@/lib/bench/occupancy";
@@ -39,10 +40,13 @@ export default async function ScenarioPage({
   const { id } = await params;
   // An id that is not a UUID, or a scenario of another organization, is simply not found.
   if (!z.uuid().safeParse(id).success) notFound();
-  // The visitor's copy or the demo template (ADR 0011); `?access=none` shows the page without rate
-  // access (ADR 0005, amendment of 2026-10-21).
+  // The member's organization when it holds the scenario (ADR 0012), or else the visitor's copy or
+  // the demo template (ADR 0011); `?access=none` shows the page without rate access (ADR 0005,
+  // amendment of 2026-10-21).
   const query = await searchParams;
-  const context = await currentAccessContext(query);
+  const context =
+    (await memberPageContext(db, await currentMember(), id, query)) ??
+    (await currentAccessContext(query));
   // The bench says how busy people are today in Madrid (docs/domain.md): a value of the request,
   // never of a prerender.
   await connection();
