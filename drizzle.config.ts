@@ -9,7 +9,7 @@ loadEnvConfig(process.cwd(), true, { info: () => {}, error: console.error });
 export default defineConfig({
   dialect: "postgresql",
   out: "./drizzle",
-  schema: "./src/db/schema.ts",
+  schema: ["./src/db/schema.ts", "./src/db/auth-schema.ts"],
   // Migrations run as the owner, which owns every object; the app role never does (ADR 0004).
   dbCredentials: { url: parseToolingEnv(process.env).DATABASE_OWNER_URL },
 });

@@ -36,6 +36,14 @@ const RESTRICTED_CHECK =
 /** Schemas whose tables need no organization_id: drizzle's migration journal and app's helpers. */
 const NON_TENANT_SCHEMAS: readonly string[] = ["drizzle", "app"];
 
+/**
+ * Schemas of accounts rather than tenants: Better Auth's tables (ADR 0012), read across
+ * organizations, where membership decides which context the server sets. Their organization_id
+ * means "this membership's organization", not "this row's tenant", so RLS is not required; the
+ * money and view checks still apply.
+ */
+const ACCOUNT_SCHEMAS: readonly string[] = ["auth"];
+
 type TenancyProblem =
   | "rls not enabled"
   | "rls not forced"
@@ -211,6 +219,7 @@ async function findTenancyViolations(
       if (!row.security_invoker) report(row.table, "view does not use security_invoker");
       continue;
     }
+    if (ACCOUNT_SCHEMAS.includes(row.schema)) continue;
 
     if (row.organization_id_type === null) {
       if (!NON_TENANT_SCHEMAS.includes(row.schema) && !GLOBAL_TABLES.includes(row.table)) {
@@ -325,6 +334,11 @@ describe("tenancy guard", () => {
       ownerOnlyForced: name("owner_only_forced"),
       ownerOnlyColumn: name("owner_only_column"),
       missingOwnerOnly: name("owner_only_missing"),
+      accountNoTenant: name("account_no_tenant"),
+      accountMembership: name("account_membership"),
+      accountNumeric: name("account_numeric"),
+      accountFloat: name("account_float"),
+      accountView: name("account_view"),
     };
     // A schema other than public, to prove the guard is not limited to it.
     const otherSchema = name("schema");
@@ -533,6 +547,17 @@ describe("tenancy guard", () => {
           sql`create table ${id(otherSchema)}.${id(names.noTenant)} (id uuid primary key)`,
           // drizzle's own schema holds the migration journal, which has no tenant.
           sql`create table drizzle.${id(names.noTenant)} (id uuid primary key)`,
+
+          // Better Auth's schema of accounts (ADR 0012): no tenant policy needed, money still not.
+          sql`create table auth.${id(names.accountNoTenant)} (id uuid primary key)`,
+          sql`create table auth.${id(names.accountMembership)} (
+                id uuid primary key,
+                organization_id uuid not null
+              )`,
+          sql`create table auth.${id(names.accountNumeric)} (id uuid primary key, amount numeric)`,
+          sql`create table auth.${id(names.accountFloat)} (id uuid primary key, cost real)`,
+          sql`create view auth.${id(names.accountView)} as
+                select * from auth.${id(names.accountMembership)}`,
         ]) {
           await tx.execute(statement);
         }
@@ -614,6 +639,15 @@ describe("tenancy guard", () => {
     expect(problemsOf(names.ownerOnlyForced)).toEqual(["owner-only table forces rls"]);
     expect(problemsOf(names.ownerOnlyColumn)).toEqual(["owner-only table grants the app role"]);
     expect(problemsOf(names.missingOwnerOnly)).toEqual(["listed as owner-only but does not exist"]);
+    expect(problemsOf(names.accountNoTenant, "auth")).toEqual([]);
+    expect(problemsOf(names.accountMembership, "auth")).toEqual([]);
+    expect(problemsOf(names.accountNumeric, "auth")).toEqual([
+      "numeric or money column outside the restricted tables",
+    ]);
+    expect(problemsOf(names.accountFloat, "auth")).toEqual([
+      "floating-point column; money is numeric",
+    ]);
+    expect(problemsOf(names.accountView, "auth")).toEqual(["view does not use security_invoker"]);
 
     // The rollback left nothing behind.
     expect(await findTenancyViolations(owner)).toEqual([]);
