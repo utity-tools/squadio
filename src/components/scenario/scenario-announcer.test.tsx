@@ -2,7 +2,7 @@ import { act } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import { hoursBasis, ratesBasis } from "@/lib/scenarios/basis.fixtures";
-import { developer, lead, manager, seatId, team } from "@/lib/scenarios/change.fixtures";
+import { PM, developer, lead, manager, seatId, team } from "@/lib/scenarios/change.fixtures";
 import type { ScenarioBasis } from "@/lib/scenarios/scenario-view";
 import type { SaveOutcome, ScenarioStore } from "@/lib/scenarios/store";
 import { renderWithIntl } from "@/test/render";
@@ -121,6 +121,48 @@ describe("ScenarioAnnouncer", () => {
       store.setState({ rejection: { action: "undo", reason: "inactive-person" } });
     });
     expect(region).toHaveTextContent("No se puede deshacer: la persona no está activa");
+  });
+
+  it("says what an undetermined net margin misses, never an amount", () => {
+    if (!ratesBasis.engine.rateAccess) throw new Error("expected rate access");
+    const { rates } = ratesBasis.engine.input;
+    const withoutPmRate: ScenarioBasis = {
+      ...ratesBasis,
+      engine: {
+        ...ratesBasis.engine,
+        input: { ...ratesBasis.engine.input, rates: rates.filter((r) => r.categoryId !== PM) },
+      },
+    };
+    const { store, region } = renderAnnouncer(withoutPmRate);
+    act(() => {
+      store.getState().dispatch(halve);
+    });
+    expect(region.textContent).toMatch(
+      /Margen neto indeterminado\. Sin tarifa: Project Manager\.$/,
+    );
+    expect(region.textContent).not.toContain("€");
+  });
+
+  it("says that the margin % does not apply without revenue", () => {
+    if (!ratesBasis.engine.rateAccess) throw new Error("expected rate access");
+    const { rates } = ratesBasis.engine.input;
+    const unbilled: ScenarioBasis = {
+      ...ratesBasis,
+      engine: {
+        ...ratesBasis.engine,
+        input: {
+          ...ratesBasis.engine.input,
+          rates: rates.map((r) => ({ ...r, sellRateCents: 0 })),
+        },
+      },
+    };
+    const { store, region } = renderAnnouncer(unbilled);
+    act(() => {
+      store.getState().dispatch(halve);
+    });
+    expect(region.textContent).toMatch(
+      /Margen neto: -[\d.]+\s€\. Margen % no aplicable\. Sin ingresos\.$/,
+    );
   });
 
   it("says the effective hours without rate access, never money", () => {
