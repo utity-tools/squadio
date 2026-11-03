@@ -45,7 +45,7 @@ async function SignInOptions({
       <>
         <p className="text-muted-foreground">{t("signedIn", { name: account.name })}</p>
         <Button asChild variant="outline">
-          <Link href="/">{t("home")}</Link>
+          <Link href="/organization">{t("organization")}</Link>
         </Button>
       </>
     );
@@ -70,7 +70,7 @@ async function SignInOptions({
         </p>
       )}
       <SignInButtons
-        callbackPath={getPathname({ href: "/", locale })}
+        callbackPath={getPathname({ href: "/organization", locale })}
         errorPath={getPathname({ href: "/sign-in", locale })}
       />
     </>

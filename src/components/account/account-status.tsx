@@ -22,6 +22,9 @@ export function AccountStatusView({ account, signUp }: AccountStatusViewProps) {
           <span className="sr-only">{t("signedInAs")} </span>
           {account.name}
         </span>
+        <Button asChild variant="ghost" size="sm">
+          <Link href="/organization">{t("organization")}</Link>
+        </Button>
         <SignOutButton />
       </div>
     );
