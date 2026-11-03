@@ -2,7 +2,7 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
-import { EnvError, parseClientEnv, parseServerEnv, parseToolingEnv } from "./schema";
+import { EnvError, parseAuthEnv, parseClientEnv, parseServerEnv, parseToolingEnv } from "./schema";
 
 const APP_URL = "https://squadio.example";
 const DB_PASSWORD = "squadio_app_dev";
@@ -199,5 +199,83 @@ describe("parseToolingEnv", () => {
     expect(lineFor(error, "DATABASE_OWNER_URL")).toHaveLength(1);
     expect(error.message).toContain("must be a postgres:// or postgresql:// URL");
     expect(error.message).not.toContain(OWNER_PASSWORD);
+  });
+});
+
+describe("parseAuthEnv", () => {
+  const AUTH_SECRET = "synthetic-auth-secret-0123456789abcdef";
+  const PROXY_SECRET = "synthetic-proxy-secret-0123456789abcdef";
+  const auth = {
+    BETTER_AUTH_SECRET: AUTH_SECRET,
+    OAUTH_PROXY_SECRET: PROXY_SECRET,
+    GITHUB_CLIENT_ID: "synthetic-github-id",
+    GITHUB_CLIENT_SECRET: "synthetic-github-secret",
+    GOOGLE_CLIENT_ID: "synthetic-google-id",
+    GOOGLE_CLIENT_SECRET: "synthetic-google-secret",
+  };
+
+  it("returns the auth variables, with sign-up off and no production URL by default", () => {
+    const env = parseAuthEnv({ ...valid, ...auth });
+
+    expect(env).toEqual({ ...auth, SIGN_UP_ENABLED: false, AUTH_PRODUCTION_URL: undefined });
+    expect(Object.isFrozen(env)).toBe(true);
+  });
+
+  it("is not part of the server environment, so builds need no auth secret", () => {
+    expect(parseServerEnv({ ...valid, ...auth })).not.toHaveProperty("BETTER_AUTH_SECRET");
+  });
+
+  it.each([
+    ["true", true],
+    ["false", false],
+    ["", false],
+  ])("reads SIGN_UP_ENABLED=%j as %s", (value, enabled) => {
+    expect(parseAuthEnv({ ...auth, SIGN_UP_ENABLED: value }).SIGN_UP_ENABLED).toBe(enabled);
+  });
+
+  it.each(["1", "yes", "TRUE", "on"])("rejects SIGN_UP_ENABLED=%j instead of guessing", (value) => {
+    const error = errorFrom(() => parseAuthEnv({ ...auth, SIGN_UP_ENABLED: value }));
+
+    expect(lineFor(error, "SIGN_UP_ENABLED")).toHaveLength(1);
+  });
+
+  it("accepts an http(s) origin as AUTH_PRODUCTION_URL", () => {
+    const url = "https://squadio.example";
+
+    expect(parseAuthEnv({ ...auth, AUTH_PRODUCTION_URL: url }).AUTH_PRODUCTION_URL).toBe(url);
+  });
+
+  it("rejects an AUTH_PRODUCTION_URL with a path", () => {
+    const error = errorFrom(() =>
+      parseAuthEnv({ ...auth, AUTH_PRODUCTION_URL: "https://squadio.example/api" }),
+    );
+
+    expect(lineFor(error, "AUTH_PRODUCTION_URL")).toHaveLength(1);
+  });
+
+  it("reports every missing variable at once, one per line", () => {
+    const error = errorFrom(() => parseAuthEnv({}));
+
+    for (const name of Object.keys(auth)) {
+      expect(lineFor(error, name)).toHaveLength(1);
+      expect(lineFor(error, name)[0]).toContain("is required");
+    }
+  });
+
+  it.each(["BETTER_AUTH_SECRET", "OAUTH_PROXY_SECRET"])(
+    "rejects a short %s without leaking it",
+    (name) => {
+      const error = errorFrom(() => parseAuthEnv({ ...auth, [name]: "short-s3cr3t" }));
+
+      expect(lineFor(error, name)).toHaveLength(1);
+      expect(error.message).not.toContain("s3cr3t");
+    },
+  );
+
+  it("rejects a proxy secret equal to the auth secret without leaking either", () => {
+    const error = errorFrom(() => parseAuthEnv({ ...auth, OAUTH_PROXY_SECRET: AUTH_SECRET }));
+
+    expect(lineFor(error, "OAUTH_PROXY_SECRET")).toHaveLength(1);
+    expect(error.message).not.toContain(AUTH_SECRET);
   });
 });
