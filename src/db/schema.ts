@@ -1,8 +1,8 @@
 // Drizzle table definitions for the v0.1 entities of docs/domain.md. Every tenant table has a uuid
 // `organization_id`, Row Level Security enabled and forced (FORCE is added in the migration, which
 // Drizzle does not model) and the tenant policy (ADR 0004). Foreign keys between tenant tables are
-// composite, so a row can only point inside its own organization. The organization itself has no
-// table until Better Auth brings one in v0.5.
+// composite, so a row can only point inside its own organization. The organization's own table is
+// Better Auth's, in src/db/auth-schema.ts (ADR 0012).
 import { sql } from "drizzle-orm";
 import {
   boolean,
