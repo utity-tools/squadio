@@ -329,7 +329,8 @@
     "signIn": "Entrar",
     "signOut": "Cerrar sesión",
     "signedInAs": "Has entrado como",
-    "signOutFailed": "No se ha podido cerrar la sesión. Vuelve a intentarlo."
+    "signOutFailed": "No se ha podido cerrar la sesión. Vuelve a intentarlo.",
+    "organization": "Tu organización"
   },
   "SignIn": {
     "title": "Entrar",
@@ -342,6 +343,32 @@
     "closed": "Todavía no se puede entrar con una cuenta. Mientras tanto puedes probar la demo, sin cuenta.",
     "tryDemo": "Probar la demo",
     "signedIn": "Ya has entrado como {name}.",
-    "home": "Volver al inicio"
+    "organization": "Ir a tu organización"
+  },
+  "Organization": {
+    "title": "Tu organización",
+    "startHeading": "Empieza tu organización",
+    "startIntro": "Tu organización guarda tus propias categorías, personas y proyectos. Solo tú puedes verla.",
+    "emptyHeading": "Una organización vacía",
+    "emptyIntro": "Empieza con los parámetros de la plantilla Consultora: 1550 horas netas anuales, semanas de 40 horas, un 15 % de overhead, un 10 % de buffer y un 25 % de margen objetivo, y sin categorías, personas ni proyectos.",
+    "createEmpty": "Crear una organización vacía",
+    "adoptHeading": "Tus cambios en la demo",
+    "adoptIntro": "Has editado la demo. Puedes quedarte con el ejemplo y tus cambios como una organización nueva. Sus datos siguen siendo los datos sintéticos de la demo, y la demo vuelve a estar como estaba para ti.",
+    "adopt": "Crear una organización nueva con este ejemplo y mis cambios",
+    "exampleName": "Ejemplo de Squadio",
+    "nameLabel": "Nombre de la organización",
+    "errors": {
+      "blank": "Escribe un nombre para la organización.",
+      "too-long": "Usa 100 caracteres como mucho.",
+      "no-copy": "Ya no hay una copia de la demo que conservar. Vuelve a editar la demo o crea una organización vacía.",
+      "signed-out": "Tu sesión ha terminado. Vuelve a entrar.",
+      "failed": "No se ha podido crear la organización. Vuelve a intentarlo."
+    },
+    "exampleBanner": "Esta organización contiene el ejemplo sintético de la demo, no tus propios datos.",
+    "projectsHeading": "Proyectos",
+    "noProjects": "Esta organización todavía no tiene proyectos.",
+    "noScenarios": "Todavía no hay escenarios.",
+    "project": "{name} · {client}",
+    "chosen": "elegido"
   }
 }

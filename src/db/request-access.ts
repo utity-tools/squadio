@@ -1,8 +1,8 @@
 import "server-only";
 
-import { cookies, headers } from "next/headers";
+import { cookies } from "next/headers";
 
-import { getAuth } from "@/auth/server";
+import { currentSession } from "@/auth/session";
 import { VISITOR_COOKIE } from "@/lib/visitors/token";
 
 import { type AccessSearchParams, type Member, accessContextFor, memberOf } from "./access";
@@ -27,12 +27,6 @@ export async function currentAccessContext(
  * nothing the browser sends picks the organization.
  */
 export async function currentMember(): Promise<Member | null> {
-  // The request first: prerendering stops there, before anything reads the auth variables.
-  const requestHeaders = await headers();
-  const session = await getAuth().api.getSession({ headers: requestHeaders });
-  if (!session) return null;
-  return memberOf(db, {
-    userId: session.user.id,
-    activeOrganizationId: session.session.activeOrganizationId,
-  });
+  const session = await currentSession();
+  return session && memberOf(db, session);
 }

@@ -329,7 +329,8 @@
     "signIn": "Sign in",
     "signOut": "Sign out",
     "signedInAs": "Signed in as",
-    "signOutFailed": "We couldn't sign you out. Try again."
+    "signOutFailed": "We couldn't sign you out. Try again.",
+    "organization": "Your organization"
   },
   "SignIn": {
     "title": "Sign in",
@@ -342,6 +343,32 @@
     "closed": "You can't sign in with an account yet. Meanwhile you can try the demo, no account needed.",
     "tryDemo": "Try the demo",
     "signedIn": "You're signed in as {name}.",
-    "home": "Back to the home page"
+    "organization": "Go to your organization"
+  },
+  "Organization": {
+    "title": "Your organization",
+    "startHeading": "Start your organization",
+    "startIntro": "Your organization holds your own categories, people and projects. Only you can see it.",
+    "emptyHeading": "An empty organization",
+    "emptyIntro": "It starts with the Consultancy template's settings: 1,550 net annual hours, a 40-hour week, 15% overhead, a 10% buffer and a 25% target margin, and no categories, people or projects.",
+    "createEmpty": "Create an empty organization",
+    "adoptHeading": "Your changes to the demo",
+    "adoptIntro": "You've edited the demo. You can keep the example and your changes as a new organization. Its data stays the demo's synthetic data, and the demo goes back to how it was for you.",
+    "adopt": "Create a new organization with this example and my changes",
+    "exampleName": "Squadio example",
+    "nameLabel": "Organization name",
+    "errors": {
+      "blank": "Write a name for the organization.",
+      "too-long": "Use 100 characters or fewer.",
+      "no-copy": "There is no copy of the demo to keep any more. Edit the demo again, or create an empty organization.",
+      "signed-out": "Your session has ended. Sign in again.",
+      "failed": "We couldn't create the organization. Try again."
+    },
+    "exampleBanner": "This organization holds the demo's synthetic example, not your own data.",
+    "projectsHeading": "Projects",
+    "noProjects": "This organization has no projects yet.",
+    "noScenarios": "No scenarios yet.",
+    "project": "{name} · {client}",
+    "chosen": "chosen"
   }
 }
