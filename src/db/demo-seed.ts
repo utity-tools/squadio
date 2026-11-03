@@ -14,6 +14,7 @@ import {
 } from "./schema";
 import { DEMO_ORGANIZATION_ID, demoAccessContext } from "./access";
 import { freezeScenario } from "./choose-scenario";
+import { ensureDemoOrganization } from "./organizations";
 import { type TenantTransaction, withOrganization } from "./tenant";
 import { NATIONAL_HOLIDAYS } from "@/lib/calendar/calendar";
 import { GUIDE_SCENARIO_ID, demoId } from "@/lib/demo/demo-ids";
@@ -477,6 +478,8 @@ export async function seedDemo(db: NodePgDatabase, today: string): Promise<void>
   // A day outside the calendar fails, leaving the previous rows.
   const spans = ongoingSpans(today, Object.keys(NATIONAL_HOLIDAYS).map(Number));
   await withOrganization(db, DEMO, async (tx) => {
+    // The rows below reference it (ADR 0012); a fresh database has it from migration 0009 already.
+    await ensureDemoOrganization(tx);
     await clear(tx);
     await insert(tx, spans);
   });

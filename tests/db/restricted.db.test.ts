@@ -18,7 +18,7 @@ import {
 } from "@/db/schema";
 import { type AccessContext, type TenantTransaction, withOrganization } from "@/db/tenant";
 
-import { appPool } from "./support";
+import { appPool, newOrganization } from "./support";
 import { RESTRICTED_TABLES } from "./tenancy";
 
 // ADR 0005: every restricted table returns no rows and rejects writes without rate access, also
@@ -39,6 +39,7 @@ type Ids = { categoryId: string; projectId: string; scenarioId: string };
 let ids: Ids;
 
 beforeAll(async () => {
+  await newOrganization(app, organizationId);
   ids = await withOrganization(app, withoutRates, async (tx) => {
     const [category] = await tx
       .insert(categories)

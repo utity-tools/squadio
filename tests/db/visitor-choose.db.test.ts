@@ -11,7 +11,7 @@ import type { CookieJar } from "@/db/visitor-write";
 import { copyId } from "@/lib/visitors/copy-id";
 import { VISITOR_COOKIE } from "@/lib/visitors/token";
 
-import { SOME_DAY, appPool, ownerPool } from "./support";
+import { SOME_DAY, appPool, claimCopies, ownerPool } from "./support";
 
 // docs/domain.md, "Choosing a scenario", and ADR 0011: a visitor chooses or unchooses a scenario
 // of their copy. Without one, the first choice makes it, like a first save. Synthetic data only.
@@ -120,9 +120,7 @@ describe("chooseForVisitor: the first choice", () => {
   });
 
   it("stops at the day's limit, choosing nothing", async () => {
-    await owner.query(`
-      insert into visitor_copies (token_hash, organization_id)
-      select sha256(gen_random_uuid()::text::bytea), gen_random_uuid() from generate_series(1, 200)`);
+    await owner.query(claimCopies(200));
     const { cookies, sets } = jar();
     expect(await chooseForVisitor(app, cookies, guide, true)).toEqual({
       ok: false,

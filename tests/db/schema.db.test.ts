@@ -1,5 +1,3 @@
-import { randomUUID } from "node:crypto";
-
 import { count, eq, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { afterAll, describe, expect, it } from "vitest";
@@ -7,7 +5,7 @@ import { afterAll, describe, expect, it } from "vitest";
 import { assignments, categories, config, people, projects, scenarios } from "@/db/schema";
 import { type AccessContext, type TenantTransaction, withOrganization } from "@/db/tenant";
 
-import { appPool, ownerPool } from "./support";
+import { appPool, newOrganization, ownerPool } from "./support";
 import { OWNER_ONLY_TABLES, RESTRICTED_TABLES, STRUCTURAL_TABLES } from "./tenancy";
 
 // The structural tables of v0.1 (docs/domain.md, ADR 0004): isolated per organization, pointing
@@ -21,8 +19,9 @@ afterAll(async () => {
   await owner.$client.end();
 });
 
-const contextFor = (organizationId = randomUUID()): AccessContext => ({
-  organizationId,
+/** A new organization's context, without rate access. */
+const contextFor = async (): Promise<AccessContext> => ({
+  organizationId: await newOrganization(app),
   rateAccess: false,
 });
 
@@ -101,24 +100,24 @@ describe("v0.1 tenant tables", () => {
 
 describe("structural tables", () => {
   it("show an organization's rows to it and to no other organization", async () => {
-    const a = contextFor();
+    const a = await contextFor();
     await inOrganization(a, (tx) => seedTeam(tx, a.organizationId));
 
     expect(await inOrganization(a, counts)).toEqual([1, 1, 1, 1, 1, 2]);
-    expect(await inOrganization(contextFor(), counts)).toEqual([0, 0, 0, 0, 0, 0]);
+    expect(await inOrganization(await contextFor(), counts)).toEqual([0, 0, 0, 0, 0, 0]);
     // Outside withOrganization there is no context, so nothing at all.
     expect(await counts(app)).toEqual([0, 0, 0, 0, 0, 0]);
   });
 
   it("let everyone in the organization read them, with or without rate access", async () => {
-    const a = contextFor();
+    const a = await contextFor();
     await inOrganization(a, (tx) => seedTeam(tx, a.organizationId));
 
     expect(await inOrganization({ ...a, rateAccess: true }, counts)).toEqual([1, 1, 1, 1, 1, 2]);
   });
 
   it("keep weekly hours with their two decimals", async () => {
-    const a = contextFor();
+    const a = await contextFor();
     const { person } = await inOrganization(a, (tx) => seedTeam(tx, a.organizationId));
 
     const [read] = await inOrganization(a, (tx) =>
@@ -128,9 +127,9 @@ describe("structural tables", () => {
   });
 
   it("refuse a reference to another organization's row", async () => {
-    const a = contextFor();
+    const a = await contextFor();
     const { category } = await inOrganization(a, (tx) => seedTeam(tx, a.organizationId));
-    const b = contextFor();
+    const b = await contextFor();
 
     await expect(
       inOrganization(b, (tx) =>
@@ -145,7 +144,7 @@ describe("structural tables", () => {
   });
 
   it("refuse a reports-to outside the assignment's scenario", async () => {
-    const a = contextFor();
+    const a = await contextFor();
     const { project, lead, category } = await inOrganization(a, (tx) =>
       seedTeam(tx, a.organizationId),
     );
@@ -172,7 +171,7 @@ describe("structural tables", () => {
   });
 
   it("allow at most one chosen scenario per project (rule i)", async () => {
-    const a = contextFor();
+    const a = await contextFor();
     const { project, scenario } = await inOrganization(a, (tx) => seedTeam(tx, a.organizationId));
     await inOrganization(a, (tx) =>
       tx.update(scenarios).set({ chosen: true }).where(eq(scenarios.id, scenario.id)),
@@ -198,7 +197,7 @@ describe("structural tables", () => {
   });
 
   it("clear reports-to when the assignment it points to is deleted", async () => {
-    const a = contextFor();
+    const a = await contextFor();
     const { lead, openRole } = await inOrganization(a, (tx) => seedTeam(tx, a.organizationId));
 
     await inOrganization(a, (tx) => tx.delete(assignments).where(eq(assignments.id, lead.id)));
@@ -210,7 +209,7 @@ describe("structural tables", () => {
   });
 
   it("delete a project's scenarios and assignments with it", async () => {
-    const a = contextFor();
+    const a = await contextFor();
     const { project } = await inOrganization(a, (tx) => seedTeam(tx, a.organizationId));
 
     await inOrganization(a, (tx) => tx.delete(projects).where(eq(projects.id, project.id)));
@@ -273,7 +272,7 @@ describe("structural tables", () => {
     ];
 
     it.each(cases)("reject %s", async (_name, write) => {
-      const a = contextFor();
+      const a = await contextFor();
       const seeded = await inOrganization(a, (tx) => seedTeam(tx, a.organizationId));
 
       await expect(inOrganization(a, (tx) => write(tx, seeded))).rejects.toMatchObject({

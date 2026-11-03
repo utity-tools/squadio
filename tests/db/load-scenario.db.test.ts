@@ -26,7 +26,7 @@ import { loadScenario } from "@/db/load-scenario";
 import { engineInputFor, scenarioView } from "@/lib/scenarios/scenario-view";
 import { copyId } from "@/lib/visitors/copy-id";
 
-import { SOME_DAY, appPool } from "./support";
+import { SOME_DAY, appPool, newOrganization } from "./support";
 
 // docs/domain.md, "Loading a scenario", on the demo organization's seed.
 
@@ -117,7 +117,7 @@ describe("loadScenario", () => {
   });
 
   it("shows the project's overrides of overhead and buffer, not the organization's", async () => {
-    const context: AccessContext = { organizationId: randomUUID(), rateAccess: true };
+    const context: AccessContext = { organizationId: await newOrganization(app), rateAccess: true };
     const organizationId = context.organizationId;
     const scenarioId = await withOrganization(app, context, async (tx) => {
       await tx
@@ -285,7 +285,10 @@ describe("loadScenario", () => {
   });
 
   it("opens a chosen scenario without a team, with no project span", async () => {
-    const context: AccessContext = { organizationId: randomUUID(), rateAccess: false };
+    const context: AccessContext = {
+      organizationId: await newOrganization(app),
+      rateAccess: false,
+    };
     const organizationId = context.organizationId;
     // Rows go in with rate access; the loader reads without it.
     const scenarioId = await withOrganization(app, { ...context, rateAccess: true }, async (tx) => {
@@ -321,7 +324,7 @@ describe("loadScenario", () => {
   });
 
   it("names the project's other chosen scenario, which choosing this one replaces", async () => {
-    const organizationId = randomUUID();
+    const organizationId = await newOrganization(app);
     await app.transaction((tx) => copyOrganization(tx, DEMO_ORGANIZATION_ID, organizationId));
     const context: AccessContext = { organizationId, rateAccess: true };
     const planA = copyId(DEMO_IDS.guideScenario, organizationId);
@@ -353,7 +356,7 @@ describe("loadScenario", () => {
   });
 
   it("costs a chosen scenario with its frozen values, whatever changes later (rule b)", async () => {
-    const copyOrg = randomUUID();
+    const copyOrg = await newOrganization(app);
     const copy: AccessContext = { organizationId: copyOrg, rateAccess: true };
     await app.transaction((tx) => copyOrganization(tx, DEMO_ORGANIZATION_ID, copyOrg));
     const guide = copyId(DEMO_IDS.guideScenario, copyOrg);
@@ -400,7 +403,7 @@ describe("loadScenario", () => {
   });
 
   it("leaves a fixed-price project without a price incomplete (rule l)", async () => {
-    const context: AccessContext = { organizationId: randomUUID(), rateAccess: true };
+    const context: AccessContext = { organizationId: await newOrganization(app), rateAccess: true };
     const organizationId = context.organizationId;
     const scenarioId = await withOrganization(app, context, async (tx) => {
       await tx
@@ -451,7 +454,7 @@ describe("loadScenario", () => {
   });
 
   it("reports a date outside the calendar on its field, with and without rate access", async () => {
-    const organizationId = randomUUID();
+    const organizationId = await newOrganization(app);
     const owner: AccessContext = { organizationId, rateAccess: true };
     const scenarioId = await withOrganization(app, owner, async (tx) => {
       await tx

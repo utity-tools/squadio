@@ -5,13 +5,14 @@ import { ZodError } from "zod";
 
 import { DEMO_IDS, DEMO_ORGANIZATION_ID, seedDemo } from "@/db/demo-seed";
 import { assignments } from "@/db/schema";
+import { VISITOR_COPY_NAME } from "@/db/organizations";
 import { withOrganization } from "@/db/tenant";
 import { type CookieJar, saveForVisitor } from "@/db/visitor-save";
 import type { Change } from "@/lib/scenarios/change";
 import { copyId } from "@/lib/visitors/copy-id";
 import { VISITOR_COOKIE, hashToken, newToken } from "@/lib/visitors/token";
 
-import { SOME_DAY, appPool, ownerPool } from "./support";
+import { SOME_DAY, appPool, claimCopies, ownerPool } from "./support";
 
 // ADR 0011: a visitor's save, which makes their copy of the demo on the first one.
 
@@ -47,6 +48,14 @@ const copies = async () =>
     )
   ).rows;
 
+const organizationRow = async (organizationId: string) =>
+  (
+    await owner.query<{ name: string; example: boolean }>(
+      "select name, example from auth.organization where id = $1",
+      [organizationId],
+    )
+  ).rows;
+
 const allocationOf = (organizationId: string, id: string) =>
   withOrganization(app, { organizationId, rateAccess: false }, async (tx) => {
     const [row] = await tx
@@ -74,6 +83,8 @@ describe("saveForVisitor: the first save", () => {
     });
     expect(await allocationOf(org, copyId(DEMO_IDS.guide.senior, org))).toBe(50);
     expect(await allocationOf(DEMO_ORGANIZATION_ID, DEMO_IDS.guide.senior)).toBe(100);
+    // Its rows reference its own organization's row (ADR 0012), which is no one's example.
+    expect(await organizationRow(org)).toEqual([{ name: VISITOR_COPY_NAME, example: false }]);
 
     expect(sets).toHaveLength(1);
     const [set] = sets;
@@ -122,12 +133,14 @@ describe("saveForVisitor: the first save", () => {
   });
 
   it("stops at the day's limit, saving nothing", async () => {
-    await owner.query(`
-      insert into visitor_copies (token_hash, organization_id)
-      select sha256(gen_random_uuid()::text::bytea), gen_random_uuid() from generate_series(1, 200)`);
+    await owner.query(claimCopies(200));
+    const organizations = async () =>
+      (await owner.query("select count(*)::int as rows from auth.organization")).rows;
+    const before = await organizations();
     const { cookies, sets } = jar();
     expect(await saveForVisitor(app, cookies, firstSave)).toEqual({ ok: false, reason: "limit" });
     expect(await copies()).toHaveLength(200);
+    expect(await organizations()).toEqual(before);
     expect(sets).toEqual([]);
   });
 

@@ -1,12 +1,10 @@
-import { randomUUID } from "node:crypto";
-
 import { drizzle } from "drizzle-orm/node-postgres";
 import { afterAll, describe, expect, it } from "vitest";
 
 import { DEMO_ORGANIZATION_ID, accessContextFor, editContextFor } from "@/db/access";
 import { hashToken, newToken } from "@/lib/visitors/token";
 
-import { appPool, ownerPool } from "./support";
+import { appPool, newOrganization, ownerPool } from "./support";
 
 // ADR 0011, "Access": the cookie's token leads to the visitor's copy, or to the demo template.
 
@@ -34,7 +32,7 @@ describe("accessContextFor", () => {
 
   it("serves the visitor's copy for a token that has one, and ?access=none still drops rates", async () => {
     const token = newToken();
-    const organizationId = randomUUID();
+    const organizationId = await newOrganization(owner);
     await owner.query("insert into visitor_copies (token_hash, organization_id) values ($1, $2)", [
       hashToken(token),
       organizationId,
@@ -50,7 +48,7 @@ describe("accessContextFor", () => {
 describe("editContextFor", () => {
   it("is the visitor's copy without rate access, with the token that leads to it", async () => {
     const token = newToken();
-    const organizationId = randomUUID();
+    const organizationId = await newOrganization(owner);
     await owner.query("insert into visitor_copies (token_hash, organization_id) values ($1, $2)", [
       hashToken(token),
       organizationId,
