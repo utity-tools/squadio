@@ -385,6 +385,14 @@
     "breadcrumb": "Breadcrumb",
     "menu": "Menu",
     "openMenu": "Open the menu",
-    "closeMenu": "Close the menu"
+    "closeMenu": "Close the menu",
+    "yourOrganizations": "Your organizations",
+    "organizationSettings": "Organization settings",
+    "switchFailed": "Could not switch organizations. Try again.",
+    "demo": "Demo",
+    "demoOrganization": "Demo Consultancy",
+    "fictitious": "Fictitious names and figures",
+    "fictitiousCopy": "Fictitious names and figures · your copy",
+    "organizationPrefix": "Organization:"
   }
 }

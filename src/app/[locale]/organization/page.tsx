@@ -8,6 +8,7 @@ import { CurrentAccount } from "@/components/account/current-account";
 import { OrganizationOverview } from "@/components/organization/organization-overview";
 import { StartOrganization } from "@/components/organization/start-organization";
 import { AppShell } from "@/components/shell/app-shell";
+import { CurrentOrganization } from "@/components/shell/current-organization";
 import { Breadcrumbs } from "@/components/shell/breadcrumbs";
 import { OrganizationLink } from "@/components/shell/organization-link";
 import { memberOf, visitorOrganization } from "@/db/access";
@@ -33,6 +34,11 @@ export default async function OrganizationPage() {
   return (
     <AppShell
       scope="app"
+      organization={
+        <Suspense>
+          <CurrentOrganization />
+        </Suspense>
+      }
       crumbs={<Breadcrumbs items={[{ label: t("title") }]} />}
       account={
         <Suspense>

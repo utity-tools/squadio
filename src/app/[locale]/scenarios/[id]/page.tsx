@@ -20,6 +20,7 @@ import {
 } from "@/components/scenario/scenario-live";
 import { ScenarioShell } from "@/components/scenario/scenario-shell";
 import { AppShell } from "@/components/shell/app-shell";
+import { CurrentOrganization } from "@/components/shell/current-organization";
 import { OrganizationLink } from "@/components/shell/organization-link";
 import { db } from "@/db/client";
 import { copyLink } from "@/db/copy-link";
@@ -68,6 +69,11 @@ export default async function ScenarioPage({
     <ScenarioEditor scenarioId={id} editing={scenario.editing} save={saveScenario}>
       <AppShell
         scope="editor"
+        organization={
+          <Suspense>
+            <CurrentOrganization />
+          </Suspense>
+        }
         crumbs={<LiveScenarioCrumbs />}
         account={
           <Suspense>
