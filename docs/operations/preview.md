@@ -61,6 +61,21 @@ forks or Dependabot, so no outside code reads the proxy secret. Whoever holds it
 anyone on a preview, never on production, which serves no endpoint that completes a proxied
 sign-in.
 
+If GitHub answers that the `redirect_uri` is not associated with the application, the preview holds
+another GitHub client than production's. Compare the `client_id` each one sends; neither value is
+secret:
+
+```bash
+for url in https://squadio.utitytools.com https://squadio-pr-<number>.vercel.app; do
+  pnpm exec vercel curl /api/auth/sign-in/social --deployment "$url" -- -s -X POST \
+    -H 'content-type: application/json' -H "origin: $url" \
+    -d '{"provider":"github","callbackURL":"/"}' | jq -r '.url' | grep -o 'client_id=[^&]*'
+done
+```
+
+A changed Preview variable reaches a preview only through a new deployment: rerun the pull request's
+preview workflow, which also starts the preview's database afresh.
+
 ## The template branch
 
 `preview-template` is a normal child of `production`, created on 2026-10-21 while production held

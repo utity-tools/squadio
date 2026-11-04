@@ -2,7 +2,7 @@
 
 - **Date:** 2026-11-03
 - **Branch at close:** `feat/organizations-and-membership` · `main` at `b7444fa`
-- **PRs:** the slice 2b pull request, open, from this branch
+- **PRs:** [#87](https://github.com/utity-tools/squadio/pull/87), merged on 2026-11-04
 
 ## Done
 
@@ -33,14 +33,16 @@ approved it in this session. One commit per step, each green on its own:
 
 ## State
 
-- The pull request is open. What ran in this session and what only CI runs is in its description.
+- [#87](https://github.com/utity-tools/squadio/pull/87) is merged. What ran in this session and
+  what only CI runs is in its description.
 - **Checked here:** lint, types, format, unit tests, DB tests and E2E against a production build.
   The cloud session had no Docker, so DB tests and E2E ran on a local **Postgres 16** cluster
   (CI uses 18), and E2E used the container's preinstalled Chromium, not CI's Linux image
   (`pnpm test:e2e:linux` needs Docker).
-- **Not checked yet:** real OAuth sign-in and the organization page signed in. They can only be
-  checked on the pull request's preview (ADR 0012, previews sign in through production), and E2E
-  runs with sign-up off.
+- **Checked by the owner on the preview, 2026-11-04:** GitHub sign-in through production's OAuth
+  proxy; an empty organization; editing the demo signed out, then signing in and adopting the copy,
+  whose organization shows the example banner and keeps the edit. **Google is not checked:** its
+  variables still hold placeholders until the Google app is set up.
 
 ## Decisions
 
@@ -65,14 +67,21 @@ All approved by the owner on 2026-11-03, before any code:
   outside git that spreads `playwright.config.ts` and sets
   `launchOptions.executablePath: "/opt/pw-browsers/chromium"` runs the suite.
 - **`rerender` drops `renderWithIntl`'s provider:** unmount and render again instead.
+- **Preview held the dev GitHub client.** GitHub answered "The `redirect_uri` is not associated
+  with this application" because Vercel's Preview environment held the development app's
+  `GITHUB_CLIENT_ID`; previews need production's client and secret (`docs/operations/preview.md`,
+  which now shows how to check). Changing a Preview variable needs a new deployment: rerun the
+  preview workflow. Rerunning it also gives the preview a fresh database.
 - **commitlint reads a body line that starts with `word:` as a footer.** Reword it.
 
 ## Next
 
-1. **Check the preview** of this pull request: sign in with GitHub and Google, create an empty
-   organization, adopt a visitor's copy (edit the demo first), and open one of its scenarios.
-2. **Slice 2d,** deleting the organization and the account (ADR 0012, "Deleting"): a branch
+1. **The account corner in the scenario editor.** The editor has none, so a visitor who edits the
+   demo cannot sign in or adopt the copy from there, and adopting is only offered on
+   `/organization` to an account without an organization. It belongs with the UI redesign's top bar.
+2. **Check Google sign-in** on a preview once the Google app is set up.
+3. **Slice 2d,** deleting the organization and the account (ADR 0012, "Deleting"): a branch
    `feat/delete-organization-and-account`, starting from a failing DB test that an organization's
    rows and its member go, each in its own context.
-3. **Slice 3,** own data (`docs/plan.md`), which also lets the owner rename an adopted
+4. **Slice 3,** own data (`docs/plan.md`), which also lets the owner rename an adopted
    organization.
