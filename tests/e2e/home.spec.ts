@@ -11,6 +11,15 @@ test("home page introduces Squadio in Spanish", async ({ page }) => {
   await expect(page.getByText(/Arma el equipo de un proyecto/)).toBeVisible();
 });
 
+test("headings are set in Plus Jakarta Sans and text in Geist (ADR 0014)", async ({ page }) => {
+  await page.goto("/");
+
+  const fontOf = (locator: ReturnType<typeof page.locator>) =>
+    locator.evaluate((element) => getComputedStyle(element).fontFamily);
+  expect(await fontOf(page.getByRole("heading", { level: 1 }))).toMatch(/^"?Plus Jakarta Sans/);
+  expect(await fontOf(page.locator("body"))).toMatch(/^"?Geist/);
+});
+
 test("the home page leads to the demo's guide scenario", async ({ page }) => {
   // Needs the demo organization: `pnpm db:migrate` and `pnpm db:seed` (CI does both).
   await page.goto("/");

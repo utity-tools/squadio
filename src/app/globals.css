@@ -127,6 +127,7 @@
 @theme inline {
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-plus-jakarta-sans);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -190,6 +191,13 @@
 
   body {
     @apply bg-background font-sans text-foreground;
+  }
+
+  /* Headings in Plus Jakarta Sans (ADR 0014), a touch tighter; their classes set size and weight. */
+  h1,
+  h2,
+  h3 {
+    @apply font-heading tracking-[-0.02em];
   }
 }
 
