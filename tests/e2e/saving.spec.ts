@@ -14,7 +14,8 @@ const tree = (page: Page) => page.getByRole("application", { name: "Árbol del e
 const node = (page: Page, name: string) =>
   tree(page).getByRole("button", { name: new RegExp(`^${name}\\s*,`) });
 const menu = (page: Page) => page.getByRole("menu");
-const banner = (page: Page) => page.getByRole("banner");
+// The scenario's header: name, save state, undo and choosing (the app's top bar is the banner).
+const banner = (page: Page) => page.getByRole("region", { name: "Datos del escenario" });
 
 /** Opens the guide scenario's tree, hydrated. */
 async function openGuide(page: Page) {

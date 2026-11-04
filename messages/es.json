@@ -23,10 +23,10 @@
     "bench": "Banquillo",
     "team": "Equipo",
     "summary": "Resumen",
-    "loading": "Cargando el escenario…"
+    "loading": "Cargando el escenario…",
+    "details": "Datos del escenario"
   },
   "ScenarioHeader": {
-    "breadcrumb": "Ruta de navegación",
     "project": "{name} ({client})",
     "chosen": "Elegido",
     "pricingModel": "Modelo de precio",

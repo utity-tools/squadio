@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import { connection } from "next/server";
 import { z } from "zod";
 
+import { CurrentAccount } from "@/components/account/current-account";
 import { Bench } from "@/components/bench/bench";
 import { HistoryControls } from "@/components/scenario/history-controls";
 import { SaveStatus } from "@/components/scenario/save-status";
@@ -11,11 +13,14 @@ import { ScenarioAnnouncer } from "@/components/scenario/scenario-announcer";
 import { ScenarioChoice } from "@/components/scenario/scenario-choice";
 import { ScenarioEditor } from "@/components/scenario/scenario-editor";
 import {
+  LiveScenarioCrumbs,
   LiveScenarioHeader,
   LiveScenarioSummary,
   LiveScenarioTeam,
 } from "@/components/scenario/scenario-live";
 import { ScenarioShell } from "@/components/scenario/scenario-shell";
+import { AppShell } from "@/components/shell/app-shell";
+import { OrganizationLink } from "@/components/shell/organization-link";
 import { db } from "@/db/client";
 import { copyLink } from "@/db/copy-link";
 import { loadScenario } from "@/db/load-scenario";
@@ -61,19 +66,34 @@ export default async function ScenarioPage({
 
   return (
     <ScenarioEditor scenarioId={id} editing={scenario.editing} save={saveScenario}>
-      <ScenarioShell
-        header={<LiveScenarioHeader />}
-        actions={
-          <>
-            <SaveStatus />
-            <HistoryControls />
-            <ScenarioChoice scenarioId={id} send={setScenarioChoice} />
-          </>
+      <AppShell
+        scope="editor"
+        crumbs={<LiveScenarioCrumbs />}
+        account={
+          <Suspense>
+            <CurrentAccount />
+          </Suspense>
         }
-        bench={<Bench day={today} />}
-        team={<LiveScenarioTeam />}
-        summary={<LiveScenarioSummary />}
-      />
+        sections={
+          <Suspense>
+            <OrganizationLink />
+          </Suspense>
+        }
+      >
+        <ScenarioShell
+          header={<LiveScenarioHeader />}
+          actions={
+            <>
+              <SaveStatus />
+              <HistoryControls />
+              <ScenarioChoice scenarioId={id} send={setScenarioChoice} />
+            </>
+          }
+          bench={<Bench day={today} />}
+          team={<LiveScenarioTeam />}
+          summary={<LiveScenarioSummary />}
+        />
+      </AppShell>
       <ScenarioAnnouncer />
     </ScenarioEditor>
   );

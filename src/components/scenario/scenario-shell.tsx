@@ -1,12 +1,11 @@
 import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 
-import { ThemeSwitch } from "@/components/theme/theme-switch";
 import { Skeleton } from "@/components/ui/skeleton";
 
 type Slots = {
   header: ReactNode;
-  /** The header's right-aligned controls before the theme switch: undo, redo, the save state. */
+  /** The header's right-aligned controls: undo, redo, the save state, choosing. */
   actions?: ReactNode;
   /** The left column, from `xl`: people to add to the team. */
   bench?: ReactNode;
@@ -15,10 +14,12 @@ type Slots = {
 };
 
 /**
- * The scenario page grid of direction A, "Ledger rail" (docs/design/canvas-brief.md): header on
- * top, the team in the centre and the summary in a fixed right rail. The left column is the bench,
- * from `xl`, 12 rem wide, so the table still fits every column at 1280 px; below it the canvas
- * would have no room, and editing is for wide screens (mobile is read-only). From `md` the page
+ * The scenario page grid of direction A, "Ledger rail" (docs/design/canvas-brief.md), inside the
+ * app shell (its top bar holds the trail, the theme and the account): the scenario's header on
+ * top, the team in the centre and the summary in a right rail, 330 px on wide screens and down to
+ * 280 px as the window narrows, which pays for the app's 56 px sidebar rail. The left column is
+ * the bench, from `xl`, 12 rem wide, so the table still fits every column at 1280 px; below it the canvas
+ * would have no room, and editing is for wide screens (mobile is read-only). From `md` the shell
  * holds to the screen's height, so the canvas fits the window, and a long table, bench or summary
  * scrolls inside its own region. Below `md` the regions stack in
  * one column no wider than the screen: a wide table scrolls inside the team region, not the page.
@@ -27,15 +28,16 @@ export function ScenarioShell({ header, actions, bench, team, summary }: Slots) 
   const t = useTranslations("ScenarioPage");
 
   return (
-    <div className="flex flex-1 flex-col md:max-h-dvh">
-      <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b px-4 py-3">
+    <div className="flex flex-1 flex-col md:min-h-0">
+      {/* A named region, not a <header>: the app's top bar is the page's only banner. */}
+      <section
+        aria-label={t("details")}
+        className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b px-4 py-3"
+      >
         <div className="min-w-0">{header}</div>
-        <div className="ms-auto flex flex-wrap items-center justify-end gap-3">
-          {actions}
-          <ThemeSwitch />
-        </div>
-      </header>
-      <div className="grid flex-1 grid-cols-[minmax(0,1fr)] md:min-h-0 md:grid-cols-[0_minmax(0,1fr)_330px] md:grid-rows-[minmax(0,1fr)] xl:grid-cols-[12rem_minmax(0,1fr)_330px]">
+        <div className="ms-auto flex flex-wrap items-center justify-end gap-3">{actions}</div>
+      </section>
+      <div className="grid flex-1 grid-cols-[minmax(0,1fr)] md:min-h-0 md:grid-cols-[0_minmax(0,1fr)_clamp(280px,22vw,330px)] md:grid-rows-[minmax(0,1fr)] xl:grid-cols-[12rem_minmax(0,1fr)_clamp(280px,22vw,330px)]">
         {/* Focusable, so the keyboard can scroll the list, whose people hold no control yet. */}
         {bench && (
           <aside

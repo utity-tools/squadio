@@ -1,5 +1,11 @@
 import { ScenarioShellSkeleton } from "@/components/scenario/scenario-shell";
+import { AppShell } from "@/components/shell/app-shell";
 
+// The shell stays put while the scenario loads; the trail and the account arrive with the page.
 export default function Loading() {
-  return <ScenarioShellSkeleton />;
+  return (
+    <AppShell scope="editor">
+      <ScenarioShellSkeleton />
+    </AppShell>
+  );
 }

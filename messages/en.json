@@ -23,10 +23,10 @@
     "bench": "Bench",
     "team": "Team",
     "summary": "Summary",
-    "loading": "Loading the scenario…"
+    "loading": "Loading the scenario…",
+    "details": "Scenario details"
   },
   "ScenarioHeader": {
-    "breadcrumb": "Breadcrumb",
     "project": "{name} ({client})",
     "chosen": "Chosen",
     "pricingModel": "Pricing model",

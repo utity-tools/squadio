@@ -18,6 +18,21 @@ function notify() {
   for (const listener of listeners) listener();
 }
 
+// What next-intl's navigation takes from Next.js, so a component with a locale-aware `Link` renders.
+export const usePathname = () => window.location.pathname;
+export const useRouter = () => ({
+  push: vi.fn(),
+  replace: vi.fn(),
+  refresh: vi.fn(),
+  prefetch: vi.fn(),
+  back: vi.fn(),
+  forward: vi.fn(),
+});
+export function redirect(href: string): never {
+  throw new Error(`redirect to ${href}`);
+}
+export const permanentRedirect = redirect;
+
 export function useSearchParams() {
   const search = useSyncExternalStore(
     subscribe,

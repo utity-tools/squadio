@@ -11,14 +11,14 @@ describe("ScenarioShell", () => {
       <ScenarioShell header={<h1>Plan A</h1>} team={<p>tree</p>} summary={<p>ledger</p>} />,
     );
 
-    const banner = screen.getByRole("banner");
+    const header = screen.getByRole("region", { name: "Datos del escenario" });
+    expect(within(header).getByRole("heading", { level: 1, name: "Plan A" })).toBeInTheDocument();
     const team = screen.getByRole("main", { name: "Equipo" });
     const summary = screen.getByRole("complementary", { name: "Resumen" });
-    expect(within(banner).getByRole("heading", { level: 1, name: "Plan A" })).toBeInTheDocument();
     expect(within(team).getByText("tree")).toBeInTheDocument();
     expect(within(summary).getByText("ledger")).toBeInTheDocument();
     // Header, then team, then summary: the tab order of the canvas brief.
-    expect(banner.compareDocumentPosition(team) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(header.compareDocumentPosition(team) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(team.compareDocumentPosition(summary) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
@@ -40,28 +40,22 @@ describe("ScenarioShell", () => {
     expect(screen.getByRole("complementary", { name: "Resumen" })).toHaveAttribute("tabindex", "0");
   });
 
-  it("puts the actions before the theme switch, at the header's end", () => {
+  it("puts the actions at the header's end and leaves the theme to the app's top bar", () => {
     renderWithIntl(
       <ScenarioShell
-        header={null}
+        header={<h1>Plan A</h1>}
         actions={<button type="button">Deshacer</button>}
         team={null}
         summary={null}
       />,
     );
 
-    const banner = within(screen.getByRole("banner"));
-    const undo = banner.getByRole("button", { name: "Deshacer" });
-    const theme = banner.getByRole("radiogroup", { name: "Tema" });
-    expect(undo.compareDocumentPosition(theme) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-  });
-
-  it("puts the theme switch in the header", () => {
-    renderWithIntl(<ScenarioShell header={null} team={null} summary={null} />);
-
-    expect(
-      within(screen.getByRole("banner")).getByRole("radiogroup", { name: "Tema" }),
-    ).toBeInTheDocument();
+    const heading = screen.getByRole("heading", { level: 1, name: "Plan A" });
+    const undo = screen.getByRole("button", { name: "Deshacer" });
+    expect(heading.compareDocumentPosition(undo) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // The app's top bar is the page's only banner, and it holds the theme switch.
+    expect(screen.queryByRole("banner")).not.toBeInTheDocument();
+    expect(screen.queryByRole("radiogroup", { name: "Tema" })).not.toBeInTheDocument();
   });
 
   it("names its regions in the page's locale", () => {
@@ -82,7 +76,7 @@ describe("ScenarioShellSkeleton", () => {
   it("keeps the shape of the page so nothing jumps when it loads", () => {
     renderWithIntl(<ScenarioShellSkeleton />);
 
-    expect(screen.getByRole("banner")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent(/./);
     expect(screen.getByRole("complementary", { name: "Banquillo" })).toBeInTheDocument();
     expect(screen.getByRole("main", { name: "Equipo" })).toBeInTheDocument();
     expect(screen.getByRole("complementary", { name: "Resumen" })).toBeInTheDocument();

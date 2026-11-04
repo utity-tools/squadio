@@ -7,6 +7,9 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     setupFiles: ["./vitest.setup.ts"],
+    // next-intl's navigation imports "next/navigation" without an extension, which Node's ESM
+    // loader cannot resolve; bundled by Vite, it resolves as in the app.
+    server: { deps: { inline: ["next-intl"] } },
     // Claude Code hooks and the ESLint config are tooling, not app code: tested, but outside the
     // coverage report.
     include: ["src/**/*.test.{ts,tsx}", ".claude/hooks/**/*.test.ts", "eslint.config.test.ts"],

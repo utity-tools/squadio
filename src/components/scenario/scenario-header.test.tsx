@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import { renderWithIntl } from "@/test/render";
 
-import { type ScenarioHeaderProps, ScenarioHeader } from "./scenario-header";
+import { type ScenarioHeaderProps, ScenarioCrumbs, ScenarioHeader } from "./scenario-header";
 
 const guide: ScenarioHeaderProps = {
   project: { name: "Customer portal", client: "Demo Client", pricingModel: "fixed" },
@@ -18,8 +18,14 @@ describe("ScenarioHeader", () => {
     expect(screen.getByRole("heading", { level: 1, name: "Plan A" })).toBeInTheDocument();
   });
 
-  it("leads from the project and its client to the scenario", () => {
+  it("leaves the trail to the app's top bar", () => {
     renderWithIntl(<ScenarioHeader {...guide} />);
+
+    expect(screen.queryByRole("navigation")).not.toBeInTheDocument();
+  });
+
+  it("leads from the project and its client to the scenario, in the top bar's trail", () => {
+    renderWithIntl(<ScenarioCrumbs project={guide.project} scenario={guide.scenario} />);
 
     const breadcrumb = screen.getByRole("navigation", { name: "Ruta de navegación" });
     const items = within(breadcrumb).getAllByRole("listitem");
@@ -27,7 +33,7 @@ describe("ScenarioHeader", () => {
       "Customer portal (Demo Client)",
       "Plan A",
     ]);
-    expect(items.at(-1)).toHaveAttribute("aria-current", "page");
+    expect(within(items.at(-1)!).getByText("Plan A")).toHaveAttribute("aria-current", "page");
   });
 
   it("shows the pricing model and the project span with its working days", () => {
@@ -72,7 +78,6 @@ describe("ScenarioHeader", () => {
       { locale: "en" },
     );
 
-    expect(screen.getByRole("navigation", { name: "Breadcrumb" })).toBeInTheDocument();
     expect(screen.getByText("Time and materials")).toBeInTheDocument();
     expect(screen.getByText("Chosen")).toBeInTheDocument();
     expect(screen.getByText("Apr 1, 2027")).toBeInTheDocument();

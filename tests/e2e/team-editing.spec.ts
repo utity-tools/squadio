@@ -44,7 +44,9 @@ async function openMenu(page: Page) {
 /** Waits for the first save, which moves the page to the visitor's copy. */
 async function expectSavedInCopy(page: Page) {
   await expect(page).not.toHaveURL(new RegExp(GUIDE_SCENARIO));
-  await expect(page.getByRole("banner").getByText("Guardado")).toBeVisible();
+  await expect(
+    page.getByRole("region", { name: "Datos del escenario" }).getByText("Guardado"),
+  ).toBeVisible();
 }
 
 test("an assignment is removed with the keyboard, and focus stays in the tree", async ({
