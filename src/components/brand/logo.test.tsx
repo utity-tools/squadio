@@ -37,4 +37,10 @@ describe("Logo", () => {
     expect(container.querySelector("svg")).toBeInTheDocument();
     expect(queryByText("squadio")).not.toBeInTheDocument();
   });
+
+  it("can keep the word for screens from sm, as the phone's top bar does", () => {
+    const { getByText } = render(<Logo wordmark="from-sm" />);
+
+    expect(getByText("squadio")).toHaveClass("max-sm:hidden");
+  });
 });

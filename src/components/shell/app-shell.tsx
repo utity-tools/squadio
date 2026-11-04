@@ -13,7 +13,9 @@ import type { SidebarScope } from "./sidebar-state";
 type AppShellProps = {
   /** The app's pages, where the sidebar starts open, or the scenario editor, where it is folded. */
   scope: SidebarScope;
-  /** The trail after the logo, as `Breadcrumbs`. */
+  /** The organization after the logo, which reads the request: render it inside Suspense. */
+  organization?: ReactNode;
+  /** The trail after the organization, as `Breadcrumbs`. */
   crumbs?: ReactNode;
   /** The account corner, which reads the request: render it inside Suspense. */
   account?: ReactNode;
@@ -26,11 +28,19 @@ type AppShellProps = {
 
 /**
  * The app's frame (design board "Navegación de la app"): one 56 px top bar everywhere, with the
- * logo, a separator, the trail, the theme and the account, and the sidebar beside the page. Below
+ * logo, a separator, the organization, the trail, the theme and the account, and the sidebar beside the page. Below
  * lg (boards 28–30) the sidebar, the theme and the account move into the ☰ menu at the bar's end.
  * In the editor, from `md`, the frame holds to the window's height, so the canvas fits it.
  */
-export function AppShell({ scope, crumbs, account, home, sections, children }: AppShellProps) {
+export function AppShell({
+  scope,
+  organization,
+  crumbs,
+  account,
+  home,
+  sections,
+  children,
+}: AppShellProps) {
   const t = useTranslations("Shell");
   const nav = (
     <>
@@ -44,17 +54,18 @@ export function AppShell({ scope, crumbs, account, home, sections, children }: A
       data-sidebar-scope={scope}
       className={cn("flex min-h-dvh flex-1 flex-col", scope === "editor" && "md:max-h-dvh")}
     >
-      <header className="flex min-h-14 flex-wrap items-center gap-x-4 gap-y-2 border-b bg-background px-4 py-2 max-lg:py-1 max-lg:pe-2">
+      <header className="flex min-h-14 flex-wrap items-center gap-x-4 gap-y-2 border-b bg-background px-4 py-2 max-lg:gap-x-3 max-lg:py-1 max-lg:pe-2">
         <Link href="/" aria-label={t("homeLink")} className="rounded-md">
-          <Logo />
+          <Logo wordmark="from-sm" />
         </Link>
-        <span aria-hidden className="h-6 w-px bg-border" />
+        <span aria-hidden className="h-6 w-px bg-border max-sm:hidden" />
+        {organization}
         <div className="min-w-0 flex-1">{crumbs}</div>
         <div className="flex flex-wrap items-center gap-2 max-lg:hidden">
           <ThemeSwitch />
           {account}
         </div>
-        <AppMenu sections={nav} account={account} />
+        <AppMenu organization={organization} sections={nav} account={account} />
       </header>
       <div className="flex min-h-0 flex-1">
         <AppSidebar scope={scope}>{nav}</AppSidebar>

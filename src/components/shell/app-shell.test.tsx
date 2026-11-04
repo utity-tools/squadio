@@ -17,7 +17,26 @@ vi.mock("@/i18n/navigation", () => ({
 // the theme and the account. Below it, the sidebar and the page (design board "Navegación de la
 // app"). Below lg the theme, the account and the sections move into the ☰ menu (boards 28–30).
 
+let wide = false;
+const medias: { query: string; matches: boolean; listeners: Set<() => void> }[] = [];
+
 beforeEach(() => {
+  wide = false;
+  medias.length = 0;
+  vi.stubGlobal(
+    "matchMedia",
+    vi.fn((query: string) => {
+      const media = { query, matches: wide, listeners: new Set<() => void>() };
+      medias.push(media);
+      return {
+        get matches() {
+          return media.matches;
+        },
+        addEventListener: (_: string, listener: () => void) => media.listeners.add(listener),
+        removeEventListener: (_: string, listener: () => void) => media.listeners.delete(listener),
+      };
+    }),
+  );
   vi.stubGlobal(
     "ResizeObserver",
     class {

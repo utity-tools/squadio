@@ -22,6 +22,17 @@ test("the top bar is 56 px, with the logo leading home and the theme", async ({ 
   await expect(bar.getByRole("radiogroup", { name: "Tema" })).toBeVisible();
 });
 
+test("a visitor's top bar names the demo, with its chip and its fictitious figures", async ({
+  page,
+}) => {
+  await page.goto("/");
+
+  const bar = page.getByRole("banner");
+  await expect(bar.getByText("Consultora Demo")).toBeVisible();
+  await expect(bar.getByText("Demo", { exact: true })).toBeVisible();
+  await expect(bar.getByText("Nombres y cifras ficticios")).toBeVisible();
+});
+
 test("the sidebar is open on Inicio, marks it, and folds to a rail it remembers", async ({
   page,
 }) => {
@@ -106,6 +117,7 @@ for (const viewport of [
     await expect(home).toHaveAttribute("aria-current", "page");
     expect((await home.boundingBox())?.height).toBe(44);
     await expect(panel.getByRole("radiogroup", { name: "Tema" })).toBeVisible();
+    await expect(panel.getByText("Consultora Demo")).toBeVisible();
 
     // A modal dialog: the focus stays inside, Escape closes it and the focus goes back.
     for (let i = 0; i < 6; i++) {

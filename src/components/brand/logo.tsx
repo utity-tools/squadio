@@ -1,8 +1,8 @@
 import { cn } from "@/lib/utils";
 
 type LogoProps = {
-  /** The word next to the mark; off, the mark stands alone. */
-  wordmark?: boolean;
+  /** The word next to the mark; off, the mark stands alone; "from-sm", only from `sm` up. */
+  wordmark?: boolean | "from-sm";
   className?: string;
 };
 
@@ -31,7 +31,10 @@ export function Logo({ wordmark = true, className }: LogoProps) {
       {wordmark && (
         <span
           aria-hidden="true"
-          className="font-heading text-[17px] leading-none font-extrabold tracking-[-0.04em]"
+          className={cn(
+            "font-heading text-[17px] leading-none font-extrabold tracking-[-0.04em]",
+            wordmark === "from-sm" && "max-sm:hidden",
+          )}
         >
           squadio
         </span>

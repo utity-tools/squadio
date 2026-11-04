@@ -385,6 +385,14 @@
     "breadcrumb": "Ruta de navegación",
     "menu": "Menú",
     "openMenu": "Abrir el menú",
-    "closeMenu": "Cerrar el menú"
+    "closeMenu": "Cerrar el menú",
+    "yourOrganizations": "Tus organizaciones",
+    "organizationSettings": "Ajustes de la organización",
+    "switchFailed": "No se ha podido cambiar de organización. Vuelve a intentarlo.",
+    "demo": "Demo",
+    "demoOrganization": "Consultora Demo",
+    "fictitious": "Nombres y cifras ficticios",
+    "fictitiousCopy": "Nombres y cifras ficticios · tu copia",
+    "organizationPrefix": "Organización:"
   }
 }

@@ -1,4 +1,4 @@
-import { screen, within } from "@testing-library/react";
+import { act, fireEvent, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -24,7 +24,26 @@ vi.mock("@/i18n/navigation", () => ({
 // Below lg there is no sidebar (design boards 28–30): a ☰ button at the end of the top bar opens
 // a side panel with the logo, the sections, the theme and the account, in 44 px items.
 
+let wide = false;
+const medias: { query: string; matches: boolean; listeners: Set<() => void> }[] = [];
+
 beforeEach(() => {
+  wide = false;
+  medias.length = 0;
+  vi.stubGlobal(
+    "matchMedia",
+    vi.fn((query: string) => {
+      const media = { query, matches: wide, listeners: new Set<() => void>() };
+      medias.push(media);
+      return {
+        get matches() {
+          return media.matches;
+        },
+        addEventListener: (_: string, listener: () => void) => media.listeners.add(listener),
+        removeEventListener: (_: string, listener: () => void) => media.listeners.delete(listener),
+      };
+    }),
+  );
   vi.stubGlobal(
     "ResizeObserver",
     class {
@@ -83,9 +102,37 @@ describe("AppMenu", () => {
     await userEvent.click(screen.getByRole("link", { name: "Organización" }));
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 
+    // Opened in a new tab, the link leaves the page where it is, and the panel open.
     await userEvent.click(open);
+    fireEvent.click(screen.getByRole("link", { name: "Organización" }), { metaKey: true });
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+
     await userEvent.keyboard("{Escape}");
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(open).toHaveFocus();
+  });
+
+  it("closes when the window grows to lg, where the sidebar is back", async () => {
+    renderMenu();
+    await userEvent.click(screen.getByRole("button", { name: "Abrir el menú" }));
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+
+    const lg = medias.find((media) => media.query === "(min-width: 64rem)");
+    expect(lg).toBeDefined();
+    act(() => {
+      lg!.matches = true;
+      lg!.listeners.forEach((listener) => listener());
+    });
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("gives the theme's options 44 px too", async () => {
+    renderMenu();
+    await userEvent.click(screen.getByRole("button", { name: "Abrir el menú" }));
+
+    expect(screen.getByRole("radiogroup", { name: "Tema" }).parentElement).toHaveClass(
+      "[&_[role=radio]]:h-11",
+    );
   });
 });
