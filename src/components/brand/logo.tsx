@@ -8,8 +8,8 @@ type LogoProps = {
 
 /**
  * The placeholder brand (ADR 0014, "Marca (provisional)"), until the final logo arrives: three
- * squares, two filled in --brand and the light one outlined in --brand-soft, and "squadio" in the
- * heading face. It is decoration: the link around it gives the name.
+ * squares, two filled in --brand and the third outlined in it, as the boards draw it, and
+ * "squadio" in the heading face. It is decoration: the link around it gives the name.
  */
 export function Logo({ wordmark = true, className }: LogoProps) {
   return (
@@ -24,7 +24,7 @@ export function Logo({ wordmark = true, className }: LogoProps) {
           height="70"
           rx="19"
           fill="none"
-          stroke="var(--brand-soft)"
+          stroke="var(--brand)"
           strokeWidth="10"
         />
       </svg>
