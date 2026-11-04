@@ -17,6 +17,8 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Link } from "@/i18n/navigation";
 
+import { menuItemClass, useShellPlacement } from "./placement";
+
 import {
   SIDEBAR_CHANGE_EVENT,
   type SidebarScope,
@@ -66,7 +68,7 @@ type AppSidebarProps = {
  * The app's side navigation: open, 232 px with icon and label; folded, a 56 px rail of 40 px
  * buttons. The look follows the attribute the inline script put on <html> (the `sidebar-folded`
  * variant in globals.css), so it is right from the first paint; React state only drives the
- * button and the tooltips. Below `md` it is always the rail, with nothing to unfold.
+ * button and the tooltips. Below lg there is none: the ☰ menu holds the sections (`AppMenu`).
  */
 export function AppSidebar({ scope, children }: AppSidebarProps) {
   const t = useTranslations("Shell");
@@ -88,7 +90,7 @@ export function AppSidebar({ scope, children }: AppSidebarProps) {
       aria-expanded={!folded}
       aria-controls={navId}
       aria-label={folded ? t("unfold") : t("fold")}
-      className="text-muted-foreground max-md:hidden"
+      className="text-muted-foreground"
       onClick={() => writeSidebarState(scope, folded ? "expanded" : "collapsed")}
     >
       {folded ? <PanelLeftOpen aria-hidden /> : <PanelLeftClose aria-hidden />}
@@ -98,13 +100,11 @@ export function AppSidebar({ scope, children }: AppSidebarProps) {
   return (
     <ScopeContext value={scope}>
       <TooltipProvider>
-        <div className="flex w-58 shrink-0 flex-col gap-2 border-e bg-background p-3 transition-[width] duration-(--duration-layout) ease-snappy motion-reduce:transition-none max-md:w-14 max-md:items-center max-md:px-2 sidebar-folded:w-14 sidebar-folded:items-center sidebar-folded:px-2">
+        <div className="flex w-58 shrink-0 flex-col gap-2 border-e bg-background p-3 transition-[width] duration-(--duration-layout) ease-snappy motion-reduce:transition-none max-lg:hidden sidebar-folded:w-14 sidebar-folded:items-center sidebar-folded:px-2">
           <nav id={navId} aria-label={t("sections")} className="w-full">
-            <ul className="flex flex-col gap-0.5 max-md:items-center sidebar-folded:items-center">
-              {children}
-            </ul>
+            <ul className="flex flex-col gap-0.5 sidebar-folded:items-center">{children}</ul>
           </nav>
-          <div className="mt-auto flex w-full justify-end max-md:justify-center sidebar-folded:justify-center">
+          <div className="mt-auto flex w-full justify-end sidebar-folded:justify-center">
             <Tooltip>
               <TooltipTrigger asChild>{toggle}</TooltipTrigger>
               <TooltipContent side="right" hidden={!folded}>
@@ -129,20 +129,35 @@ type SidebarLinkProps = {
   current?: boolean;
 };
 
-/** A section: the current one sits on --selected at weight 600 (ADR 0014). */
+/**
+ * A section: the current one sits on --selected at weight 600 (ADR 0014). In the ☰ menu, a 44 px
+ * row with its label, and no tooltip.
+ */
 export function SidebarLink({ href, icon, label, current = false }: SidebarLinkProps) {
   const scope = use(ScopeContext);
   const folded = useFolded(scope);
+  const placement = useShellPlacement();
   const Icon = icons[icon];
+
+  if (placement === "menu") {
+    return (
+      <li>
+        <Link href={href} aria-current={current ? "page" : undefined} className={menuItemClass}>
+          <Icon aria-hidden />
+          <span className="truncate">{label}</span>
+        </Link>
+      </li>
+    );
+  }
 
   const link = (
     <Link
       href={href}
       aria-current={current ? "page" : undefined}
-      className="flex h-9 items-center gap-2.5 rounded-lg px-2.5 text-sm text-muted-foreground transition-colors duration-(--duration-fast) hover:bg-accent hover:text-foreground aria-[current=page]:bg-selected aria-[current=page]:font-semibold aria-[current=page]:text-selected-foreground motion-reduce:transition-none max-md:size-10 max-md:justify-center max-md:px-0 sidebar-folded:size-10 sidebar-folded:justify-center sidebar-folded:px-0"
+      className="flex h-9 items-center gap-2.5 rounded-lg px-2.5 text-sm text-muted-foreground transition-colors duration-(--duration-fast) hover:bg-accent hover:text-foreground aria-[current=page]:bg-selected aria-[current=page]:font-semibold aria-[current=page]:text-selected-foreground motion-reduce:transition-none sidebar-folded:size-10 sidebar-folded:justify-center sidebar-folded:px-0"
     >
       <Icon aria-hidden className="size-4.5 shrink-0" />
-      <span className="truncate max-md:sr-only sidebar-folded:sr-only">{label}</span>
+      <span className="truncate sidebar-folded:sr-only">{label}</span>
     </Link>
   );
 

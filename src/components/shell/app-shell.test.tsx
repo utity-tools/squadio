@@ -15,7 +15,7 @@ vi.mock("@/i18n/navigation", () => ({
 
 // One top bar across the app, 56 px: the logo, which leads home, a separator, the trail, then
 // the theme and the account. Below it, the sidebar and the page (design board "Navegación de la
-// app").
+// app"). Below lg the theme, the account and the sections move into the ☰ menu (boards 28–30).
 
 beforeEach(() => {
   vi.stubGlobal(
@@ -47,6 +47,23 @@ describe("AppShell", () => {
     expect(within(bar).getByRole("radiogroup", { name: "Tema" })).toBeInTheDocument();
     expect(within(bar).getByRole("button", { name: "Entrar" })).toBeInTheDocument();
     expect(screen.getByRole("main")).toHaveTextContent("Contenido");
+  });
+
+  it("hides the sidebar, the theme and the account below lg, where the ☰ menu holds them", () => {
+    renderWithIntl(
+      <AppShell scope="app" account={<button type="button">Entrar</button>}>
+        <main />
+      </AppShell>,
+    );
+
+    const bar = screen.getByRole("banner");
+    expect(within(bar).getByRole("radiogroup", { name: "Tema" }).parentElement).toHaveClass(
+      "max-lg:hidden",
+    );
+    expect(within(bar).getByRole("button", { name: "Abrir el menú" })).toHaveClass("lg:hidden");
+    expect(screen.getByRole("navigation", { name: "Secciones" }).parentElement).toHaveClass(
+      "max-lg:hidden",
+    );
   });
 
   it("always offers Inicio, then the sections the page adds", () => {
