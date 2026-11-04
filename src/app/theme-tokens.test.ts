@@ -90,3 +90,35 @@ describe.each(Object.entries(themes))("the %s theme", (_, theme) => {
     expect(ratio("selected", "background")).toBeGreaterThanOrEqual(1.25);
   });
 });
+
+// ADR 0014: depth means something. What you can drag or what floats has a shadow, darker in the
+// dark theme with a hairline of light on top; structure is drawn with borders. Motion has four
+// speeds and one curve, and stops for people who ask for reduced motion.
+describe("depth and motion", () => {
+  const elevations = ["elevation-xs", "elevation-sm", "elevation-md", "elevation-lg"];
+
+  it.each(elevations)("--%s is set in the light theme", (elevation) => {
+    expect(themes.light[elevation]).toMatch(/hsl\(var\(--shadow-color\)/);
+  });
+
+  it("darkens the shadows in the dark theme and lights their top edge", () => {
+    expect(themes.dark["shadow-color"]).not.toBe(themes.light["shadow-color"]);
+    expect(themes.dark.highlight).toMatch(/^inset 0 1px 0 0 oklch/);
+  });
+
+  it("has four durations and one easing curve", () => {
+    expect(themes.light).toMatchObject({
+      "duration-fast": "120ms",
+      "duration-base": "180ms",
+      "duration-layout": "240ms",
+      "duration-count": "400ms",
+      "motion-ease": "cubic-bezier(0.2, 0.8, 0.2, 1)",
+    });
+  });
+
+  it("turns transitions and animations off for reduced motion", () => {
+    expect(css).toMatch(
+      /@media \(prefers-reduced-motion: reduce\)\s*{[^}]*transition-duration: 0ms !important;[^}]*animation-duration: 0ms !important;/,
+    );
+  });
+});
