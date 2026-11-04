@@ -3,6 +3,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getTranslations } from "next-intl/server";
 import { Geist, Geist_Mono, Plus_Jakarta_Sans } from "next/font/google";
 
+import { sidebarScript } from "@/components/shell/sidebar-state";
 import { themeScript } from "@/components/theme/theme";
 import { ThemeBootstrap } from "@/components/theme/theme-bootstrap";
 import { routing } from "@/i18n/routing";
@@ -39,7 +40,7 @@ export default async function LocaleLayout({ children }: LayoutProps<"/[locale]"
   const locale = await getLocale();
 
   return (
-    // The theme script sets data-theme on <html> before React hydrates.
+    // The theme and sidebar scripts set their attributes on <html> before React hydrates.
     <html
       lang={locale}
       className={`${geistSans.variable} ${geistMono.variable} ${plusJakartaSans.variable} h-full antialiased`}
@@ -47,6 +48,7 @@ export default async function LocaleLayout({ children }: LayoutProps<"/[locale]"
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        <script dangerouslySetInnerHTML={{ __html: sidebarScript }} />
       </head>
       <body className="flex min-h-full flex-col">
         <ThemeBootstrap />
