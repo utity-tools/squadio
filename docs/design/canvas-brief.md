@@ -205,6 +205,8 @@ not conveyed by colour.
   `background` / `card` only. The mockups list each token pair they use with its ratio.
 - **Status colours** (green, amber, red) are new tokens (`--status-ok`, `--status-warn`,
   `--status-bad`) each with a foreground pair, defined for both themes and never the only signal.
+  Since [ADR 0014](../adr/0014-visual-identity.md) each is a fill (3:1) with a `--status-*-text`
+  for words (4.5:1), next to the brand colour and its own pair.
 - Canvas background: a subtle dot grid, lighter than any border. Plain node borders are decoration
   (the card has a shadow too); the dashed border of an open role carries meaning, so it keeps 3:1
   against the canvas.
