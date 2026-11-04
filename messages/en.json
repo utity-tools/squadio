@@ -370,5 +370,8 @@
     "noScenarios": "No scenarios yet.",
     "project": "{name} · {client}",
     "chosen": "chosen"
+  },
+  "Field": {
+    "optional": "Optional"
   }
 }

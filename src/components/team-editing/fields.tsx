@@ -3,11 +3,14 @@
 import { useTranslations } from "next-intl";
 import { useId, useState } from "react";
 
+import { controlClassName } from "@/components/ui/field";
 import type { StepRejection } from "@/lib/scenarios/store";
 
-/** A form field in the team's dialogs, sized like the buttons beside it. */
-export const FIELD =
-  "h-9 w-full min-w-0 rounded-md border bg-transparent px-3 text-sm shadow-xs placeholder:text-muted-foreground aria-invalid:border-destructive dark:bg-input/30";
+/** A form field in the team's dialogs: the design system's control, sized like its buttons. */
+export const FIELD = controlClassName();
+
+/** A field for a number, right-aligned in mono so the digits line up. */
+export const NUMBER_FIELD = controlClassName({ numeric: true });
 
 /** What is wrong with a dialog's form, and the field it is about. */
 export type FieldProblem<Field extends string> = { field: Field | null; message: string };
@@ -42,7 +45,7 @@ export function useFieldProblem<Field extends string>() {
     fieldProps: (field: Field) =>
       problem?.field === field ? { "aria-invalid": true, "aria-describedby": id } : {},
     alert: problem && (
-      <p key={attempt} id={id} role="alert" className="text-sm text-destructive">
+      <p key={attempt} id={id} role="alert" className="text-[13px] text-status-bad-text">
         {problem.message}
       </p>
     ),
