@@ -28,22 +28,31 @@ function DialogOverlay({
   return (
     <DialogPrimitive.Overlay
       data-slot="dialog-overlay"
-      className={cn("fixed inset-0 z-50 bg-black/50", className)}
+      className={cn("fixed inset-0 z-50 animate-scrim-in bg-scrim", className)}
       {...props}
     />
   );
 }
+
+// ADR 0014: 440 px for a confirmation, 560 for a short form, 720 for a wide one.
+const widths = {
+  sm: "sm:max-w-[440px]",
+  md: "sm:max-w-[560px]",
+  lg: "sm:max-w-[720px]",
+} as const;
 
 function DialogContent({
   className,
   children,
   closeLabel,
   container,
+  size = "md",
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> &
   Pick<React.ComponentProps<typeof DialogPrimitive.Portal>, "container"> & {
     /** The close button's name, translated by the caller; without one there is no close button. */
     closeLabel?: string;
+    size?: keyof typeof widths;
   }) {
   return (
     <DialogPortal data-slot="dialog-portal" container={container}>
@@ -51,7 +60,10 @@ function DialogContent({
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(
-          "fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border bg-background p-6 shadow-lg outline-none sm:max-w-lg dark:bg-popover",
+          // Over --scrim, radius 14, the largest shadow; it grows in from 98 % in 180 ms, and the
+          // global reduced-motion rule stills it. Taller than the window, it scrolls.
+          "fixed top-[50%] left-[50%] z-50 grid max-h-[calc(100%-3rem)] w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] animate-dialog-in gap-4 overflow-y-auto rounded-xl border bg-popover p-6 text-popover-foreground shadow-lg outline-none",
+          widths[size],
           className,
         )}
         {...props}
@@ -60,7 +72,7 @@ function DialogContent({
         {closeLabel && (
           <DialogPrimitive.Close
             data-slot="dialog-close"
-            className="absolute end-4 top-4 rounded-xs opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"
+            className="absolute end-4 top-4 inline-flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors duration-(--duration-fast) hover:bg-accent hover:text-foreground disabled:pointer-events-none motion-reduce:transition-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"
           >
             <XIcon />
             <span className="sr-only">{closeLabel}</span>
@@ -85,7 +97,11 @@ function DialogFooter({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="dialog-footer"
-      className={cn("flex flex-col-reverse gap-2 sm:flex-row sm:justify-end", className)}
+      // A border apart from the body, the secondary action first and the one primary last.
+      className={cn(
+        "-mx-6 -mb-6 flex flex-col-reverse gap-2 border-t px-6 py-3.5 sm:flex-row sm:items-center sm:justify-end",
+        className,
+      )}
       {...props}
     />
   );

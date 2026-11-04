@@ -133,7 +133,7 @@ export function ScenarioChoice({ scenarioId, send }: ScenarioChoiceProps) {
             {t(`${action}.button`)}
           </Button>
         </DialogTrigger>
-        <DialogContent aria-busy={busy}>
+        <DialogContent size="sm" aria-busy={busy}>
           <DialogHeader>
             <DialogTitle>
               {t(blocked ? "choose.blockedTitle" : `${action}.title`, { name })}
