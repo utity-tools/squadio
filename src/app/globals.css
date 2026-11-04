@@ -229,6 +229,21 @@
  * the box) once an edge of the content is reached. Covers and shadows sit at both ends, so the
  * effect works the same in either writing direction.
  */
+/* The tints behind status chips, alerts and pending cards, and the "Demo" chip: the fill at 12 %
+ * over the page (ADR 0014). Each -text token reaches 4.5:1 on its tint. */
+@utility tint-ok {
+  background-color: color-mix(in oklab, var(--status-ok) 12%, var(--background));
+}
+@utility tint-warn {
+  background-color: color-mix(in oklab, var(--status-warn) 12%, var(--background));
+}
+@utility tint-bad {
+  background-color: color-mix(in oklab, var(--status-bad) 12%, var(--background));
+}
+@utility tint-brand {
+  background-color: color-mix(in oklab, var(--brand) 12%, var(--background));
+}
+
 @utility scroll-shadow-x {
   --scroll-shadow: color-mix(in oklab, var(--foreground) 22%, transparent);
   background:
