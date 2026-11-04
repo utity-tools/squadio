@@ -75,33 +75,37 @@ test("clicking a node selects it", async ({ page }) => {
   await expect(node(page, /^Project manager/)).toHaveAttribute("data-on-path");
 });
 
+// Wholly in view. Fitting the team often leaves the canvas at a fractional zoom, and a card's
+// visible share then comes out a hair under 1 (0.9999998), so 1 itself is too strict.
+const WHOLE = { ratio: 0.999 };
+
 test("the canvas zooms with named buttons and fits the team back in view", async ({ page }) => {
   await page.goto(`/en/scenarios/${GUIDE_SCENARIO}`);
   const controls = page.getByRole("group", { name: "Canvas controls" });
   const devOps = page.getByRole("button", { name: /^DevOps engineer\s*,\s*Open role/ });
-  await expect(devOps).toBeInViewport({ ratio: 1 });
+  await expect(devOps).toBeInViewport(WHOLE);
 
   for (let step = 0; step < 3; step++) {
     await controls.getByRole("button", { name: "Zoom in" }).click();
   }
-  await expect(devOps).not.toBeInViewport({ ratio: 1 });
+  await expect(devOps).not.toBeInViewport(WHOLE);
 
   await controls.getByRole("button", { name: "Fit the team in view" }).click();
-  await expect(devOps).toBeInViewport({ ratio: 1 });
+  await expect(devOps).toBeInViewport(WHOLE);
 
   // The keys do the same from inside the tree: plus zooms in, zero fits.
   await page.getByRole("button", { name: /^Project manager/ }).focus();
   await page.keyboard.press("+");
   await page.keyboard.press("+");
   await page.keyboard.press("+");
-  await expect(devOps).not.toBeInViewport({ ratio: 1 });
+  await expect(devOps).not.toBeInViewport(WHOLE);
   await page.keyboard.press("0");
-  await expect(devOps).toBeInViewport({ ratio: 1 });
+  await expect(devOps).toBeInViewport(WHOLE);
 
   // Zooming keeps the focused node in view.
   await devOps.focus();
   for (let step = 0; step < 4; step++) await page.keyboard.press("+");
-  await expect(devOps).toBeInViewport({ ratio: 1 });
+  await expect(devOps).toBeInViewport(WHOLE);
   await expect(controls.getByRole("button", { name: "Zoom out" })).toBeVisible();
 });
 

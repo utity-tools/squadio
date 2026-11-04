@@ -2,11 +2,9 @@
 
 import { Monitor, Moon, Sun } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { RadioGroup } from "radix-ui";
 import { useSyncExternalStore } from "react";
 
-import { toggleVariants } from "@/components/ui/toggle";
-import { cn } from "@/lib/utils";
+import { Segmented, SegmentedItem } from "@/components/ui/segmented";
 
 import {
   THEME_CHANGE_EVENT,
@@ -42,19 +40,17 @@ export function ThemeSwitch() {
   );
 
   return (
-    <RadioGroup.Root
+    <Segmented
       aria-label={t("label")}
-      orientation="horizontal"
       value={preference}
       onValueChange={(value) => {
         if (isThemePreference(value)) writeThemePreference(value);
       }}
-      className="flex w-fit items-center rounded-md shadow-xs"
     >
       {themePreferences.map((option) => {
         const Icon = icons[option];
         return (
-          <RadioGroup.Item
+          <SegmentedItem
             key={option}
             value={option}
             aria-label={t(option)}
@@ -64,16 +60,11 @@ export function ThemeSwitch() {
             onFocus={() => {
               if (option !== preference) writeThemePreference(option);
             }}
-            className={cn(
-              toggleVariants({ variant: "outline", size: "sm" }),
-              "rounded-none border-s-0 px-3 shadow-none first:rounded-s-md first:border-s last:rounded-e-md focus-visible:z-10",
-              "data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground",
-            )}
           >
             <Icon aria-hidden />
-          </RadioGroup.Item>
+          </SegmentedItem>
         );
       })}
-    </RadioGroup.Root>
+    </Segmented>
   );
 }

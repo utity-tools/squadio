@@ -2,11 +2,9 @@
 
 import { NetworkIcon, Rows3Icon } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { RadioGroup } from "radix-ui";
 
-import { toggleVariants } from "@/components/ui/toggle";
+import { Segmented, SegmentedItem } from "@/components/ui/segmented";
 import { TEAM_VIEWS, type TeamView, isTeamView } from "@/lib/team-views/query";
-import { cn } from "@/lib/utils";
 
 const icons = { tree: NetworkIcon, table: Rows3Icon } satisfies Record<TeamView, unknown>;
 
@@ -24,19 +22,17 @@ export function ViewSwitch({ view, onViewChange }: ViewSwitchProps) {
   const t = useTranslations("TeamViews");
 
   return (
-    <RadioGroup.Root
+    <Segmented
       aria-label={t("label")}
-      orientation="horizontal"
       value={view}
       onValueChange={(value) => {
         if (isTeamView(value)) onViewChange(value);
       }}
-      className="flex w-fit items-center rounded-md shadow-xs"
     >
       {TEAM_VIEWS.map((option) => {
         const Icon = icons[option];
         return (
-          <RadioGroup.Item
+          <SegmentedItem
             key={option}
             value={option}
             // Focus chooses, however quick the key: Radix only does it while an arrow is held down.
@@ -44,17 +40,12 @@ export function ViewSwitch({ view, onViewChange }: ViewSwitchProps) {
             onFocus={() => {
               if (view !== null && option !== view) onViewChange(option);
             }}
-            className={cn(
-              toggleVariants({ variant: "outline", size: "sm" }),
-              "rounded-none border-s-0 px-3 shadow-none first:rounded-s-md first:border-s last:rounded-e-md focus-visible:z-10",
-              "data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground",
-            )}
           >
             <Icon aria-hidden />
             {t(option)}
-          </RadioGroup.Item>
+          </SegmentedItem>
         );
       })}
-    </RadioGroup.Root>
+    </Segmented>
   );
 }
