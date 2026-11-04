@@ -3,10 +3,11 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { contrastRatio } from "@/lib/color/contrast";
+import { contrastRatio, mixOklab } from "@/lib/color/contrast";
 
 // docs/design/canvas-brief.md, "Themes and contrast": text 4.5:1; UI components, icons, the focus
-// ring and status badges 3:1; in both themes.
+// ring and status badges 3:1; in both themes. ADR 0014: each status and the brand have a fill
+// (icons, bars, badges, 3:1) and a -text token for words (4.5:1, also on the status's 12 % tint).
 
 const css = readFileSync(path.join(__dirname, "globals.css"), "utf8");
 
@@ -39,14 +40,24 @@ const textPairs: [string, string][] = [
   ["selected-foreground", "selected"],
   ["muted-foreground", "selected"],
   ...statuses.map((status): [string, string] => [`${status}-foreground`, status]),
-  ...statuses.flatMap((status) => surfaces.map((surface): [string, string] => [status, surface])),
+  // The primary button, the selection and the "Elegido" chip, at rest and on hover.
+  ["brand-solid-foreground", "brand-solid"],
+  ["brand-solid-foreground", "brand-solid-hover"],
+  ...[...statuses, "brand"].flatMap((fill) =>
+    surfaces.map((surface): [string, string] => [`${fill}-text`, surface]),
+  ),
 ];
 
 const uiPairs: [string, string][] = [
   ...surfaces.map((surface): [string, string] => ["ring", surface]),
   ...surfaces.map((surface): [string, string] => ["destructive", surface]),
+  ...[...statuses, "brand"].flatMap((fill) =>
+    surfaces.map((surface): [string, string] => [fill, surface]),
+  ),
   // The selected row's start bar.
   ["primary", "selected"],
+  // A selected tree card's border.
+  ...surfaces.map((surface): [string, string] => ["brand-solid", surface]),
 ];
 
 describe.each(Object.entries(themes))("the %s theme", (_, theme) => {
@@ -63,6 +74,16 @@ describe.each(Object.entries(themes))("the %s theme", (_, theme) => {
   it.each(uiPairs)("--%s on --%s reaches 3:1 for UI", (foreground, background) => {
     expect(ratio(foreground, background)).toBeGreaterThanOrEqual(3);
   });
+
+  it.each(statuses)(
+    "--%s-text reaches 4.5:1 on its tint, the status over the page at 12 percent",
+    (status) => {
+      const [fill, text, page] = [theme[status], theme[`${status}-text`], theme.background];
+      if (!fill || !text || !page)
+        throw new Error(`missing --${status}, its -text or --background`);
+      expect(contrastRatio(text, mixOklab(fill, page, 0.12))).toBeGreaterThanOrEqual(4.5);
+    },
+  );
 
   it("sets the selected row apart from the page, not only by a hair", () => {
     // No WCAG floor for a background; 1.25:1 keeps it plainly visible on any screen.

@@ -40,3 +40,24 @@ export function contrastRatio(first: string, second: string): number {
   ) as [number, number];
   return (lighter + 0.05) / (darker + 0.05);
 }
+
+/**
+ * `color-mix(in oklab, first weight, second)`, with `weight` from 0 to 1, as an oklch colour: the
+ * theme's tinted backgrounds (a status colour over the page) can then be checked like any token.
+ */
+export function mixOklab(first: string, second: string, weight: number): string {
+  const toLab = ({ l, c, h }: Oklch) => {
+    const radians = (h * Math.PI) / 180;
+    return [l, c * Math.cos(radians), c * Math.sin(radians)] as const;
+  };
+  const [x, y] = [toLab(parseOklch(first)), toLab(parseOklch(second))];
+  const [l, a, b] = x.map((channel, i) => channel * weight + y[i]! * (1 - weight)) as [
+    number,
+    number,
+    number,
+  ];
+  const c = Math.hypot(a, b);
+  const h = c === 0 ? 0 : ((Math.atan2(b, a) * 180) / Math.PI + 360) % 360;
+  // Fixed decimals: parseOklch reads no exponents.
+  return `oklch(${l.toFixed(6)} ${c.toFixed(6)} ${h.toFixed(6)})`;
+}

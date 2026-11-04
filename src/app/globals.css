@@ -9,6 +9,11 @@
  * a darker --muted-foreground that passes AA on --muted, and the status pairs. --ring is darker
  * too, so the focus ring reaches 3:1, and --destructive gets a foreground pair. --selected marks
  * the table's selected row: a cool tint plainly apart from the page, with room for muted text.
+ * ADR 0014: the status colours come from Google's palette, each a fill (icons, bars, badges, 3:1)
+ * and a -text for words (4.5:1, also on its 12 % tint). --brand is the brand's periwinkle, for the
+ * logo, icons and fills; words take --brand-text, and --brand-soft is the logo's pale square.
+ * --brand-solid fills the one primary button per screen, the selection and the "Elegido" chip,
+ * never the margin's status. --scrim veils what sits behind a dialog.
  * src/app/theme-tokens.test.ts checks every pair.
  */
 :root {
@@ -33,14 +38,24 @@
   --border: oklch(0.92 0.004 286.32);
   --input: oklch(0.92 0.004 286.32);
   --ring: oklch(0.552 0.016 285.938);
-  --status-ok: oklch(0.5 0.13 150);
-  --status-ok-foreground: oklch(0.985 0 0);
-  --status-warn: oklch(0.5 0.11 65);
-  --status-warn-foreground: oklch(0.985 0 0);
-  --status-bad: oklch(0.52 0.2 27);
+  --status-ok: oklch(0.648 0.16 148.5);
+  --status-ok-foreground: oklch(0.141 0.005 285.823);
+  --status-ok-text: oklch(0.488 0.13 149);
+  --status-warn: oklch(0.677 0.174 51.1);
+  --status-warn-foreground: oklch(0.141 0.005 285.823);
+  --status-warn-text: oklch(0.528 0.131 54.6);
+  --status-bad: oklch(0.578 0.206 29);
   --status-bad-foreground: oklch(0.985 0 0);
+  --status-bad-text: oklch(0.532 0.198 27.9);
   --selected: oklch(0.91 0.035 255);
   --selected-foreground: oklch(0.141 0.005 285.823);
+  --brand: oklch(0.591 0.201 268.9);
+  --brand-text: oklch(0.531 0.205 268.6);
+  --brand-soft: oklch(0.906 0.041 278);
+  --brand-solid: oklch(0.531 0.205 268.6);
+  --brand-solid-hover: oklch(0.48 0.2 268.6);
+  --brand-solid-foreground: oklch(0.985 0 0);
+  --scrim: oklch(0.141 0.005 285.823 / 0.4);
 }
 
 :root[data-theme="dark"] {
@@ -64,14 +79,24 @@
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.705 0.015 286.067);
-  --status-ok: oklch(0.78 0.15 150);
+  --status-ok: oklch(0.774 0.104 152.2);
   --status-ok-foreground: oklch(0.141 0.005 285.823);
-  --status-warn: oklch(0.82 0.14 75);
+  --status-ok-text: oklch(0.774 0.104 152.2);
+  --status-warn: oklch(0.811 0.121 57.7);
   --status-warn-foreground: oklch(0.141 0.005 285.823);
-  --status-bad: oklch(0.72 0.17 25);
+  --status-warn-text: oklch(0.811 0.121 57.7);
+  --status-bad: oklch(0.745 0.127 25.8);
   --status-bad-foreground: oklch(0.141 0.005 285.823);
+  --status-bad-text: oklch(0.745 0.127 25.8);
   --selected: oklch(0.33 0.045 262);
   --selected-foreground: oklch(0.985 0 0);
+  --brand: oklch(0.591 0.201 268.9);
+  --brand-text: oklch(0.732 0.127 273);
+  --brand-soft: oklch(0.906 0.041 278);
+  --brand-solid: oklch(0.531 0.205 268.6);
+  --brand-solid-hover: oklch(0.56 0.2 268.6);
+  --brand-solid-foreground: oklch(0.985 0 0);
+  --scrim: oklch(0 0 0 / 0.6);
 }
 
 @theme inline {
@@ -106,6 +131,16 @@
   --color-status-warn-foreground: var(--status-warn-foreground);
   --color-status-bad: var(--status-bad);
   --color-status-bad-foreground: var(--status-bad-foreground);
+  --color-status-ok-text: var(--status-ok-text);
+  --color-status-warn-text: var(--status-warn-text);
+  --color-status-bad-text: var(--status-bad-text);
+  --color-brand: var(--brand);
+  --color-brand-text: var(--brand-text);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-solid: var(--brand-solid);
+  --color-brand-solid-hover: var(--brand-solid-hover);
+  --color-brand-solid-foreground: var(--brand-solid-foreground);
+  --color-scrim: var(--scrim);
   --color-selected: var(--selected);
   --color-selected-foreground: var(--selected-foreground);
 }
