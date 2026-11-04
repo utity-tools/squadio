@@ -330,8 +330,13 @@
     "signOut": "Cerrar sesión",
     "signedInAs": "Has entrado como",
     "signOutFailed": "No se ha podido cerrar la sesión. Vuelve a intentarlo.",
-    "organization": "Tu organización",
-    "leave": "Salir"
+    "leave": "Salir",
+    "accountOf": "Cuenta: {name}",
+    "language": "Idioma",
+    "languages": {
+      "es": "Español",
+      "en": "English"
+    }
   },
   "SignIn": {
     "title": "Entrar",
