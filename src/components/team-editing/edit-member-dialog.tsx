@@ -17,7 +17,7 @@ import type { Change } from "@/lib/scenarios/change";
 import { type MemberForm, editFromForm, formOf, hoursText } from "@/lib/scenarios/member-form";
 import type { StepRejection } from "@/lib/scenarios/store";
 
-import { FIELD, useFieldProblem } from "./fields";
+import { FIELD, NUMBER_FIELD, useFieldProblem } from "./fields";
 
 export type EditMemberDialogProps = {
   id: string;
@@ -197,7 +197,7 @@ export function EditMemberDialog({
                 inputMode="numeric"
                 value={form.allocation}
                 onChange={(event) => change({ allocation: event.target.value })}
-                className={FIELD}
+                className={NUMBER_FIELD}
                 {...problem.fieldProps("allocation")}
               />
             </div>
@@ -208,7 +208,7 @@ export function EditMemberDialog({
                 inputMode="decimal"
                 value={form.weeklyHours}
                 onChange={(event) => change({ weeklyHours: event.target.value })}
-                className={FIELD}
+                className={NUMBER_FIELD}
                 {...problem.fieldProps("weeklyHours")}
               />
             </div>

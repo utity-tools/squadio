@@ -370,5 +370,8 @@
     "noScenarios": "Todavía no hay escenarios.",
     "project": "{name} · {client}",
     "chosen": "elegido"
+  },
+  "Field": {
+    "optional": "Opcional"
   }
 }

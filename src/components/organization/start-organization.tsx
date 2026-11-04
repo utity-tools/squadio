@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { useActionState, useId } from "react";
 
 import { Button } from "@/components/ui/button";
+import { controlClassName } from "@/components/ui/field";
 import { MAX_ORGANIZATION_NAME } from "@/lib/organizations/name";
 
 /** What a start form's Server Action returns: why it did not start one, or null. */
@@ -13,8 +14,7 @@ export type StartFormState = {
 
 export type StartAction = (previous: StartFormState, form: FormData) => Promise<StartFormState>;
 
-const FIELD =
-  "h-9 w-full min-w-0 rounded-md border bg-transparent px-3 text-sm shadow-xs placeholder:text-muted-foreground aria-invalid:border-destructive dark:bg-input/30";
+const FIELD = controlClassName();
 
 const INITIAL: StartFormState = { error: null };
 
@@ -63,7 +63,7 @@ function StartForm({ heading, intro, submit, defaultName, action }: StartFormPro
           />
         </div>
         {state.error && (
-          <p id={errorId} role="alert" className="text-sm text-destructive">
+          <p id={errorId} role="alert" className="text-[13px] text-status-bad-text">
             {t(`errors.${state.error}`)}
           </p>
         )}
