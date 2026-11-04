@@ -75,8 +75,9 @@ describe.each(Object.entries(themes))("the %s theme", (_, theme) => {
     expect(ratio(foreground, background)).toBeGreaterThanOrEqual(3);
   });
 
-  it.each(statuses)(
-    "--%s-text reaches 4.5:1 on its tint, the status over the page at 12 percent",
+  // The brand's tint is the "Demo" chip's background.
+  it.each([...statuses, "brand"])(
+    "--%s-text reaches 4.5:1 on its tint, the fill over the page at 12 percent",
     (status) => {
       const [fill, text, page] = [theme[status], theme[`${status}-text`], theme.background];
       if (!fill || !text || !page)
@@ -88,6 +89,23 @@ describe.each(Object.entries(themes))("the %s theme", (_, theme) => {
   it("sets the selected row apart from the page, not only by a hair", () => {
     // No WCAG floor for a background; 1.25:1 keeps it plainly visible on any screen.
     expect(ratio("selected", "background")).toBeGreaterThanOrEqual(1.25);
+  });
+});
+
+// The tints behind status chips, alerts and pending cards: the fill at 12 % over the page, the
+// mix the contrast test above checks.
+describe("tints", () => {
+  it.each([
+    ["ok", "status-ok"],
+    ["warn", "status-warn"],
+    ["bad", "status-bad"],
+    ["brand", "brand"],
+  ])("tint-%s mixes --%s at 12 percent over the page", (name, fill) => {
+    expect(css).toMatch(
+      new RegExp(
+        `@utility tint-${name} {\\s*background-color: color-mix\\(in oklab, var\\(--${fill}\\) 12%, var\\(--background\\)\\);`,
+      ),
+    );
   });
 });
 
