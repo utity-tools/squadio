@@ -44,7 +44,8 @@ describe("ScenarioHeader", () => {
       <ScenarioHeader {...guide} scenario={{ name: "Plan A", chosen: true, otherChosen: null }} />,
     );
 
-    expect(screen.getByText("Elegido")).toBeInTheDocument();
+    // The brand's chosen chip (ADR 0014), with its check: never a status colour.
+    expect(screen.getByText("Elegido")).toHaveAttribute("data-tone", "chosen");
   });
 
   it("has no badge on a scenario that is not chosen", () => {
