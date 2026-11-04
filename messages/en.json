@@ -373,5 +373,14 @@
   },
   "Field": {
     "optional": "Optional"
+  },
+  "Shell": {
+    "sections": "Sections",
+    "home": "Home",
+    "organization": "Organization",
+    "fold": "Collapse the sidebar",
+    "unfold": "Expand the sidebar",
+    "homeLink": "Squadio, Home",
+    "breadcrumb": "Breadcrumb"
   }
 }

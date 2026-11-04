@@ -3,6 +3,15 @@
 
 /* The theme lives in `data-theme` on <html>, set before the first paint by the theme script. */
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+/* The sidebar folded to its icon rail: its place's choice, set on <html> (shell/sidebar-state.ts). */
+@custom-variant sidebar-folded {
+  :root[data-sidebar-app="collapsed"] [data-sidebar-scope="app"] & {
+    @slot;
+  }
+  :root[data-sidebar-editor="collapsed"] [data-sidebar-scope="editor"] & {
+    @slot;
+  }
+}
 
 /*
  * shadcn zinc tokens with two changes (docs/design/canvas-brief.md, "Themes and contrast"):
