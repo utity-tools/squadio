@@ -149,6 +149,8 @@
   /* A dialog grows in from 98 % and its veil fades in, in 180 ms (ADR 0014). */
   --animate-dialog-in: dialog-in var(--duration-base) var(--motion-ease);
   --animate-scrim-in: scrim-in var(--duration-base) var(--motion-ease);
+  /* A side panel slides in from the end edge in 240 ms, like the layout's own moves. */
+  --animate-sheet-in: sheet-in var(--duration-layout) var(--motion-ease);
 
   @keyframes dialog-in {
     from {
@@ -159,6 +161,11 @@
   @keyframes scrim-in {
     from {
       opacity: 0;
+    }
+  }
+  @keyframes sheet-in {
+    from {
+      translate: 100% 0;
     }
   }
   --color-background: var(--background);
