@@ -373,5 +373,14 @@
   },
   "Field": {
     "optional": "Opcional"
+  },
+  "Shell": {
+    "sections": "Secciones",
+    "home": "Inicio",
+    "organization": "Organización",
+    "fold": "Plegar la barra lateral",
+    "unfold": "Desplegar la barra lateral",
+    "homeLink": "Squadio, Inicio",
+    "breadcrumb": "Ruta de navegación"
   }
 }
