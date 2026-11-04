@@ -2,6 +2,7 @@ import { CheckIcon, ChevronRightIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { useDayRange } from "@/components/format/use-day-range";
+import { Chip } from "@/components/ui/chip";
 import type { OpenScenario } from "@/lib/scenarios/scenario-view";
 
 export type ScenarioHeaderProps = Pick<OpenScenario, "project" | "scenario" | "span">;
@@ -31,10 +32,10 @@ export function ScenarioHeader({ project, scenario, span }: ScenarioHeaderProps)
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
         <h1 className="text-lg font-semibold tracking-tight wrap-anywhere">{scenario.name}</h1>
         {scenario.chosen && (
-          <span className="inline-flex items-center gap-1 rounded-md border border-foreground px-1.5 py-0.5 text-xs font-medium">
-            <CheckIcon aria-hidden className="size-3" />
+          <Chip tone="chosen">
+            <CheckIcon aria-hidden />
             {t("chosen")}
-          </span>
+          </Chip>
         )}
       </div>
       <dl className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
