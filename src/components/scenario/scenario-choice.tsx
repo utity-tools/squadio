@@ -184,7 +184,7 @@ export function ScenarioChoice({ scenarioId, send }: ScenarioChoiceProps) {
                 aria-disabled={!ready}
                 aria-describedby={waiting ? noteId : undefined}
                 onClick={() => void confirm()}
-                className="aria-disabled:cursor-not-allowed aria-disabled:opacity-50 aria-disabled:hover:bg-primary"
+                className="aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
               >
                 {busy ? t(`${action}.busy`) : t(`${action}.button`)}
               </Button>
