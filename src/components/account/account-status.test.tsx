@@ -2,6 +2,7 @@ import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
+import { expectNoAxeViolations } from "@/test/axe";
 import { renderWithIntl } from "@/test/render";
 
 import { ShellPlacement } from "@/components/shell/placement";
@@ -111,6 +112,28 @@ describe("AccountStatusView", () => {
       const signIn = screen.getByRole("link", { name: "Entrar" });
       expect(signIn).toHaveAttribute("href", "/sign-in");
       expect(signIn).toHaveClass("min-h-11");
+    });
+  });
+
+  describe("has no accessibility violations", () => {
+    it("with the avatar menu open", async () => {
+      renderWithIntl(<AccountStatusView account={ada} signUp={false} />);
+      await userEvent.click(screen.getByRole("button", { name: /Cuenta/ }));
+
+      await expectNoAxeViolations();
+    });
+
+    it.each([
+      ["signed in", ada],
+      ["signed out", null],
+    ])("in the ☰ menu, %s", async (_, account) => {
+      renderWithIntl(
+        <ShellPlacement value="menu">
+          <AccountStatusView account={account} signUp />
+        </ShellPlacement>,
+      );
+
+      await expectNoAxeViolations();
     });
   });
 });

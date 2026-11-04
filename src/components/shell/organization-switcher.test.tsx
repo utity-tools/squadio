@@ -2,6 +2,7 @@ import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { expectNoAxeViolations } from "@/test/axe";
 import { renderWithIntl } from "@/test/render";
 
 import { DemoOrganization, OrganizationSwitcher } from "./organization-switcher";
@@ -163,5 +164,32 @@ describe("DemoOrganization", () => {
     renderWithIntl(<DemoOrganization copy={false} />);
 
     expect(screen.getByText("Nombres y cifras ficticios")).toBeInTheDocument();
+  });
+});
+
+describe("has no accessibility violations", () => {
+  it.each(["bar", "menu"] as const)("with the switcher open, in the %s", async (place) => {
+    renderWithIntl(
+      <ShellPlacement value={place}>
+        <OrganizationSwitcher
+          organizations={[mine, adopted]}
+          activeId={mine.id}
+          switchTo={vi.fn()}
+        />
+      </ShellPlacement>,
+    );
+    await userEvent.click(screen.getByRole("button", { name: /Organización/ }));
+
+    await expectNoAxeViolations();
+  });
+
+  it.each(["bar", "menu"] as const)("for a visitor's demo, in the %s", async (place) => {
+    renderWithIntl(
+      <ShellPlacement value={place}>
+        <DemoOrganization copy />
+      </ShellPlacement>,
+    );
+
+    await expectNoAxeViolations();
   });
 });
