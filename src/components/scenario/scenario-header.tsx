@@ -1,16 +1,36 @@
-import { CheckIcon, ChevronRightIcon } from "lucide-react";
+import { CheckIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { useDayRange } from "@/components/format/use-day-range";
+import { Breadcrumbs } from "@/components/shell/breadcrumbs";
 import { Chip } from "@/components/ui/chip";
 import type { OpenScenario } from "@/lib/scenarios/scenario-view";
 
 export type ScenarioHeaderProps = Pick<OpenScenario, "project" | "scenario" | "span">;
 
 /**
- * The header of the canvas brief: breadcrumb, scenario name with its Chosen badge, pricing model
- * and project span. The organization joins the breadcrumb once tenant tables reference it (v0.3,
- * slice 2b).
+ * The trail in the app's top bar: the project and its client, then the scenario. Projects joins it
+ * once its page exists, and the organization once tenant tables reference it (v0.3, slice 2b).
+ */
+export function ScenarioCrumbs({
+  project,
+  scenario,
+}: Pick<ScenarioHeaderProps, "project" | "scenario">) {
+  const t = useTranslations("ScenarioHeader");
+
+  return (
+    <Breadcrumbs
+      items={[
+        { label: t("project", { name: project.name, client: project.client }) },
+        { label: scenario.name },
+      ]}
+    />
+  );
+}
+
+/**
+ * The header of the canvas brief: scenario name with its Chosen badge, pricing model and project
+ * span. The trail above it lives in the app's top bar (`ScenarioCrumbs`).
  */
 export function ScenarioHeader({ project, scenario, span }: ScenarioHeaderProps) {
   const t = useTranslations("ScenarioHeader");
@@ -18,17 +38,6 @@ export function ScenarioHeader({ project, scenario, span }: ScenarioHeaderProps)
 
   return (
     <div className="flex min-w-0 flex-col gap-1">
-      <nav aria-label={t("breadcrumb")}>
-        <ol className="flex flex-wrap items-center gap-1 text-sm text-muted-foreground">
-          <li className="flex items-center gap-1 wrap-anywhere">
-            {t("project", { name: project.name, client: project.client })}
-            <ChevronRightIcon aria-hidden className="size-3.5" />
-          </li>
-          <li aria-current="page" className="wrap-anywhere text-foreground">
-            {scenario.name}
-          </li>
-        </ol>
-      </nav>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
         <h1 className="text-lg font-semibold tracking-tight wrap-anywhere">{scenario.name}</h1>
         {scenario.chosen && (

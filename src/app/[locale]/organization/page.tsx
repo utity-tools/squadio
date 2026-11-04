@@ -7,7 +7,9 @@ import { currentSession } from "@/auth/session";
 import { CurrentAccount } from "@/components/account/current-account";
 import { OrganizationOverview } from "@/components/organization/organization-overview";
 import { StartOrganization } from "@/components/organization/start-organization";
-import { ThemeSwitch } from "@/components/theme/theme-switch";
+import { AppShell } from "@/components/shell/app-shell";
+import { Breadcrumbs } from "@/components/shell/breadcrumbs";
+import { OrganizationLink } from "@/components/shell/organization-link";
 import { memberOf, visitorOrganization } from "@/db/access";
 import { db } from "@/db/client";
 import { loadOrganizationOverview } from "@/db/organization-overview";
@@ -27,20 +29,28 @@ export async function generateMetadata(): Promise<Metadata> {
 // names it.
 export default async function OrganizationPage() {
   await assertLocale();
+  const t = await getTranslations("Organization");
   return (
-    <>
-      <header className="flex items-center justify-end gap-2 p-4">
+    <AppShell
+      scope="app"
+      crumbs={<Breadcrumbs items={[{ label: t("title") }]} />}
+      account={
         <Suspense>
           <CurrentAccount />
         </Suspense>
-        <ThemeSwitch />
-      </header>
+      }
+      sections={
+        <Suspense>
+          <OrganizationLink current />
+        </Suspense>
+      }
+    >
       <main className="flex flex-1 flex-col items-center gap-6 p-8 text-center">
         <Suspense>
           <OrganizationContent />
         </Suspense>
       </main>
-    </>
+    </AppShell>
   );
 }
 

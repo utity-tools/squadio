@@ -4,12 +4,17 @@ import { TeamEditingProvider } from "@/components/team-editing/team-editing";
 import { categoriesWithoutRate } from "@/lib/team-tree/cards";
 
 import { useScenarioView } from "./scenario-editor";
-import { ScenarioHeader } from "./scenario-header";
+import { ScenarioCrumbs, ScenarioHeader } from "./scenario-header";
 import { ScenarioSummary } from "./scenario-summary";
 import { ScenarioTeam } from "./scenario-team";
 
 // The scenario page's regions, drawn from the store's current team (slice 3): the same components
 // as before, fed by `useScenarioView` instead of the loader.
+
+export function LiveScenarioCrumbs() {
+  const { project, scenario } = useScenarioView();
+  return <ScenarioCrumbs project={project} scenario={scenario} />;
+}
 
 export function LiveScenarioHeader() {
   const { project, scenario, span } = useScenarioView();

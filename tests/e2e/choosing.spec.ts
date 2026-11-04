@@ -14,7 +14,8 @@ const DELIVERY_SCENARIO = "6d656d6f-0000-4000-8000-000000000205";
 /** The data platform: its Data Engineer category has no rate. */
 const MISSING_RATE_SCENARIO = "6d656d6f-0000-4000-8000-000000000203";
 
-const banner = (page: Page) => page.getByRole("banner");
+// The scenario's header: name, save state, undo and choosing (the app's top bar is the banner).
+const banner = (page: Page) => page.getByRole("region", { name: "Datos del escenario" });
 const dialog = (page: Page) => page.getByRole("dialog");
 const chooseButton = (page: Page) => banner(page).getByRole("button", { name: "Elegir escenario" });
 const unchooseButton = (page: Page) =>
