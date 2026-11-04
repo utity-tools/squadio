@@ -330,8 +330,13 @@
     "signOut": "Sign out",
     "signedInAs": "Signed in as",
     "signOutFailed": "We couldn't sign you out. Try again.",
-    "organization": "Your organization",
-    "leave": "Sign out"
+    "leave": "Sign out",
+    "accountOf": "Account: {name}",
+    "language": "Language",
+    "languages": {
+      "es": "Español",
+      "en": "English"
+    }
   },
   "SignIn": {
     "title": "Sign in",
