@@ -330,7 +330,8 @@
     "signOut": "Cerrar sesión",
     "signedInAs": "Has entrado como",
     "signOutFailed": "No se ha podido cerrar la sesión. Vuelve a intentarlo.",
-    "organization": "Tu organización"
+    "organization": "Tu organización",
+    "leave": "Salir"
   },
   "SignIn": {
     "title": "Entrar",
@@ -381,6 +382,9 @@
     "fold": "Plegar la barra lateral",
     "unfold": "Desplegar la barra lateral",
     "homeLink": "Squadio, Inicio",
-    "breadcrumb": "Ruta de navegación"
+    "breadcrumb": "Ruta de navegación",
+    "menu": "Menú",
+    "openMenu": "Abrir el menú",
+    "closeMenu": "Cerrar el menú"
   }
 }

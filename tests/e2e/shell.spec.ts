@@ -5,7 +5,8 @@ import { expectHydrated } from "./support/hydration";
 
 // The app shell of the design board "Navegación de la app": one 56 px top bar everywhere, and a
 // sidebar that is open on the app's pages and folded to a 56 px icon rail in the scenario editor.
-// Each place remembers the person's choice. Needs the demo organization for the scenario page.
+// Each place remembers the person's choice. Below lg (boards 28–30) a ☰ menu replaces the
+// sidebar. Needs the demo organization for the scenario page.
 const GUIDE_SCENARIO = "6d656d6f-0000-4000-8000-000000000200";
 
 const sidebarOf = (page: Page) => page.getByRole("navigation", { name: "Secciones" });
@@ -78,13 +79,51 @@ test("the editor's choice is its own: unfolding there leaves Inicio as it was", 
   expect(await widthOf(page)).toBe(232);
 });
 
-test("below md the sidebar is always the rail, with nothing to unfold", async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 });
+for (const viewport of [
+  { name: "a phone", width: 390, height: 844 },
+  { name: "an iPad held upright", width: 820, height: 1180 },
+]) {
+  test(`on ${viewport.name} the ☰ menu replaces the sidebar, the theme and the account`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(viewport);
+    await page.goto("/");
+
+    await expect(sidebarOf(page)).toBeHidden();
+    const bar = page.getByRole("banner");
+    await expect(bar.getByRole("radiogroup", { name: "Tema" })).toBeHidden();
+    expect((await bar.boundingBox())?.height).toBe(56);
+
+    const open = bar.getByRole("button", { name: "Abrir el menú" });
+    await expectHydrated(open);
+    expect(await open.boundingBox()).toMatchObject({ width: 44, height: 44 });
+    await open.click();
+
+    const panel = page.getByRole("dialog", { name: "Menú" });
+    const home = panel.getByRole("navigation", { name: "Secciones" }).getByRole("link", {
+      name: "Inicio",
+    });
+    await expect(home).toHaveAttribute("aria-current", "page");
+    expect((await home.boundingBox())?.height).toBe(44);
+    await expect(panel.getByRole("radiogroup", { name: "Tema" })).toBeVisible();
+
+    // A modal dialog: the focus stays inside, Escape closes it and the focus goes back.
+    for (let i = 0; i < 6; i++) {
+      await page.keyboard.press("Tab");
+      await expect(panel.locator(":focus")).toHaveCount(1);
+    }
+    await page.keyboard.press("Escape");
+    await expect(panel).toBeHidden();
+    await expect(open).toBeFocused();
+  });
+}
+
+test("from lg the sidebar is back and the ☰ menu is gone", async ({ page }) => {
+  await page.setViewportSize({ width: 1024, height: 768 });
   await page.goto("/");
 
-  expect(await widthOf(page)).toBe(56);
-  await expect(page.getByRole("button", { name: /barra lateral/ })).toBeHidden();
-  await expect(sidebarOf(page).getByRole("link", { name: "Inicio" })).toBeVisible();
+  await expect(sidebarOf(page)).toBeVisible();
+  await expect(page.getByRole("button", { name: "Abrir el menú" })).toBeHidden();
 });
 
 for (const colorScheme of ["light", "dark"] as const) {
@@ -105,4 +144,18 @@ for (const colorScheme of ["light", "dark"] as const) {
       await expectNoAxeViolations(page);
     });
   }
+
+  test(`the phone menu has no accessibility violations in the ${colorScheme} theme`, async ({
+    page,
+  }) => {
+    await page.emulateMedia({ colorScheme });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/");
+    const open = page.getByRole("button", { name: "Abrir el menú" });
+    await expectHydrated(open);
+    await open.click();
+    await expect(page.getByRole("dialog", { name: "Menú" })).toBeVisible();
+
+    await expectNoAxeViolations(page);
+  });
 }

@@ -330,7 +330,8 @@
     "signOut": "Sign out",
     "signedInAs": "Signed in as",
     "signOutFailed": "We couldn't sign you out. Try again.",
-    "organization": "Your organization"
+    "organization": "Your organization",
+    "leave": "Sign out"
   },
   "SignIn": {
     "title": "Sign in",
@@ -381,6 +382,9 @@
     "fold": "Collapse the sidebar",
     "unfold": "Expand the sidebar",
     "homeLink": "Squadio, Home",
-    "breadcrumb": "Breadcrumb"
+    "breadcrumb": "Breadcrumb",
+    "menu": "Menu",
+    "openMenu": "Open the menu",
+    "closeMenu": "Close the menu"
   }
 }
