@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { guideHours, guideSpan, guideTeam } from "@/test/guide-team";
 import { stubHistory, stubScreen } from "@/test/navigation";
 import { stubReactFlowLayout } from "@/test/react-flow";
+import { expectNoAxeViolations } from "@/test/axe";
 import { renderWithIntl } from "@/test/render";
 
 import { type ScenarioTeamProps, ScenarioTeam } from "./scenario-team";
@@ -66,6 +67,16 @@ describe("ScenarioTeam", () => {
     expect(screen.getByText("Sus asignaciones aparecerán aquí.")).toBeInTheDocument();
     expect(screen.queryByRole("application")).not.toBeInTheDocument();
     expect(screen.queryByRole("radiogroup")).not.toBeInTheDocument();
+  });
+
+  it("draws the empty state as the redesign's card, its picture hidden from screen readers", async () => {
+    renderWithIntl(<ScenarioTeam team={[]} hours={[]} span={null} />);
+
+    const heading = screen.getByRole("heading", { name: "Este escenario aún no tiene equipo" });
+    const card = heading.closest("[data-slot=empty-team]");
+    expect(card).toHaveClass("rounded-[14px]", "border", "bg-background");
+    expect(card?.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
+    await expectNoAxeViolations();
   });
 
   it("names the assignments in a loop instead of drawing the tree", () => {

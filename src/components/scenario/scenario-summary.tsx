@@ -2,7 +2,7 @@ import type { LoadedScenario } from "@/lib/scenarios/scenario-view";
 import { ledger, teamSummary } from "@/lib/summary/summary";
 
 import { SummaryHours } from "@/components/summary/summary-hours";
-import { SummaryLedger } from "@/components/summary/summary-ledger";
+import { SummaryEmpty, SummaryLedger } from "@/components/summary/summary-ledger";
 
 type Hours = { nominal: number; effective: number };
 
@@ -23,11 +23,9 @@ export function ScenarioSummary({ scenario }: ScenarioSummaryProps) {
   const hours = scenario.rateAccess ? scenario.result.hours : scenario.hours;
   const team = teamSummary(scenario.team, hours, scenario.span);
   if (!scenario.rateAccess) return <SummaryHours team={team} />;
-  return (
-    <SummaryLedger
-      ledger={ledger(scenario)}
-      team={team}
-      pricingModel={scenario.project.pricingModel}
-    />
-  );
+  const pricingModel = scenario.project.pricingModel;
+  // Without a team the margin waits for it (board "Primer escenario").
+  if (scenario.team.length === 0)
+    return <SummaryEmpty ledger={ledger(scenario)} pricingModel={pricingModel} />;
+  return <SummaryLedger ledger={ledger(scenario)} team={team} pricingModel={pricingModel} />;
 }

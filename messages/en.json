@@ -301,7 +301,7 @@
     "cancel": "Cancel",
     "close": "Close",
     "instructions": "Enter opens the assignment's actions.",
-    "emptyDescription": "Add the first person or open role.",
+    "emptyDescription": "Drag someone from the bench, starting with whoever leads the project. Cost and margin show up once someone is there.",
     "addFirst": "This is the first assignment. Starts at {percent} for next month.",
     "whoMissing": "Choose a person or an open role.",
     "someAssignment": "an assignment",
@@ -486,6 +486,13 @@
           "definition": "Nominal hours times the availability factor: the hours really worked on the project.",
           "formula": "nominal hours × availability factor"
         }
+      }
+    },
+    "empty": {
+      "margin": "Shows up once someone is on the team.",
+      "note": {
+        "fixed": "Revenue is already known from the price; the rest waits for the team.",
+        "time_and_materials": "In time and materials revenue comes from the team's hours: it shows up with the team."
       }
     }
   },

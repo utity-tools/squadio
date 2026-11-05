@@ -1,4 +1,4 @@
-import { TriangleAlertIcon, UsersIcon } from "lucide-react";
+import { TriangleAlertIcon } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
 import { Suspense } from "react";
 
@@ -59,17 +59,46 @@ function EmptyTeam() {
       // The first drop target (canvas brief, "Empty scenario").
       data-drop-root={editing ? "" : undefined}
       className={cn(
-        "flex h-full min-h-96 flex-col items-center justify-center gap-2 p-8 text-center",
+        "flex h-full min-h-96 items-center justify-center p-8",
         over?.kind === "canvas" && "outline-2 -outline-offset-2 outline-primary",
       )}
     >
-      <UsersIcon aria-hidden className="size-8 text-muted-foreground" />
-      <h2 className="font-semibold">{t("title")}</h2>
-      <p className="text-sm text-muted-foreground">
-        {editing ? tEditing("emptyDescription") : t("description")}
-      </p>
-      {editing && <AddToTeamButton editing={editing} takesTopFocus className="mt-2" />}
+      <div
+        data-slot="empty-team"
+        className="flex max-w-[380px] flex-col items-center gap-3 rounded-[14px] border bg-background p-7 text-center"
+      >
+        <EmptyTeamPicture />
+        <h2 className="text-lg font-semibold">{t("title")}</h2>
+        <p className="text-sm text-muted-foreground">
+          {editing ? tEditing("emptyDescription") : t("description")}
+        </p>
+        {editing && <AddToTeamButton editing={editing} takesTopFocus className="mt-1" />}
+      </div>
     </div>
+  );
+}
+
+/** The logo's three squares: the first one to add, the other two still dashed (ADR 0014). */
+function EmptyTeamPicture() {
+  return (
+    <svg aria-hidden="true" width="96" height="96" viewBox="0 0 168 168">
+      <rect x="44" y="0" width="80" height="80" rx="24" className="fill-brand-soft" />
+      <path d="M84 27v26M71 40h26" className="stroke-brand" strokeWidth="6" strokeLinecap="round" />
+      {[0, 88].map((x) => (
+        <rect
+          key={x}
+          x={x}
+          y="88"
+          width="80"
+          height="80"
+          rx="24"
+          fill="none"
+          className="stroke-muted-foreground"
+          strokeWidth="3"
+          strokeDasharray="9 7"
+        />
+      ))}
+    </svg>
   );
 }
 
