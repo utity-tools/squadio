@@ -16,12 +16,13 @@ export function ScenarioCrumbs({
   project,
   scenario,
 }: Pick<ScenarioHeaderProps, "project" | "scenario">) {
-  const t = useTranslations("ScenarioHeader");
+  const t = useTranslations("Projects");
 
   return (
     <Breadcrumbs
       items={[
-        { label: t("project", { name: project.name, client: project.client }) },
+        { label: t("title"), href: "/projects" },
+        { label: project.name, href: `/projects/${project.id}` },
         { label: scenario.name },
       ]}
     />

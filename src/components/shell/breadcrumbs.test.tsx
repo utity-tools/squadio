@@ -38,4 +38,40 @@ describe("Breadcrumbs", () => {
     expect(screen.queryByRole("link")).not.toBeInTheDocument();
     expect(screen.getByText("Tu organización")).toHaveAttribute("aria-current", "page");
   });
+
+  it("keeps only the parent crumb on phones, as a link back, so the bar stays 56 px", () => {
+    renderWithIntl(
+      <Breadcrumbs
+        items={[
+          { label: "Proyectos", href: "/projects" },
+          { label: "Customer portal", href: "/projects/p1" },
+          { label: "Plan A" },
+        ]}
+      />,
+    );
+
+    const crumbs = screen.getAllByRole("listitem");
+    expect(crumbs[0]).toHaveClass("max-sm:hidden");
+    expect(crumbs[1]).not.toHaveClass("max-sm:hidden");
+    expect(crumbs[2]).toHaveClass("max-sm:hidden");
+    const back = screen.getByRole("link", { name: "Customer portal" });
+    expect(back).toHaveClass("max-sm:truncate");
+    expect(crumbs[1]?.querySelector("svg.lucide-chevron-left")).toHaveClass("sm:hidden");
+    expect(crumbs[1]?.querySelector("svg.lucide-chevron-right")).toHaveClass("max-sm:hidden");
+  });
+
+  it("keeps a parent without a page on phones, with no arrow back", () => {
+    renderWithIntl(<Breadcrumbs items={[{ label: "Portal" }, { label: "Plan A" }]} />);
+
+    const crumbs = screen.getAllByRole("listitem");
+    expect(crumbs[0]).not.toHaveClass("max-sm:hidden");
+    expect(crumbs[0]?.querySelector("svg.lucide-chevron-left")).toBeNull();
+    expect(crumbs[1]).toHaveClass("max-sm:hidden");
+  });
+
+  it("keeps a lone crumb on phones", () => {
+    renderWithIntl(<Breadcrumbs items={[{ label: "Proyectos" }]} />);
+
+    expect(screen.getByRole("listitem")).not.toHaveClass("max-sm:hidden");
+  });
 });

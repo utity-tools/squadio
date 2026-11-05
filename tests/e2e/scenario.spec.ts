@@ -13,9 +13,14 @@ test("a demo scenario opens with its header, team and summary", async ({ page })
   await expect(page.getByRole("heading", { level: 1, name: "Plan A" })).toBeVisible();
   const breadcrumb = page.getByRole("navigation", { name: "Ruta de navegación" });
   await expect(breadcrumb.getByRole("listitem")).toHaveText([
-    "Customer portal (Demo Client)",
+    "Proyectos",
+    "Customer portal",
     "Plan A",
   ]);
+  await expect(breadcrumb.getByRole("link", { name: "Customer portal" })).toHaveAttribute(
+    "href",
+    "/projects/6d656d6f-0000-4000-8000-000000000100",
+  );
   await expect(page.getByText("Precio cerrado")).toBeVisible();
   await expect(page.getByText("130 días laborables")).toBeVisible();
   await expect(page.getByRole("main", { name: "Equipo" })).toBeVisible();

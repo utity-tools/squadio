@@ -20,8 +20,9 @@ import type { ScenarioBasis } from "./scenario-view";
 // ids, and the page carries its history across by renaming every id it holds.
 
 const copyOf = (id: string) => id.replace("-8000-", "-9000-");
+const PROJECT = "6d656d6f-0000-4000-8000-000000000100";
 const renamed = Object.fromEntries(
-  [manager.id, lead.id, developer.id, SENIOR, PM, personId(1), personId(3)].map((id) => [
+  [manager.id, lead.id, developer.id, SENIOR, PM, personId(1), personId(3), PROJECT].map((id) => [
     id,
     copyOf(id),
   ]),
@@ -80,7 +81,7 @@ describe("renameHistory", () => {
 describe("renameBasis", () => {
   it("renames the categories, people, rates and small categories", () => {
     const basis: ScenarioBasis = {
-      project: { name: "Project 1", client: "Client 1", pricingModel: "fixed" },
+      project: { id: PROJECT, name: "Project 1", client: "Client 1", pricingModel: "fixed" },
       scenario: { name: "Plan A", chosen: false, otherChosen: null },
       categories: [{ id: SENIOR, name: "Senior Developer" }],
       people: [
@@ -120,6 +121,7 @@ describe("renameBasis", () => {
     if (!next.engine.rateAccess) throw new Error("expected rate access");
     expect(next.engine.input.rates[0]?.categoryId).toBe(copyOf(SENIOR));
     expect(next.engine.smallCategories).toEqual([{ categoryId: copyOf(SENIOR), activePeople: 1 }]);
-    expect(next.project).toBe(basis.project);
+    // The trail leads to the copy's project, not the template's.
+    expect(next.project).toEqual({ ...basis.project, id: copyOf(PROJECT) });
   });
 });
