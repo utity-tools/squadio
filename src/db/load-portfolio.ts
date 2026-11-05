@@ -250,7 +250,12 @@ async function portfolioIn(
       }));
     const own = money && moneyOf(money, project.id, scenario.id);
     const basis: ScenarioBasis = {
-      project: { name: project.name, client: project.client, pricingModel: project.pricingModel },
+      project: {
+        id: project.id,
+        name: project.name,
+        client: project.client,
+        pricingModel: project.pricingModel,
+      },
       scenario: { name: scenario.name, chosen: scenario.chosen, otherChosen: null },
       categories: structure.categories,
       people: roster,

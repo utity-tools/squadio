@@ -5,7 +5,12 @@ import type { ScenarioBasis } from "./scenario-view";
 // team they go with is `team` in change.fixtures.ts.
 
 const open = {
-  project: { name: "Project 1", client: "Client 1", pricingModel: "time_and_materials" as const },
+  project: {
+    id: "project-1",
+    name: "Project 1",
+    client: "Client 1",
+    pricingModel: "time_and_materials" as const,
+  },
   scenario: { name: "Plan A", chosen: false, otherChosen: null },
   categories: [
     { id: SENIOR, name: "Senior Developer" },

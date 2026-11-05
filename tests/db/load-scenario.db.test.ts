@@ -291,7 +291,7 @@ describe("loadScenario", () => {
     };
     const organizationId = context.organizationId;
     // Rows go in with rate access; the loader reads without it.
-    const scenarioId = await withOrganization(app, { ...context, rateAccess: true }, async (tx) => {
+    const ids = await withOrganization(app, { ...context, rateAccess: true }, async (tx) => {
       await tx
         .insert(config)
         .values({ organizationId, netAnnualHours: 1550, defaultWeeklyHours: 40 });
@@ -308,12 +308,17 @@ describe("loadScenario", () => {
         .insert(scenarios)
         .values({ organizationId, projectId: project!.id, name: "Plan A", chosen: true })
         .returning();
-      return scenario!.id;
+      return { project: project!.id, scenario: scenario!.id };
     });
 
-    expect(await loadScenario(app, context, scenarioId, SOME_DAY)).toEqual({
+    expect(await loadScenario(app, context, ids.scenario, SOME_DAY)).toEqual({
       editing: expect.objectContaining({ team: [], version: 1 }),
-      project: { name: "Support", client: "Client C", pricingModel: "time_and_materials" },
+      project: {
+        id: ids.project,
+        name: "Support",
+        client: "Client C",
+        pricingModel: "time_and_materials",
+      },
       scenario: { name: "Plan A", chosen: true, otherChosen: null },
       team: [],
       span: null,

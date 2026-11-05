@@ -9,7 +9,12 @@ import { type ScenarioBasis, engineInputFor, rosterOf, scenarioView } from "./sc
 // server and in the page (slice 3), so the two never disagree.
 
 const open = {
-  project: { name: "Project 1", client: "Client 1", pricingModel: "time_and_materials" as const },
+  project: {
+    id: "project-1",
+    name: "Project 1",
+    client: "Client 1",
+    pricingModel: "time_and_materials" as const,
+  },
   scenario: { name: "Plan A", chosen: false, otherChosen: null },
   categories: [
     { id: SENIOR, name: "Senior Developer" },

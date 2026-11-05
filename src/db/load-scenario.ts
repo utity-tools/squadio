@@ -217,7 +217,7 @@ export async function loadScenario(
     const frozen = money && structure.chosen ? await readFrozen(tx, scenarioId) : undefined;
     const engine = engineBasis({ pricingModel, config: settings }, money, frozen, structure.roster);
     const basis: ScenarioBasis = {
-      project: { name: structure.project, client: structure.client, pricingModel },
+      project: { id: projectId, name: structure.project, client: structure.client, pricingModel },
       scenario: {
         name: structure.name,
         chosen: structure.chosen,

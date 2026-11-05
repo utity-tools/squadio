@@ -35,7 +35,12 @@ export type TeamAssignment = {
 
 /** The open part: what everyone gets, read only from tables without money (ADR 0005). */
 export type OpenScenario = {
-  project: { name: string; client: string; pricingModel: StoredScenario["pricingModel"] };
+  project: {
+    id: string;
+    name: string;
+    client: string;
+    pricingModel: StoredScenario["pricingModel"];
+  };
   scenario: {
     name: string;
     chosen: boolean;

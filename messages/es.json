@@ -69,7 +69,6 @@
     "details": "Datos del escenario"
   },
   "ScenarioHeader": {
-    "project": "{name} ({client})",
     "chosen": "Elegido",
     "pricingModel": "Modelo de precio",
     "pricingModels": {

@@ -69,7 +69,6 @@
     "details": "Scenario details"
   },
   "ScenarioHeader": {
-    "project": "{name} ({client})",
     "chosen": "Chosen",
     "pricingModel": "Pricing model",
     "pricingModels": {

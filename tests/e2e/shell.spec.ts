@@ -72,6 +72,26 @@ test("the scenario editor starts with the rail, a tooltip on each icon and the t
 
   const trail = page.getByRole("banner").getByRole("navigation", { name: "Ruta de navegación" });
   await expect(trail.getByText("Plan A")).toHaveAttribute("aria-current", "page");
+  // A scenario lives under its project, so the editor sits in Proyectos, which is not its page.
+  await expect(sidebarOf(page).getByRole("link", { name: "Proyectos" })).toHaveAttribute(
+    "aria-current",
+    "true",
+  );
+});
+
+test("on a phone the editor's trail is a link back to the project, in a 56 px bar", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`/scenarios/${GUIDE_SCENARIO}`);
+  await expect(page.getByRole("heading", { level: 1, name: "Plan A" })).toBeVisible();
+
+  const bar = page.getByRole("banner");
+  const trail = bar.getByRole("navigation", { name: "Ruta de navegación" });
+  await expect(trail.getByRole("link", { name: "Customer portal" })).toBeVisible();
+  await expect(trail.getByText("Proyectos")).toBeHidden();
+  await expect(trail.getByText("Plan A")).toBeHidden();
+  expect((await bar.boundingBox())?.height).toBe(56);
 });
 
 test("the editor's choice is its own: unfolding there leaves Inicio as it was", async ({
