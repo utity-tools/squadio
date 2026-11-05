@@ -185,9 +185,13 @@ describe("ledger", () => {
       marginStatus: null,
       warnings: [{ code: "missingRate", categoryIds: ["pm", "devops"] }],
     };
-    const missing = (categories: string[], price = false) => ({
+    const missing = (
+      categories: string[],
+      price = false,
+      rates: "cost" | "sellRate" | "both" = "cost",
+    ) => ({
       state: "undetermined",
-      missing: { categories, price },
+      missing: { categories, rates, price },
     });
     const noRates = missing(["Project Manager", "DevOps Engineer"]);
 
@@ -243,7 +247,13 @@ describe("ledger", () => {
             activePeople: 2,
           },
         ],
-        warnings: [{ code: "missingRate", categories: ["Project Manager", "DevOps Engineer"] }],
+        warnings: [
+          {
+            code: "missingRate",
+            categories: ["Project Manager", "DevOps Engineer"],
+            sellRates: false,
+          },
+        ],
       });
     });
 
@@ -274,6 +284,31 @@ describe("ledger", () => {
       expect(ledger({ ...input, result: withNeither }).headline.netMarginCents).toEqual(
         missing(["DevOps Engineer", "Project Manager"], true),
       );
+    });
+
+    it("says time-and-materials revenue misses the sell rate, and its margins both", () => {
+      // In T&M the sell rates live in the rates: a category without one leaves revenue pending too.
+      const rates = rateOf("pm", "devops");
+      const timeAndMaterials: PartialResult = {
+        ...withoutRates,
+        revenueCents: rates,
+        effectiveRateCents: rates,
+      };
+      const summary = ledger({ ...input, result: timeAndMaterials });
+      const names = ["Project Manager", "DevOps Engineer"];
+
+      expect(summary.figures.revenueCents).toEqual(missing(names, false, "sellRate"));
+      expect(summary.figures.effectiveRateCents).toEqual(missing(names, false, "sellRate"));
+      expect(summary.figures.totalCostCents).toEqual(missing(names, false, "cost"));
+      expect(summary.headline.netMarginCents).toEqual(missing(names, false, "both"));
+      expect(summary.headline.netMarginBasisPoints).toEqual(missing(names, false, "both"));
+      expect(summary.lines.find((line) => line.key === "directMargin")).toMatchObject({
+        cents: missing(names, false, "both"),
+      });
+      expect(summary.categories[0]?.costCents).toEqual(missing(["Project Manager"], false, "cost"));
+      expect(summary.warnings).toEqual([
+        { code: "missingRate", categories: names, sellRates: true },
+      ]);
     });
   });
 

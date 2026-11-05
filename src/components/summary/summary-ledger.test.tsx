@@ -193,8 +193,11 @@ describe("SummaryLedger", () => {
   });
 
   describe("with a partial result", () => {
-    const missing = (categories: string[], price = false) =>
-      ({ state: "undetermined", missing: { categories, price } }) as const;
+    const missing = (
+      categories: string[],
+      price = false,
+      rates: "cost" | "sellRate" | "both" = "cost",
+    ) => ({ state: "undetermined", missing: { categories, rates, price } }) as const;
     const noRates = missing(["DevOps Engineer", "Project Manager"]);
     const all = missing(["DevOps Engineer", "Project Manager"], true);
     // DevOps and the PM without a rate, and no price: the senior's line and the extra cost keep
@@ -233,9 +236,30 @@ describe("SummaryLedger", () => {
         },
       ],
       warnings: [
-        { code: "missingRate", categories: ["DevOps Engineer", "Project Manager"] },
+        {
+          code: "missingRate",
+          categories: ["DevOps Engineer", "Project Manager"],
+          sellRates: false,
+        },
         { code: "missingPrice" },
       ],
+    };
+    // Time and materials: revenue is hours times sell rate, so it misses the sell rates, and the
+    // margins miss both; there is no price to miss.
+    const names = ["DevOps Engineer", "Project Manager"];
+    const timeAndMaterials: Ledger = {
+      ...partial,
+      headline: {
+        ...partial.headline,
+        netMarginCents: missing(names, false, "both"),
+        netMarginBasisPoints: missing(names, false, "both"),
+      },
+      figures: {
+        ...partial.figures,
+        revenueCents: missing(names, false, "sellRate"),
+        effectiveRateCents: missing(names, false, "sellRate"),
+      },
+      warnings: [{ code: "missingRate", categories: names, sellRates: true }],
     };
 
     it("says the net margin is undetermined and what it misses, with no status", () => {
@@ -302,6 +326,30 @@ describe("SummaryLedger", () => {
         ),
       ).toBeInTheDocument();
       expect(screen.getByRole("heading", { name: "Falta el precio" })).toBeVisible();
+    });
+
+    it("says time-and-materials revenue misses the sell rate, and its margins both", () => {
+      renderWithIntl(<SummaryLedger ledger={timeAndMaterials} team={team} />);
+
+      expect(plain(section("Margen neto"))).toContain(
+        "Pendiente Faltan los costes y las tarifas de venta de DevOps Engineer y Project Manager",
+      );
+      const figures = within(section("Cifras clave"));
+      const value = (term: string) => plain(figures.getByText(term).nextElementSibling!);
+      expect(value("Ingresos")).toBe(
+        "Pendiente Faltan las tarifas de venta de DevOps Engineer y Project Manager",
+      );
+      expect(value("Coste total")).toBe(
+        "Pendiente Faltan los costes de DevOps Engineer y Project Manager",
+      );
+      expect(
+        screen.getByRole("heading", { name: "Faltan un coste y una tarifa de venta" }),
+      ).toBeVisible();
+      expect(
+        screen.getByText(
+          "Faltan los costes y las tarifas de venta de DevOps Engineer y Project Manager: el coste de personal, los ingresos y lo que depende de ellos quedan pendientes.",
+        ),
+      ).toBeInTheDocument();
     });
 
     it("speaks English under /en", () => {

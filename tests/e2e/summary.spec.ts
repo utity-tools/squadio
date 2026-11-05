@@ -114,31 +114,34 @@ test("without a category's rate the rail keeps every line it can and names what 
 }) => {
   await page.goto(`/scenarios/${MISSING_RATE_SCENARIO}`);
 
-  const card = warning(page, "Falta un coste");
+  // Time and materials: the category's rate holds its sell rate too, so revenue misses it as well.
+  const card = warning(page, "Faltan un coste y una tarifa de venta");
   await expect(card).toContainText(
-    "Falta el coste de Data Engineer: su coste de personal y lo que depende de él quedan pendientes.",
+    "Faltan el coste y la tarifa de venta de Data Engineer: el coste de personal, los ingresos y lo que depende de ellos quedan pendientes.",
   );
   await expect(card).toHaveClass(/border-status-warn/);
   // T&M: the revenue needs the rate too, so the budget cap is not judged (rule e).
   await expect(rail(page).getByRole("listitem")).toHaveCount(1);
 
   const headline = region(page, "Margen neto");
-  await expect(headline).toContainText("Pendiente Falta el coste de Data Engineer");
+  await expect(headline).toContainText(
+    "Pendiente Faltan el coste y la tarifa de venta de Data Engineer",
+  );
   await expect(headline.getByText(/^(En objetivo|Bajo objetivo|Pérdidas)$/)).toHaveCount(0);
   await expect(headline).not.toContainText("€");
 
   const figures = region(page, "Cifras clave").getByRole("definition");
   await expect(figures).toHaveText([
+    "Pendiente Falta la tarifa de venta de Data Engineer",
     "Pendiente Falta el coste de Data Engineer",
-    "Pendiente Falta el coste de Data Engineer",
-    "Pendiente Falta el coste de Data Engineer",
+    "Pendiente Falta la tarifa de venta de Data Engineer",
     // A senior full time and the Data Engineer at half: 1.5 full-time seats, half of Plan A's three.
     figure("1189,96 h"),
   ]);
 
   // Screen readers hear the state and what is missing as separate words.
   await expect(figures.first()).toMatchAriaSnapshot(
-    `- definition: "Pendiente Falta el coste de Data Engineer"`,
+    `- definition: "Pendiente Falta la tarifa de venta de Data Engineer"`,
   );
 
   // The senior's line keeps its cost; the Data Engineer's says it has no rate.
@@ -187,13 +190,13 @@ test("the warnings speak English under /en", async ({ page }) => {
 
   await page.goto(`/en/scenarios/${MISSING_RATE_SCENARIO}`);
   await expect(
-    summary(page).getByRole("listitem").filter({ hasText: "A cost is missing" }),
+    summary(page).getByRole("listitem").filter({ hasText: "A cost and a sell rate are missing" }),
   ).toContainText(
-    "Missing the cost of Data Engineer: staff cost and what depends on it are pending.",
+    "Missing the cost and sell rate of Data Engineer: staff cost, revenue and what depends on them are pending.",
   );
   await expect(
     summary(page).getByRole("region", { name: "Key figures" }).getByRole("definition").first(),
-  ).toHaveText("Pending Missing the cost of Data Engineer");
+  ).toHaveText("Pending Missing the sell rate of Data Engineer");
 });
 
 for (const [warned, scenario] of [

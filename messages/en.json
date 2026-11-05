@@ -245,6 +245,8 @@
     "notApplicable": "Not applicable",
     "missing": {
       "rate": "{count, plural, one {Missing the cost of {categories}} other {Missing the costs of {categories}}}",
+      "sellRate": "{count, plural, one {Missing the sell rate of {categories}} other {Missing the sell rates of {categories}}}",
+      "rateAndSellRate": "{count, plural, one {Missing the cost and sell rate of {categories}} other {Missing the costs and sell rates of {categories}}}",
       "price": "Missing the price",
       "rateAndPrice": "{count, plural, one {Missing the cost of {categories}} other {Missing the costs of {categories}}}. Missing the price",
       "ownRate": "Missing the cost"
@@ -301,6 +303,10 @@
       "missingRate": {
         "title": "A cost is missing",
         "description": "{count, plural, one {Missing the cost of {categories}} other {Missing the costs of {categories}}}: staff cost and what depends on it are pending."
+      },
+      "missingRateAndSellRate": {
+        "title": "A cost and a sell rate are missing",
+        "description": "{count, plural, one {Missing the cost and sell rate of {categories}} other {Missing the costs and sell rates of {categories}}}: staff cost, revenue and what depends on them are pending."
       },
       "missingPrice": {
         "title": "The price is missing",
