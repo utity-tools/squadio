@@ -123,6 +123,30 @@ function categoryNames(team: readonly Member[]) {
   };
 }
 
+/**
+ * A result line's amount, or what it misses by category name (docs/domain.md, "Partial results").
+ * `nameOf` names a category id, and throws on one it does not know. `rates` says what the
+ * categories miss: the cost, unless the line is built on time-and-materials revenue.
+ */
+export function amountOf(
+  line: number | Undetermined,
+  nameOf: (id: string) => string,
+  rates: MissingRates = "cost",
+): Amount {
+  if (isDetermined(line)) return line;
+  const categories = line.undetermined.flatMap((missing) =>
+    missing.code === "missingRate" ? missing.categoryIds.map(nameOf) : [],
+  );
+  return {
+    state: "undetermined",
+    missing: {
+      categories,
+      rates: categories.length > 0 ? rates : "cost",
+      price: line.undetermined.some((missing) => missing.code === "missingPrice"),
+    },
+  };
+}
+
 /** The summary of a scenario loaded with rate access. */
 export function ledger({
   team,
@@ -143,32 +167,10 @@ export function ledger({
   );
   const effectiveHours = result.hours.effective;
 
-  const amount = (line: number | Undetermined): Amount =>
-    isDetermined(line)
-      ? line
-      : {
-          state: "undetermined",
-          missing: {
-            categories: line.undetermined.flatMap((missing) =>
-              missing.code === "missingRate" ? missing.categoryIds.map(nameOf) : [],
-            ),
-            rates: "cost",
-            price: line.undetermined.some((missing) => missing.code === "missingPrice"),
-          },
-        };
-  /** A line built on revenue: what its categories miss is the sell rate, or both for a margin. */
-  const onRevenue =
-    (rates: MissingRates) =>
-    (line: number | Undetermined): Amount => {
-      const found = amount(line);
-      return typeof found === "number" ||
-        found.state !== "undetermined" ||
-        found.missing.categories.length === 0
-        ? found
-        : { ...found, missing: { ...found.missing, rates } };
-    };
-  const revenue = onRevenue("sellRate");
-  const margin = onRevenue(sellRates ? "both" : "cost");
+  const amount = (line: number | Undetermined): Amount => amountOf(line, nameOf);
+  const revenue = (line: number | Undetermined): Amount => amountOf(line, nameOf, "sellRate");
+  const margin = (line: number | Undetermined): Amount =>
+    amountOf(line, nameOf, sellRates ? "both" : "cost");
   // The engine's null: a margin % without revenue, an effective rate without effective hours.
   const ratio =
     (reason: "noRevenue" | "noEffectiveHours", of: (line: number | Undetermined) => Amount) =>
