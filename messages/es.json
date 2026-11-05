@@ -98,7 +98,10 @@
   "NotFound": {
     "title": "No encontramos esta página",
     "description": "Puede que la dirección esté mal o que la página ya no exista.",
-    "back": "Volver al inicio"
+    "back": "Volver al inicio",
+    "code": "Error 404",
+    "demo": "Abrir la demo",
+    "logo": "Squadio"
   },
   "Theme": {
     "label": "Tema",
