@@ -32,7 +32,7 @@
     "pricingModel": "Modelo de precio",
     "pricingModels": {
       "fixed": "Precio cerrado",
-      "time_and_materials": "T&M"
+      "time_and_materials": "Tiempo y materiales"
     },
     "span": "Duración del proyecto",
     "workingDays": "{count, plural, one {# día laborable} other {# días laborables}}"
