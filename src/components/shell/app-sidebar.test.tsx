@@ -62,10 +62,7 @@ describe("AppSidebar", () => {
     expect(nav).toBeInTheDocument();
     const current = screen.getByRole("link", { name: "Organización" });
     expect(current).toHaveAttribute("aria-current", "page");
-    expect(current).toHaveClass(
-      "aria-[current=page]:bg-selected",
-      "aria-[current=page]:font-semibold",
-    );
+    expect(current).toHaveClass("[&[aria-current]]:bg-selected", "[&[aria-current]]:font-semibold");
     expect(screen.getByRole("link", { name: "Inicio" })).not.toHaveAttribute("aria-current");
   });
 

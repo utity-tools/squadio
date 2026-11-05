@@ -7,6 +7,25 @@
     "tryDemo": "Probar la demo",
     "demoNote": "Todos los nombres y cifras son ficticios. Tus cambios se guardan en una copia solo para ti."
   },
+  "Projects": {
+    "title": "Proyectos",
+    "columns": {
+      "project": "Proyecto",
+      "scenario": "Escenario",
+      "netMargin": "Margen neto",
+      "status": "Estado"
+    },
+    "meta": "{client} · {pricingModel}",
+    "notChosen": "sin elegir",
+    "unchosen": "{count, plural, =0 {Sin escenarios} one {Sin elegir · # escenario} other {Sin elegir · # escenarios}}",
+    "margin": "{amount} · {percent}",
+    "note": "El margen es el del escenario elegido de cada proyecto, o el de su único escenario si no ha elegido ninguno. Los márgenes de proyectos distintos no se suman.",
+    "noRatesNote": "Los márgenes los ven las personas con acceso a tarifas.",
+    "empty": {
+      "title": "Aún no tienes proyectos",
+      "description": "Un proyecto es el encargo de un cliente. Dentro montarás uno o varios escenarios de equipo y verás su coste y su margen."
+    }
+  },
   "NotFound": {
     "title": "No encontramos esta página",
     "description": "Puede que la dirección esté mal o que la página ya no exista.",
@@ -389,6 +408,7 @@
   "Shell": {
     "sections": "Secciones",
     "home": "Inicio",
+    "projects": "Proyectos",
     "organization": "Organización",
     "fold": "Plegar la barra lateral",
     "unfold": "Desplegar la barra lateral",

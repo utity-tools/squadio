@@ -7,6 +7,25 @@
     "tryDemo": "Try the demo",
     "demoNote": "Every name and figure is made up. Your changes are saved to a copy only you can see."
   },
+  "Projects": {
+    "title": "Projects",
+    "columns": {
+      "project": "Project",
+      "scenario": "Scenario",
+      "netMargin": "Net margin",
+      "status": "Status"
+    },
+    "meta": "{client} · {pricingModel}",
+    "notChosen": "not chosen",
+    "unchosen": "{count, plural, =0 {No scenarios} one {Not chosen · # scenario} other {Not chosen · # scenarios}}",
+    "margin": "{amount} · {percent}",
+    "note": "Each project's margin is its chosen scenario's, or its only scenario's when none is chosen. Margins of different projects are not added up.",
+    "noRatesNote": "Margins are visible to people with rate access.",
+    "empty": {
+      "title": "You have no projects yet",
+      "description": "A project is a client's piece of work. Inside it you build one or more team scenarios and see their cost and margin."
+    }
+  },
   "NotFound": {
     "title": "We couldn't find this page",
     "description": "The address may be wrong, or the page may no longer exist.",
@@ -389,6 +408,7 @@
   "Shell": {
     "sections": "Sections",
     "home": "Home",
+    "projects": "Projects",
     "organization": "Organization",
     "fold": "Collapse the sidebar",
     "unfold": "Expand the sidebar",

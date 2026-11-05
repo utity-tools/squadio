@@ -85,18 +85,50 @@ describe("AppShell", () => {
     );
   });
 
-  it("always offers Inicio, then the sections the page adds", () => {
+  it("always offers Inicio and Proyectos, then the sections the page adds", () => {
     renderWithIntl(
-      <AppShell scope="app" home sections={<li>Organización</li>}>
+      <AppShell scope="app" current="home" sections={<li>Organización</li>}>
         <main />
       </AppShell>,
     );
 
     const nav = screen.getByRole("navigation", { name: "Secciones" });
-    const home = within(nav).getByRole("link", { name: "Inicio" });
-    expect(home).toHaveAttribute("href", "/");
-    expect(home).toHaveAttribute("aria-current", "page");
+    const links = within(nav).getAllByRole("link");
+    expect(links.map((link) => [link.textContent, link.getAttribute("href")])).toEqual([
+      ["Inicio", "/"],
+      ["Proyectos", "/projects"],
+    ]);
+    expect(links[0]).toHaveAttribute("aria-current", "page");
+    expect(links[1]).not.toHaveAttribute("aria-current");
     expect(within(nav).getByText("Organización")).toBeInTheDocument();
+  });
+
+  it("marks Proyectos, with lucide's folder, as the current page on the projects list", () => {
+    renderWithIntl(
+      <AppShell scope="app" current="projects">
+        <main />
+      </AppShell>,
+    );
+
+    const nav = screen.getByRole("navigation", { name: "Secciones" });
+    const projects = within(nav).getByRole("link", { name: "Proyectos" });
+    expect(projects).toHaveAttribute("aria-current", "page");
+    expect(projects.querySelector("svg")).toHaveClass("lucide-folder");
+    expect(within(nav).getByRole("link", { name: "Inicio" })).not.toHaveAttribute("aria-current");
+  });
+
+  it("marks Proyectos as the section, not the page, inside a project and in the editor", () => {
+    renderWithIntl(
+      <AppShell scope="editor" current="inside-projects">
+        <main />
+      </AppShell>,
+    );
+
+    const nav = screen.getByRole("navigation", { name: "Secciones" });
+    expect(within(nav).getByRole("link", { name: "Proyectos" })).toHaveAttribute(
+      "aria-current",
+      "true",
+    );
   });
 
   it("names its place, so the sidebar folds or opens as the person left it there", () => {
