@@ -2,7 +2,7 @@
 
 import {
   Building,
-  FolderKanban,
+  Folder,
   House,
   type LucideIcon,
   PanelLeftClose,
@@ -33,7 +33,7 @@ import {
 // only once its page exists: never disabled, never "coming soon".
 const icons = {
   home: House,
-  projects: FolderKanban,
+  projects: Folder,
   people: Users,
   categories: Tags,
   organization: Building,
@@ -123,10 +123,11 @@ type SidebarLinkProps = {
   icon: SidebarIcon;
   label: string;
   /**
-   * The page is this section. The page says so rather than the URL: reading the URL in a client
-   * component would keep every page from prerendering (Cache Components).
+   * The page is this section (`true`, `aria-current="page"`), or a page inside it (`"section"`,
+   * `aria-current="true"`): a project, or the editor, in Proyectos. The page says so rather than the
+   * URL: reading the URL in a client component would keep every page from prerendering.
    */
-  current?: boolean;
+  current?: boolean | "section";
 };
 
 /**
@@ -138,11 +139,12 @@ export function SidebarLink({ href, icon, label, current = false }: SidebarLinkP
   const folded = useFolded(scope);
   const placement = useShellPlacement();
   const Icon = icons[icon];
+  const ariaCurrent = current === true ? "page" : current === "section" ? "true" : undefined;
 
   if (placement === "menu") {
     return (
       <li>
-        <Link href={href} aria-current={current ? "page" : undefined} className={menuItemClass}>
+        <Link href={href} aria-current={ariaCurrent} className={menuItemClass}>
           <Icon aria-hidden />
           <span className="truncate">{label}</span>
         </Link>
@@ -153,8 +155,8 @@ export function SidebarLink({ href, icon, label, current = false }: SidebarLinkP
   const link = (
     <Link
       href={href}
-      aria-current={current ? "page" : undefined}
-      className="flex h-9 items-center gap-2.5 rounded-lg px-2.5 text-sm text-muted-foreground transition-colors duration-(--duration-fast) hover:bg-accent hover:text-foreground aria-[current=page]:bg-selected aria-[current=page]:font-semibold aria-[current=page]:text-selected-foreground motion-reduce:transition-none sidebar-folded:size-10 sidebar-folded:justify-center sidebar-folded:px-0"
+      aria-current={ariaCurrent}
+      className="flex h-9 items-center gap-2.5 rounded-lg px-2.5 text-sm text-muted-foreground transition-colors duration-(--duration-fast) hover:bg-accent hover:text-foreground motion-reduce:transition-none sidebar-folded:size-10 sidebar-folded:justify-center sidebar-folded:px-0 [&[aria-current]]:bg-selected [&[aria-current]]:font-semibold [&[aria-current]]:text-selected-foreground"
     >
       <Icon aria-hidden className="size-4.5 shrink-0" />
       <span className="truncate sidebar-folded:sr-only">{label}</span>

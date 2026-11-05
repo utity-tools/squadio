@@ -69,6 +69,7 @@ export default async function ScenarioPage({
     <ScenarioEditor scenarioId={id} editing={scenario.editing} save={saveScenario}>
       <AppShell
         scope="editor"
+        current="inside-projects"
         organization={
           <Suspense>
             <CurrentOrganization />

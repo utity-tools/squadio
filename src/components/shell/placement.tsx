@@ -19,4 +19,4 @@ export const useShellPlacement = () => use(PlacementContext);
 
 /** A 44 px row of the ☰ menu (`.mitem` in the design's CSS), for links and buttons alike. */
 export const menuItemClass =
-  "flex min-h-11 w-full items-center gap-3 rounded-lg px-2.5 text-[15px] text-foreground transition-colors duration-(--duration-fast) hover:bg-accent aria-[current=page]:bg-selected aria-[current=page]:font-medium aria-[current=page]:text-selected-foreground motion-reduce:transition-none [&_svg]:size-5 [&_svg]:shrink-0 [&_svg]:text-muted-foreground aria-[current=page]:[&_svg]:text-selected-foreground";
+  "flex min-h-11 w-full items-center gap-3 rounded-lg px-2.5 text-[15px] text-foreground transition-colors duration-(--duration-fast) hover:bg-accent [&[aria-current]]:bg-selected [&[aria-current]]:font-medium [&[aria-current]]:text-selected-foreground motion-reduce:transition-none [&_svg]:size-5 [&_svg]:shrink-0 [&_svg]:text-muted-foreground [&[aria-current]_svg]:text-selected-foreground";

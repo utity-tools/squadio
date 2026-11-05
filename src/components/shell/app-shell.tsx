@@ -19,9 +19,12 @@ type AppShellProps = {
   crumbs?: ReactNode;
   /** The account corner, which reads the request: render it inside Suspense. */
   account?: ReactNode;
-  /** The page is Inicio: its section is marked current. */
-  home?: boolean;
-  /** Sections after Inicio, as `SidebarLink`s: only those whose page exists. */
+  /**
+   * The section the page belongs to: Inicio, Proyectos, or a page inside Proyectos (a project, the
+   * editor), whose section is marked without being the current page.
+   */
+  current?: "home" | "projects" | "inside-projects";
+  /** Sections after Inicio and Proyectos, as `SidebarLink`s: only those whose page exists. */
   sections?: ReactNode;
   children: ReactNode;
 };
@@ -37,14 +40,20 @@ export function AppShell({
   organization,
   crumbs,
   account,
-  home,
+  current,
   sections,
   children,
 }: AppShellProps) {
   const t = useTranslations("Shell");
   const nav = (
     <>
-      <SidebarLink href="/" icon="home" label={t("home")} current={home} />
+      <SidebarLink href="/" icon="home" label={t("home")} current={current === "home"} />
+      <SidebarLink
+        href="/projects"
+        icon="projects"
+        label={t("projects")}
+        current={current === "projects" || (current === "inside-projects" && "section")}
+      />
       {sections}
     </>
   );
