@@ -21,7 +21,7 @@ test("a demo scenario opens with its header, team and summary", async ({ page })
     "href",
     "/projects/6d656d6f-0000-4000-8000-000000000100",
   );
-  await expect(page.getByText("Precio cerrado")).toBeVisible();
+  await expect(page.getByText("Precio cerrado", { exact: true })).toBeVisible();
   await expect(page.getByText("130 días laborables")).toBeVisible();
   await expect(page.getByRole("main", { name: "Equipo" })).toBeVisible();
   await expect(page.getByRole("complementary", { name: "Resumen" })).toBeVisible();
@@ -49,7 +49,7 @@ test("the scenario page speaks English under /en", async ({ page }) => {
 
   await expect(page.getByRole("main", { name: "Team" })).toBeVisible();
   await expect(page.getByRole("navigation", { name: "Breadcrumb" })).toBeVisible();
-  await expect(page.getByText("Fixed price")).toBeVisible();
+  await expect(page.getByText("Fixed price", { exact: true })).toBeVisible();
   await expect(page.getByText("130 working days")).toBeVisible();
 });
 

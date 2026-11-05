@@ -8,7 +8,7 @@ import { type ScenarioSummaryProps, ScenarioSummary } from "./scenario-summary";
 
 const hours = { nominal: 2860, effective: 2181.59 };
 
-const open = { team: guideTeam, span: guideSpan };
+const open = { team: guideTeam, span: guideSpan, project: { pricingModel: "fixed" as const } };
 
 const noPrice = { undetermined: [{ code: "missingPrice" as const }] };
 
@@ -48,8 +48,7 @@ describe("ScenarioSummary", () => {
     renderWithIntl(<ScenarioSummary scenario={scenario} />);
 
     expect(screen.getByRole("region", { name: "Margen neto" })).toBeInTheDocument();
-    expect(screen.getByText("3 personas")).toBeInTheDocument();
-    expect(screen.getByText("1 vacante")).toBeInTheDocument();
+    expect(screen.getByText("3 + 1 vacante")).toBeInTheDocument();
   });
 
   it("shows team and hours without rate access, with no euro sign", () => {

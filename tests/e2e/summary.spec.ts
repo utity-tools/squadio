@@ -16,9 +16,16 @@ const region = (page: Page, name: string) => rail(page).getByRole("region", { na
 const warning = (page: Page, title: string) =>
   rail(page)
     .getByRole("listitem")
-    .filter({ has: page.getByRole("heading", { level: 2, name: title }) });
+    .filter({ has: page.getByRole("heading", { level: 3, name: title }) });
 /** Intl separates figures from their units with no-break spaces. */
 const figure = (text: string) => new RegExp(text.replaceAll(" ", "[\\s\\u00a0\\u202f]"));
+/** Staff cost by category is folded under its count: open it to read it. */
+async function categoryTable(page: Page) {
+  await rail(page)
+    .getByText(/^Coste de personal por categoría \(\d+\)$/)
+    .click();
+  return rail(page).getByRole("table", { name: "Coste de personal por categoría" });
+}
 
 test("the rail leads with the net margin, its status and the key figures", async ({ page }) => {
   await page.goto(`/scenarios/${GUIDE_SCENARIO}`);
@@ -28,32 +35,30 @@ test("the rail leads with the net margin, its status and the key figures", async
   await expect(headline).toContainText(figure("31,7 %"));
   await expect(headline.getByText("En objetivo")).toBeVisible();
   await expect(headline).toContainText(figure("objetivo 25 %"));
+  await expect(headline).toContainText(figure("Coste total 68,3 %"));
+  await expect(rail(page).getByText("Completo · 9 de 9 líneas")).toBeVisible();
 
-  const figures = region(page, "Cifras clave");
-  await expect(figures).toContainText(figure("200.000 €"));
-  await expect(figures).toContainText(figure("136.644 €"));
-  await expect(figures).toContainText(figure("84,04 €/h"));
-  await expect(figures).toContainText(figure("2379,92 h"));
-  await expect(figures).toContainText("3 personas · 1 vacante");
+  const figures = region(page, "Cifras clave").getByRole("definition");
+  await expect(figures).toHaveText([figure("84,04 €/h"), figure("2379,92 h"), "3 + 1 vacante"]);
 });
 
 test("the rail lists the result lines and staff cost by category", async ({ page }) => {
   await page.goto(`/scenarios/${GUIDE_SCENARIO}`);
 
-  const lines = region(page, "Desglose").getByRole("rowheader");
+  const lines = region(page, "Cuenta de resultados").getByRole("rowheader");
   await expect(lines).toHaveText([
-    "Coste de personal (2379,92 h efectivas)",
-    "Cloud",
-    "Coste directo",
-    figure("Overhead \\(15 %\\)"),
-    figure("Buffer \\(10 %\\)"),
-    "Coste total",
-    "Ingresos",
+    "Ingresos · precio cerrado",
+    figure("Coste de personal · 2379,92 h"),
+    "Cloud · coste extra mensual",
+    "Subtotal Coste directo",
     "Margen directo",
+    figure("Overhead · 15 %"),
+    figure("Buffer · 10 %"),
+    "Subtotal Coste total",
     "Margen neto",
   ]);
 
-  const categories = rail(page).getByRole("table", { name: "Coste de personal por categoría" });
+  const categories = await categoryTable(page);
   await expect(categories.getByRole("rowheader")).toHaveText([
     "Project Manager",
     "Senior Developer",
@@ -61,8 +66,9 @@ test("the rail lists the result lines and staff cost by category", async ({ page
     "DevOps Engineer",
   ]);
   // DevOps has two active people: its rate reveals a salary (rule j).
-  const devOps = categories.getByRole("rowgroup").filter({ hasText: "DevOps Engineer" });
-  await expect(devOps).toContainText("Categoría pequeña: su coste puede revelar un salario");
+  await expect(
+    categories.getByRole("row").filter({ hasText: "DevOps Engineer" }).locator("+ tr"),
+  ).toHaveText("Categoría pequeña: su coste puede revelar un salario");
 });
 
 test("without rate access the page shows team and hours and sends no money", async ({ page }) => {
@@ -105,8 +111,9 @@ test("a T&M scenario above its budget cap warns and keeps its margin", async ({ 
   const headline = region(page, "Margen neto");
   await expect(headline).not.toContainText("Pendiente");
   await expect(headline.getByText(/^(En objetivo|Bajo objetivo|Pérdidas)$/)).toBeVisible();
-  await expect(region(page, "Cifras clave")).toContainText(figure("51.565 €"));
-  await expect(region(page, "Desglose")).toBeVisible();
+  await expect(
+    region(page, "Cuenta de resultados").getByRole("row").filter({ hasText: "Ingresos" }),
+  ).toContainText(figure("51.565 €"));
 });
 
 test("without a category's rate the rail keeps every line it can and names what is missing", async ({
@@ -124,19 +131,20 @@ test("without a category's rate the rail keeps every line it can and names what 
   await expect(rail(page).getByRole("listitem")).toHaveCount(1);
 
   const headline = region(page, "Margen neto");
-  await expect(headline).toContainText(
-    "Pendiente Faltan el coste y la tarifa de venta de Data Engineer",
-  );
+  await expect(headline.getByText("Pendiente", { exact: true })).toBeVisible();
+  await expect(
+    headline.getByText("Faltan el coste y la tarifa de venta de Data Engineer"),
+  ).toBeVisible();
+  await expect(rail(page).getByText("Parcial · 0 de 8 líneas")).toBeVisible();
   await expect(headline.getByText(/^(En objetivo|Bajo objetivo|Pérdidas)$/)).toHaveCount(0);
   await expect(headline).not.toContainText("€");
 
   const figures = region(page, "Cifras clave").getByRole("definition");
   await expect(figures).toHaveText([
     "Pendiente Falta la tarifa de venta de Data Engineer",
-    "Pendiente Falta el coste de Data Engineer",
-    "Pendiente Falta la tarifa de venta de Data Engineer",
     // A senior full time and the Data Engineer at half: 1.5 full-time seats, half of Plan A's three.
     figure("1189,96 h"),
+    "1 + 1 vacante",
   ]);
 
   // Screen readers hear the state and what is missing as separate words.
@@ -145,14 +153,14 @@ test("without a category's rate the rail keeps every line it can and names what 
   );
 
   // The senior's line keeps its cost; the Data Engineer's says it has no rate.
-  const categories = rail(page).getByRole("table", { name: "Coste de personal por categoría" });
-  const group = (name: string) => categories.getByRole("rowgroup").filter({ hasText: name });
+  const categories = await categoryTable(page);
+  const group = (name: string) => categories.getByRole("row").filter({ hasText: name });
   await expect(group("Senior Developer")).toContainText(figure("\\d[\\d.]* €"));
   await expect(group("Data Engineer")).toContainText("Pendiente Falta el coste");
   await expect(group("Data Engineer")).not.toContainText("€");
-  await expect(region(page, "Desglose").getByRole("row").first()).toContainText(
-    "Pendiente Falta el coste de Data Engineer",
-  );
+  await expect(
+    region(page, "Cuenta de resultados").getByRole("row").filter({ hasText: "Coste de personal" }),
+  ).toContainText("Pendiente Falta el coste de Data Engineer");
 });
 
 test("without a fixed price the rail keeps every cost and leaves revenue and margin undetermined", async ({
@@ -165,16 +173,12 @@ test("without a fixed price the rail keeps every cost and leaves revenue and mar
     "El proyecto es de precio cerrado y no tiene precio: los ingresos, el margen y lo que depende de ellos quedan pendientes.",
   );
   await expect(rail(page).getByRole("listitem")).toHaveCount(1);
-  await expect(region(page, "Margen neto")).toContainText("Pendiente Falta el precio");
+  await expect(region(page, "Margen neto").getByText("Falta el precio")).toBeVisible();
 
   const figures = region(page, "Cifras clave").getByRole("definition");
-  await expect(figures).toHaveText([
-    "Pendiente Falta el precio",
-    figure("24.842 €"),
-    "Pendiente Falta el precio",
-    figure("793,31 h"),
-  ]);
-  const lines = region(page, "Desglose").getByRole("row");
+  await expect(figures.first()).toHaveText("Pendiente Falta el precio");
+  await expect(figures.nth(1)).toHaveText(figure("793,31 h"));
+  const lines = region(page, "Cuenta de resultados").getByRole("row");
   await expect(lines.filter({ hasText: "Coste total" })).toContainText(figure("24.842 €"));
   await expect(lines.filter({ hasText: "Ingresos" })).toContainText("Pendiente Falta el precio");
   await expect(lines.filter({ hasText: "Margen neto" })).toContainText("Pendiente Falta el precio");
