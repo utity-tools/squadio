@@ -145,6 +145,14 @@
     "refused": "No se han podido guardar los cambios",
     "reload": "Recargar"
   },
+  "SaveDialog": {
+    "conflict": "Ha cambiado en otra pestaña. Recarga para ver la última versión; los cambios de esta pestaña que no se guardaron se pierden.",
+    "gone": "Las copias de la demo se borran tras 30 días sin usarse. Puedes empezar otra desde los datos de ejemplo.",
+    "limit": "Hoy no se pueden crear más copias de la demo. Vuelve a intentarlo mañana. Puedes seguir mirando la demo sin guardar.",
+    "home": "Ir al inicio",
+    "demo": "Abrir la demo",
+    "keepLooking": "Seguir sin guardar"
+  },
   "ScenarioChoice": {
     "choose": {
       "button": "Elegir escenario",

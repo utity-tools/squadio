@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import type { SaveStatus as Status } from "@/lib/scenarios/store";
 
 import { useScenarioStore } from "./scenario-editor";
+import { SaveStoppedDialog } from "./save-stopped-dialog";
 
 /** What each status says, and what the person can do about it. */
 const SHOWN = {
@@ -46,7 +47,8 @@ function useWarnBeforeLeaving(warn: boolean) {
  * or why it stopped, with a retry after a failed save and a reload when saving cannot go on. Only
  * the problems are a status region: saving and saved, after every step, would bury the summary's
  * announcement. A save cannot be forced when the page closes, so the browser warns while changes
- * wait to be saved; once saving has stopped, nothing more can be saved, and it does not.
+ * wait to be saved; once saving has stopped, nothing more can be saved, and it does not. When it
+ * stops for good, a window interrupts too, with what the person can do.
  */
 export function SaveStatus() {
   const t = useTranslations("SaveStatus");
@@ -95,6 +97,7 @@ export function SaveStatus() {
           {t("reload")}
         </Button>
       )}
+      <SaveStoppedDialog status={status} />
     </div>
   );
 }
