@@ -247,7 +247,9 @@ rounded lines, so filling in the missing data never changes the lines that were 
 invariant below). The overflow check of [Formulas](#formulas) applies to determined lines; filling
 in the data can still make the whole result fail with it. A subtotal of the determined lines is
 never shown as a total: where the total is undetermined, the UI says what is missing (each category
-without a rate, the missing price) instead. The complete result, with every line determined, keeps
+without a rate, the missing price) instead. A category's rate holds its cost and its sell rate, and
+the UI names the one each line needs: the cost for cost lines, the sell rate for T&M revenue and the
+effective rate, and both for a T&M margin («Falta el coste de …», «Falta la tarifa de venta de …»). The complete result, with every line determined, keeps
 the guide case and the invariants as its tests.
 
 Choosing is unchanged: a missing rate still blocks it and a missing price does not

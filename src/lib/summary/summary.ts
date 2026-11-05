@@ -34,12 +34,22 @@ export type SummaryInput = {
 };
 
 /**
+ * What the categories of a pending line miss: their cost, their sell rate (time-and-materials
+ * revenue, and the effective rate), or both (a margin in time and materials). A category's cost and
+ * sell rate live in one rate today, so the engine reports them as one; the line says which it needs.
+ */
+export type MissingRates = "cost" | "sellRate" | "both";
+
+/**
  * A result line's amount, or why it has none (docs/domain.md, "Partial results"): undetermined
  * names what is missing, by category name; not applicable says why it has no meaning.
  */
 export type Amount =
   | number
-  | { state: "undetermined"; missing: { categories: string[]; price: boolean } }
+  | {
+      state: "undetermined";
+      missing: { categories: string[]; rates: MissingRates; price: boolean };
+    }
   | { state: "notApplicable"; reason: "noRevenue" | "noEffectiveHours" };
 
 /** A result line, in the order of the calculation, rounded once as the engine returns it. */
@@ -68,9 +78,12 @@ export type CategoryLine = {
   activePeople: 1 | 2 | null;
 };
 
-/** The engine's warnings, with category names instead of ids. */
+/**
+ * The engine's warnings, with category names instead of ids. A missing rate's `sellRates` says the
+ * revenue misses them too, as it does in time and materials.
+ */
 export type SummaryWarning =
-  | { code: "missingRate"; categories: string[] }
+  | { code: "missingRate"; categories: string[]; sellRates: boolean }
   | { code: "missingPrice" }
   | { code: "budgetCapExceeded"; revenueCents: number; budgetCapCents: number };
 
@@ -119,9 +132,13 @@ export function ledger({
   extraCosts,
 }: SummaryInput): Ledger {
   const nameOf = categoryNames(team);
+  // Revenue misses a rate only in time and materials, where it is hours times sell rate.
+  const sellRates =
+    !isDetermined(result.revenueCents) &&
+    result.revenueCents.undetermined.some((missing) => missing.code === "missingRate");
   const warnings = result.warnings.map((warning): SummaryWarning =>
     warning.code === "missingRate"
-      ? { code: "missingRate", categories: warning.categoryIds.map(nameOf) }
+      ? { code: "missingRate", categories: warning.categoryIds.map(nameOf), sellRates }
       : warning,
   );
   const effectiveHours = result.hours.effective;
@@ -135,30 +152,44 @@ export function ledger({
             categories: line.undetermined.flatMap((missing) =>
               missing.code === "missingRate" ? missing.categoryIds.map(nameOf) : [],
             ),
+            rates: "cost",
             price: line.undetermined.some((missing) => missing.code === "missingPrice"),
           },
         };
+  /** A line built on revenue: what its categories miss is the sell rate, or both for a margin. */
+  const onRevenue =
+    (rates: MissingRates) =>
+    (line: number | Undetermined): Amount => {
+      const found = amount(line);
+      return typeof found === "number" ||
+        found.state !== "undetermined" ||
+        found.missing.categories.length === 0
+        ? found
+        : { ...found, missing: { ...found.missing, rates } };
+    };
+  const revenue = onRevenue("sellRate");
+  const margin = onRevenue(sellRates ? "both" : "cost");
   // The engine's null: a margin % without revenue, an effective rate without effective hours.
   const ratio =
-    (reason: "noRevenue" | "noEffectiveHours") =>
+    (reason: "noRevenue" | "noEffectiveHours", of: (line: number | Undetermined) => Amount) =>
     (line: number | null | Undetermined): Amount =>
-      line === null ? { state: "notApplicable", reason } : amount(line);
-  const marginPercent = ratio("noRevenue");
+      line === null ? { state: "notApplicable", reason } : of(line);
+  const marginPercent = ratio("noRevenue", margin);
 
   const extraOf = new Map(extraCosts.map((extra) => [extra.id, extra]));
   const small = new Map(smallCategories.map((line) => [line.categoryId, line.activePeople]));
   return {
     headline: {
-      netMarginCents: amount(result.netMarginCents),
+      netMarginCents: margin(result.netMarginCents),
       netMarginBasisPoints: marginPercent(result.netMarginBasisPoints),
       // The engine's, as docs/domain.md defines it: never judged a second time here.
       status: result.marginStatus,
       targetMarginBasisPoints: settings.targetMarginBasisPoints,
     },
     figures: {
-      revenueCents: amount(result.revenueCents),
+      revenueCents: revenue(result.revenueCents),
       totalCostCents: amount(result.totalCostCents),
-      effectiveRateCents: ratio("noEffectiveHours")(result.effectiveRateCents),
+      effectiveRateCents: ratio("noEffectiveHours", revenue)(result.effectiveRateCents),
       effectiveHours,
     },
     lines: [
@@ -182,15 +213,15 @@ export function ledger({
       },
       { key: "buffer", cents: amount(result.bufferCents), basisPoints: settings.bufferBasisPoints },
       { key: "totalCost", cents: amount(result.totalCostCents) },
-      { key: "revenue", cents: amount(result.revenueCents) },
+      { key: "revenue", cents: revenue(result.revenueCents) },
       {
         key: "directMargin",
-        cents: amount(result.directMarginCents),
+        cents: margin(result.directMarginCents),
         basisPoints: marginPercent(result.directMarginBasisPoints),
       },
       {
         key: "netMargin",
-        cents: amount(result.netMarginCents),
+        cents: margin(result.netMarginCents),
         basisPoints: marginPercent(result.netMarginBasisPoints),
       },
     ],

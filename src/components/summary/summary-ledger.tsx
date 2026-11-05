@@ -313,10 +313,13 @@ function SummaryWarnings({ warnings }: { warnings: SummaryWarning[] }) {
   const format = useFormatter();
   const { euros } = useSummaryFormat();
 
+  // In time and materials a category without a rate leaves revenue pending too: its sell rate.
+  const key = (warning: SummaryWarning) =>
+    warning.code === "missingRate" && warning.sellRates ? "missingRateAndSellRate" : warning.code;
   const description = (warning: SummaryWarning) => {
     switch (warning.code) {
       case "missingRate":
-        return t("missingRate.description", {
+        return t(`${key(warning)}.description`, {
           categories: format.list(warning.categories),
           count: warning.categories.length,
         });
@@ -339,7 +342,7 @@ function SummaryWarnings({ warnings }: { warnings: SummaryWarning[] }) {
         >
           <TriangleAlertIcon aria-hidden className="size-5 shrink-0 text-status-warn" />
           <div className="flex flex-col gap-1">
-            <h2 className="text-sm font-semibold">{t(`${warning.code}.title`)}</h2>
+            <h2 className="text-sm font-semibold">{t(`${key(warning)}.title`)}</h2>
             <p className="text-sm">{description(warning)}</p>
           </div>
         </li>

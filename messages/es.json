@@ -245,6 +245,8 @@
     "notApplicable": "No aplicable",
     "missing": {
       "rate": "{count, plural, one {Falta el coste de {categories}} other {Faltan los costes de {categories}}}",
+      "sellRate": "{count, plural, one {Falta la tarifa de venta de {categories}} other {Faltan las tarifas de venta de {categories}}}",
+      "rateAndSellRate": "{count, plural, one {Faltan el coste y la tarifa de venta de {categories}} other {Faltan los costes y las tarifas de venta de {categories}}}",
       "price": "Falta el precio",
       "rateAndPrice": "{count, plural, one {Falta el coste de {categories}} other {Faltan los costes de {categories}}}. Falta el precio",
       "ownRate": "Falta el coste"
@@ -301,6 +303,10 @@
       "missingRate": {
         "title": "Falta un coste",
         "description": "{count, plural, one {Falta el coste de {categories}} other {Faltan los costes de {categories}}}: su coste de personal y lo que depende de él quedan pendientes."
+      },
+      "missingRateAndSellRate": {
+        "title": "Faltan un coste y una tarifa de venta",
+        "description": "{count, plural, one {Faltan el coste y la tarifa de venta de {categories}} other {Faltan los costes y las tarifas de venta de {categories}}}: el coste de personal, los ingresos y lo que depende de ellos quedan pendientes."
       },
       "missingPrice": {
         "title": "Falta el precio",

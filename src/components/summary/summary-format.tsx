@@ -46,7 +46,10 @@ export function useWhyNoAmount() {
     }
     if (ownRate) return t("missing.ownRate");
     const values = { categories: format.list(categories), count: categories.length };
-    return price ? t("missing.rateAndPrice", values) : t("missing.rate", values);
+    // Only a fixed price can be missing, and its revenue never misses a rate: the rates are costs.
+    if (price) return t("missing.rateAndPrice", values);
+    const key = { cost: "rate", sellRate: "sellRate", both: "rateAndSellRate" } as const;
+    return t(`missing.${key[amount.missing.rates]}`, values);
   };
 }
 
