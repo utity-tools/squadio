@@ -244,8 +244,8 @@ describe("SummaryLedger", () => {
     expect(screen.getByRole("rowheader", { name: /^Overhead\s15\s%$/ })).toBeVisible();
     expect(screen.getByRole("rowheader", { name: "Subtotal Coste total" })).toBeVisible();
 
-    await userEvent.click(screen.getByRole("button", { name: "Qué es: Overhead" }));
-    const tip = screen.getByRole("dialog", { name: "Overhead" });
+    await userEvent.hover(screen.getByRole("button", { name: "Qué es: Overhead" }));
+    const tip = await screen.findByRole("tooltip");
     expect(tip).toHaveTextContent("Se reparten como un porcentaje del coste de personal.");
     expect(tip).toHaveTextContent("overhead % × coste de personal");
     await expectNoAxeViolations();

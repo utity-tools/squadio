@@ -97,12 +97,14 @@ export function Figure({
   children: ReactNode;
 }) {
   return (
-    <div className="flex min-w-0 flex-col gap-0.5">
-      <dt className="text-xs text-muted-foreground">
-        {term}
+    <div className="flex flex-col gap-0.5">
+      <dt className="text-xs whitespace-nowrap text-muted-foreground">
         {info && <TermInfo term={info} name={term} />}
+        {term}
       </dt>
-      <dd className={cn("font-semibold tabular-nums", mono && "font-mono")}>{children}</dd>
+      <dd className={cn("font-semibold whitespace-nowrap tabular-nums", mono && "font-mono")}>
+        {children}
+      </dd>
     </div>
   );
 }
