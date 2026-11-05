@@ -2,6 +2,9 @@ import { screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import type { Ledger, TeamSummary } from "@/lib/summary/summary";
+import userEvent from "@testing-library/user-event";
+
+import { expectNoAxeViolations } from "@/test/axe";
 import { renderWithIntl } from "@/test/render";
 
 import { SummaryLedger } from "./summary-ledger";
@@ -202,6 +205,33 @@ describe("SummaryLedger", () => {
       "Subtotal Coste total95.700 €",
       "Margen neto54.300 € · 36,2 %",
     ]);
+  });
+
+  it("explains each term of the statement and the figures in an «i», but not extra costs", async () => {
+    renderWithIntl(<SummaryLedger ledger={complete} team={team} pricingModel="fixed" />);
+
+    const named = screen
+      .getAllByRole("button", { name: /^Qué es: / })
+      .map((button) => button.getAttribute("aria-label"));
+    expect(named).toEqual([
+      "Qué es: Margen neto",
+      "Qué es: Tarifa efectiva",
+      "Qué es: Horas efectivas",
+      "Qué es: Ingresos",
+      "Qué es: Coste de personal",
+      "Qué es: Coste directo",
+      "Qué es: Margen directo",
+      "Qué es: Overhead",
+      "Qué es: Buffer",
+      "Qué es: Coste total",
+      "Qué es: Margen neto",
+    ]);
+
+    await userEvent.click(screen.getByRole("button", { name: "Qué es: Overhead" }));
+    const tip = screen.getByRole("dialog", { name: "Overhead" });
+    expect(tip).toHaveTextContent("Se reparten como un porcentaje del coste de personal.");
+    expect(tip).toHaveTextContent("overhead % × coste de personal");
+    await expectNoAxeViolations();
   });
 
   it("says how time-and-materials revenue is made", () => {
