@@ -1,21 +1,15 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { AppShell } from "@/components/shell/app-shell";
+import { PageError } from "@/components/shell/page-error";
 
-import { Button } from "@/components/ui/button";
-
-// A scenario that cannot be read (the database is down, a stored row is invalid). Never a
-// silent or partial result: the page says so and offers to try again.
-export default function ScenarioError({ retry }: { error: unknown; retry: () => void }) {
-  const t = useTranslations("ScenarioError");
-
+// A scenario that cannot be read (the database is down, a stored row is invalid): never a silent
+// or partial result. The frame stays; the way out is the start page, which the demo's visitors
+// can also open.
+export default function ScenarioError({ error, retry }: { error: unknown; retry: () => void }) {
   return (
-    <main className="flex flex-1 flex-col items-center justify-center gap-4 p-8 text-center">
-      <h1 className="text-2xl font-semibold tracking-tight">{t("title")}</h1>
-      <p className="max-w-md text-muted-foreground">{t("description")}</p>
-      <Button variant="outline" onClick={() => retry()}>
-        {t("retry")}
-      </Button>
-    </main>
+    <AppShell scope="editor" current="inside-projects">
+      <PageError error={error} retry={retry} of="scenario" exit="start" />
+    </AppShell>
   );
 }
