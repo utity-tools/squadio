@@ -4,7 +4,8 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { memberAccessContext } from "@/db/access";
 import { copyOrganization } from "@/db/copy-organization";
 import { DEMO_IDS, DEMO_ORGANIZATION_ID, seedDemo } from "@/db/demo-seed";
-import { loadPortfolio } from "@/db/load-portfolio";
+import { loadPortfolio, loadProject } from "@/db/load-portfolio";
+import { memberProjectContext } from "@/db/project-context";
 import { loadScenario } from "@/db/load-scenario";
 import type { AccessContext } from "@/db/tenant";
 import { categoryOccupancy } from "@/lib/bench/category-occupancy";
@@ -194,5 +195,64 @@ describe("loadPortfolio", () => {
 
   it("refuses a day that is not a date", async () => {
     await expect(loadPortfolio(app, withRates, "today")).rejects.toThrow();
+  });
+});
+
+describe("loadProject", () => {
+  it("gives one project as the portfolio gives it", async () => {
+    const portfolio = await loadPortfolio(app, withRates, SOME_DAY);
+    const loaded = await loadProject(app, withRates, DEMO_IDS.project, SOME_DAY);
+
+    expect(loaded?.project).toEqual(portfolio.projects.find((p) => p.id === DEMO_IDS.project));
+    expect(loaded?.project.scenarios.map((scenario) => scenario.name)).toEqual([
+      "Plan A",
+      "Plan B",
+    ]);
+    expect(loaded?.categories).toEqual(portfolio.categories);
+  });
+
+  it("gives no price and no money without rate access", async () => {
+    const loaded = await loadProject(app, withoutRates, DEMO_IDS.project, SOME_DAY);
+
+    expect(loaded?.project.price).toBeNull();
+    expect(loaded?.project.scenarios.every((scenario) => scenario.money === null)).toBe(true);
+  });
+
+  it("finds no project of another organization, or that does not exist", async () => {
+    const context = memberAccessContext({ organizationId: copy, capabilities: owner });
+
+    expect(await loadProject(app, context, DEMO_IDS.project, SOME_DAY)).toBeNull();
+    expect(await loadProject(app, context, copyId(DEMO_IDS.project, other), SOME_DAY)).toBeNull();
+    expect(
+      await loadProject(app, context, copyId(DEMO_IDS.project, copy), SOME_DAY),
+    ).not.toBeNull();
+  });
+
+  it("refuses an id that is not a UUID", async () => {
+    await expect(loadProject(app, withRates, "portal", SOME_DAY)).rejects.toThrow();
+  });
+});
+
+describe("memberProjectContext", () => {
+  const member = () => ({ organizationId: copy, capabilities: owner });
+
+  it("gives a member their own context for a project their organization holds", async () => {
+    const id = copyId(DEMO_IDS.project, copy);
+
+    expect(await memberProjectContext(app, member(), id)).toEqual({
+      organizationId: copy,
+      rateAccess: true,
+    });
+    expect(await memberProjectContext(app, member(), id, { access: "none" })).toEqual({
+      organizationId: copy,
+      rateAccess: false,
+    });
+  });
+
+  it("gives none for the demo, another organization's project or an id that is not a UUID", async () => {
+    expect(await memberProjectContext(app, member(), DEMO_IDS.project)).toBeNull();
+    expect(await memberProjectContext(app, member(), copyId(DEMO_IDS.project, other))).toBeNull();
+    expect(await memberProjectContext(app, member(), "portal")).toBeNull();
+    expect(await memberProjectContext(app, null, copyId(DEMO_IDS.project, copy))).toBeNull();
   });
 });

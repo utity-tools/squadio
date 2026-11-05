@@ -4,7 +4,7 @@ import { z } from "zod";
 
 import { categoryOccupancy } from "@/lib/bench/category-occupancy";
 import { occupancy } from "@/lib/bench/occupancy";
-import type { Portfolio, PortfolioScenario } from "@/lib/portfolio/portfolio";
+import type { Portfolio, PortfolioProject, PortfolioScenario } from "@/lib/portfolio/portfolio";
 import type { Member } from "@/lib/scenarios/change";
 import type { FrozenValues } from "@/lib/scenarios/engine-input";
 import { type ScenarioBasis, scenarioView } from "@/lib/scenarios/scenario-view";
@@ -181,81 +181,117 @@ export async function loadPortfolio(
   today: string,
 ): Promise<Portfolio> {
   const day = z.iso.date().parse(today);
+  return withOrganization(db, context, (tx) => portfolioIn(tx, context, day));
+}
+
+/** One project, with the organization's categories, which name what a pending margin misses. */
+export type LoadedProject = { project: PortfolioProject; categories: Portfolio["categories"] };
+
+/**
+ * One project of the organization, costed as `loadPortfolio` costs it, or null when the
+ * organization has no project with that id. Throws a ZodError on an id that is not a UUID.
+ */
+export async function loadProject(
+  db: NodePgDatabase,
+  context: AccessContext,
+  projectIdInput: string,
+  today: string,
+): Promise<LoadedProject | null> {
+  const projectId = z.uuid().parse(projectIdInput);
+  const day = z.iso.date().parse(today);
   return withOrganization(db, context, async (tx) => {
-    const structure = await readStructure(tx);
-    const money = context.rateAccess ? await readMoney(tx) : null;
+    const { projects, categories } = await portfolioIn(tx, context, day, projectId);
+    const [project] = projects;
+    return project ? { project, categories } : null;
+  });
+}
 
-    // Occupancy holds no money, so everyone reads it (domain, "How busy a person is").
-    const chosen = new Set(structure.scenarios.filter((s) => s.chosen).map((s) => s.id));
-    const busy = occupancy(
-      structure.team.filter((member) => chosen.has(member.scenarioId)),
-      day,
-    );
-    const roster = structure.people.map((person) => ({
-      ...person,
-      occupancy: busy.get(person.id) ?? 0,
-    }));
+/**
+ * The portfolio inside a tenant transaction: every project, or only `projectId`'s. The rows read
+ * are the organization's either way; only the scenarios shown are costed.
+ */
+async function portfolioIn(
+  tx: TenantTransaction,
+  context: AccessContext,
+  day: string,
+  projectId?: string,
+): Promise<Portfolio> {
+  const structure = await readStructure(tx);
+  const money = context.rateAccess ? await readMoney(tx) : null;
 
-    const costed = (
-      project: (typeof structure.projects)[number],
-      scenario: (typeof structure.scenarios)[number],
-    ): PortfolioScenario => {
-      if (!structure.config) throw new Error("The organization has no config");
-      const team: Member[] = structure.team
-        .filter((member) => member.scenarioId === scenario.id)
-        .map((member) => ({
-          id: member.id,
-          projectRole: member.projectRole,
-          categoryId: member.categoryId,
-          personId: member.personId,
-          reportsTo: member.reportsTo,
-          weeklyHours: member.weeklyHours,
-          allocation: member.allocation,
-          startDate: member.startDate,
-          endDate: member.endDate,
-        }));
-      const own = money && moneyOf(money, project.id, scenario.id);
-      const basis: ScenarioBasis = {
-        project: { name: project.name, client: project.client, pricingModel: project.pricingModel },
-        scenario: { name: scenario.name, chosen: scenario.chosen, otherChosen: null },
-        categories: structure.categories,
-        people: roster,
-        defaultWeeklyHours: structure.config.defaultWeeklyHours,
-        engine: engineBasis(
-          { pricingModel: project.pricingModel, config: structure.config },
-          own?.rows ?? null,
-          scenario.chosen ? own?.frozen : undefined,
-          roster,
-        ),
-      };
-      const view = scenarioView(basis, team);
-      const people = team.filter((member) => member.personId !== null).length;
-      const base = {
-        id: scenario.id,
-        name: scenario.name,
-        chosen: scenario.chosen,
-        people,
-        openRoles: team.length - people,
-      };
-      if (!view.rateAccess) {
-        return { ...base, effectiveHours: view.hours.effective, money: null };
-      }
-      const { result } = view;
-      return {
-        ...base,
-        effectiveHours: result.hours.effective,
-        money: {
-          netMarginCents: result.netMarginCents,
-          netMarginBasisPoints: result.netMarginBasisPoints,
-          marginStatus: result.marginStatus,
-          warnings: result.warnings,
-        },
-      };
+  // Occupancy holds no money, so everyone reads it (domain, "How busy a person is").
+  const chosen = new Set(structure.scenarios.filter((s) => s.chosen).map((s) => s.id));
+  const busy = occupancy(
+    structure.team.filter((member) => chosen.has(member.scenarioId)),
+    day,
+  );
+  const roster = structure.people.map((person) => ({
+    ...person,
+    occupancy: busy.get(person.id) ?? 0,
+  }));
+
+  const costed = (
+    project: (typeof structure.projects)[number],
+    scenario: (typeof structure.scenarios)[number],
+  ): PortfolioScenario => {
+    if (!structure.config) throw new Error("The organization has no config");
+    const team: Member[] = structure.team
+      .filter((member) => member.scenarioId === scenario.id)
+      .map((member) => ({
+        id: member.id,
+        projectRole: member.projectRole,
+        categoryId: member.categoryId,
+        personId: member.personId,
+        reportsTo: member.reportsTo,
+        weeklyHours: member.weeklyHours,
+        allocation: member.allocation,
+        startDate: member.startDate,
+        endDate: member.endDate,
+      }));
+    const own = money && moneyOf(money, project.id, scenario.id);
+    const basis: ScenarioBasis = {
+      project: { name: project.name, client: project.client, pricingModel: project.pricingModel },
+      scenario: { name: scenario.name, chosen: scenario.chosen, otherChosen: null },
+      categories: structure.categories,
+      people: roster,
+      defaultWeeklyHours: structure.config.defaultWeeklyHours,
+      engine: engineBasis(
+        { pricingModel: project.pricingModel, config: structure.config },
+        own?.rows ?? null,
+        scenario.chosen ? own?.frozen : undefined,
+        roster,
+      ),
     };
-
+    const view = scenarioView(basis, team);
+    const people = team.filter((member) => member.personId !== null).length;
+    const base = {
+      id: scenario.id,
+      name: scenario.name,
+      chosen: scenario.chosen,
+      people,
+      openRoles: team.length - people,
+    };
+    if (!view.rateAccess) {
+      return { ...base, effectiveHours: view.hours.effective, money: null };
+    }
+    const { result } = view;
     return {
-      rateAccess: context.rateAccess,
-      projects: structure.projects.map((project) => ({
+      ...base,
+      effectiveHours: result.hours.effective,
+      money: {
+        netMarginCents: result.netMarginCents,
+        netMarginBasisPoints: result.netMarginBasisPoints,
+        marginStatus: result.marginStatus,
+        warnings: result.warnings,
+      },
+    };
+  };
+
+  return {
+    rateAccess: context.rateAccess,
+    projects: structure.projects
+      .filter((project) => projectId === undefined || project.id === projectId)
+      .map((project) => ({
         ...project,
         price: money && {
           cents: money.pricing.find((row) => row.projectId === project.id)?.price ?? null,
@@ -264,9 +300,8 @@ export async function loadPortfolio(
           .filter((scenario) => scenario.projectId === project.id)
           .map((scenario) => costed(project, scenario)),
       })),
-      categories: structure.categories,
-      activePeople: structure.people.filter((person) => person.active).length,
-      occupancy: categoryOccupancy(structure.categories, structure.people, busy),
-    };
-  });
+    categories: structure.categories,
+    activePeople: structure.people.filter((person) => person.active).length,
+    occupancy: categoryOccupancy(structure.categories, structure.people, busy),
+  };
 }
