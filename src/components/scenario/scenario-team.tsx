@@ -13,6 +13,7 @@ import { useDragState } from "@/components/team-drag/team-drag";
 import { useTeamEditing } from "@/components/team-editing/team-editing";
 import { useWideScreen } from "@/components/team-views/use-wide-screen";
 import { TeamViews, TeamViewsSkeleton } from "@/components/team-views/team-views";
+import { EmptyArt } from "@/components/ui/empty-state";
 
 export type ScenarioTeamProps = {
   team: TeamAssignment[];
@@ -70,7 +71,7 @@ function EmptyTeam() {
         data-slot="empty-team"
         className="flex max-w-[380px] flex-col items-center gap-3 rounded-[14px] border bg-background p-7 text-center"
       >
-        <EmptyTeamPicture />
+        <EmptyArt variant="add" />
         <h2 className="text-lg font-semibold">{t("title")}</h2>
         <p className="text-sm text-muted-foreground">
           {editing ? tEditing("emptyDescription") : t("description")}
@@ -78,30 +79,6 @@ function EmptyTeam() {
         {editing && <AddToTeamButton editing={editing} takesTopFocus className="mt-1" />}
       </div>
     </div>
-  );
-}
-
-/** The logo's three squares: the first one to add, the other two still dashed (ADR 0014). */
-function EmptyTeamPicture() {
-  return (
-    <svg aria-hidden="true" width="96" height="96" viewBox="0 0 168 168">
-      <rect x="44" y="0" width="80" height="80" rx="24" className="fill-brand-soft" />
-      <path d="M84 27v26M71 40h26" className="stroke-brand" strokeWidth="6" strokeLinecap="round" />
-      {[0, 88].map((x) => (
-        <rect
-          key={x}
-          x={x}
-          y="88"
-          width="80"
-          height="80"
-          rx="24"
-          fill="none"
-          className="stroke-muted-foreground"
-          strokeWidth="3"
-          strokeDasharray="9 7"
-        />
-      ))}
-    </svg>
   );
 }
 
