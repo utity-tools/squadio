@@ -61,15 +61,15 @@
       "busy": "Choosing…",
       "title": "Choose “{name}”?",
       "blockedTitle": "“{name}” cannot be chosen",
-      "description": "Today's rates of its categories, overhead, buffer and availability are frozen; the price, extra costs and target margin are not. Its team can no longer be edited until you unchoose the scenario.",
+      "description": "Today's costs and sell rates of its categories, overhead, buffer and availability are frozen; the price, extra costs and target margin are not. Its team can no longer be edited until you unchoose the scenario.",
       "replaces": "“{name}” will no longer be the project's chosen scenario: its frozen values are discarded and its team can be edited again.",
-      "missingRate": "{categories} {count, plural, one {has} other {have}} no rate, so there is nothing to freeze."
+      "missingRate": "{count, plural, one {Missing the cost of {categories}} other {Missing the costs of {categories}}}, so there is nothing to freeze."
     },
     "unchoose": {
       "button": "Unchoose",
       "busy": "Unchoosing…",
       "title": "Unchoose “{name}”?",
-      "description": "Its frozen rates and cost config are discarded: the scenario is costed with the current values again, and its team can be edited."
+      "description": "Its frozen costs, sell rates and cost config are discarded: the scenario is costed with the current values again, and its team can be edited."
     },
     "waiting": {
       "unsaved": "The changes are not saved yet: you can go on as soon as they are.",
@@ -78,7 +78,7 @@
       "limit": "No more copies of the demo can be made today. Try again tomorrow."
     },
     "refused": {
-      "missing-rate": "It cannot be chosen: a category of the team has no rate.",
+      "missing-rate": "It cannot be chosen: a category of the team is missing its cost.",
       "limit": "No more copies of the demo can be made today. Try again tomorrow.",
       "conflict": "The scenario changed in another tab. Reload the page.",
       "not-found": "Your copy no longer exists. Reload the page.",
@@ -93,7 +93,7 @@
   "ScenarioAnnouncer": {
     "marginPercentNotApplicable": "Net margin: {amount}. {percent}.",
     "marginWithPercent": "Net margin: {amount} ({percent})",
-    "marginUndetermined": "Net margin undetermined. {missing}.",
+    "marginUndetermined": "Net margin pending. {missing}.",
     "hours": "Effective hours: {hours}",
     "did": "{what} {summary}",
     "added": "{name} joins the team.",
@@ -147,8 +147,8 @@
     "weeklyHours": "{hours} h/wk",
     "effectiveHours": "{hours} h effective",
     "nominalHours": "{hours} h nominal",
-    "missingRate": "No rate",
-    "missingRateDetail": "Its category has no rate: its cost is undetermined.",
+    "missingRate": "Missing the cost",
+    "missingRateDetail": "Its category is missing its cost, so its cost is pending.",
     "controls": "Canvas controls",
     "zoomIn": "Zoom in",
     "zoomOut": "Zoom out",
@@ -182,7 +182,7 @@
     "openRole": "Open role",
     "noManager": "No one",
     "wholeProject": "Whole project",
-    "missingRate": "No rate",
+    "missingRate": "Missing the cost",
     "total": "Total"
   },
   "TeamEditing": {
@@ -241,13 +241,13 @@
     "table": "Table"
   },
   "Summary": {
-    "undetermined": "Undetermined",
+    "undetermined": "Pending",
     "notApplicable": "Not applicable",
     "missing": {
-      "rate": "No rate: {categories}",
-      "price": "No price",
-      "rateAndPrice": "No rate: {categories}. No price",
-      "ownRate": "No rate"
+      "rate": "{count, plural, one {Missing the cost of {categories}} other {Missing the costs of {categories}}}",
+      "price": "Missing the price",
+      "rateAndPrice": "{count, plural, one {Missing the cost of {categories}} other {Missing the costs of {categories}}}. Missing the price",
+      "ownRate": "Missing the cost"
     },
     "reasons": {
       "noRevenue": "No revenue",
@@ -295,16 +295,16 @@
       "effectiveHours": "Effective hours",
       "costPerHour": "Cost per hour",
       "cost": "Cost",
-      "small": "Small category: its rate can reveal a salary"
+      "small": "Small category: its cost can reveal a salary"
     },
     "warnings": {
       "missingRate": {
-        "title": "A rate is missing",
-        "description": "{categories} {count, plural, one {has} other {have}} no rate: {count, plural, one {its} other {their}} cost and what depends on it are undetermined."
+        "title": "A cost is missing",
+        "description": "{count, plural, one {Missing the cost of {categories}} other {Missing the costs of {categories}}}: staff cost and what depends on it are pending."
       },
       "missingPrice": {
         "title": "The price is missing",
-        "description": "The project is fixed price and has no price: revenue, margin and what depends on them are undetermined."
+        "description": "The project is fixed price and has no price: revenue, margin and what depends on them are pending."
       },
       "budgetCapExceeded": {
         "title": "Budget cap exceeded",

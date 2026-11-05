@@ -167,7 +167,7 @@ describe("SummaryLedger", () => {
     // Rule j's warning has a row of its own, so it does not head each figure.
     expect(rows(groups[1]!)).toEqual([
       "DevOps Engineer",
-      "Categoría pequeña: su tarifa puede revelar un salario",
+      "Categoría pequeña: su coste puede revelar un salario",
       // The cost is still shown (rule j is a warning, not a block).
       "396,62 h44,19 €10.800 €",
     ]);
@@ -243,7 +243,7 @@ describe("SummaryLedger", () => {
 
       const headline = section("Margen neto");
       expect(plain(headline)).toContain(
-        "Indeterminado Sin tarifa: DevOps Engineer y Project Manager. Sin precio",
+        "Pendiente Faltan los costes de DevOps Engineer y Project Manager. Falta el precio",
       );
       expect(within(headline).queryByText(/En objetivo|Bajo objetivo|Pérdidas/)).toBeNull();
       expect(plain(headline)).toContain("objetivo 25 %");
@@ -255,15 +255,15 @@ describe("SummaryLedger", () => {
 
       const figures = within(section("Cifras clave"));
       const value = (term: string) => plain(figures.getByText(term).nextElementSibling!);
-      expect(value("Ingresos")).toBe("Indeterminado Sin precio");
+      expect(value("Ingresos")).toBe("Pendiente Falta el precio");
       expect(value("Coste total")).toBe(
-        "Indeterminado Sin tarifa: DevOps Engineer y Project Manager",
+        "Pendiente Faltan los costes de DevOps Engineer y Project Manager",
       );
-      expect(value("Tarifa efectiva")).toBe("Indeterminado Sin precio");
+      expect(value("Tarifa efectiva")).toBe("Pendiente Falta el precio");
       const rows = within(section("Desglose"))
         .getAllByRole("row")
         .map((row) => plain(row));
-      const rates = "Indeterminado Sin tarifa: DevOps Engineer y Project Manager";
+      const rates = "Pendiente Faltan los costes de DevOps Engineer y Project Manager";
       expect(rows).toEqual([
         `Coste de personal (1983,27 h efectivas)${rates}`,
         "Cloud6000 €",
@@ -271,9 +271,9 @@ describe("SummaryLedger", () => {
         `Overhead (15 %)${rates}`,
         `Buffer (10 %)${rates}`,
         `Coste total${rates}`,
-        "IngresosIndeterminado Sin precio",
-        `Margen directo${rates}. Sin precio`,
-        `Margen neto${rates}. Sin precio`,
+        "IngresosPendiente Falta el precio",
+        `Margen directo${rates}. Falta el precio`,
+        `Margen neto${rates}. Falta el precio`,
       ]);
       expect(plain(section("Desglose"))).not.toMatch(/\b0 €/);
     });
@@ -287,18 +287,18 @@ describe("SummaryLedger", () => {
       expect(rows(groups[0]!)).toEqual(["Senior Developer", "1190 h45,88 €59.200 €"]);
       expect(rows(groups[1]!)).toEqual([
         "DevOps Engineer",
-        "Categoría pequeña: su tarifa puede revelar un salario",
-        "396,62 hIndeterminado Sin tarifa",
+        "Categoría pequeña: su coste puede revelar un salario",
+        "396,62 hPendiente Falta el coste",
       ]);
     });
 
     it("warns about each missing rate and the missing price", () => {
       renderWithIntl(<SummaryLedger ledger={partial} team={team} />);
 
-      expect(screen.getByRole("heading", { name: "Falta una tarifa" })).toBeVisible();
+      expect(screen.getByRole("heading", { name: "Falta un coste" })).toBeVisible();
       expect(
         screen.getByText(
-          "DevOps Engineer y Project Manager no tienen tarifa: su coste y lo que depende de él quedan indeterminados.",
+          "Faltan los costes de DevOps Engineer y Project Manager: su coste de personal y lo que depende de él quedan pendientes.",
         ),
       ).toBeInTheDocument();
       expect(screen.getByRole("heading", { name: "Falta el precio" })).toBeVisible();
@@ -308,7 +308,7 @@ describe("SummaryLedger", () => {
       renderWithIntl(<SummaryLedger ledger={partial} team={team} />, { locale: "en" });
 
       expect(plain(section("Net margin"))).toContain(
-        "Undetermined No rate: DevOps Engineer and Project Manager. No price",
+        "Pending Missing the costs of DevOps Engineer and Project Manager. Missing the price",
       );
     });
   });

@@ -22,13 +22,13 @@ const MONEY = /Cents\\*"\s*:/;
 const RATE_ACCESS = /rateAccess\\*"\s*:\s*true/;
 /** The marker: a warning icon beside the text, never the colour alone. */
 const marker = (scope: Locator) =>
-  scope.locator("[data-missing-rate]").filter({ hasText: "Sin tarifa" });
+  scope.locator("[data-missing-rate]").filter({ hasText: "Falta el coste" });
 
 test("the tree marks the nodes whose category has no rate", async ({ page }) => {
   await page.goto(`/scenarios/${MISSING_RATE_SCENARIO}?view=tree`);
 
   const data = node(page, "Data engineer");
-  await expect(data).toHaveAccessibleName(/Data Engineer\s*,\s*Sin tarifa\s*,/);
+  await expect(data).toHaveAccessibleName(/Data Engineer\s*,\s*Falta el coste\s*,/);
   await expect(marker(data)).toBeVisible();
   await expect(marker(data).locator("svg")).toHaveClass(/text-status-warn/);
   await expect(marker(node(page, "Tech lead"))).toHaveCount(0);
@@ -59,7 +59,7 @@ test("the marker speaks English under /en", async ({ page }) => {
   const data = page
     .getByRole("treegrid", { name: "Team table" })
     .getByRole("row", { name: /^Data engineer\s/ });
-  await expect(data.locator("[data-missing-rate]")).toHaveText("No rate");
+  await expect(data.locator("[data-missing-rate]")).toHaveText("Missing the cost");
 });
 
 for (const view of ["tree", "table"] as const) {
@@ -71,7 +71,7 @@ for (const view of ["tree", "table"] as const) {
     const team = view === "tree" ? tree(page) : grid(page);
     await expect(team).toContainText("Data Engineer");
     await expect(page.locator("[data-missing-rate]")).toHaveCount(0);
-    await expect(page.getByText("Sin tarifa")).toHaveCount(0);
+    await expect(page.getByText("Falta el coste")).toHaveCount(0);
     // Not hidden but absent: the page gets no rates and no money, so nothing in the HTML or its
     // payload can say which category lacks a rate.
     const html = (await response?.text()) ?? "";
