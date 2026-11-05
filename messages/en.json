@@ -442,6 +442,51 @@
       "cost": "Total cost {percent}",
       "target": "Target {percent}",
       "margin": "Margin {percent}"
+    },
+    "info": {
+      "label": "What is: {term}",
+      "terms": {
+        "revenue": {
+          "definition": "What the project bills. With a fixed price it is the agreed price; in time and materials, the effective hours times each category's sell rate.",
+          "formula": "price, or Σ effective hours × sell rate"
+        },
+        "staffCost": {
+          "definition": "What the team costs: each category's effective hours times its cost per hour. Worked out per category, never per person.",
+          "formula": "Σ effective hours × cost per hour"
+        },
+        "directCost": {
+          "definition": "Staff cost plus the scenario's extra costs.",
+          "formula": "staff cost + extra costs"
+        },
+        "directMargin": {
+          "definition": "What revenue leaves after direct cost, before overhead and buffer.",
+          "formula": "revenue − direct cost"
+        },
+        "overhead": {
+          "definition": "The company's costs that belong to no project: office, administration, sales. Spread as a percentage of staff cost.",
+          "formula": "overhead % × staff cost"
+        },
+        "buffer": {
+          "definition": "A cushion for the unexpected, as a percentage of direct cost plus overhead.",
+          "formula": "buffer % × (direct cost + overhead)"
+        },
+        "totalCost": {
+          "definition": "Everything the project costs: direct cost, overhead and buffer.",
+          "formula": "direct cost + overhead + buffer"
+        },
+        "netMargin": {
+          "definition": "What revenue leaves after total cost. Its percentage is always over revenue.",
+          "formula": "revenue − total cost"
+        },
+        "effectiveRate": {
+          "definition": "What is billed per effective hour. The way to compare scenarios with the same fixed price.",
+          "formula": "revenue ÷ effective hours"
+        },
+        "effectiveHours": {
+          "definition": "Nominal hours times the availability factor: the hours really worked on the project.",
+          "formula": "nominal hours × availability factor"
+        }
+      }
     }
   },
   "Account": {

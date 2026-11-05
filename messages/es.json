@@ -442,6 +442,51 @@
       "cost": "Coste total {percent}",
       "target": "Objetivo {percent}",
       "margin": "Margen {percent}"
+    },
+    "info": {
+      "label": "Qué es: {term}",
+      "terms": {
+        "revenue": {
+          "definition": "Lo que factura el proyecto. En precio cerrado es el precio acordado; en tiempo y materiales, las horas efectivas por la tarifa de venta de cada categoría.",
+          "formula": "precio, o Σ horas efectivas × tarifa de venta"
+        },
+        "staffCost": {
+          "definition": "Lo que cuesta el equipo: las horas efectivas de cada categoría por su coste por hora. Se calcula por categoría, nunca por persona.",
+          "formula": "Σ horas efectivas × coste por hora"
+        },
+        "directCost": {
+          "definition": "El coste de personal más los costes extra del escenario.",
+          "formula": "coste de personal + costes extra"
+        },
+        "directMargin": {
+          "definition": "Lo que queda de los ingresos tras el coste directo, antes del overhead y el buffer.",
+          "formula": "ingresos − coste directo"
+        },
+        "overhead": {
+          "definition": "Los costes de la empresa que no son de ningún proyecto: oficina, administración, ventas. Se reparten como un porcentaje del coste de personal.",
+          "formula": "overhead % × coste de personal"
+        },
+        "buffer": {
+          "definition": "Un colchón para imprevistos, como porcentaje del coste directo más el overhead.",
+          "formula": "buffer % × (coste directo + overhead)"
+        },
+        "totalCost": {
+          "definition": "Todo lo que cuesta el proyecto: el coste directo, el overhead y el buffer.",
+          "formula": "coste directo + overhead + buffer"
+        },
+        "netMargin": {
+          "definition": "Lo que queda de los ingresos tras el coste total. Su porcentaje es siempre sobre los ingresos.",
+          "formula": "ingresos − coste total"
+        },
+        "effectiveRate": {
+          "definition": "Lo que se factura por cada hora efectiva. Sirve para comparar escenarios con el mismo precio cerrado.",
+          "formula": "ingresos ÷ horas efectivas"
+        },
+        "effectiveHours": {
+          "definition": "Las horas nominales por el factor de disponibilidad: las que se trabajan de verdad en el proyecto.",
+          "formula": "horas nominales × factor de disponibilidad"
+        }
+      }
     }
   },
   "Account": {

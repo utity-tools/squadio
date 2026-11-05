@@ -19,7 +19,13 @@ import {
 import { cn } from "@/lib/utils";
 
 import { CountUp } from "./count-up";
-import { Figure, useSummaryFormat, useWhyNoAmount } from "./summary-format";
+import {
+  Figure,
+  type InfoTerm,
+  TermInfo,
+  useSummaryFormat,
+  useWhyNoAmount,
+} from "./summary-format";
 
 export type SummaryLedgerProps = {
   ledger: Ledger;
@@ -62,10 +68,10 @@ export function SummaryLedger({ ledger, team, pricingModel }: SummaryLedgerProps
 
       <section aria-label={t("figures.title")}>
         <dl className="grid grid-cols-3 gap-2 rounded-[10px] bg-muted p-3">
-          <Figure term={t("figures.effectiveRate")} mono>
+          <Figure term={t("figures.effectiveRate")} info="effectiveRate" mono>
             <Value amount={figures.effectiveRateCents} format={rate} counts />
           </Figure>
-          <Figure term={t("figures.effectiveHours")} mono>
+          <Figure term={t("figures.effectiveHours")} info="effectiveHours" mono>
             <CountUp value={figures.effectiveHours} format={hours} />
           </Figure>
           <Figure term={t("figures.team")}>
@@ -114,7 +120,12 @@ function Headline({ ledger }: { ledger: Ledger }) {
     // The page's live region says the new margin (ScenarioAnnouncer), never the count.
     <section aria-label={t("headline.netMargin")}>
       <Kpi
-        label={t("headline.netMargin")}
+        label={
+          <>
+            {t("headline.netMargin")}
+            <TermInfo term="netMargin" name={t("headline.netMargin")} />
+          </>
+        }
         pending={typeof cents !== "number"}
         value={
           typeof cents === "number" ? (
@@ -312,6 +323,7 @@ function ResultLine({ line, pricingModel }: { line: LedgerLine; pricingModel: Pr
           </span>
         )}
         {name}
+        {line.key !== "extraCost" && <TermInfo term={line.key satisfies InfoTerm} name={name} />}
         {hint && (
           <span className="text-xs font-normal text-muted-foreground">
             <span aria-hidden> · </span>

@@ -1,6 +1,7 @@
 import { useFormatter, useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 
+import { InfoTip } from "@/components/ui/info-tip";
 import type { Amount } from "@/lib/summary/summary";
 import { cn } from "@/lib/utils";
 
@@ -54,19 +55,50 @@ export function useWhyNoAmount() {
   };
 }
 
-/** A labelled figure of a `dl`; `mono` sets a number in the figures' face. */
+/** The terms the rail explains in an "i" next to them. */
+export type InfoTerm =
+  | "revenue"
+  | "staffCost"
+  | "directCost"
+  | "directMargin"
+  | "overhead"
+  | "buffer"
+  | "totalCost"
+  | "netMargin"
+  | "effectiveRate"
+  | "effectiveHours";
+
+/** The "i" that says what a term of the rail means and how it is worked out. */
+export function TermInfo({ term, name }: { term: InfoTerm; name: string }) {
+  const t = useTranslations("Summary.info");
+  return (
+    <InfoTip label={t("label", { term: name })} title={name} formula={t(`terms.${term}.formula`)}>
+      {t(`terms.${term}.definition`)}
+    </InfoTip>
+  );
+}
+
+/**
+ * A labelled figure of a `dl`; `mono` sets a number in the figures' face, `info` explains the
+ * term.
+ */
 export function Figure({
   term,
+  info,
   mono = false,
   children,
 }: {
   term: string;
+  info?: InfoTerm;
   mono?: boolean;
   children: ReactNode;
 }) {
   return (
     <div className="flex min-w-0 flex-col gap-0.5">
-      <dt className="text-xs text-muted-foreground">{term}</dt>
+      <dt className="text-xs text-muted-foreground">
+        {term}
+        {info && <TermInfo term={info} name={term} />}
+      </dt>
       <dd className={cn("font-semibold tabular-nums", mono && "font-mono")}>{children}</dd>
     </div>
   );
