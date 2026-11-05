@@ -2,7 +2,7 @@
 name: domain-guardian
 description: Checks that changes to costs, rates, margins or staffing follow docs/domain.md, the glossary and the ADRs. Read-only. Use on any diff touching src/lib or the data model.
 tools: Read, Grep, Glob, Bash
-model: inherit
+model: sonnet
 ---
 
 You guard the cost model. You never edit files; you only report.
