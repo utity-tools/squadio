@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import type { CompleteResult, PartialResult } from "@/lib/costing/calculate-scenario";
 
-import { type SummaryInput, ledger, teamSummary } from "./summary";
+import { type SummaryInput, completeness, ledger, marginBar, teamSummary } from "./summary";
 
 // docs/design/canvas-brief.md, "4. Summary" and "States".
 
@@ -82,19 +82,19 @@ describe("ledger", () => {
     });
   });
 
-  it("lists the result lines in the order of the calculation", () => {
+  it("lists the result lines as a statement: revenue first, each margin after its costs", () => {
     const summary = ledger(input);
 
     expect(summary.lines).toEqual([
+      { key: "revenue", cents: 15_000_000 },
       { key: "staffCost", cents: 7_000_000, effectiveHours: 1983.27 },
       { key: "extraCost", id: "cloud", label: "Cloud", kind: "recurring", cents: 600_000 },
       { key: "extraCost", id: "licence", label: null, kind: "fixed", cents: 50_000 },
       { key: "directCost", cents: 7_650_000 },
+      { key: "directMargin", cents: 7_350_000, basisPoints: 4900 },
       { key: "overhead", cents: 1_050_000, basisPoints: 1500 },
       { key: "buffer", cents: 870_000, basisPoints: 1000 },
       { key: "totalCost", cents: 9_570_000 },
-      { key: "revenue", cents: 15_000_000 },
-      { key: "directMargin", cents: 7_350_000, basisPoints: 4900 },
       { key: "netMargin", cents: 5_430_000, basisPoints: 3620 },
     ]);
   });
@@ -210,15 +210,15 @@ describe("ledger", () => {
           effectiveHours: 1983.27,
         },
         lines: [
+          { key: "revenue", cents: 15_000_000 },
           { key: "staffCost", cents: noRates, effectiveHours: 1983.27 },
           { key: "extraCost", id: "cloud", label: "Cloud", kind: "recurring", cents: 600_000 },
           { key: "extraCost", id: "licence", label: null, kind: "fixed", cents: 50_000 },
           { key: "directCost", cents: noRates },
+          { key: "directMargin", cents: noRates, basisPoints: noRates },
           { key: "overhead", cents: noRates, basisPoints: 1500 },
           { key: "buffer", cents: noRates, basisPoints: 1000 },
           { key: "totalCost", cents: noRates },
-          { key: "revenue", cents: 15_000_000 },
-          { key: "directMargin", cents: noRates, basisPoints: noRates },
           { key: "netMargin", cents: noRates, basisPoints: noRates },
         ],
         categories: [
@@ -359,6 +359,86 @@ describe("ledger", () => {
     };
 
     expect(() => ledger({ ...input, result: stray })).toThrow("ghost");
+  });
+});
+
+/** A line the engine leaves pending for the categories' missing rates. */
+function pendingRate(...categoryIds: string[]) {
+  return { undetermined: [{ code: "missingRate" as const, categoryIds }] };
+}
+
+describe("completeness", () => {
+  it("counts every line of a complete result as determined", () => {
+    expect(completeness(ledger(input))).toEqual({ determined: 10, total: 10 });
+  });
+
+  it("counts a margin whose % does not apply as determined: its amount is known", () => {
+    const noRevenue = { ...complete, directMarginBasisPoints: null, netMarginBasisPoints: null };
+
+    expect(completeness(ledger({ ...input, result: noRevenue }))).toEqual({
+      determined: 10,
+      total: 10,
+    });
+  });
+
+  it("leaves out the lines that are pending", () => {
+    const pending = pendingRate("pm");
+    const partial: PartialResult = {
+      ...complete,
+      complete: false,
+      staffCostCents: pending,
+      directCostCents: pending,
+      overheadCents: pending,
+      bufferCents: pending,
+      totalCostCents: pending,
+      directMarginCents: pending,
+      directMarginBasisPoints: pending,
+      netMarginCents: pending,
+      netMarginBasisPoints: pending,
+      marginStatus: null,
+      warnings: [{ code: "missingRate", categoryIds: ["pm"] }],
+    };
+
+    // Revenue and the two extra costs are known.
+    expect(completeness(ledger({ ...input, result: partial }))).toEqual({
+      determined: 3,
+      total: 10,
+    });
+  });
+});
+
+describe("marginBar", () => {
+  it("splits revenue into total cost and net margin, and marks the target", () => {
+    expect(marginBar(ledger(input))).toEqual({
+      costBasisPoints: 6380,
+      marginBasisPoints: 3620,
+      targetBasisPoints: 2500,
+    });
+  });
+
+  it("fills the bar with cost on a loss, which the cost share says", () => {
+    const loss = { ...complete, netMarginCents: -1_000_000, netMarginBasisPoints: -667 };
+
+    expect(marginBar(ledger({ ...input, result: loss }))).toEqual({
+      costBasisPoints: 10_667,
+      marginBasisPoints: -667,
+      targetBasisPoints: 2500,
+    });
+  });
+
+  it("has no bar without revenue or with a pending margin", () => {
+    const noRevenue = { ...complete, netMarginBasisPoints: null };
+    const pending = pendingRate("pm");
+    const partial: PartialResult = {
+      ...complete,
+      complete: false,
+      netMarginCents: pending,
+      netMarginBasisPoints: pending,
+      marginStatus: null,
+    };
+
+    expect(marginBar(ledger({ ...input, result: noRevenue }))).toBeNull();
+    expect(marginBar(ledger({ ...input, result: partial }))).toBeNull();
   });
 });
 

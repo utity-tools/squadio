@@ -221,6 +221,11 @@ A result is made of lines, and each line is in one of four states:
 Invalid input never gives a partial result: validation runs first and fails as before. Only missing
 data is undetermined.
 
+The summary adds no figure of its own to a result, only ways to show it: it counts the lines with an
+amount ("Complete · N of N lines"), splits revenue into a cost share (100 % − net margin %, from its
+basis points) and the net margin, and holds the net margin back while the team is empty, although
+the engine determines it from the price and the extra costs.
+
 Which line depends on which:
 
 - **Staff cost of a category:** undetermined without its rate. **Staff cost:** undetermined if any
