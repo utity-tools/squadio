@@ -17,7 +17,6 @@ export default async function HomePage() {
           <CurrentOrganization />
         </Suspense>
       }
-      current="home"
       account={
         <Suspense>
           <CurrentAccount />
