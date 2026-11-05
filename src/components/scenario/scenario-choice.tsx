@@ -1,10 +1,13 @@
 "use client";
 
+import { LockIcon, UsersIcon } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
 import { useEffect, useId, useRef, useState } from "react";
 import { useStore } from "zustand";
 
+import { STATUS_TONE, useSummaryFormat, useWhyNoAmount } from "@/components/summary/summary-format";
 import { Button } from "@/components/ui/button";
+import { Chip } from "@/components/ui/chip";
 import {
   Dialog,
   DialogContent,
@@ -15,6 +18,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import type { ChoiceRequest, SaveStatus } from "@/lib/scenarios/store";
+import { ledger } from "@/lib/summary/summary";
 
 import { usePendingChoice, useScenarioStore, useScenarioView } from "./scenario-editor";
 
@@ -71,6 +75,7 @@ export function ScenarioChoice({ scenarioId, send }: ScenarioChoiceProps) {
   const trigger = useRef<HTMLButtonElement>(null);
   const status = useRef<HTMLParagraphElement>(null);
   const noteId = useId();
+  const emptyId = useId();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [refusal, setRefusal] = useState<{ reason: Refusal; attempt: number } | null>(null);
@@ -96,6 +101,8 @@ export function ScenarioChoice({ scenarioId, send }: ScenarioChoiceProps) {
   const missingNames = categories
     .filter((category) => missing.includes(category.id))
     .map((category) => category.name);
+  // A team of no one commits to nothing: the button says when it can be chosen.
+  const empty = !chosen && view.team.length === 0;
   const action = chosen ? "unchoose" : "choose";
   const blocked = missingNames.length > 0;
   const waiting = WAITING[saveStatus] ?? (unsaved ? "unsaved" : null);
@@ -129,14 +136,26 @@ export function ScenarioChoice({ scenarioId, send }: ScenarioChoiceProps) {
         }}
       >
         <DialogTrigger asChild>
-          <Button ref={trigger} variant={chosen ? "outline" : "default"} size="sm">
+          <Button
+            ref={trigger}
+            variant={chosen ? "outline" : "default"}
+            size="sm"
+            aria-disabled={empty || undefined}
+            aria-describedby={empty ? emptyId : undefined}
+            // Focusable while it cannot act, so its reason is heard.
+            onClick={(event) => empty && event.preventDefault()}
+            className="aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
+          >
             {t(`${action}.button`)}
           </Button>
         </DialogTrigger>
         <DialogContent size="sm" aria-busy={busy}>
           <DialogHeader>
             <DialogTitle>
-              {t(blocked ? "choose.blockedTitle" : `${action}.title`, { name })}
+              {t(blocked ? "choose.blockedTitle" : `${action}.title`, {
+                name,
+                project: view.project.name,
+              })}
             </DialogTitle>
             <DialogDescription asChild>
               <div className="flex flex-col gap-2">
@@ -147,8 +166,10 @@ export function ScenarioChoice({ scenarioId, send }: ScenarioChoiceProps) {
                       count: missingNames.length,
                     })}
                   </p>
+                ) : chosen ? (
+                  <p>{t("unchoose.description")}</p>
                 ) : (
-                  <p>{t(`${action}.description`)}</p>
+                  <Consequences name={name} />
                 )}
                 {!chosen && !blocked && otherChosen && (
                   <p className="text-foreground">{t("choose.replaces", { name: otherChosen })}</p>
@@ -156,6 +177,7 @@ export function ScenarioChoice({ scenarioId, send }: ScenarioChoiceProps) {
               </div>
             </DialogDescription>
           </DialogHeader>
+          {!chosen && !blocked && <MarginOfChoice />}
           {!blocked && (
             // Always there, so the reason is heard when it appears and when it goes.
             <p id={noteId} role="status" className="text-sm text-muted-foreground empty:hidden">
@@ -192,6 +214,78 @@ export function ScenarioChoice({ scenarioId, send }: ScenarioChoiceProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {empty && (
+        <p id={emptyId} className="max-w-40 text-xs/tight text-muted-foreground">
+          {t("choose.emptyTeam")}
+        </p>
+      )}
     </>
+  );
+}
+
+/**
+ * What choosing does (board "Elegir escenario"): it freezes the categories' cost and sell rate and
+ * the cost settings, locks the team, and makes its people count as busy on the project.
+ */
+function Consequences({ name }: { name: string }) {
+  const t = useTranslations("ScenarioChoice.choose");
+  const { team } = useScenarioView();
+  const categories = new Set(team.map((member) => member.category.id)).size;
+  const people = new Set(team.flatMap((member) => (member.person ? [member.person.id] : []))).size;
+  const item = "flex items-start gap-2.5 text-foreground";
+  const icon = "mt-0.5 size-4 shrink-0 text-muted-foreground";
+
+  return (
+    <>
+      <p>{t("intro")}</p>
+      <ul className="flex flex-col gap-2.5 text-sm">
+        <li className={item}>
+          <LockIcon aria-hidden className={icon} />
+          {t("freezes", { count: categories, name })}
+        </li>
+        <li className={item}>
+          <LockIcon aria-hidden className={icon} />
+          {t("locks")}
+        </li>
+        <li className={item}>
+          <UsersIcon aria-hidden className={icon} />
+          {t("occupies", { count: people })}
+        </li>
+      </ul>
+    </>
+  );
+}
+
+/** The net margin the choice commits to, with its status. */
+function MarginOfChoice() {
+  const t = useTranslations("Summary");
+  const { euros, percent } = useSummaryFormat();
+  const whyNoAmount = useWhyNoAmount();
+  const view = useScenarioView();
+  if (!view.rateAccess) return null;
+  const { headline } = ledger(view);
+  const cents = headline.netMarginCents;
+  const basisPoints = headline.netMarginBasisPoints;
+
+  return (
+    <p className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-xl bg-muted px-4 py-3 text-sm">
+      <span className="text-muted-foreground">{t("headline.netMargin")}</span>
+      {typeof cents !== "number" ? (
+        // The reason is words, not a figure: the text face, as in the rail.
+        <span className="flex flex-col font-semibold text-status-warn-text">
+          <span>{t(cents.state)} </span>
+          <span className="text-xs font-normal text-muted-foreground">{whyNoAmount(cents)}</span>
+        </span>
+      ) : (
+        <span className="font-mono font-semibold tabular-nums">
+          {typeof basisPoints === "number"
+            ? t("amountWithPercent", { amount: euros(cents), percent: percent(basisPoints) })
+            : t("amountPercentNotApplicable", { amount: euros(cents) })}
+        </span>
+      )}
+      {headline.status && (
+        <Chip tone={STATUS_TONE[headline.status]}>{t(`headline.status.${headline.status}`)}</Chip>
+      )}
+    </p>
   );
 }

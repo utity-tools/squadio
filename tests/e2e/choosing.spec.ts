@@ -34,7 +34,7 @@ test("choosing the guide scenario makes the copy and locks its team", async ({ p
   await expect(addButton(page)).toBeVisible();
 
   await chooseButton(page).click();
-  await expect(dialog(page)).toHaveAccessibleName("¿Elegir «Plan A»?");
+  await expect(dialog(page)).toHaveAccessibleName("¿Elegir «Plan A» para Customer portal?");
   for (const colorScheme of ["light", "dark"] as const) {
     await page.emulateMedia({ colorScheme });
     await expect(page.locator("html")).toHaveAttribute("data-theme", colorScheme);

@@ -55,6 +55,9 @@ export function useWhyNoAmount() {
   };
 }
 
+/** How the margin's status reads as a chip's tone: its word and a dot, never colour alone. */
+export const STATUS_TONE = { green: "ok", amber: "warn", red: "bad" } as const;
+
 /** The terms the rail explains in an "i" next to them. */
 export type InfoTerm =
   | "revenue"

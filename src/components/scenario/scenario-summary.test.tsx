@@ -119,6 +119,9 @@ describe("ScenarioSummary", () => {
 
       const revenue = screen.getByRole("rowheader", { name: /Ingresos/ }).parentElement!;
       expect(revenue).toHaveTextContent("Pendiente Falta el precio");
+      expect(
+        screen.getByText("Los ingresos esperan al precio; el resto, al equipo."),
+      ).toBeVisible();
     });
 
     it("leaves time-and-materials revenue to the team's hours", () => {

@@ -145,11 +145,15 @@
     "choose": {
       "button": "Choose scenario",
       "busy": "Choosing…",
-      "title": "Choose “{name}”?",
+      "title": "Choose “{name}” for {project}?",
       "blockedTitle": "“{name}” cannot be chosen",
-      "description": "Today's costs and sell rates of its categories, overhead, buffer and availability are frozen; the price, extra costs and target margin are not. Its team can no longer be edited until you unchoose the scenario.",
       "replaces": "“{name}” will no longer be the project's chosen scenario: its frozen values are discarded and its team can be edited again.",
-      "missingRate": "{count, plural, one {Missing the cost of {categories}} other {Missing the costs of {categories}}}, so there is nothing to freeze."
+      "missingRate": "{count, plural, one {Missing the cost of {categories}} other {Missing the costs of {categories}}}, so there is nothing to freeze.",
+      "intro": "It is the team you commit to. Choosing it:",
+      "freezes": "Freezes today's cost and sell rate of {count, plural, one {its category} other {its # categories}}, overhead, buffer and availability: if you change them later, those values no longer move “{name}”. The price, extra costs, calendar and target margin are not frozen.",
+      "locks": "Locks the team: to change it, unchoose the scenario.",
+      "occupies": "{count, plural, =0 {Its team is only open roles: it takes no one.} one {Its person counts as busy on this project.} other {Its # people count as busy on this project.}}",
+      "emptyTeam": "It can be chosen once someone is on the team."
     },
     "unchoose": {
       "button": "Unchoose",
@@ -483,7 +487,7 @@
           "formula": "revenue ÷ effective hours"
         },
         "effectiveHours": {
-          "definition": "Nominal hours times the availability factor: the hours really worked on the project.",
+          "definition": "Nominal hours less, on average, holidays, absences and training: the availability factor.",
           "formula": "nominal hours × availability factor"
         }
       }
@@ -492,7 +496,8 @@
       "margin": "Shows up once someone is on the team.",
       "note": {
         "fixed": "Revenue is already known from the price; the rest waits for the team.",
-        "time_and_materials": "In time and materials revenue comes from the team's hours: it shows up with the team."
+        "time_and_materials": "In time and materials revenue comes from the team's hours: it shows up with the team.",
+        "noPrice": "Revenue waits for the price; the rest, for the team."
       }
     }
   },

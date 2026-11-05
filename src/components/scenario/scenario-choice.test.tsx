@@ -5,8 +5,10 @@ import { describe, expect, it, vi } from "vitest";
 
 import { hoursBasis, ratesBasis } from "@/lib/scenarios/basis.fixtures";
 import { PM, SENIOR, developer, seatId, team } from "@/lib/scenarios/change.fixtures";
+import type { Member } from "@/lib/scenarios/change";
 import type { ScenarioBasis } from "@/lib/scenarios/scenario-view";
 import type { ChoiceRequest, SaveOutcome, ScenarioStore } from "@/lib/scenarios/store";
+import { expectNoAxeViolations } from "@/test/axe";
 import { renderWithIntl } from "@/test/render";
 import { StoreSpy } from "@/test/store-spy";
 
@@ -29,15 +31,22 @@ const answered: Send = async (request) => ({
 function renderChoice({
   basis = ratesBasis,
   send = vi.fn(answered),
-}: { basis?: ScenarioBasis; send?: Send } = {}) {
+  team: members = team,
+  locale = "es",
+}: { basis?: ScenarioBasis; send?: Send; team?: Member[]; locale?: "es" | "en" } = {}) {
   const stores: ScenarioStore[] = [];
   renderWithIntl(
     <ScenarioStoreProvider>
-      <ScenarioEditor scenarioId={seatId(99)} editing={{ basis, team, version: 3 }} save={never}>
+      <ScenarioEditor
+        scenarioId={seatId(99)}
+        editing={{ basis, team: members, version: 3 }}
+        save={never}
+      >
         <ScenarioChoice scenarioId={seatId(99)} send={send} />
         <StoreSpy onStore={(store) => void stores.push(store)} />
       </ScenarioEditor>
     </ScenarioStoreProvider>,
+    { locale },
   );
   const store = stores[0];
   if (!store) throw new Error("expected a store");
@@ -77,10 +86,17 @@ describe("ScenarioChoice", () => {
   it("chooses the scenario once confirmed, with the version the page shows", async () => {
     const { store, send, user } = renderChoice();
     await user.click(chooseButton());
-    const dialog = screen.getByRole("dialog", { name: "¿Elegir «Plan A»?" });
+    const dialog = screen.getByRole("dialog", { name: "¿Elegir «Plan A» para Project 1?" });
+    // Two categories, three people and two open roles (change.fixtures.ts).
     expect(dialog).toHaveAccessibleDescription(
-      "Se congelan los costes y las tarifas de venta de sus categorías, el overhead, el buffer y la disponibilidad de hoy; el precio, los costes extra y el margen objetivo no. Su equipo deja de poder editarse hasta que quites la elección.",
+      "Es el equipo con el que te comprometes. Al elegirlo: " +
+        "Se congelan el coste y la tarifa de venta de sus 2 categorías, el overhead, el buffer y la disponibilidad de hoy: si los cambias después, esos valores ya no mueven «Plan A». El precio, los costes extra, el calendario y el margen objetivo no se congelan. " +
+        "El equipo queda bloqueado: para cambiarlo, quita la elección. " +
+        "Sus 3 personas pasan a contar como ocupadas en este proyecto.",
     );
+    expect(within(dialog).getAllByRole("listitem")).toHaveLength(3);
+    // The margin it commits to, as the rail shows it.
+    expect(within(dialog).getByText("Margen neto").parentElement).toHaveTextContent(/€/);
     await user.click(within(dialog).getByRole("button", { name: "Elegir escenario" }));
 
     expect(send).toHaveBeenCalledWith({ scenarioId: seatId(99), baseVersion: 3, chosen: true });
@@ -142,6 +158,26 @@ describe("ScenarioChoice", () => {
     );
     expect(screen.getByRole("button", { name: "Quitar la elección" })).toHaveFocus();
     expect(screen.getByRole("status")).toHaveTextContent("Se ha elegido «Plan A».");
+  });
+
+  it("cannot be chosen with an empty team, and says when it can", async () => {
+    const { send, user } = renderChoice({ team: [] });
+
+    const button = chooseButton();
+    expect(button).toHaveAttribute("aria-disabled", "true");
+    expect(button).toHaveAccessibleDescription("Se podrá elegir cuando haya alguien en el equipo.");
+    await user.click(button);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(send).not.toHaveBeenCalled();
+    await expectNoAxeViolations();
+  });
+
+  it("speaks English under /en", async () => {
+    const { user } = renderChoice({ locale: "en" });
+    await user.click(screen.getByRole("button", { name: "Choose scenario" }));
+
+    const dialog = screen.getByRole("dialog", { name: "Choose “Plan A” for Project 1?" });
+    expect(dialog).toHaveTextContent("Its 3 people count as busy on this project.");
   });
 
   it("says which scenario stops being the project's chosen one", async () => {

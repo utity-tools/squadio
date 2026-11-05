@@ -22,6 +22,7 @@ import { CountUp } from "./count-up";
 import {
   Figure,
   type InfoTerm,
+  STATUS_TONE,
   TermInfo,
   useSummaryFormat,
   useWhyNoAmount,
@@ -38,12 +39,6 @@ export type SummaryLedgerProps = {
 type PricingModel = OpenScenario["project"]["pricingModel"];
 
 type Status = NonNullable<Ledger["headline"]["status"]>;
-
-const STATUS_TONE: Record<Status, "ok" | "warn" | "bad"> = {
-  green: "ok",
-  amber: "warn",
-  red: "bad",
-};
 
 /**
  * The summary rail with rate access, read top to bottom like a statement (ADR 0014, board
@@ -128,7 +123,13 @@ export function SummaryEmpty({ ledger, pricingModel }: Omit<SummaryLedgerProps, 
           </tbody>
         </table>
       )}
-      <p className="text-xs text-muted-foreground">{t(`empty.note.${pricingModel}`)}</p>
+      <p className="text-xs text-muted-foreground">
+        {t(
+          pricingModel === "fixed" && typeof revenue?.cents !== "number"
+            ? "empty.note.noPrice"
+            : `empty.note.${pricingModel}`,
+        )}
+      </p>
     </div>
   );
 }
@@ -242,11 +243,14 @@ function MarginBarView({ bar, status }: { bar: MarginBar; status: Status | null 
             style={{ width: share(bar.marginBasisPoints) }}
           />
         )}
-        <div
-          data-part="target"
-          className="absolute -top-1 h-[18px] w-0.5 bg-foreground"
-          style={{ left: share(10_000 - bar.targetBasisPoints) }}
-        />
+        {/* A target below nothing has no place on revenue: the legend still says it. */}
+        {bar.targetBasisPoints >= 0 && (
+          <div
+            data-part="target"
+            className="absolute -top-1 h-[18px] w-0.5 bg-foreground"
+            style={{ left: share(10_000 - bar.targetBasisPoints) }}
+          />
+        )}
       </div>
       <p className="flex flex-wrap justify-between gap-x-2 text-xs text-muted-foreground">
         <span>{t("cost", { percent: percent(bar.costBasisPoints) })}</span>
@@ -354,6 +358,9 @@ function ResultLine({ line, pricingModel }: { line: LedgerLine; pricingModel: Pr
       <Value amount={line.cents} format={euros} />
     );
   const subtotal = SUBTOTALS.includes(line.key);
+  // The row's name leaves out the "i": a screen reader says it with every cell of the row.
+  const nameId = useId();
+  const hintId = useId();
 
   return (
     <tr
@@ -363,16 +370,23 @@ function ResultLine({ line, pricingModel }: { line: LedgerLine; pricingModel: Pr
         line.key === "directMargin" && "text-muted-foreground",
       )}
     >
-      <th scope="row" className="py-[7px] pe-3 text-start align-baseline font-[inherit]">
-        {subtotal && (
-          <span className="me-1.5 text-[10px] font-semibold tracking-[0.06em] text-muted-foreground uppercase">
-            {t("subtotal")}{" "}
-          </span>
-        )}
-        {name}
+      <th
+        scope="row"
+        aria-labelledby={hint ? `${nameId} ${hintId}` : nameId}
+        className="py-[7px] pe-3 text-start align-baseline font-[inherit]"
+      >
+        <span id={nameId}>
+          {subtotal && (
+            <span className="me-1.5 text-[10px] font-semibold tracking-[0.06em] text-muted-foreground uppercase">
+              {t("subtotal")}
+            </span>
+          )}
+          {subtotal && " "}
+          {name}
+        </span>
         {line.key !== "extraCost" && <TermInfo term={line.key satisfies InfoTerm} name={name} />}
         {hint && (
-          <span className="text-xs font-normal text-muted-foreground">
+          <span id={hintId} className="text-xs font-normal text-muted-foreground">
             <span aria-hidden> · </span>
             {hint}
           </span>
