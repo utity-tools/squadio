@@ -85,7 +85,7 @@ test("the bench is filtered with the keyboard alone", async ({ page }) => {
   await expect(cards(page)).toHaveText([/Junior Developer 3/]);
 
   await search(page).fill("nadie");
-  await expect(bench(page)).toContainText("Nadie coincide con la búsqueda");
+  await expect(bench(page)).toContainText("Nadie coincide con «nadie»");
   await bench(page).getByRole("button", { name: "Quitar filtros" }).press("Enter");
   await expect(cards(page)).toHaveCount(15);
 });

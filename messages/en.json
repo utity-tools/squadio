@@ -221,7 +221,9 @@
     "onTeam": "On the team",
     "weeklyHours": "{hours} h/week",
     "none": "No active people yet",
-    "empty": "Nobody matches the search",
+    "empty": "Nobody matches “{query}”",
+    "emptyHint": "Try another name.",
+    "emptyHintCategory": "Try another name, or clear the category filter.",
     "clear": "Clear filters",
     "openRole": "Open role",
     "openRoleOf": "Open role ({category})"

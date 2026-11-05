@@ -14,6 +14,7 @@ import { useStore } from "zustand";
 import { useScenarioStore } from "@/components/scenario/scenario-editor";
 import { useDragState, useTeamDrag } from "@/components/team-drag/team-drag";
 import { Button } from "@/components/ui/button";
+import { EmptyArt, EmptyState } from "@/components/ui/empty-state";
 import {
   type BenchFilter,
   type BenchGroup,
@@ -140,16 +141,22 @@ export function Bench({
         Open roles can still be offered when no person is listed. A category with nobody in it,
         chosen without a search, says so in its heading.
       */}
-      {count === 0 && (searching || !filtered) && (
-        <div className="flex flex-col items-start gap-2 text-sm">
-          <p>{filtered ? t("empty") : t("none")}</p>
-          {filtered && (
+      {count === 0 && searching && (
+        <EmptyState
+          art={<EmptyArt variant="search" className="size-16" />}
+          title={t("empty", { query: filter.query.trim() })}
+          description={filter.categoryId === null ? t("emptyHint") : t("emptyHintCategory")}
+          level={3}
+          actions={
             <Button variant="outline" size="xs" onClick={clear}>
               {t("clear")}
             </Button>
-          )}
-        </div>
+          }
+          compact
+          className="py-4"
+        />
       )}
+      {count === 0 && !filtered && <p className="text-sm">{t("none")}</p>}
       {groups.map((group) => (
         <div key={group.category.id}>
           <h3 className="mb-2 flex items-baseline justify-between gap-2 text-sm font-semibold">
