@@ -145,11 +145,15 @@
     "choose": {
       "button": "Elegir escenario",
       "busy": "Eligiendo…",
-      "title": "¿Elegir «{name}»?",
+      "title": "¿Elegir «{name}» para {project}?",
       "blockedTitle": "No se puede elegir «{name}»",
-      "description": "Se congelan los costes y las tarifas de venta de sus categorías, el overhead, el buffer y la disponibilidad de hoy; el precio, los costes extra y el margen objetivo no. Su equipo deja de poder editarse hasta que quites la elección.",
       "replaces": "«{name}» dejará de ser el escenario elegido del proyecto: se descartan sus valores congelados y su equipo se podrá editar de nuevo.",
-      "missingRate": "{count, plural, one {Falta el coste de {categories}} other {Faltan los costes de {categories}}}, así que no hay nada que congelar."
+      "missingRate": "{count, plural, one {Falta el coste de {categories}} other {Faltan los costes de {categories}}}, así que no hay nada que congelar.",
+      "intro": "Es el equipo con el que te comprometes. Al elegirlo:",
+      "freezes": "Se congelan el coste y la tarifa de venta de {count, plural, one {su categoría} other {sus # categorías}}, el overhead, el buffer y la disponibilidad de hoy: si los cambias después, esos valores ya no mueven «{name}». El precio, los costes extra, el calendario y el margen objetivo no se congelan.",
+      "locks": "El equipo queda bloqueado: para cambiarlo, quita la elección.",
+      "occupies": "{count, plural, =0 {Su equipo son solo vacantes: no ocupa a nadie.} one {Su persona pasa a contar como ocupada en este proyecto.} other {Sus # personas pasan a contar como ocupadas en este proyecto.}}",
+      "emptyTeam": "Se podrá elegir cuando haya alguien en el equipo."
     },
     "unchoose": {
       "button": "Quitar la elección",
@@ -483,7 +487,7 @@
           "formula": "ingresos ÷ horas efectivas"
         },
         "effectiveHours": {
-          "definition": "Las horas nominales por el factor de disponibilidad: las que se trabajan de verdad en el proyecto.",
+          "definition": "Las horas nominales descontando, de media, vacaciones, ausencias y formación: el factor de disponibilidad.",
           "formula": "horas nominales × factor de disponibilidad"
         }
       }
@@ -492,7 +496,8 @@
       "margin": "Aparece en cuanto haya alguien en el equipo.",
       "note": {
         "fixed": "Los ingresos ya se conocen por el precio; el resto espera al equipo.",
-        "time_and_materials": "En tiempo y materiales los ingresos salen de las horas del equipo: aparecen con él."
+        "time_and_materials": "En tiempo y materiales los ingresos salen de las horas del equipo: aparecen con él.",
+        "noPrice": "Los ingresos esperan al precio; el resto, al equipo."
       }
     }
   },

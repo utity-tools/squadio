@@ -497,8 +497,9 @@ rows, and writes the new scenario's FrozenRates (one per category it uses) and i
 FrozenCostConfig, read from the current values. Unchoosing, also with rate access only, deletes its
 frozen rows. Both move the scenario's version on, like a save, so a page holding an older version
 gets a conflict instead of overwriting the choice. A scenario with a category without a rate cannot
-be chosen: there is no rate to freeze (rule k). That is the only rule that blocks choosing: a
-scenario with undetermined revenue (a missing price), or one whose dates fall outside the calendar,
+be chosen: there is no rate to freeze (rule k). An empty team commits to nothing: the page does not
+offer choosing it, and the server refuses it from v0.3. Those are the only rules that block
+choosing: a scenario with undetermined revenue (a missing price), or one whose dates fall outside the calendar,
 can be chosen, and its calendar working hours are those of the calendar's first year, as the engine uses.
 Choosing what is chosen, or unchoosing what is not, is refused as changing nothing, and the demo
 template is never chosen or unchosen: only its visitors' copies are

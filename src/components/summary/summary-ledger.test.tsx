@@ -148,6 +148,19 @@ describe("SummaryLedger", () => {
     expect(headline).toContain("Margen 36,2 %");
   });
 
+  it("marks no target below nothing, though the legend says it", () => {
+    const ledger: Ledger = {
+      ...complete,
+      headline: { ...complete.headline, targetMarginBasisPoints: -500 },
+    };
+    const { container } = renderWithIntl(
+      <SummaryLedger ledger={ledger} team={team} pricingModel="fixed" />,
+    );
+
+    expect(container.querySelector('[data-part="target"]')).toBeNull();
+    expect(plain(section("Margen neto"))).toContain("Objetivo -5 %");
+  });
+
   it("draws a loss as a bar of cost only", () => {
     const ledger: Ledger = {
       ...complete,
@@ -226,6 +239,10 @@ describe("SummaryLedger", () => {
       "Qué es: Coste total",
       "Qué es: Margen neto",
     ]);
+
+    // A row's name is its line and hint, never the "i", which a screen reader would repeat.
+    expect(screen.getByRole("rowheader", { name: /^Overhead\s15\s%$/ })).toBeVisible();
+    expect(screen.getByRole("rowheader", { name: "Subtotal Coste total" })).toBeVisible();
 
     await userEvent.click(screen.getByRole("button", { name: "Qué es: Overhead" }));
     const tip = screen.getByRole("dialog", { name: "Overhead" });
