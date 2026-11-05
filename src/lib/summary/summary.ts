@@ -52,7 +52,7 @@ export type Amount =
     }
   | { state: "notApplicable"; reason: "noRevenue" | "noEffectiveHours" };
 
-/** A result line, in the order of the calculation, rounded once as the engine returns it. */
+/** A result line, in the order of a statement, rounded once as the engine returns it. */
 export type LedgerLine =
   | { key: "staffCost"; cents: Amount; effectiveHours: number }
   | {
@@ -194,7 +194,9 @@ export function ledger({
       effectiveRateCents: ratio("noEffectiveHours", revenue)(result.effectiveRateCents),
       effectiveHours,
     },
+    // A statement, read top to bottom: revenue, the costs that make each margin, then the margin.
     lines: [
+      { key: "revenue", cents: revenue(result.revenueCents) },
       { key: "staffCost", cents: amount(result.staffCostCents), effectiveHours },
       ...result.extraCosts.map(({ id, amountCents }): LedgerLine => {
         const extra = extraOf.get(id);
@@ -209,18 +211,17 @@ export function ledger({
       }),
       { key: "directCost", cents: amount(result.directCostCents) },
       {
+        key: "directMargin",
+        cents: margin(result.directMarginCents),
+        basisPoints: marginPercent(result.directMarginBasisPoints),
+      },
+      {
         key: "overhead",
         cents: amount(result.overheadCents),
         basisPoints: settings.overheadBasisPoints,
       },
       { key: "buffer", cents: amount(result.bufferCents), basisPoints: settings.bufferBasisPoints },
       { key: "totalCost", cents: amount(result.totalCostCents) },
-      { key: "revenue", cents: revenue(result.revenueCents) },
-      {
-        key: "directMargin",
-        cents: margin(result.directMarginCents),
-        basisPoints: marginPercent(result.directMarginBasisPoints),
-      },
       {
         key: "netMargin",
         cents: margin(result.netMarginCents),
@@ -236,6 +237,41 @@ export function ledger({
       activePeople: small.get(line.categoryId) ?? null,
     })),
     warnings,
+  };
+}
+
+/**
+ * How many result lines have an amount, of all of them: "Complete · 9 of 9 lines" or "Partial ·
+ * 6 of 9". A margin whose % does not apply still has its amount, so it counts.
+ */
+export function completeness({ lines }: Pick<Ledger, "lines">): {
+  determined: number;
+  total: number;
+} {
+  return {
+    determined: lines.filter((line) => typeof line.cents === "number").length,
+    total: lines.length,
+  };
+}
+
+/**
+ * The headline's bar: revenue split into total cost and net margin, with the target marked, in
+ * basis points of revenue. The cost share is what the net margin leaves, so the two always add up
+ * to the whole; on a loss it passes 100 %. None without revenue or with a pending margin.
+ */
+export type MarginBar = {
+  costBasisPoints: number;
+  marginBasisPoints: number;
+  targetBasisPoints: number;
+};
+
+export function marginBar({ headline }: Pick<Ledger, "headline">): MarginBar | null {
+  const margin = headline.netMarginBasisPoints;
+  if (typeof margin !== "number") return null;
+  return {
+    costBasisPoints: 10_000 - margin,
+    marginBasisPoints: margin,
+    targetBasisPoints: headline.targetMarginBasisPoints,
   };
 }
 

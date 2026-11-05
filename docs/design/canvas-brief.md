@@ -89,10 +89,18 @@ Only rendered with rate access. Without it, its place shows the hours summary (s
   target, amber below it, red with a negative net margin, none without revenue. Status is a
   coloured badge **with an icon and a word** ("On target", "Below target", "Loss"), never colour
   alone. The target margin is shown next to it ("target 25%").
-- **Key figures:** revenue, total cost, effective rate (€/h), effective hours.
-- **Result lines**, in the order of the calculation, each rounded once as the engine returns them:
-  staff cost, each extra cost, direct cost, overhead (with its %), buffer (with its %), total cost,
-  revenue, direct margin (with %), net margin (with %).
+- **Completeness**, next to the rail's title: "Complete · 9 of 9 lines", or "Partial · 6 of 9
+  lines" while some line is Pending. A margin whose % does not apply still has its amount, so it
+  counts.
+- **Margin bar**, under the headline: revenue split into total cost and net margin, with a mark at
+  the target, and a legend in words ("Total cost 68.3% · Target 25% · Margin 31.7%"), since the bar
+  is drawn for the eye only. The cost share is what the net margin leaves; on a loss the bar is all
+  cost. No bar without revenue or with a pending margin.
+- **Key figures:** effective rate (€/h), effective hours and the team ("3 + 1 open role"). Revenue
+  and total cost are the statement's first and last costs, so the rail does not repeat them.
+- **Statement** ("Profit and loss"), each line rounded once as the engine returns it: revenue,
+  staff cost, each extra cost, direct cost (subtotal), direct margin (with %), overhead (with its
+  %), buffer (with its %), total cost (subtotal), net margin (with %).
 - **Staff cost by category:** one line per category in the scenario with effective hours, cost per
   hour and cost. The small-category warning (rule j) sits on this line.
 - **T&M budget cap:** when set and exceeded, a warning with revenue versus cap (`budgetCapExceeded`).
