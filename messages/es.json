@@ -221,7 +221,9 @@
     "onTeam": "En el equipo",
     "weeklyHours": "{hours} h/semana",
     "none": "Todavía no hay personas activas",
-    "empty": "Nadie coincide con la búsqueda",
+    "empty": "Nadie coincide con «{query}»",
+    "emptyHint": "Prueba con otro nombre.",
+    "emptyHintCategory": "Prueba con otro nombre o quita el filtro de categoría.",
     "clear": "Quitar filtros",
     "openRole": "Vacante",
     "openRoleOf": "Vacante ({category})"

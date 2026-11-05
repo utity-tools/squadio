@@ -172,7 +172,7 @@ describe("Bench", () => {
       screen.getByRole("heading", { level: 3, name: /^Project Manager\s*0 personas$/ }),
     ).toBeInTheDocument();
     expect(openRoles()).toEqual(["Project Manager"]);
-    expect(screen.queryByText("Nadie coincide con la búsqueda")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Nadie coincide/)).not.toBeInTheDocument();
   });
 
   it("offers to clear the filters when nobody matches", async () => {
@@ -180,10 +180,28 @@ describe("Bench", () => {
     renderBench();
 
     await user.type(screen.getByRole("searchbox", { name: "Buscar persona" }), "zz");
-    expect(screen.getByText("Nadie coincide con la búsqueda")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { level: 3, name: "Nadie coincide con «zz»" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Prueba con otro nombre.")).toBeInTheDocument();
+    expect(document.querySelector('[data-art="search"]')).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Quitar filtros" }));
     expect(names()).toHaveLength(3);
     expect(screen.getByRole("searchbox", { name: "Buscar persona" })).toHaveFocus();
+  });
+
+  it("suggests clearing the category too when one is chosen", async () => {
+    const user = userEvent.setup();
+    renderBench();
+
+    await user.selectOptions(
+      screen.getByRole("combobox", { name: "Categoría" }),
+      "Project Manager",
+    );
+    await user.type(screen.getByRole("searchbox", { name: "Buscar persona" }), "zz");
+    expect(
+      screen.getByText("Prueba con otro nombre o quita el filtro de categoría."),
+    ).toBeInTheDocument();
   });
 
   it("shows no money", () => {
