@@ -503,6 +503,55 @@ template is never chosen or unchosen: only its visitors' copies are
 choosing would have no frozen rate, while writing one needs rate access that editing does not. To
 change it, unchoose it, edit it and choose it again, which freezes the current values.
 
+## The organization at a glance
+
+Inicio and the projects list show every project of the organization at once, costed exactly as
+the scenario page costs each scenario: the same engine over the same basis, a chosen scenario with
+its frozen values (rule b). Nothing here is stored; it is read again on every request. In code this
+is the organization's portfolio: `loadPortfolio` reads it, and `src/lib/portfolio` works out what
+follows.
+
+### A project's margin
+
+A project's margin is the net margin and status of one of its scenarios, never a sum or an average
+of several:
+
+- **The chosen scenario's**, when it has one.
+- **Its only scenario's**, when none is chosen and it has exactly one, marked as not chosen.
+- **None** when none is chosen and it has two or more: the project says how many scenarios it has,
+  since picking one of them would be a choice nobody made. Nor does a project without scenarios.
+
+Margins of different projects are never added: each margin % is over its own revenue (rule f). A
+margin that is pending says what it misses, as on the scenario page. Margins and status are
+restricted (rule j): without rate access the project shows its scenario only.
+
+### Pending corrections
+
+What Inicio asks the organization to fix: the warnings the engine reports on every scenario of the
+organization, chosen or not, gathered **once per missing input, not once per scenario**:
+
+- **A category's missing cost:** a category without a rate that some scenario uses (rule k).
+- **A category's missing sell rate:** the same category, only when a scenario of a time-and-
+  materials project uses it, since a fixed price does not need it. A category's cost and sell rate
+  live in one rate today, so both corrections appear together.
+- **A project's missing price:** a fixed-price project without a price that has a scenario (rule l).
+- **A project's exceeded budget cap:** a warning, once per time-and-materials project, for the
+  scenarios whose revenue is over its cap (rule e).
+
+Each correction names the first scenario it affects (chosen scenarios first, then by project and
+scenario name) and how many more it affects, and leads to that scenario; a missing price leads to
+the project. They are listed in the order above, then by name. All of them are restricted: which
+categories lack a rate is itself restricted, so without rate access there are none, nor a count.
+
+### Occupancy by category
+
+Today's occupancy of a category is that of its active people (see
+[How busy a person is](#how-busy-a-person-is)), weighted by their weekly hours: the share of the
+category's working week that chosen scenarios book today, rounded to a whole percent, half up. A
+part-time person weighs less than a full-time one. It may exceed 100%. Categories without active
+people are left out; open roles and scenarios that are not chosen do not count. It holds no money,
+so everyone sees it, and it is not availability during a project.
+
 ## Planned period
 
 From v0.3 a project may have a planned period, a start and an end date, and a short description
