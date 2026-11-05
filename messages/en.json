@@ -91,7 +91,8 @@
     "team": "{people, plural, one {# person} other {# people}}{openRoles, plural, =0 {} one { · # open role} other { · # open roles}}",
     "openRolesOnly": "{openRoles, plural, one {# open role} other {# open roles}}",
     "noTeam": "No team",
-    "noScenarios": "This project has no scenarios yet.",
+    "noScenarios": "This project has no scenarios yet",
+    "noScenariosDescription": "A scenario is one way to build the team. When there are several, you choose the one you commit to.",
     "note": "Only the chosen scenario is a commitment: it is the one that books people's occupancy."
   },
   "NotFound": {

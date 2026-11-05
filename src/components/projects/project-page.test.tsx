@@ -143,7 +143,11 @@ describe("ProjectScenarios", () => {
       />,
     );
 
-    expect(screen.getByText("Este proyecto aún no tiene escenarios.")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { level: 3, name: "Este proyecto aún no tiene escenarios" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Un escenario es una forma de armar el equipo/)).toBeInTheDocument();
+    expect(document.querySelector('[data-art="outline"]')).toBeInTheDocument();
     expect(screen.queryByRole("table")).toBeNull();
     expect(screen.queryByRole("button")).toBeNull();
   });
