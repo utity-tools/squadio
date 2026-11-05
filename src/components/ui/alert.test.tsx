@@ -11,7 +11,7 @@ describe("Alert", () => {
     render(
       <Alert tone="warn" data-testid="alert">
         <AlertTitle>Correcciones pendientes</AlertTitle>
-        Falta la tarifa de QA Engineer.
+        Falta el coste de QA Engineer.
       </Alert>,
     );
 

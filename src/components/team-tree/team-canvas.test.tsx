@@ -212,19 +212,19 @@ describe("TeamCanvas", () => {
         "Tech lead",
         "Senior Developer 1",
         "Senior Developer",
-        "Sin tarifa",
+        "Falta el coste",
         "100 %",
         "40 h/sem",
         "897,5 h efectivas",
       ),
     );
     expect(lead.querySelector("[data-missing-rate] svg")).toHaveClass("text-status-warn");
-    expect(node(/^Project manager/)).not.toHaveTextContent("Sin tarifa");
+    expect(node(/^Project manager/)).not.toHaveTextContent("Falta el coste");
   });
 
   it("marks no node when every category has a rate", () => {
     renderWithIntl(<Stateful />);
 
-    expect(screen.queryByText("Sin tarifa")).not.toBeInTheDocument();
+    expect(screen.queryByText("Falta el coste")).not.toBeInTheDocument();
   });
 });

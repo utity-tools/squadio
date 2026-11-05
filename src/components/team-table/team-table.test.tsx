@@ -344,7 +344,7 @@ describe("TeamTable", () => {
     renderWithIntl(<Stateful cards={cards} />);
 
     const category = within(row("Tech lead")).getAllByRole("gridcell")[2]!;
-    expect(category).toHaveTextContent("Senior Developer, Sin tarifa");
+    expect(category).toHaveTextContent("Senior Developer, Falta el coste");
     expect(category.querySelector("[data-missing-rate] svg")).toHaveClass("text-status-warn");
     expect(cells("Project manager")[2]).toBe("Project Manager");
   });
@@ -352,6 +352,6 @@ describe("TeamTable", () => {
   it("marks no row when every category has a rate", () => {
     renderWithIntl(<Stateful />);
 
-    expect(screen.queryByText("Sin tarifa")).not.toBeInTheDocument();
+    expect(screen.queryByText("Falta el coste")).not.toBeInTheDocument();
   });
 });

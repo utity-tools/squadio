@@ -30,8 +30,8 @@ export function useSummaryFormat() {
 
 /**
  * Why a line has no amount: what an undetermined one misses, or why one does not apply
- * (docs/domain.md, "Partial results"). `ownRate` shortens a category's own line to "No rate", since
- * the category names the line.
+ * (docs/domain.md, "Partial results"). `ownRate` shortens a category's own line to "Missing the cost",
+ * since the category names the line.
  */
 export function useWhyNoAmount() {
   const t = useTranslations("Summary");
@@ -45,10 +45,8 @@ export function useWhyNoAmount() {
       return t("missing.price");
     }
     if (ownRate) return t("missing.ownRate");
-    const list = format.list(categories);
-    return price
-      ? t("missing.rateAndPrice", { categories: list })
-      : t("missing.rate", { categories: list });
+    const values = { categories: format.list(categories), count: categories.length };
+    return price ? t("missing.rateAndPrice", values) : t("missing.rate", values);
   };
 }
 

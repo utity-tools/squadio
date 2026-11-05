@@ -146,7 +146,7 @@ function Section({
 }
 
 /**
- * A line's amount, or why it has none: "Undetermined" and what it misses, never 0 € (rules k and
+ * A line's amount, or why it has none: "Pending" and what it misses, never 0 € (rules k and
  * l), or "Not applicable" and why (docs/domain.md, "Partial results"). `counts` animates a figure
  * between amounts; a line that gains or loses its amount swaps at once.
  */

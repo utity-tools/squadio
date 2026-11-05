@@ -138,7 +138,7 @@ describe("ScenarioAnnouncer", () => {
       store.getState().dispatch(halve);
     });
     expect(region.textContent).toMatch(
-      /Margen neto indeterminado\. Sin tarifa: Project Manager\.$/,
+      /Margen neto pendiente\. Falta el coste de Project Manager\.$/,
     );
     expect(region.textContent).not.toContain("€");
   });

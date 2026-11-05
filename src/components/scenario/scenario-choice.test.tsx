@@ -79,7 +79,7 @@ describe("ScenarioChoice", () => {
     await user.click(chooseButton());
     const dialog = screen.getByRole("dialog", { name: "¿Elegir «Plan A»?" });
     expect(dialog).toHaveAccessibleDescription(
-      "Se congelan las tarifas de sus categorías, el overhead, el buffer y la disponibilidad de hoy; el precio, los costes extra y el margen objetivo no. Su equipo deja de poder editarse hasta que quites la elección.",
+      "Se congelan los costes y las tarifas de venta de sus categorías, el overhead, el buffer y la disponibilidad de hoy; el precio, los costes extra y el margen objetivo no. Su equipo deja de poder editarse hasta que quites la elección.",
     );
     await user.click(within(dialog).getByRole("button", { name: "Elegir escenario" }));
 
@@ -182,7 +182,7 @@ describe("ScenarioChoice", () => {
     // The title asks nothing, since there is nothing to confirm.
     const dialog = screen.getByRole("dialog", { name: "No se puede elegir «Plan A»" });
     expect(dialog).toHaveAccessibleDescription(
-      "Falta la tarifa de Project Manager, así que no hay nada que congelar.",
+      "Falta el coste de Project Manager, así que no hay nada que congelar.",
     );
     expect(within(dialog).queryByRole("button", { name: "Elegir escenario" })).toBeNull();
     expect(send).not.toHaveBeenCalled();
@@ -192,7 +192,7 @@ describe("ScenarioChoice", () => {
     const { user } = renderChoice({ basis: withoutRates([PM, SENIOR]) });
     await user.click(chooseButton());
     expect(screen.getByRole("dialog")).toHaveAccessibleDescription(
-      "Faltan las tarifas de Senior Developer y Project Manager, así que no hay nada que congelar.",
+      "Faltan los costes de Senior Developer y Project Manager, así que no hay nada que congelar.",
     );
   });
 
@@ -232,7 +232,7 @@ describe("ScenarioChoice", () => {
   });
 
   it.each([
-    ["missing-rate", "No se puede elegir: a una categoría del equipo le falta la tarifa."],
+    ["missing-rate", "No se puede elegir: a una categoría del equipo le falta el coste."],
     ["limit", "Hoy no se pueden crear más copias de la demo. Vuelve a intentarlo mañana."],
     ["conflict", "El escenario ha cambiado en otra pestaña. Recarga la página."],
     ["failed", "No se ha podido guardar la elección. Vuelve a intentarlo."],
