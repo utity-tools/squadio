@@ -235,8 +235,8 @@ for (const access of ["full", "none"] as const) {
       if (access === "full") {
         // With an info tip and staff cost by category open, so axe checks them too.
         await categoryTable(page);
-        await rail(page).getByRole("button", { name: "Qué es: Overhead" }).click();
-        await expect(page.getByRole("dialog", { name: "Overhead" })).toBeVisible();
+        await rail(page).getByRole("button", { name: "Qué es: Overhead" }).hover();
+        await expect(page.getByRole("tooltip")).toContainText("overhead % × coste de personal");
       }
       await expect(page.locator("html")).toHaveAttribute("data-theme", colorScheme);
 

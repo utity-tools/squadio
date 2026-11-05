@@ -1,8 +1,8 @@
 "use client";
 
 import { InfoIcon } from "lucide-react";
-import { Popover as PopoverPrimitive } from "radix-ui";
-import { type ReactNode, useId } from "react";
+import { Tooltip as TooltipPrimitive } from "radix-ui";
+import type { ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -19,45 +19,44 @@ type InfoTipProps = {
 };
 
 /**
- * The "i" next to a figure (ADR 0014, board "Info"): it says what the term means and how it is
- * worked out. A toggle, not a hover tooltip, so a tap and the keyboard open it as well as a click;
- * Escape or a click outside closes it and gives the focus back. The button is 18 px with a 32 px
- * hit area, so it sits in a line of text without crowding it.
+ * The "i" before a figure's label (ADR 0014, board "Info"): it says what the term means and how it
+ * is worked out. A tooltip: it opens while the pointer is over it or the keyboard's focus is on it,
+ * and closes as soon as either leaves, or with Escape, so it never stays open. It is a little
+ * smaller than the label and sits at its top-left, with a 24 px hit area.
  */
 export function InfoTip({ label, title, formula, children, className }: InfoTipProps) {
-  const titleId = useId();
-
   return (
-    <PopoverPrimitive.Root>
-      <PopoverPrimitive.Trigger asChild>
-        <button
-          type="button"
-          aria-label={label}
-          className={cn(
-            "relative ms-1 inline-flex size-[18px] shrink-0 cursor-help items-center justify-center rounded-full align-[-3px] text-muted-foreground after:absolute after:-inset-[7px] hover:bg-accent hover:text-foreground data-[state=open]:bg-accent data-[state=open]:text-foreground",
-            className,
-          )}
-        >
-          <InfoIcon aria-hidden className="size-3.5" />
-        </button>
-      </PopoverPrimitive.Trigger>
-      <PopoverPrimitive.Portal>
-        <PopoverPrimitive.Content
-          aria-labelledby={titleId}
+    <TooltipPrimitive.Provider delayDuration={150} disableHoverableContent>
+      <TooltipPrimitive.Root>
+        <TooltipPrimitive.Trigger asChild>
+          <button
+            type="button"
+            aria-label={label}
+            className={cn(
+              "relative me-1 inline-flex size-3.5 shrink-0 cursor-help items-center justify-center rounded-full align-top text-muted-foreground after:absolute after:-inset-[5px] hover:text-foreground data-[state=delayed-open]:text-foreground data-[state=instant-open]:text-foreground",
+              className,
+            )}
+          >
+            <InfoIcon aria-hidden className="size-3" />
+          </button>
+        </TooltipPrimitive.Trigger>
+        {/* In place, not in a portal: it stays inside the rail's landmark. It floats all the same. */}
+        <TooltipPrimitive.Content
           side="top"
-          sideOffset={8}
+          align="start"
+          sideOffset={6}
           collisionPadding={8}
-          className="z-50 w-70 max-w-[calc(100vw-16px)] rounded-[10px] border bg-popover px-3.5 py-3 text-start text-[13px]/[1.45] font-normal text-popover-foreground shadow-lg"
+          className="z-50 w-70 max-w-[calc(100vw-16px)] rounded-[10px] border bg-popover px-3.5 py-3 text-start text-[13px]/[1.45] font-normal tracking-normal whitespace-normal text-popover-foreground normal-case shadow-lg"
         >
-          <p id={titleId} className="mb-1 font-semibold">
-            {title}
-          </p>
-          <p>{children}</p>
+          <span className="mb-1 block font-semibold">{title}</span>
+          <span className="block">{children}</span>
           {formula && (
-            <p className="mt-2 border-t pt-2 font-mono text-xs text-muted-foreground">{formula}</p>
+            <span className="mt-2 block border-t pt-2 font-mono text-xs text-muted-foreground">
+              {formula}
+            </span>
           )}
-        </PopoverPrimitive.Content>
-      </PopoverPrimitive.Portal>
-    </PopoverPrimitive.Root>
+        </TooltipPrimitive.Content>
+      </TooltipPrimitive.Root>
+    </TooltipPrimitive.Provider>
   );
 }

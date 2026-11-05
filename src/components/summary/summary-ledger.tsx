@@ -62,7 +62,8 @@ export function SummaryLedger({ ledger, team, pricingModel }: SummaryLedgerProps
       <Headline ledger={ledger} />
 
       <section aria-label={t("figures.title")}>
-        <dl className="grid grid-cols-3 gap-2 rounded-[10px] bg-muted p-3">
+        {/* Each figure keeps to one line: one that does not fit moves down whole. */}
+        <dl className="flex flex-wrap justify-between gap-x-4 gap-y-2 rounded-[10px] bg-muted p-3">
           <Figure term={t("figures.effectiveRate")} info="effectiveRate" mono>
             <Value amount={figures.effectiveRateCents} format={rate} counts />
           </Figure>
@@ -98,9 +99,9 @@ export function SummaryEmpty({ ledger, pricingModel }: Omit<SummaryLedgerProps, 
         aria-label={t("headline.netMargin")}
         className="flex flex-col gap-1.5 rounded-xl border bg-muted px-4.5 py-4"
       >
-        <p className="text-[13px] text-muted-foreground">
-          {t("headline.netMargin")}
+        <p className="text-[13px] whitespace-nowrap text-muted-foreground">
           <TermInfo term="netMargin" name={t("headline.netMargin")} />
+          {t("headline.netMargin")}
         </p>
         <p className="text-sm text-muted-foreground">{t("empty.margin")}</p>
       </section>
@@ -109,10 +110,12 @@ export function SummaryEmpty({ ledger, pricingModel }: Omit<SummaryLedgerProps, 
           <tbody>
             <tr>
               <th scope="row" className="py-[7px] pe-3 text-start align-baseline font-normal">
-                {t("lines.revenue")}
-                <TermInfo term="revenue" name={t("lines.revenue")} />
-                <span className="text-xs text-muted-foreground">
-                  <span aria-hidden> · </span>
+                <span className="whitespace-nowrap">
+                  <TermInfo term="revenue" name={t("lines.revenue")} />
+                  {t("lines.revenue")}
+                </span>{" "}
+                <span className="inline-block text-xs whitespace-nowrap text-muted-foreground">
+                  <span aria-hidden>· </span>
                   {t("lines.revenueHint.fixed")}
                 </span>
               </th>
@@ -169,10 +172,10 @@ function Headline({ ledger }: { ledger: Ledger }) {
     <section aria-label={t("headline.netMargin")}>
       <Kpi
         label={
-          <>
-            {t("headline.netMargin")}
+          <span className="whitespace-nowrap">
             <TermInfo term="netMargin" name={t("headline.netMargin")} />
-          </>
+            {t("headline.netMargin")}
+          </span>
         }
         pending={typeof cents !== "number"}
         value={
@@ -359,6 +362,7 @@ function ResultLine({ line, pricingModel }: { line: LedgerLine; pricingModel: Pr
     );
   const subtotal = SUBTOTALS.includes(line.key);
   // The row's name leaves out the "i": a screen reader says it with every cell of the row.
+  const tagId = useId();
   const nameId = useId();
   const hintId = useId();
 
@@ -372,22 +376,30 @@ function ResultLine({ line, pricingModel }: { line: LedgerLine; pricingModel: Pr
     >
       <th
         scope="row"
-        aria-labelledby={hint ? `${nameId} ${hintId}` : nameId}
+        aria-labelledby={[subtotal && tagId, nameId, hint && hintId].filter(Boolean).join(" ")}
         className="py-[7px] pe-3 text-start align-baseline font-[inherit]"
       >
-        <span id={nameId}>
+        {/* The name never breaks: its tag, its "i" and its words stay on one line. */}
+        <span className="whitespace-nowrap">
           {subtotal && (
-            <span className="me-1.5 text-[10px] font-semibold tracking-[0.06em] text-muted-foreground uppercase">
+            <span
+              id={tagId}
+              className="me-1.5 text-[10px] font-semibold tracking-[0.06em] text-muted-foreground uppercase"
+            >
               {t("subtotal")}
             </span>
           )}
           {subtotal && " "}
-          {name}
+          {line.key !== "extraCost" && <TermInfo term={line.key satisfies InfoTerm} name={name} />}
+          <span id={nameId}>{name}</span>
         </span>
-        {line.key !== "extraCost" && <TermInfo term={line.key satisfies InfoTerm} name={name} />}
+        {hint && " "}
         {hint && (
-          <span id={hintId} className="text-xs font-normal text-muted-foreground">
-            <span aria-hidden> · </span>
+          <span
+            id={hintId}
+            className="inline-block text-xs font-normal whitespace-nowrap text-muted-foreground"
+          >
+            <span aria-hidden>· </span>
             {hint}
           </span>
         )}
