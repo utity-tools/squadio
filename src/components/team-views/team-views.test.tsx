@@ -54,6 +54,23 @@ const bodyRows = () =>
 const lastUrl = (replaceState: ReturnType<typeof stubHistory>) => replaceState.mock.lastCall?.[2];
 
 describe("TeamViews", () => {
+  it.each([
+    ["frozen", "Equipo bloqueado · costes y tarifas de venta congelados"],
+    ["chosen", "Equipo bloqueado · escenario elegido"],
+  ] as const)("says a chosen scenario's team is locked (%s)", (locked, words) => {
+    stubScreen({ wide: true });
+    stubHistory(PATH);
+    renderWithIntl(<TeamViews {...data} locked={locked} />);
+
+    expect(screen.getByText(words)).toBeVisible();
+  });
+
+  it("says nothing is locked while the team can be edited", () => {
+    open("");
+
+    expect(screen.queryByText(/Equipo bloqueado/)).not.toBeInTheDocument();
+  });
+
   it("offers the tree and the table as one named radio group", () => {
     open("");
 

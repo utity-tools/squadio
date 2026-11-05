@@ -68,4 +68,37 @@ describe("the live scenario regions", () => {
     expect(screen.getByRole("region", { name: "Equipo y horas" })).toBeInTheDocument();
     expect(container.textContent).not.toContain("€");
   });
+
+  describe("on a chosen scenario", () => {
+    const chosen = (basis: ScenarioBasis): ScenarioBasis => ({
+      ...basis,
+      scenario: { ...basis.scenario, chosen: true },
+    });
+
+    it("say its team is locked and its costs frozen when it is costed with frozen values", () => {
+      const engine = ratesBasis.engine.rateAccess
+        ? {
+            ...ratesBasis.engine,
+            // Frozen values keep the calendar hours they were chosen with.
+            input: {
+              ...ratesBasis.engine.input,
+              costSettings: { ...ratesBasis.engine.input.costSettings, calendarWorkingHours: 1760 },
+            },
+            frozen: true as const,
+          }
+        : ratesBasis.engine;
+      renderPage(chosen({ ...ratesBasis, engine }));
+      expect(
+        screen.getByText("Equipo bloqueado · costes y tarifas de venta congelados"),
+      ).toBeVisible();
+    });
+
+    it.each([
+      ["without frozen rows", ratesBasis],
+      ["without rate access", hoursBasis],
+    ])("say only that it is chosen %s", (_, basis) => {
+      renderPage(chosen(basis));
+      expect(screen.getByText("Equipo bloqueado · escenario elegido")).toBeVisible();
+    });
+  });
 });

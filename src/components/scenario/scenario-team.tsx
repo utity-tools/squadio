@@ -21,6 +21,8 @@ export type ScenarioTeamProps = {
   span: ProjectSpan | null;
   /** The categories without a rate, marked on their nodes. Only with rate access (ADR 0005). */
   withoutRate?: ReadonlySet<string>;
+  /** A chosen scenario's team is locked; with rate access, its costs and rates are frozen. */
+  locked?: "frozen" | "chosen";
 };
 
 /**
@@ -28,7 +30,7 @@ export type ScenarioTeamProps = {
  * assignments the layout cannot draw, or else the tree and table views of the canvas brief. The
  * cards and the layout are computed once, here, for both views.
  */
-export function ScenarioTeam({ team, hours, span, withoutRate }: ScenarioTeamProps) {
+export function ScenarioTeam({ team, hours, span, withoutRate, locked }: ScenarioTeamProps) {
   if (team.length === 0) return <EmptyTeam />;
   const cards = assignmentCards(team, hours, span, withoutRate);
   const layout = layoutTeam(team);
@@ -40,6 +42,7 @@ export function ScenarioTeam({ team, hours, span, withoutRate }: ScenarioTeamPro
         team={team.map(({ id, reportsTo }) => ({ id, reportsTo }))}
         nodes={layout.nodes}
         cards={cards}
+        locked={locked}
       />
     </Suspense>
   );
