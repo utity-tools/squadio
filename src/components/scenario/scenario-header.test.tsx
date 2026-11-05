@@ -45,6 +45,17 @@ describe("ScenarioHeader", () => {
     expect(screen.getByText("130 días laborables")).toBeInTheDocument();
   });
 
+  it("names time and materials in full, as the glossary does", () => {
+    renderWithIntl(
+      <ScenarioHeader
+        {...guide}
+        project={{ ...guide.project, pricingModel: "time_and_materials" }}
+      />,
+    );
+
+    expect(screen.getByText("Tiempo y materiales")).toBeInTheDocument();
+  });
+
   it("marks the chosen scenario", () => {
     renderWithIntl(
       <ScenarioHeader {...guide} scenario={{ name: "Plan A", chosen: true, otherChosen: null }} />,
