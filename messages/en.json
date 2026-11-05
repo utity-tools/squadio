@@ -348,8 +348,8 @@
     },
     "hours": "{hours} h",
     "rate": "{amount}/h",
-    "amountWithPercent": "{amount} ({percent})",
-    "amountPercentNotApplicable": "{amount} (% not applicable)",
+    "amountWithPercent": "{amount} · {percent}",
+    "amountPercentNotApplicable": "{amount} · % not applicable",
     "headline": {
       "netMargin": "Net margin",
       "percentNotApplicable": "Margin % not applicable. {reason}",
@@ -362,33 +362,45 @@
     },
     "figures": {
       "title": "Key figures",
-      "revenue": "Revenue",
-      "totalCost": "Total cost",
       "effectiveRate": "Effective rate",
-      "effectiveHours": "Effective hours"
+      "effectiveHours": "Effective hours",
+      "team": "Team",
+      "teamValue": "{openRoles, plural, =0 {{people, plural, one {# person} other {# people}}} one {{people} + # open role} other {{people} + # open roles}}"
     },
     "lines": {
-      "title": "Breakdown",
-      "staffCost": "Staff cost ({hours} effective hours)",
+      "title": "Profit and loss",
+      "staffCost": "Staff cost",
       "extraCost": {
         "fixed": "Fixed extra cost",
         "recurring": "Monthly extra cost",
         "percentage": "Percentage extra cost"
       },
       "directCost": "Direct cost",
-      "overhead": "Overhead ({percent})",
-      "buffer": "Buffer ({percent})",
+      "overhead": "Overhead",
+      "buffer": "Buffer",
       "totalCost": "Total cost",
       "revenue": "Revenue",
       "directMargin": "Direct margin",
-      "netMargin": "Net margin"
+      "netMargin": "Net margin",
+      "subtotal": "Subtotal",
+      "revenueHint": {
+        "fixed": "fixed price",
+        "time_and_materials": "time and materials"
+      },
+      "extraCostHint": {
+        "fixed": "fixed extra cost",
+        "recurring": "monthly extra cost",
+        "percentage": "percentage extra cost"
+      }
     },
     "categories": {
       "title": "Staff cost by category",
       "effectiveHours": "Effective hours",
       "costPerHour": "Cost per hour",
       "cost": "Cost",
-      "small": "Small category: its cost can reveal a salary"
+      "small": "Small category: its cost can reveal a salary",
+      "summary": "Staff cost by category ({count})",
+      "category": "Category"
     },
     "warnings": {
       "missingRate": {
@@ -420,6 +432,16 @@
       "workingDays": "{count, plural, one {# working day} other {# working days}}",
       "noSpan": "No dates: the scenario has no team",
       "note": "Costs and margins are visible to people with rate access."
+    },
+    "title": "Result",
+    "completeness": {
+      "complete": "Complete · {determined} of {total} lines",
+      "partial": "Partial · {determined} of {total} lines"
+    },
+    "bar": {
+      "cost": "Total cost {percent}",
+      "target": "Target {percent}",
+      "margin": "Margin {percent}"
     }
   },
   "Account": {

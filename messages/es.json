@@ -348,8 +348,8 @@
     },
     "hours": "{hours} h",
     "rate": "{amount}/h",
-    "amountWithPercent": "{amount} ({percent})",
-    "amountPercentNotApplicable": "{amount} (% no aplicable)",
+    "amountWithPercent": "{amount} · {percent}",
+    "amountPercentNotApplicable": "{amount} · % no aplicable",
     "headline": {
       "netMargin": "Margen neto",
       "percentNotApplicable": "Margen % no aplicable. {reason}",
@@ -362,33 +362,45 @@
     },
     "figures": {
       "title": "Cifras clave",
-      "revenue": "Ingresos",
-      "totalCost": "Coste total",
       "effectiveRate": "Tarifa efectiva",
-      "effectiveHours": "Horas efectivas"
+      "effectiveHours": "Horas efectivas",
+      "team": "Equipo",
+      "teamValue": "{openRoles, plural, =0 {{people, plural, one {# persona} other {# personas}}} one {{people} + # vacante} other {{people} + # vacantes}}"
     },
     "lines": {
-      "title": "Desglose",
-      "staffCost": "Coste de personal ({hours} h efectivas)",
+      "title": "Cuenta de resultados",
+      "staffCost": "Coste de personal",
       "extraCost": {
         "fixed": "Coste extra fijo",
         "recurring": "Coste extra mensual",
         "percentage": "Coste extra porcentual"
       },
       "directCost": "Coste directo",
-      "overhead": "Overhead ({percent})",
-      "buffer": "Buffer ({percent})",
+      "overhead": "Overhead",
+      "buffer": "Buffer",
       "totalCost": "Coste total",
       "revenue": "Ingresos",
       "directMargin": "Margen directo",
-      "netMargin": "Margen neto"
+      "netMargin": "Margen neto",
+      "subtotal": "Subtotal",
+      "revenueHint": {
+        "fixed": "precio cerrado",
+        "time_and_materials": "tiempo y materiales"
+      },
+      "extraCostHint": {
+        "fixed": "coste extra fijo",
+        "recurring": "coste extra mensual",
+        "percentage": "coste extra porcentual"
+      }
     },
     "categories": {
       "title": "Coste de personal por categoría",
       "effectiveHours": "Horas efectivas",
       "costPerHour": "Coste/hora",
       "cost": "Coste",
-      "small": "Categoría pequeña: su coste puede revelar un salario"
+      "small": "Categoría pequeña: su coste puede revelar un salario",
+      "summary": "Coste de personal por categoría ({count})",
+      "category": "Categoría"
     },
     "warnings": {
       "missingRate": {
@@ -420,6 +432,16 @@
       "workingDays": "{count, plural, one {# día laborable} other {# días laborables}}",
       "noSpan": "Sin fechas: el escenario no tiene equipo",
       "note": "Los costes y márgenes los ven las personas con acceso a tarifas."
+    },
+    "title": "Resultado",
+    "completeness": {
+      "complete": "Completo · {determined} de {total} líneas",
+      "partial": "Parcial · {determined} de {total} líneas"
+    },
+    "bar": {
+      "cost": "Coste total {percent}",
+      "target": "Objetivo {percent}",
+      "margin": "Margen {percent}"
     }
   },
   "Account": {

@@ -7,8 +7,9 @@ import { SummaryLedger } from "@/components/summary/summary-ledger";
 type Hours = { nominal: number; effective: number };
 
 export type ScenarioSummaryProps = {
-  scenario: Pick<LoadedScenario, "team" | "span"> &
-    (
+  scenario: Pick<LoadedScenario, "team" | "span"> & {
+    project: Pick<LoadedScenario["project"], "pricingModel">;
+  } & (
       | Pick<
           Extract<LoadedScenario, { rateAccess: true }>,
           "rateAccess" | "result" | "smallCategories" | "settings" | "extraCosts"
@@ -22,5 +23,11 @@ export function ScenarioSummary({ scenario }: ScenarioSummaryProps) {
   const hours = scenario.rateAccess ? scenario.result.hours : scenario.hours;
   const team = teamSummary(scenario.team, hours, scenario.span);
   if (!scenario.rateAccess) return <SummaryHours team={team} />;
-  return <SummaryLedger ledger={ledger(scenario)} team={team} />;
+  return (
+    <SummaryLedger
+      ledger={ledger(scenario)}
+      team={team}
+      pricingModel={scenario.project.pricingModel}
+    />
+  );
 }

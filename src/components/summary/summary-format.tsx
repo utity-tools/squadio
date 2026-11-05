@@ -2,6 +2,7 @@ import { useFormatter, useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 
 import type { Amount } from "@/lib/summary/summary";
+import { cn } from "@/lib/utils";
 
 // Shared by both summaries, with and without rate access: formats only, never data.
 
@@ -53,12 +54,20 @@ export function useWhyNoAmount() {
   };
 }
 
-/** A labelled figure of a `dl`. */
-export function Figure({ term, children }: { term: string; children: ReactNode }) {
+/** A labelled figure of a `dl`; `mono` sets a number in the figures' face. */
+export function Figure({
+  term,
+  mono = false,
+  children,
+}: {
+  term: string;
+  mono?: boolean;
+  children: ReactNode;
+}) {
   return (
-    <div className="flex flex-col">
+    <div className="flex min-w-0 flex-col gap-0.5">
       <dt className="text-xs text-muted-foreground">{term}</dt>
-      <dd className="font-medium tabular-nums">{children}</dd>
+      <dd className={cn("font-semibold tabular-nums", mono && "font-mono")}>{children}</dd>
     </div>
   );
 }
