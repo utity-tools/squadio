@@ -226,6 +226,11 @@
     "description": "Something went wrong while reading it. Try again in a moment.",
     "retry": "Try again"
   },
+  "PageError": {
+    "title": "We couldn't open this page",
+    "description": "Something went wrong while reading it. Try again in a moment.",
+    "retry": "Try again"
+  },
   "TeamTree": {
     "label": "Team tree",
     "instructions": "Move with the arrow keys: up to the manager, down to the first report, left and right between colleagues. Home goes back to the root. Plus, minus and zero zoom in, zoom out and fit the view.",
