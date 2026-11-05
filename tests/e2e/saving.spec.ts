@@ -119,3 +119,43 @@ test("back leaves the copy and forward returns to it, where saving goes on", asy
   await expect(node(page, "Tech lead")).toHaveCount(0);
   await expect(node(page, "Frontend developer")).toHaveCount(0);
 });
+
+test("a save from a stale tab interrupts with a reload to the latest version", async ({
+  page,
+  context,
+}) => {
+  await openGuide(page);
+  await remove(page, "Tech lead");
+  await inCopy(page);
+  await saved(page);
+
+  // A second tab on the copy, then a save from the first: the second one is a version behind.
+  const stale = await context.newPage();
+  await stale.goto(page.url());
+  await expect(node(stale, "Project manager")).toBeVisible();
+  await expectHydrated(node(stale, "Project manager"));
+  await remove(page, "Frontend developer");
+  await saved(page);
+
+  await remove(stale, "Project manager");
+  const dialog = stale.getByRole("alertdialog", {
+    name: "El escenario se ha guardado en otro sitio",
+  });
+  await expect(dialog).toBeVisible();
+  const reload = dialog.getByRole("button", { name: "Recargar" });
+  await expect(reload).toBeFocused();
+  // An outside click does not skip it, and neither does Escape.
+  await stale.mouse.click(5, 5);
+  await stale.keyboard.press("Escape");
+  await expect(dialog).toBeVisible();
+  for (const colorScheme of ["light", "dark"] as const) {
+    await stale.emulateMedia({ colorScheme });
+    await expect(stale.locator("html")).toHaveAttribute("data-theme", colorScheme);
+    await expectNoAxeViolations(stale);
+  }
+
+  await reload.click();
+  await expect(node(stale, "Project manager")).toBeVisible();
+  await expect(node(stale, "Frontend developer")).toHaveCount(0);
+  await expect(dialog).toHaveCount(0);
+});

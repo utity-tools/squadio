@@ -145,6 +145,14 @@
     "refused": "The changes could not be saved",
     "reload": "Reload"
   },
+  "SaveDialog": {
+    "conflict": "The scenario changed in another tab. Reload to see the latest version; the changes in this tab that were not saved are lost.",
+    "gone": "Demo copies are deleted after 30 days without use. You can start another from the sample data.",
+    "limit": "No more copies of the demo can be created today. Try again tomorrow. You can keep looking at the demo without saving.",
+    "home": "Go to the home page",
+    "demo": "Open the demo",
+    "keepLooking": "Continue without saving"
+  },
   "ScenarioChoice": {
     "choose": {
       "button": "Choose scenario",
