@@ -233,13 +233,20 @@
   },
   "ScenarioError": {
     "title": "We couldn't open this scenario",
-    "description": "Something went wrong while reading it. Try again in a moment.",
-    "retry": "Try again"
+    "description": "Something went wrong while reading it. Try again in a moment."
+  },
+  "ErrorPage": {
+    "retry": "Try again",
+    "toHome": "Go to Home",
+    "toStart": "Back to the home page",
+    "reference": "Reference",
+    "copy": "Copy",
+    "copyReference": "Copy the reference",
+    "copied": "Reference copied"
   },
   "PageError": {
     "title": "We couldn't open this page",
-    "description": "Something went wrong while reading it. Try again in a moment.",
-    "retry": "Try again"
+    "description": "Something went wrong while reading it. Try again in a moment."
   },
   "TeamTree": {
     "label": "Team tree",
