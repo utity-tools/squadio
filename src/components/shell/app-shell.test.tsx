@@ -61,7 +61,10 @@ describe("AppShell", () => {
 
     const bar = screen.getByRole("banner");
     expect(bar).toHaveClass("min-h-14");
-    expect(within(bar).getByRole("link", { name: "Squadio, Inicio" })).toHaveAttribute("href", "/");
+    expect(within(bar).getByRole("link", { name: "Squadio, Inicio" })).toHaveAttribute(
+      "href",
+      "/home",
+    );
     expect(within(bar).getByRole("navigation", { name: "Ruta de navegación" })).toBeInTheDocument();
     expect(within(bar).getByRole("radiogroup", { name: "Tema" })).toBeInTheDocument();
     expect(within(bar).getByRole("button", { name: "Entrar" })).toBeInTheDocument();
@@ -95,7 +98,7 @@ describe("AppShell", () => {
     const nav = screen.getByRole("navigation", { name: "Secciones" });
     const links = within(nav).getAllByRole("link");
     expect(links.map((link) => [link.textContent, link.getAttribute("href")])).toEqual([
-      ["Inicio", "/"],
+      ["Inicio", "/home"],
       ["Proyectos", "/projects"],
     ]);
     expect(links[0]).toHaveAttribute("aria-current", "page");

@@ -7,6 +7,51 @@
     "tryDemo": "Try the demo",
     "demoNote": "Every name and figure is made up. Your changes are saved to a copy only you can see."
   },
+  "Dashboard": {
+    "title": "Home",
+    "subtitle": "{organization} · {weekday}, {date}",
+    "seeProjects": "See projects",
+    "cards": {
+      "projects": "Projects",
+      "withChosen": "With a chosen scenario",
+      "ofTotal": "of {total, number}",
+      "corrections": "Pending corrections",
+      "activePeople": "Active people"
+    },
+    "projects": "Projects",
+    "seeAll": "See all",
+    "corrections": {
+      "title": "Pending corrections · {count}",
+      "none": "Nothing to correct.",
+      "missing": "Missing",
+      "warning": "Warning",
+      "missingCost": "Cost of {category}",
+      "missingSellRate": "Sell rate of {category}",
+      "missingPrice": "Price of {project}",
+      "budgetCapExceeded": "Budget cap exceeded",
+      "where": "{project} › {scenario}",
+      "whereMore": "{project} › {scenario} and {count, plural, one {# more scenario} other {# more scenarios}}",
+      "detail": "{where} · {consequence}",
+      "consequences": {
+        "missingCost": "cost and margins pending",
+        "missingSellRate": "revenue and margins pending",
+        "missingPrice": "revenue and margins pending",
+        "budgetCapExceeded": "revenue is over the cap"
+      },
+      "openScenario": "Open the scenario<hidden>: {scenario} in {project}</hidden>",
+      "openProject": "Open the project<hidden>: {project}</hidden>"
+    },
+    "occupancy": {
+      "title": "Occupancy today by category",
+      "note": "Today's occupancy from the scenarios chosen in Squadio. Not availability during the projects."
+    },
+    "empty": {
+      "subtitle": "{organization} · your organization is ready",
+      "title": "What you will see here",
+      "description": "Once you have projects, this Home shows their margins, what is left to correct and today's occupancy.",
+      "descriptionWithoutRates": "Once you have projects, this Home shows their chosen scenarios and today's occupancy."
+    }
+  },
   "Projects": {
     "title": "Projects",
     "columns": {

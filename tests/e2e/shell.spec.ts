@@ -14,18 +14,18 @@ const widthOf = async (page: Page) =>
   (await sidebarOf(page).locator("..").boundingBox())?.width ?? 0;
 
 test("the top bar is 56 px, with the logo leading home and the theme", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/home");
 
   const bar = page.getByRole("banner");
   expect((await bar.boundingBox())?.height).toBe(56);
-  await expect(bar.getByRole("link", { name: "Squadio, Inicio" })).toHaveAttribute("href", "/");
+  await expect(bar.getByRole("link", { name: "Squadio, Inicio" })).toHaveAttribute("href", "/home");
   await expect(bar.getByRole("radiogroup", { name: "Tema" })).toBeVisible();
 });
 
 test("a visitor's top bar names the demo, with its chip and its fictitious figures", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/home");
 
   const bar = page.getByRole("banner");
   await expect(bar.getByText("Consultora Demo")).toBeVisible();
@@ -36,7 +36,7 @@ test("a visitor's top bar names the demo, with its chip and its fictitious figur
 test("the sidebar is open on Inicio, marks it, and folds to a rail it remembers", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/home");
   const home = sidebarOf(page).getByRole("link", { name: "Inicio" });
   await expect(home).toHaveAttribute("aria-current", "page");
   await expect(home).toHaveCSS("font-weight", "600");
@@ -103,7 +103,7 @@ test("the editor's choice is its own: unfolding there leaves Inicio as it was", 
   await unfold.click();
   await expect.poll(() => widthOf(page)).toBe(232);
 
-  await page.goto("/");
+  await page.goto("/home");
   expect(await widthOf(page)).toBe(232);
   await page.goto(`/scenarios/${GUIDE_SCENARIO}`);
   await expect(page.getByRole("heading", { level: 1, name: "Plan A" })).toBeVisible();
@@ -118,7 +118,7 @@ for (const viewport of [
     page,
   }) => {
     await page.setViewportSize(viewport);
-    await page.goto("/");
+    await page.goto("/home");
 
     await expect(sidebarOf(page)).toBeHidden();
     const bar = page.getByRole("banner");
@@ -152,7 +152,7 @@ for (const viewport of [
 
 test("from lg the sidebar is back and the ☰ menu is gone", async ({ page }) => {
   await page.setViewportSize({ width: 1024, height: 768 });
-  await page.goto("/");
+  await page.goto("/home");
 
   await expect(sidebarOf(page)).toBeVisible();
   await expect(page.getByRole("button", { name: "Abrir el menú" })).toBeHidden();
@@ -164,7 +164,7 @@ for (const colorScheme of ["light", "dark"] as const) {
       page,
     }) => {
       await page.emulateMedia({ colorScheme });
-      await page.goto("/");
+      await page.goto("/home");
       await expect(page.locator("html")).toHaveAttribute("data-theme", colorScheme);
       if (state === "folded") {
         const fold = page.getByRole("button", { name: "Plegar la barra lateral" });
@@ -182,7 +182,7 @@ for (const colorScheme of ["light", "dark"] as const) {
   }) => {
     await page.emulateMedia({ colorScheme });
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto("/");
+    await page.goto("/home");
     const open = page.getByRole("button", { name: "Abrir el menú" });
     await expectHydrated(open);
     await open.click();

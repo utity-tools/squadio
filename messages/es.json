@@ -7,6 +7,51 @@
     "tryDemo": "Probar la demo",
     "demoNote": "Todos los nombres y cifras son ficticios. Tus cambios se guardan en una copia solo para ti."
   },
+  "Dashboard": {
+    "title": "Inicio",
+    "subtitle": "{organization} · {weekday}, {date}",
+    "seeProjects": "Ver proyectos",
+    "cards": {
+      "projects": "Proyectos",
+      "withChosen": "Con escenario elegido",
+      "ofTotal": "de {total, number}",
+      "corrections": "Correcciones pendientes",
+      "activePeople": "Personas activas"
+    },
+    "projects": "Proyectos",
+    "seeAll": "Ver todos",
+    "corrections": {
+      "title": "Correcciones pendientes · {count}",
+      "none": "Nada que corregir.",
+      "missing": "Falta",
+      "warning": "Aviso",
+      "missingCost": "Coste de {category}",
+      "missingSellRate": "Tarifa de venta de {category}",
+      "missingPrice": "Precio de {project}",
+      "budgetCapExceeded": "Tope de presupuesto superado",
+      "where": "{project} › {scenario}",
+      "whereMore": "{project} › {scenario} y {count, plural, one {# escenario más} other {# escenarios más}}",
+      "detail": "{where} · {consequence}",
+      "consequences": {
+        "missingCost": "coste y márgenes pendientes",
+        "missingSellRate": "ingresos y márgenes pendientes",
+        "missingPrice": "ingresos y márgenes pendientes",
+        "budgetCapExceeded": "los ingresos superan el tope"
+      },
+      "openScenario": "Abrir el escenario<hidden>: {scenario} de {project}</hidden>",
+      "openProject": "Abrir el proyecto<hidden>: {project}</hidden>"
+    },
+    "occupancy": {
+      "title": "Ocupación hoy por categoría",
+      "note": "Ocupación de hoy según los escenarios elegidos en Squadio. No es la disponibilidad durante los proyectos."
+    },
+    "empty": {
+      "subtitle": "{organization} · tu organización está lista",
+      "title": "Qué verás aquí",
+      "description": "Cuando tengas proyectos, este Inicio te enseña sus márgenes, lo que falta por corregir y la ocupación de hoy.",
+      "descriptionWithoutRates": "Cuando tengas proyectos, este Inicio te enseña sus escenarios elegidos y la ocupación de hoy."
+    }
+  },
   "Projects": {
     "title": "Proyectos",
     "columns": {
