@@ -333,7 +333,11 @@
   "TeamViews": {
     "label": "Vista",
     "tree": "Árbol",
-    "table": "Tabla"
+    "table": "Tabla",
+    "locked": {
+      "frozen": "Equipo bloqueado · costes y tarifas de venta congelados",
+      "chosen": "Equipo bloqueado · escenario elegido"
+    }
   },
   "Summary": {
     "undetermined": "Pendiente",

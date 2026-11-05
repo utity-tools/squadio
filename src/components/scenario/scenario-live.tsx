@@ -1,9 +1,11 @@
 "use client";
 
+import { useStore } from "zustand";
+
 import { TeamEditingProvider } from "@/components/team-editing/team-editing";
 import { categoriesWithoutRate } from "@/lib/team-tree/cards";
 
-import { useScenarioView } from "./scenario-editor";
+import { useScenarioStore, useScenarioView } from "./scenario-editor";
 import { ScenarioCrumbs, ScenarioHeader } from "./scenario-header";
 import { ScenarioSummary } from "./scenario-summary";
 import { ScenarioTeam } from "./scenario-team";
@@ -23,6 +25,12 @@ export function LiveScenarioHeader() {
 
 export function LiveScenarioTeam() {
   const scenario = useScenarioView();
+  // Only a chosen scenario costed with its frozen rows says so; one without them, or a page
+  // without rate access, says only that it is chosen (docs/domain.md, "Loading a scenario").
+  const frozen = useStore(
+    useScenarioStore(),
+    ({ basis }) => basis.engine.rateAccess && basis.engine.frozen === true,
+  );
   return (
     <TeamEditingProvider>
       <ScenarioTeam
@@ -32,6 +40,7 @@ export function LiveScenarioTeam() {
         span={scenario.span}
         // Which categories lack a rate is restricted: without rate access, no node is marked.
         withoutRate={categoriesWithoutRate(scenario)}
+        locked={scenario.scenario.chosen ? (frozen ? "frozen" : "chosen") : undefined}
       />
     </TeamEditingProvider>
   );

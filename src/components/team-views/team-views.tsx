@@ -1,5 +1,7 @@
 "use client";
 
+import { LockIcon } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 
@@ -27,6 +29,11 @@ export type TeamViewsProps = {
   team: { id: string; reportsTo: string | null }[];
   nodes: LayoutNode[];
   cards: AssignmentCard[];
+  /**
+   * A chosen scenario's team is locked: the bar says so, and with rate access that its costs and
+   * rates are frozen too.
+   */
+  locked?: "frozen" | "chosen";
 };
 
 /**
@@ -39,7 +46,7 @@ export type TeamViewsProps = {
  * menu, the bar an "Add to team…" button, and the focus manager's requests select the assignment a
  * step touched and, when asked, focus it.
  */
-export function TeamViews({ team, nodes, cards }: TeamViewsProps) {
+export function TeamViews({ team, nodes, cards, locked }: TeamViewsProps) {
   const query = useSearchParams();
   const ids = team.map(({ id }) => id);
   // The URL only seeds this state. The app router updates `useSearchParams` inside a transition,
@@ -138,6 +145,7 @@ export function TeamViews({ team, nodes, cards }: TeamViewsProps) {
       <ViewBar>
         <ViewSwitch view={view} onViewChange={changeView} />
         {editing && <AddToTeamButton editing={editing} />}
+        {locked && <LockedNote locked={locked} />}
       </ViewBar>
       {view === "tree" && (
         <div className="min-h-96 flex-1">
@@ -200,6 +208,16 @@ export function TeamViewsSkeleton() {
       </ViewBar>
       <ViewPlaceholder />
     </div>
+  );
+}
+
+function LockedNote({ locked }: { locked: NonNullable<TeamViewsProps["locked"]> }) {
+  const t = useTranslations("TeamViews.locked");
+  return (
+    <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+      <LockIcon aria-hidden className="size-3.5 shrink-0" />
+      {t(locked)}
+    </p>
   );
 }
 

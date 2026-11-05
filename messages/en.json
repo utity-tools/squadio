@@ -333,7 +333,11 @@
   "TeamViews": {
     "label": "View",
     "tree": "Tree",
-    "table": "Table"
+    "table": "Table",
+    "locked": {
+      "frozen": "Team locked · costs and sell rates frozen",
+      "chosen": "Team locked · scenario chosen"
+    }
   },
   "Summary": {
     "undetermined": "Pending",
