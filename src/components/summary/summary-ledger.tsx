@@ -86,6 +86,53 @@ export function SummaryLedger({ ledger, team, pricingModel }: SummaryLedgerProps
   );
 }
 
+/**
+ * The rail of a scenario without a team (board "Primer escenario"): the margin waits for the team,
+ * and a fixed price already shows its revenue, or what it misses. A statement of zeros would say
+ * nothing, so there is none.
+ */
+export function SummaryEmpty({ ledger, pricingModel }: Omit<SummaryLedgerProps, "team">) {
+  const t = useTranslations("Summary");
+  const { euros } = useSummaryFormat();
+  const revenue = ledger.lines.find((line) => line.key === "revenue");
+
+  return (
+    <div className="flex flex-col gap-4">
+      <h2 className="text-[15px] font-semibold">{t("title")}</h2>
+      <section
+        aria-label={t("headline.netMargin")}
+        className="flex flex-col gap-1.5 rounded-xl border bg-muted px-4.5 py-4"
+      >
+        <p className="text-[13px] text-muted-foreground">
+          {t("headline.netMargin")}
+          <TermInfo term="netMargin" name={t("headline.netMargin")} />
+        </p>
+        <p className="text-sm text-muted-foreground">{t("empty.margin")}</p>
+      </section>
+      {pricingModel === "fixed" && revenue && (
+        <table className="w-full text-sm">
+          <tbody>
+            <tr>
+              <th scope="row" className="py-[7px] pe-3 text-start align-baseline font-normal">
+                {t("lines.revenue")}
+                <TermInfo term="revenue" name={t("lines.revenue")} />
+                <span className="text-xs text-muted-foreground">
+                  <span aria-hidden> · </span>
+                  {t("lines.revenueHint.fixed")}
+                </span>
+              </th>
+              <td className="py-[7px] text-end align-baseline font-mono whitespace-nowrap tabular-nums">
+                <Value amount={revenue.cents} format={euros} />
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      )}
+      <p className="text-xs text-muted-foreground">{t(`empty.note.${pricingModel}`)}</p>
+    </div>
+  );
+}
+
 /** "Complete · 9 of 9 lines", or "Partial · 6 of 9 lines" while some line is pending. */
 function Completeness({ ledger }: { ledger: Ledger }) {
   const t = useTranslations("Summary.completeness");

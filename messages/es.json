@@ -301,7 +301,7 @@
     "cancel": "Cancelar",
     "close": "Cerrar",
     "instructions": "Intro abre las acciones de la asignación.",
-    "emptyDescription": "Añade la primera persona o vacante.",
+    "emptyDescription": "Arrastra a alguien desde el banquillo, empezando por quien dirige el proyecto. El coste y el margen aparecen en cuanto haya alguien.",
     "addFirst": "Será la primera asignación. Empieza al {percent} durante el mes que viene.",
     "whoMissing": "Elige una persona o una vacante.",
     "someAssignment": "una asignación",
@@ -486,6 +486,13 @@
           "definition": "Las horas nominales por el factor de disponibilidad: las que se trabajan de verdad en el proyecto.",
           "formula": "horas nominales × factor de disponibilidad"
         }
+      }
+    },
+    "empty": {
+      "margin": "Aparece en cuanto haya alguien en el equipo.",
+      "note": {
+        "fixed": "Los ingresos ya se conocen por el precio; el resto espera al equipo.",
+        "time_and_materials": "En tiempo y materiales los ingresos salen de las horas del equipo: aparecen con él."
       }
     }
   },
