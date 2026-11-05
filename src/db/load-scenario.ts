@@ -17,20 +17,15 @@ import {
   scenarios,
 } from "./schema";
 import { occupancy } from "@/lib/bench/occupancy";
-import { findSmallCategories } from "@/lib/rates/small-categories";
 import type { Member } from "@/lib/scenarios/change";
-import {
-  type FrozenValues,
-  type StoredScenario,
-  toEngineInput,
-  toHoursInput,
-} from "@/lib/scenarios/engine-input";
+import type { FrozenValues } from "@/lib/scenarios/engine-input";
 import {
   type LoadedScenario,
   type ScenarioBasis,
   scenarioView,
 } from "@/lib/scenarios/scenario-view";
 
+import { engineBasis, frozenValues } from "./scenario-basis";
 import { type AccessContext, type TenantTransaction, withOrganization } from "./tenant";
 
 // docs/domain.md, "Loading a scenario". The view comes from `scenarioView`, the function the page
@@ -151,28 +146,7 @@ async function readFrozen(
     .from(frozenRates)
     .where(eq(frozenRates.scenarioId, scenarioId))
     .orderBy(frozenRates.categoryId);
-  return {
-    rates: rates.map(({ categoryId, sellRate, fullyLoadedAnnualCost, manualCostPerHour }) => {
-      if (manualCostPerHour !== null) {
-        return {
-          categoryId,
-          sellRateCents: sellRate,
-          cost: { kind: "manual" as const, costPerHourCents: manualCostPerHour },
-        };
-      }
-      // The table's check keeps exactly one of the two.
-      if (fullyLoadedAnnualCost === null) throw new Error(`Frozen rate ${categoryId} has no cost`);
-      return {
-        categoryId,
-        sellRateCents: sellRate,
-        cost: { kind: "annual" as const, fullyLoadedCents: fullyLoadedAnnualCost },
-      };
-    }),
-    overhead: settings.overhead,
-    buffer: settings.buffer,
-    netAnnualHours: settings.netAnnualHours,
-    calendarWorkingHours: settings.calendarWorkingHours,
-  };
+  return frozenValues(settings, rates);
 }
 
 /** The restricted rows: none without rate access (ADR 0005). */
@@ -239,23 +213,9 @@ export async function loadScenario(
     if (!structure) return null;
     const { projectId, pricingModel, config: settings, team } = structure;
     // The engine's inputs without a team: `scenarioView` adds it, and its year's calendar.
-    const structural = { pricingModel, config: settings, assignments: [] };
-
-    let engine: ScenarioBasis["engine"];
-    if (!context.rateAccess) {
-      const stored: StoredScenario = { ...structural, extraCosts: [], rates: [] };
-      engine = { rateAccess: false, input: toHoursInput(stored) };
-    } else {
-      const money = await readMoney(tx, scenarioId, projectId);
-      const frozen = structure.chosen ? await readFrozen(tx, scenarioId) : undefined;
-      engine = {
-        rateAccess: true,
-        input: toEngineInput({ ...structural, ...money, frozen }),
-        smallCategories: findSmallCategories(structure.roster),
-        extraCosts: money.extraCosts.map(({ id, label, kind }) => ({ id, label, kind })),
-        ...(frozen && { frozen: true as const }),
-      };
-    }
+    const money = context.rateAccess ? await readMoney(tx, scenarioId, projectId) : null;
+    const frozen = money && structure.chosen ? await readFrozen(tx, scenarioId) : undefined;
+    const engine = engineBasis({ pricingModel, config: settings }, money, frozen, structure.roster);
     const basis: ScenarioBasis = {
       project: { name: structure.project, client: structure.client, pricingModel },
       scenario: {
