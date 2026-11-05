@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { copyLink } from "@/db/copy-link";
+import { copyLink, copyProjectLink } from "@/db/copy-link";
 import { copyOrganization } from "@/db/copy-organization";
 import { DEMO_IDS, DEMO_ORGANIZATION_ID, seedDemo } from "@/db/demo-seed";
 import { copyId } from "@/lib/visitors/copy-id";
@@ -40,5 +40,19 @@ describe("copyLink", () => {
     const template = { organizationId: DEMO_ORGANIZATION_ID, rateAccess: true };
     expect(await copyLink(app, template, DEMO_IDS.guideScenario, {})).toBeNull();
     expect(await copyLink(app, visitor, randomUUID(), {})).toBeNull();
+  });
+});
+
+describe("copyProjectLink", () => {
+  it("leads a template project to the visitor's copy of it, with the query", async () => {
+    expect(await copyProjectLink(app, visitor, DEMO_IDS.project, { access: "none" })).toBe(
+      `/projects/${copyId(DEMO_IDS.project, org)}?access=none`,
+    );
+  });
+
+  it("leads nowhere for the template itself, or for an id the copy does not hold", async () => {
+    const template = { organizationId: DEMO_ORGANIZATION_ID, rateAccess: true };
+    expect(await copyProjectLink(app, template, DEMO_IDS.project, {})).toBeNull();
+    expect(await copyProjectLink(app, visitor, randomUUID(), {})).toBeNull();
   });
 });

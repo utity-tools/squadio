@@ -26,6 +26,29 @@
       "description": "Un proyecto es el encargo de un cliente. Dentro montarás uno o varios escenarios de equipo y verás su coste y su margen."
     }
   },
+  "Project": {
+    "title": "Proyecto",
+    "loading": "Cargando el proyecto…",
+    "client": "Cliente",
+    "pricingModel": "Modelo de precio",
+    "price": "Precio",
+    "cap": "Tope de presupuesto",
+    "capValue": "Tope de {amount}",
+    "noCap": "Sin tope",
+    "scenarios": "Escenarios",
+    "columns": {
+      "scenario": "Escenario",
+      "team": "Equipo",
+      "effectiveHours": "Horas efectivas",
+      "netMargin": "Margen neto",
+      "status": "Estado"
+    },
+    "team": "{people, plural, one {# persona} other {# personas}}{openRoles, plural, =0 {} one { · # vacante} other { · # vacantes}}",
+    "openRolesOnly": "{openRoles, plural, one {# vacante} other {# vacantes}}",
+    "noTeam": "Sin equipo",
+    "noScenarios": "Este proyecto aún no tiene escenarios.",
+    "note": "Solo el escenario elegido cuenta como compromiso: es el que carga la ocupación de las personas."
+  },
   "NotFound": {
     "title": "No encontramos esta página",
     "description": "Puede que la dirección esté mal o que la página ya no exista.",

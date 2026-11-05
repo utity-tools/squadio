@@ -26,6 +26,29 @@
       "description": "A project is a client's piece of work. Inside it you build one or more team scenarios and see their cost and margin."
     }
   },
+  "Project": {
+    "title": "Project",
+    "loading": "Loading the project…",
+    "client": "Client",
+    "pricingModel": "Pricing model",
+    "price": "Price",
+    "cap": "Budget cap",
+    "capValue": "Cap of {amount}",
+    "noCap": "No cap",
+    "scenarios": "Scenarios",
+    "columns": {
+      "scenario": "Scenario",
+      "team": "Team",
+      "effectiveHours": "Effective hours",
+      "netMargin": "Net margin",
+      "status": "Status"
+    },
+    "team": "{people, plural, one {# person} other {# people}}{openRoles, plural, =0 {} one { · # open role} other { · # open roles}}",
+    "openRolesOnly": "{openRoles, plural, one {# open role} other {# open roles}}",
+    "noTeam": "No team",
+    "noScenarios": "This project has no scenarios yet.",
+    "note": "Only the chosen scenario is a commitment: it is the one that books people's occupancy."
+  },
   "NotFound": {
     "title": "We couldn't find this page",
     "description": "The address may be wrong, or the page may no longer exist.",
