@@ -226,6 +226,11 @@
     "description": "Algo ha fallado al leerlo. Prueba otra vez dentro de un momento.",
     "retry": "Reintentar"
   },
+  "PageError": {
+    "title": "No hemos podido abrir esta página",
+    "description": "Algo ha fallado al leerla. Prueba otra vez dentro de un momento.",
+    "retry": "Reintentar"
+  },
   "TeamTree": {
     "label": "Árbol del equipo",
     "instructions": "Muévete con las flechas: arriba al responsable, abajo al primer subordinado, izquierda y derecha entre compañeros. Inicio vuelve a la raíz. Más, menos y cero acercan, alejan y ajustan la vista.",
