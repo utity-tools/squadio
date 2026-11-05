@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 
 import { AppMenu } from "./app-menu";
 import { AppSidebar, SidebarLink } from "./app-sidebar";
+import { ConnectionBanner } from "./connection-banner";
 import type { SidebarScope } from "./sidebar-state";
 
 type AppShellProps = {
@@ -33,7 +34,9 @@ type AppShellProps = {
  * The app's frame (design board "Navegación de la app"): one 56 px top bar everywhere, with the
  * logo, a separator, the organization, the trail, the theme and the account, and the sidebar beside the page. Below
  * lg (boards 28–30) the sidebar, the theme and the account move into the ☰ menu at the bar's end.
- * In the editor, from `md`, the frame holds to the window's height, so the canvas fits it.
+ * In the editor, from `md`, the frame holds to the window's height, so the canvas fits it. There,
+ * under the bar, a band says when the connection is down (Errors board, section 5): the editor is
+ * the only page that saves.
  */
 export function AppShell({
   scope,
@@ -76,6 +79,7 @@ export function AppShell({
         </div>
         <AppMenu organization={organization} sections={nav} account={account} />
       </header>
+      {scope === "editor" && <ConnectionBanner />}
       <div className="flex min-h-0 flex-1">
         <AppSidebar scope={scope}>{nav}</AppSidebar>
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">{children}</div>

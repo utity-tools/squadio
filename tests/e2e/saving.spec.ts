@@ -159,3 +159,23 @@ test("a save from a stale tab interrupts with a reload to the latest version", a
   await expect(node(stale, "Frontend developer")).toHaveCount(0);
   await expect(dialog).toHaveCount(0);
 });
+
+test("a band under the top bar says when the connection is down, and when it is back", async ({
+  page,
+  context,
+}) => {
+  await openGuide(page);
+  const band = page.getByRole("status").filter({ hasText: /Sin conexión|Conexión recuperada/ });
+
+  await context.setOffline(true);
+  await expect(band).toHaveText("Sin conexión. No se puede guardar hasta que vuelva.");
+  for (const colorScheme of ["light", "dark"] as const) {
+    await page.emulateMedia({ colorScheme });
+    await expect(page.locator("html")).toHaveAttribute("data-theme", colorScheme);
+    await expectNoAxeViolations(page);
+  }
+
+  await context.setOffline(false);
+  await expect(band).toHaveText("Conexión recuperada");
+  await expect(band).toHaveCount(0, { timeout: 5_000 });
+});

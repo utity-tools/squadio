@@ -71,6 +71,32 @@ describe("AppShell", () => {
     expect(screen.getByRole("main")).toHaveTextContent("Contenido");
   });
 
+  it("says in the editor, right under the top bar, when the connection is down", () => {
+    vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);
+    renderWithIntl(
+      <AppShell scope="editor">
+        <main>Contenido</main>
+      </AppShell>,
+    );
+
+    const banner = screen.getByRole("status");
+    expect(banner).toHaveTextContent("Sin conexión.");
+    expect(screen.getByRole("banner").nextElementSibling).toBe(banner);
+    vi.restoreAllMocks();
+  });
+
+  it("says nothing about the connection outside the editor, where nothing is saved", () => {
+    vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);
+    renderWithIntl(
+      <AppShell scope="app">
+        <main>Contenido</main>
+      </AppShell>,
+    );
+
+    expect(screen.queryByText("Sin conexión.")).not.toBeInTheDocument();
+    vi.restoreAllMocks();
+  });
+
   it("hides the sidebar, the theme and the account below lg, where the ☰ menu holds them", () => {
     renderWithIntl(
       <AppShell scope="app" account={<button type="button">Entrar</button>}>

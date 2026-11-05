@@ -581,6 +581,11 @@
   "Field": {
     "optional": "Opcional"
   },
+  "Connection": {
+    "offline": "Sin conexión.",
+    "offlineDetail": "No se puede guardar hasta que vuelva.",
+    "back": "Conexión recuperada"
+  },
   "Shell": {
     "sections": "Secciones",
     "home": "Inicio",

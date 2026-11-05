@@ -581,6 +581,11 @@
   "Field": {
     "optional": "Optional"
   },
+  "Connection": {
+    "offline": "No connection.",
+    "offlineDetail": "Nothing can be saved until it comes back.",
+    "back": "Connection restored"
+  },
   "Shell": {
     "sections": "Sections",
     "home": "Home",
