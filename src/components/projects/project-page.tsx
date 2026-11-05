@@ -3,6 +3,7 @@ import { useId } from "react";
 
 import { useSummaryFormat } from "@/components/summary/summary-format";
 import { Chip } from "@/components/ui/chip";
+import { EmptyArt, EmptyState } from "@/components/ui/empty-state";
 import { Panel, PanelTitle } from "@/components/ui/panel";
 import {
   Table,
@@ -87,7 +88,13 @@ export function ProjectScenarios({ project, categories, rateAccess }: ProjectSce
     <Panel aria-labelledby={titleId}>
       <PanelTitle id={titleId}>{t("scenarios")}</PanelTitle>
       {project.scenarios.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{t("noScenarios")}</p>
+        <EmptyState
+          art={<EmptyArt variant="outline" />}
+          title={t("noScenarios")}
+          description={t("noScenariosDescription")}
+          level={3}
+          className="py-6"
+        />
       ) : (
         <>
           {/* Narrow windows scroll the table: the keyboard reaches the scroller, so every column. */}

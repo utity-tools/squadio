@@ -17,6 +17,12 @@ describe("ProjectsEmpty", () => {
     );
   });
 
+  it("draws the logo's squares, all still dashed", () => {
+    renderWithIntl(<ProjectsEmpty />);
+
+    expect(document.querySelector('[data-art="outline"]')).toBeInTheDocument();
+  });
+
   it("offers no action the app cannot take yet", () => {
     renderWithIntl(<ProjectsEmpty />);
 

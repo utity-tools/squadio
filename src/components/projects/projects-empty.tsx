@@ -1,6 +1,7 @@
 import { useTranslations } from "next-intl";
 import { useId } from "react";
 
+import { EmptyArt, EmptyState } from "@/components/ui/empty-state";
 import { Panel } from "@/components/ui/panel";
 
 /**
@@ -13,11 +14,13 @@ export function ProjectsEmpty() {
   const titleId = useId();
 
   return (
-    <Panel aria-labelledby={titleId} className="items-center px-8 py-12 text-center">
-      <h2 id={titleId} className="text-xl font-semibold tracking-tight">
-        {t("title")}
-      </h2>
-      <p className="max-w-xl text-balance text-muted-foreground">{t("description")}</p>
+    <Panel aria-labelledby={titleId} className="px-8 py-12">
+      <EmptyState
+        art={<EmptyArt variant="outline" />}
+        title={t("title")}
+        description={t("description")}
+        titleId={titleId}
+      />
     </Panel>
   );
 }

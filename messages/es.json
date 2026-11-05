@@ -91,7 +91,8 @@
     "team": "{people, plural, one {# persona} other {# personas}}{openRoles, plural, =0 {} one { · # vacante} other { · # vacantes}}",
     "openRolesOnly": "{openRoles, plural, one {# vacante} other {# vacantes}}",
     "noTeam": "Sin equipo",
-    "noScenarios": "Este proyecto aún no tiene escenarios.",
+    "noScenarios": "Este proyecto aún no tiene escenarios",
+    "noScenariosDescription": "Un escenario es una forma de armar el equipo. Cuando haya varios, elegirás con cuál te comprometes.",
     "note": "Solo el escenario elegido cuenta como compromiso: es el que carga la ocupación de las personas."
   },
   "NotFound": {
