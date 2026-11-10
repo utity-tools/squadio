@@ -103,6 +103,46 @@
         "planC": "Plan C"
       }
     },
+    "builtFor": {
+      "eyebrow": "Hecho para consultoras",
+      "title": "Pensado para cómo se prepara de verdad una propuesta.",
+      "features": {
+        "salaries": {
+          "title": "Números sin exponer sueldos",
+          "text": "Los costes van por categoría, no por persona. Quien no tiene acceso a tarifas no recibe ni un euro: la base de datos no se los envía."
+        },
+        "pricing": {
+          "title": "Precio cerrado y T&M",
+          "text": "Proyectos a precio cerrado o por tiempo y materiales, con la misma lógica y en la misma herramienta."
+        },
+        "overhead": {
+          "title": "Overhead incluido",
+          "text": "El margen que ves ya descuenta overhead y buffer, con los porcentajes de tu organización o los de cada proyecto."
+        },
+        "dates": {
+          "title": "Fechas por asignación",
+          "text": "Cada persona entra y sale del proyecto cuando le toca, con su dedicación y sus horas efectivas."
+        }
+      }
+    },
+    "audience": {
+      "eyebrow": "Para quién",
+      "title": "Una herramienta, tres miradas.",
+      "groups": {
+        "partners": {
+          "title": "Socios y dirección",
+          "text": "Deciden qué equipo se lleva el proyecto y a qué precio, con el margen delante y no al cierre del mes."
+        },
+        "operations": {
+          "title": "Operaciones",
+          "text": "Ven quién está en qué proyecto y cuánto está ocupado hoy, sin pedir a nadie su hoja."
+        },
+        "managers": {
+          "title": "Project managers",
+          "text": "Montan y ajustan su equipo. Sin acceso a tarifas ven roles, horas y fechas, nunca el dinero."
+        }
+      }
+    },
     "points": {
       "label": "En pocas palabras",
       "items": {

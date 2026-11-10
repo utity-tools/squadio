@@ -103,6 +103,46 @@
         "planC": "Plan C"
       }
     },
+    "builtFor": {
+      "eyebrow": "Built for consulting firms",
+      "title": "Designed for how proposals are really put together.",
+      "features": {
+        "salaries": {
+          "title": "Numbers without exposing salaries",
+          "text": "Costs are set by category, not by person. People without rate access never receive a single euro: the database doesn't send it."
+        },
+        "pricing": {
+          "title": "Fixed price and T&M",
+          "text": "Fixed-price and time-and-materials projects, with the same logic in the same tool."
+        },
+        "overhead": {
+          "title": "Overhead built in",
+          "text": "The margin you see already accounts for overhead and buffer, using your organization's rates or each project's."
+        },
+        "dates": {
+          "title": "Dates per assignment",
+          "text": "Each person joins and leaves the project when they actually do, with their allocation and effective hours."
+        }
+      }
+    },
+    "audience": {
+      "eyebrow": "Who it is for",
+      "title": "One tool, three perspectives.",
+      "groups": {
+        "partners": {
+          "title": "Partners and leadership",
+          "text": "Decide which team takes the project and at what price, with the margin in front of them, not at month-end."
+        },
+        "operations": {
+          "title": "Operations",
+          "text": "See who is on which project and how busy they are today, without asking anyone for their spreadsheet."
+        },
+        "managers": {
+          "title": "Project managers",
+          "text": "Build and adjust their team. Without rate access they see roles, hours and dates, never the money."
+        }
+      }
+    },
     "points": {
       "label": "At a glance",
       "items": {
