@@ -115,6 +115,8 @@ describe("Landing", () => {
       "Prueba equipos antes de comprometerlos.",
       "Pensado para cómo se prepara de verdad una propuesta.",
       "Una herramienta, tres miradas.",
+      "Lo que Squadio no hace.",
+      "En qué punto está.",
       "Deja de descubrir el margen a final de mes.",
     ]);
   });

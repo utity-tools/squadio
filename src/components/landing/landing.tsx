@@ -6,7 +6,9 @@ import { LandingHeader } from "./landing-header";
 import { LandingHero } from "./landing-hero";
 import { LandingHow } from "./landing-how";
 import { LandingPoints } from "./landing-points";
+import { LandingPrinciples } from "./landing-principles";
 import { LandingProblem } from "./landing-problem";
+import { LandingRoadmap } from "./landing-roadmap";
 
 /** The public landing at `/`, outside the app's frame; the app's Inicio is at `/home`. */
 export function Landing() {
@@ -20,6 +22,8 @@ export function Landing() {
         <LandingHow />
         <LandingBuiltFor />
         <LandingAudience />
+        <LandingPrinciples />
+        <LandingRoadmap />
         <LandingClose />
       </main>
       <LandingFooter />
