@@ -10,6 +10,11 @@
       "otherLocale": {
         "short": "EN",
         "name": "English"
+      },
+      "nav": {
+        "label": "Principal",
+        "product": "Producto",
+        "how": "Cómo funciona"
       }
     },
     "hero": {
@@ -17,7 +22,8 @@
       "titleEnd": "Antes de firmar.",
       "lead": "Squadio es un simulador de staffing para consultoras. Coloca personas y vacantes en el equipo de un proyecto y ve cómo cambian el coste, el margen y la tarifa efectiva con cada movimiento.",
       "tryDemo": "Probar la demo, sin cuenta",
-      "demoNote": "Datos de ejemplo, todos ficticios. Tus cambios se guardan en una copia solo para ti."
+      "demoNote": "Datos de ejemplo, todos ficticios. Tus cambios se guardan en una copia solo para ti.",
+      "howItWorks": "Ver cómo funciona"
     },
     "mock": {
       "label": "Vista del simulador: el árbol del equipo y la cuenta de resultados, con un margen neto de {amount}, el {percent}, {status, select, green {en objetivo} amber {bajo objetivo} other {en pérdidas}}.",
@@ -124,7 +130,8 @@
       "languages": {
         "es": "Español",
         "en": "English"
-      }
+      },
+      "how": "Cómo funciona"
     }
   },
   "Dashboard": {

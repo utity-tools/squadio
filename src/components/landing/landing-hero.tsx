@@ -32,19 +32,32 @@ export function LandingHero() {
         <p className="max-w-[680px] text-base text-balance text-muted-foreground md:text-xl">
           {t("lead")}
         </p>
-        <Button
-          asChild
-          size="lg"
-          className="mt-1.5 h-13 px-6 text-base has-[>svg]:px-6 max-md:mt-0 max-md:h-12 max-md:w-full"
-        >
-          <Link href={`/scenarios/${GUIDE_SCENARIO_ID}`}>
-            {t("tryDemo")}
-            <ArrowRight aria-hidden className="size-4.5" />
-          </Link>
-        </Button>
+        <div className="mt-1.5 flex flex-wrap justify-center gap-3 max-md:mt-0 max-md:w-full max-md:flex-col max-md:gap-2">
+          <Button
+            asChild
+            size="lg"
+            className="h-13 px-6 text-base has-[>svg]:px-6 max-md:h-12 max-md:w-full"
+          >
+            <Link href={`/scenarios/${GUIDE_SCENARIO_ID}`}>
+              {t("tryDemo")}
+              <ArrowRight aria-hidden className="size-4.5" />
+            </Link>
+          </Button>
+          <Button
+            asChild
+            variant="outline"
+            size="lg"
+            className="h-13 px-6 text-base max-md:h-12 max-md:w-full"
+          >
+            <a href="#como">{t("howItWorks")}</a>
+          </Button>
+        </div>
         <p className="text-sm text-balance text-muted-foreground">{t("demoNote")}</p>
       </div>
-      <div className="relative mx-auto max-w-[1200px] px-6 pt-6 pb-18 max-md:px-5 max-md:pt-2 max-md:pb-10">
+      <div
+        id="producto"
+        className="relative mx-auto max-w-[1200px] px-6 pt-6 pb-18 max-md:px-5 max-md:pt-2 max-md:pb-10"
+      >
         <SimulatorMock />
       </div>
     </section>

@@ -144,4 +144,28 @@ describe("Landing", () => {
     expect(languages.getByRole("link", { name: /^en ?· English$/ })).toHaveAttribute("href", "/en");
     expect(footer.getByRole("radio", { name: "Sistema" })).toBeInTheDocument();
   });
+
+  it("leads from the header to the product and to how it works", () => {
+    renderWithIntl(<Landing />);
+
+    const nav = within(screen.getByRole("navigation", { name: "Principal" }));
+    expect(nav.getByRole("link", { name: "Producto" })).toHaveAttribute("href", "#producto");
+    expect(nav.getByRole("link", { name: "Cómo funciona" })).toHaveAttribute("href", "#como");
+    expect(document.getElementById("producto")).not.toBeNull();
+  });
+
+  it("offers to see how it works next to the hero's call", () => {
+    renderWithIntl(<Landing />);
+
+    const hero = within(screen.getByRole("region", { name: TITLE }));
+    expect(hero.getByRole("link", { name: "Ver cómo funciona" })).toHaveAttribute("href", "#como");
+  });
+
+  it("leads to how it works from the footer", () => {
+    renderWithIntl(<Landing />);
+
+    expect(
+      within(screen.getByRole("contentinfo")).getByRole("link", { name: "Cómo funciona" }),
+    ).toHaveAttribute("href", "#como");
+  });
 });
