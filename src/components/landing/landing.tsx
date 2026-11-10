@@ -1,3 +1,5 @@
+import { LandingAudience } from "./landing-audience";
+import { LandingBuiltFor } from "./landing-built-for";
 import { LandingClose } from "./landing-close";
 import { LandingFooter } from "./landing-footer";
 import { LandingHeader } from "./landing-header";
@@ -16,6 +18,8 @@ export function Landing() {
         <LandingPoints />
         <LandingProblem />
         <LandingHow />
+        <LandingBuiltFor />
+        <LandingAudience />
         <LandingClose />
       </main>
       <LandingFooter />

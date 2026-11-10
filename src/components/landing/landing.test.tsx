@@ -106,6 +106,19 @@ describe("Landing", () => {
     ]);
   });
 
+  it("tells its story in the page's order, after how it works", () => {
+    renderWithIntl(<Landing />);
+
+    const titles = screen.getAllByRole("heading", { level: 2 }).map((title) => title.textContent);
+    expect(titles).toEqual([
+      "El margen se decide al montar el equipo. Y se descubre al cerrar el mes.",
+      "Prueba equipos antes de comprometerlos.",
+      "Pensado para cómo se prepara de verdad una propuesta.",
+      "Una herramienta, tres miradas.",
+      "Deja de descubrir el margen a final de mes.",
+    ]);
+  });
+
   it("closes with one call, to the demo", () => {
     renderWithIntl(<Landing />);
 
