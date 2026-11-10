@@ -474,8 +474,9 @@ on a scenario only once.
 
 ### The demo's dates
 
-The demo seed keeps the guide case's fixed 2027 dates, so its figures here, in the README and in the
-tests never change. Its two ongoing projects, whose chosen scenarios give the bench its occupancy,
+The demo seed keeps the guide case's fixed 2027 dates, so its figures here, in the README, in the
+tests and on the landing, which costs Plan A from the same data (`src/lib/demo/guide-case.ts`), never
+change. Its two ongoing projects, whose chosen scenarios give the bench its occupancy,
 are anchored instead to the day the seed runs, in `Europe/Madrid`:
 
 - **Delivery plan:** from the first working day of the month 8 months back to the last working day

@@ -18,6 +18,29 @@
       "lead": "Squadio is a staffing simulator for consulting firms. Place people and open roles on a project team and watch cost, margin and effective rate change with every move.",
       "tryDemo": "Try the demo, no account needed",
       "demoNote": "Sample data, all fictional. Your changes are saved in a copy just for you."
+    },
+    "mock": {
+      "label": "Simulator view: the team tree and the results, with a net margin of {amount}, {percent}, {status, select, green {on target} amber {below target} other {at a loss}}.",
+      "phoneLabel": "Simulator view on a phone: a net margin of {amount}, {percent}, {status, select, green {on target} amber {below target} other {at a loss}}, and the team.",
+      "crumbs": "Projects › {project} · {client}",
+      "fixedPrice": "Fixed price",
+      "saved": "Saved",
+      "tree": "Tree",
+      "table": "Table",
+      "bench": "Bench",
+      "benchHint": "Busy today, from the chosen scenarios.",
+      "openRole": "Open role",
+      "seat": "{allocation}% · {hours} h/wk",
+      "dropHere": "Drop here",
+      "reportsTo": "Reporting to {role}",
+      "lineWithPercent": "{line} {percent}",
+      "statusWithTarget": "{status} · {percent}",
+      "scenario": "{scenario} · {project}",
+      "notes": {
+        "drag": "Drag from the bench",
+        "recalculated": "Recalculated on every change",
+        "byCategory": "Cost by category, never by person"
+      }
     }
   },
   "Dashboard": {
