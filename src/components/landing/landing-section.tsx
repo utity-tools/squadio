@@ -44,3 +44,28 @@ export function StepNumber({ className, children }: { className?: string; childr
     </span>
   );
 }
+
+/** A person on the bench, as the editor draws them; the bar is how busy they look. */
+export function BenchCard({
+  name,
+  fill,
+  className,
+}: {
+  name: string;
+  fill: number;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex items-center justify-between gap-2 border bg-card px-2.25 py-1.75 text-xs",
+        className,
+      )}
+    >
+      <span className="truncate">{name}</span>
+      <span className="h-1 w-9 shrink-0 overflow-hidden rounded-xs bg-muted">
+        <span className="block h-full bg-muted-foreground" style={{ width: `${fill}%` }} />
+      </span>
+    </div>
+  );
+}

@@ -66,6 +66,37 @@
         }
       }
     },
+    "how": {
+      "eyebrow": "Cómo funciona",
+      "title": "Prueba equipos antes de comprometerlos.",
+      "steps": {
+        "build": {
+          "title": "Monta el equipo",
+          "text": "Arrastra personas o vacantes desde el banquillo, o usa «Añadir al equipo». Cada asignación tiene su rol, su dedicación, sus fechas y de quién depende."
+        },
+        "result": {
+          "title": "Mira el resultado al momento",
+          "text": "Coste por categoría, overhead, buffer, ingresos y margen neto se recalculan con cada cambio. Deshacer y rehacer, siempre a mano."
+        },
+        "missing": {
+          "title": "Sabe qué falta",
+          "text": "Si a una categoría le falta el coste o la tarifa, o al proyecto el precio, Squadio calcula todo lo que puede y te dice qué cifras quedan pendientes y por qué. Nunca un cero inventado."
+        },
+        "compare": {
+          "title": "Compara escenarios",
+          "text": "Duplica un escenario, cambia un senior por un junior o alarga una fase, y pon dos o tres versiones lado a lado."
+        }
+      },
+      "soon": "{number} · Próximamente",
+      "visual": {
+        "dropToFill": "Soltar para cubrir la vacante",
+        "undo": "Deshacer",
+        "redo": "Rehacer",
+        "pending": "Coste total y margen quedan pendientes.",
+        "planB": "Plan B",
+        "planC": "Plan C"
+      }
+    },
     "points": {
       "label": "En pocas palabras",
       "items": {
