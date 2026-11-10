@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Link } from "@/i18n/navigation";
 import { GUIDE_SCENARIO_ID } from "@/lib/demo/demo-ids";
 
+import { SectionTitle } from "./landing-section";
+
 /**
  * The landing's last call (design "Landing", final panel): a dark panel with the one way into the
  * demo. The owner dropped the design's «Escríbenos»: there is no address to write to yet.
@@ -33,9 +35,7 @@ export function LandingClose() {
           />
         </svg>
         <div className="relative flex min-w-0 flex-[1_1_420px] flex-col gap-3">
-          <h2 id="close-title" className="text-[clamp(28px,3.4vw,40px)] leading-[1.1] font-bold">
-            {t("title")}
-          </h2>
+          <SectionTitle id="close-title">{t("title")}</SectionTitle>
           <p className="text-lg text-[color-mix(in_oklab,var(--primary-foreground)_72%,var(--primary))]">
             {t("lead")}
           </p>
