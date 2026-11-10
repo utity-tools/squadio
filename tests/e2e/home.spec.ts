@@ -130,6 +130,36 @@ test("on a phone, the hero offers how it works under the call to the demo", asyn
   ).toBeInViewport();
 });
 
+test("on a phone, the menu leads to a section and closes", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+
+  await page.getByRole("button", { name: "Abrir el menú" }).click();
+  const menu = page.getByRole("dialog", { name: "Menú" });
+  await menu.getByRole("link", { name: "Hoja de ruta" }).click();
+
+  await expect(menu).toBeHidden();
+  await expect(page).toHaveURL(/#hoja$/);
+  await expect(
+    page.getByRole("heading", { level: 2, name: "En qué punto está." }),
+  ).toBeInViewport();
+});
+
+test("on a phone, the menu closes with Escape, back to its button", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  const button = page.getByRole("button", { name: "Abrir el menú" });
+
+  await button.click();
+  const menu = page.getByRole("dialog", { name: "Menú" });
+  await expect(menu.getByRole("link", { name: "Entrar" })).toBeVisible();
+  await expectNoAxeViolations(page);
+  await page.keyboard.press("Escape");
+
+  await expect(menu).toBeHidden();
+  await expect(button).toBeFocused();
+});
+
 test("the header switches to English and back", async ({ page }) => {
   await page.goto("/");
 

@@ -17,6 +17,12 @@
         "how": "How it works",
         "principles": "Principles",
         "roadmap": "Roadmap"
+      },
+      "menu": {
+        "open": "Open the menu",
+        "close": "Close the menu",
+        "title": "Menu",
+        "language": "Language"
       }
     },
     "hero": {
