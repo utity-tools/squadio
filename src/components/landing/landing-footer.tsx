@@ -14,7 +14,7 @@ const linkClass = "rounded-sm text-muted-foreground hover:text-foreground";
 
 /**
  * The landing's footer (design "Landing", footer): the brand, the ways on, and the language and
- * theme. «Hoja de ruta» comes with its section; «Privacidad» with its page.
+ * theme. «Privacidad» comes with its page.
  */
 export function LandingFooter() {
   const t = useTranslations("Landing.footer");
@@ -34,6 +34,9 @@ export function LandingFooter() {
             <span className="font-semibold">{t("product")}</span>
             <a href="#como" className={linkClass}>
               {t("how")}
+            </a>
+            <a href="#hoja" className={linkClass}>
+              {t("roadmap")}
             </a>
             <Link href={`/scenarios/${GUIDE_SCENARIO_ID}`} className={linkClass}>
               {t("tryDemo")}
