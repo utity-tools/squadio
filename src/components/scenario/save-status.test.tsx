@@ -187,7 +187,7 @@ describe("SaveStatus", () => {
       );
       const links = within(dialog()).getAllByRole("link");
       expect(links.map((link) => [link.textContent, link.getAttribute("href")])).toEqual([
-        ["Ir al inicio", "/"],
+        ["Ir al inicio", "/home"],
         ["Abrir la demo", expect.stringMatching(/^\/scenarios\/.+/)],
       ]);
       expect(links[1]).toHaveFocus();

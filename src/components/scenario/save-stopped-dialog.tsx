@@ -34,8 +34,9 @@ function interrupts(status: SaveStatus): status is Interrupting {
 /**
  * The window that interrupts when saving stops for good (Errors board, section 4), beside the
  * header's status, which keeps saying why. A conflict has one safe way on, a reload; a deleted
- * copy, home or a new demo. Neither closes with Escape or an outside click, which would leave edits
- * that are never saved. The day's limit lets the person keep looking, and does not come back.
+ * copy, the app's Inicio (`/home`, not the landing at `/`) or a new demo. Neither closes with
+ * Escape or an outside click, which would leave edits that are never saved. The day's limit lets
+ * the person keep looking, and does not come back.
  */
 export function SaveStoppedDialog({ status }: { status: SaveStatus }) {
   const t = useTranslations("SaveStatus");
@@ -69,7 +70,7 @@ export function SaveStoppedDialog({ status }: { status: SaveStatus }) {
           {status === "gone" && (
             <>
               <AlertDialogCancel asChild>
-                <Link href="/">{tDialog("home")}</Link>
+                <Link href="/home">{tDialog("home")}</Link>
               </AlertDialogCancel>
               <AlertDialogAction asChild>
                 <Link href={`/scenarios/${GUIDE_SCENARIO_ID}`}>{tDialog("demo")}</Link>
