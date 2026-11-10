@@ -41,6 +41,35 @@
         "recalculated": "Se recalcula en cada cambio",
         "byCategory": "Coste por categoría, nunca por persona"
       }
+    },
+    "points": {
+      "label": "En pocas palabras",
+      "items": {
+        "pricing": "Precio cerrado y tiempo y materiales",
+        "overhead": "Overhead y buffer en cada cálculo",
+        "dates": "Fechas por asignación",
+        "keyboard": "Todo se hace también con teclado"
+      }
+    },
+    "close": {
+      "title": "Deja de descubrir el margen a final de mes.",
+      "lead": "Pruébalo ahora con un proyecto de ejemplo. Sin cuenta y sin datos reales."
+    },
+    "footer": {
+      "homeLink": "Squadio, inicio",
+      "tagline": "Equipos y margen, en el mismo sitio.",
+      "label": "Pie",
+      "product": "Producto",
+      "project": "Proyecto",
+      "tryDemo": "Probar la demo",
+      "code": "Código en GitHub",
+      "decisions": "Decisiones (ADR)",
+      "note": "squadio · proyecto de portfolio · datos de la demo ficticios",
+      "language": "Idioma",
+      "languages": {
+        "es": "Español",
+        "en": "English"
+      }
     }
   },
   "Dashboard": {

@@ -41,6 +41,35 @@
         "recalculated": "Recalculated on every change",
         "byCategory": "Cost by category, never by person"
       }
+    },
+    "points": {
+      "label": "At a glance",
+      "items": {
+        "pricing": "Fixed price and time and materials",
+        "overhead": "Overhead and buffer in every figure",
+        "dates": "Dates per assignment",
+        "keyboard": "Everything works with the keyboard too"
+      }
+    },
+    "close": {
+      "title": "Stop finding out your margin at month-end.",
+      "lead": "Try it now with a sample project. No account, no real data."
+    },
+    "footer": {
+      "homeLink": "Squadio, home",
+      "tagline": "Teams and margin, in one place.",
+      "label": "Footer",
+      "product": "Product",
+      "project": "Project",
+      "tryDemo": "Try the demo",
+      "code": "Code on GitHub",
+      "decisions": "Decisions (ADRs)",
+      "note": "squadio · portfolio project · the demo's data is fictional",
+      "language": "Language",
+      "languages": {
+        "es": "Español",
+        "en": "English"
+      }
     }
   },
   "Dashboard": {

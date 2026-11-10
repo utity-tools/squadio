@@ -19,6 +19,7 @@ vi.mock("@/i18n/navigation", () => ({
 }));
 
 const GUIDE = "/scenarios/6d656d6f-0000-4000-8000-000000000200";
+const TITLE = "Monta el equipo. Mira el margen. Antes de firmar.";
 
 describe("Landing", () => {
   it("says what Squadio is for in its main heading", () => {
@@ -27,7 +28,7 @@ describe("Landing", () => {
     expect(
       screen.getByRole("heading", {
         level: 1,
-        name: "Monta el equipo. Mira el margen. Antes de firmar.",
+        name: TITLE,
       }),
     ).toBeInTheDocument();
   });
@@ -51,7 +52,8 @@ describe("Landing", () => {
       "href",
       GUIDE,
     );
-    expect(screen.getByRole("link", { name: "Probar la demo, sin cuenta" })).toHaveAttribute(
+    const hero = screen.getByRole("region", { name: TITLE });
+    expect(within(hero).getByRole("link", { name: "Probar la demo, sin cuenta" })).toHaveAttribute(
       "href",
       GUIDE,
     );
@@ -68,7 +70,9 @@ describe("Landing", () => {
   it("switches to the other language, named in that language", () => {
     renderWithIntl(<Landing />);
 
-    const english = screen.getByRole("link", { name: /^EN ?· English$/ });
+    const english = within(screen.getByRole("banner")).getByRole("link", {
+      name: /^EN ?· English$/,
+    });
     expect(english).toHaveAttribute("href", "/en");
     expect(english).toHaveAttribute("lang", "en");
     expect(english).toHaveAttribute("hreflang", "en");
@@ -80,9 +84,64 @@ describe("Landing", () => {
     expect(screen.getByText(/Datos de ejemplo, todos ficticios/)).toBeInTheDocument();
   });
 
-  it("leads the logo back to the landing", () => {
+  it("leads the logo back to the landing, from the header and the footer", () => {
     renderWithIntl(<Landing />);
 
-    expect(screen.getByRole("link", { name: "Squadio, inicio" })).toHaveAttribute("href", "/");
+    for (const landmark of ["banner", "contentinfo"]) {
+      expect(
+        within(screen.getByRole(landmark)).getByRole("link", { name: "Squadio, inicio" }),
+      ).toHaveAttribute("href", "/");
+    }
+  });
+
+  it("sums the product up in four points", () => {
+    renderWithIntl(<Landing />);
+
+    const points = within(screen.getByRole("region", { name: "En pocas palabras" }));
+    expect(points.getAllByRole("listitem").map((item) => item.textContent)).toEqual([
+      "Precio cerrado y tiempo y materiales",
+      "Overhead y buffer en cada cálculo",
+      "Fechas por asignación",
+      "Todo se hace también con teclado",
+    ]);
+  });
+
+  it("closes with one call, to the demo", () => {
+    renderWithIntl(<Landing />);
+
+    const close = within(
+      screen.getByRole("region", { name: "Deja de descubrir el margen a final de mes." }),
+    );
+    expect(close.getAllByRole("link").map((link) => link.getAttribute("href"))).toEqual([GUIDE]);
+    expect(close.getByRole("link")).toHaveAccessibleName("Probar la demo, sin cuenta");
+  });
+
+  it("ends with a footer that leads to the demo, the code and the decisions", () => {
+    renderWithIntl(<Landing />);
+
+    const footer = within(screen.getByRole("contentinfo"));
+    expect(footer.getByRole("link", { name: "Probar la demo" })).toHaveAttribute("href", GUIDE);
+    expect(footer.getByRole("link", { name: "Código en GitHub" })).toHaveAttribute(
+      "href",
+      "https://github.com/utity-tools/squadio",
+    );
+    expect(footer.getByRole("link", { name: "Decisiones (ADR)" })).toHaveAttribute(
+      "href",
+      "https://github.com/utity-tools/squadio/tree/main/docs/adr",
+    );
+    expect(footer.getByText(/proyecto de portfolio/)).toBeInTheDocument();
+  });
+
+  it("lets the footer choose the language and the theme", () => {
+    renderWithIntl(<Landing />);
+
+    const footer = within(screen.getByRole("contentinfo"));
+    const languages = within(footer.getByRole("navigation", { name: "Idioma" }));
+    expect(languages.getByRole("link", { name: /^es ?· Español$/ })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    expect(languages.getByRole("link", { name: /^en ?· English$/ })).toHaveAttribute("href", "/en");
+    expect(footer.getByRole("radio", { name: "Sistema" })).toBeInTheDocument();
   });
 });
