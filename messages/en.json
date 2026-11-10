@@ -10,6 +10,11 @@
       "otherLocale": {
         "short": "ES",
         "name": "Español"
+      },
+      "nav": {
+        "label": "Main",
+        "product": "Product",
+        "how": "How it works"
       }
     },
     "hero": {
@@ -17,7 +22,8 @@
       "titleEnd": "Before you sign.",
       "lead": "Squadio is a staffing simulator for consulting firms. Place people and open roles on a project team and watch cost, margin and effective rate change with every move.",
       "tryDemo": "Try the demo, no account needed",
-      "demoNote": "Sample data, all fictional. Your changes are saved in a copy just for you."
+      "demoNote": "Sample data, all fictional. Your changes are saved in a copy just for you.",
+      "howItWorks": "See how it works"
     },
     "mock": {
       "label": "Simulator view: the team tree and the results, with a net margin of {amount}, {percent}, {status, select, green {on target} amber {below target} other {at a loss}}.",
@@ -124,7 +130,8 @@
       "languages": {
         "es": "Español",
         "en": "English"
-      }
+      },
+      "how": "How it works"
     }
   },
   "Dashboard": {

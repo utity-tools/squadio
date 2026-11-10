@@ -14,7 +14,7 @@ const linkClass = "rounded-sm text-muted-foreground hover:text-foreground";
 
 /**
  * The landing's footer (design "Landing", footer): the brand, the ways on, and the language and
- * theme. «Cómo funciona» and «Hoja de ruta» come with their sections; «Privacidad» with its page.
+ * theme. «Hoja de ruta» comes with its section; «Privacidad» with its page.
  */
 export function LandingFooter() {
   const t = useTranslations("Landing.footer");
@@ -32,6 +32,9 @@ export function LandingFooter() {
         <nav aria-label={t("label")} className="flex flex-wrap gap-12 text-sm">
           <div className="flex flex-col gap-2.5">
             <span className="font-semibold">{t("product")}</span>
+            <a href="#como" className={linkClass}>
+              {t("how")}
+            </a>
             <Link href={`/scenarios/${GUIDE_SCENARIO_ID}`} className={linkClass}>
               {t("tryDemo")}
             </Link>

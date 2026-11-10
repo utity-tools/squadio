@@ -6,10 +6,16 @@ import { Link } from "@/i18n/navigation";
 import { routing } from "@/i18n/routing";
 import { GUIDE_SCENARIO_ID } from "@/lib/demo/demo-ids";
 
+/** The landing's sections the bar leads to, in the page's order. */
+const SECTIONS = [
+  { href: "#producto", key: "product" },
+  { href: "#como", key: "how" },
+] as const;
+
 /**
- * The landing's own bar (design "Landing", header): the logo, the switch to the other language,
- * «Entrar» and the demo. It sticks to the top over a blurred background. The sign-in page itself
- * says when sign-up is closed, so «Entrar» is always offered.
+ * The landing's own bar (design "Landing", header): the logo, the sections from `md`, the switch
+ * to the other language, «Entrar» and the demo. It sticks to the top over a blurred background.
+ * The sign-in page itself says when sign-up is closed, so «Entrar» is always offered.
  */
 export function LandingHeader() {
   const t = useTranslations("Landing.header");
@@ -22,6 +28,18 @@ export function LandingHeader() {
         <Link href="/" aria-label={t("homeLink")} className="rounded-md">
           <Logo className="[&_svg]:size-6.5 [&>span]:text-xl" />
         </Link>
+        {/* On phones the sections are a scroll away; their menu comes with the other sections. */}
+        <nav aria-label={t("nav.label")} className="flex items-center gap-1 max-md:hidden">
+          {SECTIONS.map(({ href, key }) => (
+            <a
+              key={key}
+              href={href}
+              className="rounded-md px-3 py-2.5 text-[15px] text-muted-foreground hover:bg-accent hover:text-foreground"
+            >
+              {t(`nav.${key}`)}
+            </a>
+          ))}
+        </nav>
         <div className="flex flex-wrap items-center gap-2">
           {/* Named in its own language too, after the visible code: «EN · English» (WCAG 2.5.3, 3.1.2). */}
           <Link

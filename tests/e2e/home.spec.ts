@@ -72,6 +72,38 @@ for (const [device, viewport, name] of [
   });
 }
 
+test("the header leads to how it works, with its title clear of the header", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("/");
+
+  await page
+    .getByRole("navigation", { name: "Principal" })
+    .getByRole("link", { name: "Cómo funciona" })
+    .click();
+
+  await expect(page).toHaveURL(/#como$/);
+  const title = page.getByRole("heading", {
+    level: 2,
+    name: "Prueba equipos antes de comprometerlos.",
+  });
+  await expect(title).toBeInViewport();
+  const header = await page.getByRole("banner").boundingBox();
+  const heading = await title.boundingBox();
+  expect(heading?.y ?? 0).toBeGreaterThanOrEqual((header?.y ?? 0) + (header?.height ?? 0));
+});
+
+test("on a phone, the hero offers how it works under the call to the demo", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+
+  await expect(page.getByRole("navigation", { name: "Principal" })).toBeHidden();
+  await page.getByRole("link", { name: "Ver cómo funciona" }).click();
+
+  await expect(
+    page.getByRole("heading", { level: 2, name: "Prueba equipos antes de comprometerlos." }),
+  ).toBeInViewport();
+});
+
 test("the header switches to English and back", async ({ page }) => {
   await page.goto("/");
 
