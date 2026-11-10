@@ -42,6 +42,30 @@
         "byCategory": "Cost by category, never by person"
       }
     },
+    "problem": {
+      "eyebrow": "The problem",
+      "title": "Margin is decided when you staff the project. You find out at month-end.",
+      "lead": "Every proposal starts with a spreadsheet: roles, rates, hours and a price. Then the team changes and the spreadsheet doesn't. By the time you see the gap, it's too late to fix it.",
+      "files": {
+        "v0": "proposal_v3.xlsx",
+        "v1": "proposal_v4_FINAL.xlsx",
+        "v2": "proposal_v4_FINAL (2).xlsx"
+      },
+      "pains": {
+        "guesswork": {
+          "title": "Teams staffed on gut feeling",
+          "text": "People are picked without seeing what that mix really costs."
+        },
+        "versions": {
+          "title": "Versions nobody trusts",
+          "text": "Three copies of the same sheet and no way to tell which one is right."
+        },
+        "salaries": {
+          "title": "Salaries in plain sight",
+          "text": "To run the numbers, someone ends up opening the sheet with the salaries."
+        }
+      }
+    },
     "points": {
       "label": "At a glance",
       "items": {

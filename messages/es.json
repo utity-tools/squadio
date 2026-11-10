@@ -42,6 +42,30 @@
         "byCategory": "Coste por categoría, nunca por persona"
       }
     },
+    "problem": {
+      "eyebrow": "El problema",
+      "title": "El margen se decide al montar el equipo. Y se descubre al cerrar el mes.",
+      "lead": "Cada propuesta empieza con una hoja de cálculo: perfiles, tarifas, horas y un precio. Luego el equipo cambia y la hoja no. Cuando ves el desvío, ya no hay margen para corregirlo.",
+      "files": {
+        "v0": "propuesta_v3.xlsx",
+        "v1": "propuesta_v4_FINAL.xlsx",
+        "v2": "propuesta_v4_FINAL (2).xlsx"
+      },
+      "pains": {
+        "guesswork": {
+          "title": "Equipos montados a ojo",
+          "text": "Se elige a la gente sin ver qué coste real tiene esa combinación."
+        },
+        "versions": {
+          "title": "Versiones en las que nadie confía",
+          "text": "Tres copias de la misma hoja y ninguna seguridad de cuál es la buena."
+        },
+        "salaries": {
+          "title": "Sueldos a la vista",
+          "text": "Para hacer números, alguien acaba abriendo la hoja con los salarios."
+        }
+      }
+    },
     "points": {
       "label": "En pocas palabras",
       "items": {
