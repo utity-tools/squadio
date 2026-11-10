@@ -15,6 +15,8 @@ import {
 } from "@/lib/demo/guide-case";
 import { cn } from "@/lib/utils";
 
+import { BenchCard } from "./landing-section";
+
 // The simulator under the hero (design "Landing", hero; "MobileLanding" on phones), drawn with the
 // tokens rather than a screenshot. Its figures are the demo's Plan A, costed as the scenario page
 // costs it. It is a picture: role="img" names what it shows, and nothing inside it is focusable.
@@ -37,8 +39,8 @@ function useFigures() {
   const t = useTranslations("Landing.mock");
   const ts = useTranslations("Summary");
   const format = useSummaryFormat();
-  const status = result.marginStatus ?? "red";
-  const percent = result.netMarginBasisPoints ?? 0;
+  const status = result.marginStatus;
+  const percent = result.netMarginBasisPoints;
   return {
     status,
     netMargin: format.euros(result.netMarginCents),
@@ -181,22 +183,6 @@ function Bench() {
           ))}
         </div>
       ))}
-    </div>
-  );
-}
-
-function BenchCard({ name, fill, className }: { name: string; fill: number; className?: string }) {
-  return (
-    <div
-      className={cn(
-        "flex items-center justify-between gap-2 border bg-card px-2.25 py-1.75 text-xs",
-        className,
-      )}
-    >
-      <span className="truncate">{name}</span>
-      <span className="h-1 w-9 shrink-0 overflow-hidden rounded-xs bg-muted">
-        <span className="block h-full bg-muted-foreground" style={{ width: `${fill}%` }} />
-      </span>
     </div>
   );
 }

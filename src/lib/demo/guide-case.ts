@@ -1,4 +1,9 @@
-import { type CompleteResult, calculateScenario } from "@/lib/costing/calculate-scenario";
+import {
+  type CompleteResult,
+  type MarginStatus,
+  type PartialResult,
+  calculateScenario,
+} from "@/lib/costing/calculate-scenario";
 import { CONSULTANCY_CONFIG, CONSULTANCY_COST_CONFIG } from "@/lib/organizations/consultancy";
 import { toEngineInput } from "@/lib/scenarios/engine-input";
 
@@ -134,16 +139,8 @@ export type GuideMember = {
   reportsTo: string | null;
 };
 
-/** Plan A as the demo stores it, its team and its figures, with the settings they apply. */
-export function costGuideCase(): {
-  team: GuideMember[];
-  result: CompleteResult;
-  settings: {
-    overheadBasisPoints: number;
-    bufferBasisPoints: number;
-    targetMarginBasisPoints: number;
-  };
-} {
+/** Plan A as the engine takes it; `unrated` leaves one category without its rate. */
+function costPlanA(unrated?: DemoCategoryKey) {
   const input = toEngineInput({
     config: CONSULTANCY_CONFIG,
     costConfig: CONSULTANCY_COST_CONFIG,
@@ -168,7 +165,7 @@ export function costGuideCase(): {
         endDate: null,
       },
     ],
-    rates: DEMO_CATEGORIES.map(({ key, gross, sell }) => ({
+    rates: DEMO_CATEGORIES.filter(({ key }) => key !== unrated).map(({ key, gross, sell }) => ({
       categoryId: demoCategoryId(key),
       grossAnnualSalaryCents: gross,
       socialSecurityBasisPoints: DEMO_SOCIAL_SECURITY,
@@ -177,14 +174,36 @@ export function costGuideCase(): {
       sellRateCents: sell,
     })),
   });
-  const result = calculateScenario(
-    input.scenario,
-    input.rates,
-    input.costSettings,
-    input.targetMargin,
-  );
+  return {
+    input,
+    result: calculateScenario(input.scenario, input.rates, input.costSettings, input.targetMargin),
+  };
+}
+
+/** Plan A's result: complete, and its margin has a % and a status. */
+export type GuideResult = CompleteResult & {
+  marginStatus: MarginStatus;
+  netMarginBasisPoints: number;
+};
+
+/** Plan A as the demo stores it, its team and its figures, with the settings they apply. */
+export function costGuideCase(): {
+  team: GuideMember[];
+  result: GuideResult;
+  settings: {
+    overheadBasisPoints: number;
+    bufferBasisPoints: number;
+    targetMarginBasisPoints: number;
+  };
+} {
+  const { input, result } = costPlanA();
   // Every category of Plan A has a rate and the project a price (docs/domain.md, rules k and l).
   if (!result.complete) throw new Error("Plan A's result is partial");
+  const { marginStatus, netMarginBasisPoints } = result;
+  // Plan A has revenue, so its margin has a % and a status: nothing to fall back on.
+  if (marginStatus === null || netMarginBasisPoints === null) {
+    throw new Error("Plan A's margin has no % or status");
+  }
   return {
     team: GUIDE_TEAM.map(({ seat, projectRole, category, person, allocation, reportsTo }) => ({
       id: GUIDE_IDS[seat],
@@ -194,11 +213,28 @@ export function costGuideCase(): {
       weeklyHours: (GUIDE_SEAT.weeklyHours * allocation) / 100,
       reportsTo: reportsTo && GUIDE_IDS[reportsTo],
     })),
-    result,
+    result: { ...result, marginStatus, netMarginBasisPoints },
     settings: {
       overheadBasisPoints: input.costSettings.overheadBasisPoints,
       bufferBasisPoints: input.costSettings.bufferBasisPoints,
       targetMarginBasisPoints: input.targetMargin,
     },
   };
+}
+
+/**
+ * Plan A with one category's rate missing (docs/domain.md, "Partial results"): every line that
+ * does not need it keeps its amount, and the others are undetermined, never 0.
+ */
+export function costGuideCaseWithoutRate(unrated: DemoCategoryKey): PartialResult {
+  const { result } = costPlanA(unrated);
+  if (result.complete) throw new Error(`Plan A does not use ${unrated}`);
+  return result;
+}
+
+/** The name of a demo category, by its id. */
+export function demoCategoryName(categoryId: string): string {
+  const category = DEMO_CATEGORIES.find(({ key }) => demoCategoryId(key) === categoryId);
+  if (!category) throw new Error(`No demo category ${categoryId}`);
+  return category.name;
 }

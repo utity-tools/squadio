@@ -66,6 +66,37 @@
         }
       }
     },
+    "how": {
+      "eyebrow": "How it works",
+      "title": "Try teams before you commit them.",
+      "steps": {
+        "build": {
+          "title": "Build the team",
+          "text": "Drag people or open roles from the bench, or use “Add to team”. Each assignment has its role, allocation, dates and who it reports to."
+        },
+        "result": {
+          "title": "See the result instantly",
+          "text": "Cost by category, overhead, buffer, revenue and net margin update with every change. Undo and redo, always at hand."
+        },
+        "missing": {
+          "title": "Know what is missing",
+          "text": "If a category has no cost or rate, or the project has no price, Squadio works out everything it can and tells you which figures are pending and why. Never a made-up zero."
+        },
+        "compare": {
+          "title": "Compare scenarios",
+          "text": "Duplicate a scenario, swap a senior for a junior or stretch a phase, and put two or three versions side by side."
+        }
+      },
+      "soon": "{number} · Coming soon",
+      "visual": {
+        "dropToFill": "Drop to fill the open role",
+        "undo": "Undo",
+        "redo": "Redo",
+        "pending": "Total cost and margin are pending.",
+        "planB": "Plan B",
+        "planC": "Plan C"
+      }
+    },
     "points": {
       "label": "At a glance",
       "items": {

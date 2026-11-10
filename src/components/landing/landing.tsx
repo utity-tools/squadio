@@ -2,6 +2,7 @@ import { LandingClose } from "./landing-close";
 import { LandingFooter } from "./landing-footer";
 import { LandingHeader } from "./landing-header";
 import { LandingHero } from "./landing-hero";
+import { LandingHow } from "./landing-how";
 import { LandingPoints } from "./landing-points";
 import { LandingProblem } from "./landing-problem";
 
@@ -14,6 +15,7 @@ export function Landing() {
         <LandingHero />
         <LandingPoints />
         <LandingProblem />
+        <LandingHow />
         <LandingClose />
       </main>
       <LandingFooter />

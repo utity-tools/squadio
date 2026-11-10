@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { costGuideCase, guideBench } from "./guide-case";
+import {
+  costGuideCase,
+  costGuideCaseWithoutRate,
+  demoCategoryId,
+  demoCategoryName,
+  guideBench,
+} from "./guide-case";
 
 // The demo's Plan A, costed as the scenario page costs it: docs/domain.md, "The demo's dates".
 
@@ -77,5 +83,30 @@ describe("guideBench", () => {
       { category: "Senior Developer", people: ["Senior Developer 2", "Senior Developer 3"] },
       { category: "DevOps Engineer", people: ["DevOps Engineer 1"] },
     ]);
+  });
+});
+
+describe("costGuideCaseWithoutRate", () => {
+  const result = costGuideCaseWithoutRate("devops");
+
+  it("leaves the lines that need DevOps's cost pending, and keeps the rest", () => {
+    const pending = {
+      undetermined: [{ code: "missingRate", categoryIds: [demoCategoryId("devops")] }],
+    };
+    expect(result.complete).toBe(false);
+    expect(result.staffCostCents).toEqual(pending);
+    expect(result.overheadCents).toEqual(pending);
+    expect(result.netMarginCents).toEqual(pending);
+    expect(result.revenueCents).toBe(20_000_000);
+  });
+
+  it("refuses a category Plan A does not use", () => {
+    expect(() => costGuideCaseWithoutRate("junior")).toThrow();
+  });
+});
+
+describe("demoCategoryName", () => {
+  it("names a demo category by its id", () => {
+    expect(demoCategoryName(demoCategoryId("pm"))).toBe("Project Manager");
   });
 });
