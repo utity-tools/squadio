@@ -1,5 +1,5 @@
 import { screen, within } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { renderWithIntl } from "@/test/render";
 
@@ -17,6 +17,14 @@ vi.mock("@/i18n/navigation", () => ({
     </a>
   ),
 }));
+
+// The phone menu listens for the window growing to md; jsdom has no matchMedia.
+beforeEach(() => {
+  vi.stubGlobal(
+    "matchMedia",
+    vi.fn(() => ({ matches: false, addEventListener() {}, removeEventListener() {} })),
+  );
+});
 
 const GUIDE = "/scenarios/6d656d6f-0000-4000-8000-000000000200";
 const TITLE = "Monta el equipo. Mira el margen. Antes de firmar.";

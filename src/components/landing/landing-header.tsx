@@ -6,18 +6,14 @@ import { Link } from "@/i18n/navigation";
 import { routing } from "@/i18n/routing";
 import { GUIDE_SCENARIO_ID } from "@/lib/demo/demo-ids";
 
-/** The landing's sections the bar leads to, in the page's order. */
-const SECTIONS = [
-  { href: "#producto", key: "product" },
-  { href: "#como", key: "how" },
-  { href: "#principios", key: "principles" },
-  { href: "#hoja", key: "roadmap" },
-] as const;
+import { LandingMenu } from "./landing-menu";
+import { SECTIONS } from "./landing-sections";
 
 /**
  * The landing's own bar (design "Landing", header): the logo, the sections from `md`, the switch
  * to the other language, «Entrar» and the demo. It sticks to the top over a blurred background.
- * The sign-in page itself says when sign-up is closed, so «Entrar» is always offered.
+ * The sign-in page itself says when sign-up is closed, so «Entrar» is always offered. Below md
+ * the bar keeps the logo and the demo, and the rest moves to the ☰ menu (board "MobileLanding").
  */
 export function LandingHeader() {
   const t = useTranslations("Landing.header");
@@ -30,7 +26,6 @@ export function LandingHeader() {
         <Link href="/" aria-label={t("homeLink")} className="rounded-md">
           <Logo className="[&_svg]:size-6.5 [&>span]:text-xl" />
         </Link>
-        {/* On phones the sections are a scroll away; their menu comes with the other sections. */}
         <nav aria-label={t("nav.label")} className="flex items-center gap-1 max-md:hidden">
           {SECTIONS.map(({ href, key }) => (
             <a
@@ -49,17 +44,18 @@ export function LandingHeader() {
             locale={other}
             lang={other}
             hrefLang={other}
-            className="rounded-md px-3 py-2.5 text-[13px] font-semibold text-muted-foreground hover:bg-accent hover:text-foreground"
+            className="rounded-md px-3 py-2.5 text-[13px] font-semibold text-muted-foreground hover:bg-accent hover:text-foreground max-md:hidden"
           >
             {t("otherLocale.short")}
             <span className="sr-only"> · {t("otherLocale.name")}</span>
           </Link>
-          <Button asChild variant="outline" size="lg" className="px-4.5 text-[15px]">
+          <Button asChild variant="outline" size="lg" className="px-4.5 text-[15px] max-md:hidden">
             <Link href="/sign-in">{t("signIn")}</Link>
           </Button>
           <Button asChild size="lg" className="px-4.5 text-[15px]">
             <Link href={`/scenarios/${GUIDE_SCENARIO_ID}`}>{t("tryDemo")}</Link>
           </Button>
+          <LandingMenu />
         </div>
       </div>
     </header>
