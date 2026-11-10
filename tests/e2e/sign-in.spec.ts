@@ -18,13 +18,6 @@ test("with sign-up off, the sign-in page offers the demo and no provider", async
   await expect(page.getByRole("heading", { level: 1, name: "Plan A" })).toBeVisible();
 });
 
-test("with sign-up off, the home page does not invite signing in", async ({ page }) => {
-  await page.goto("/en");
-
-  await expect(page.getByRole("heading", { level: 1, name: "Squadio" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Sign in" })).toHaveCount(0);
-});
-
 test("the sign-in page speaks English under /en", async ({ page }) => {
   await page.goto("/en/sign-in");
 

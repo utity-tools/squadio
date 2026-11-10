@@ -2,10 +2,23 @@
   "Metadata": {
     "description": "Simulador de staffing para consultoras: arma el equipo de un proyecto y ve el coste y el margen al momento."
   },
-  "Home": {
-    "tagline": "Arma el equipo de un proyecto y ve el coste y el margen antes de comprometerte.",
-    "tryDemo": "Probar la demo",
-    "demoNote": "Todos los nombres y cifras son ficticios. Tus cambios se guardan en una copia solo para ti."
+  "Landing": {
+    "header": {
+      "homeLink": "Squadio, inicio",
+      "signIn": "Entrar",
+      "tryDemo": "Probar la demo",
+      "otherLocale": {
+        "short": "EN",
+        "name": "English"
+      }
+    },
+    "hero": {
+      "title": "Monta el equipo. Mira el margen.",
+      "titleEnd": "Antes de firmar.",
+      "lead": "Squadio es un simulador de staffing para consultoras. Coloca personas y vacantes en el equipo de un proyecto y ve cómo cambian el coste, el margen y la tarifa efectiva con cada movimiento.",
+      "tryDemo": "Probar la demo, sin cuenta",
+      "demoNote": "Datos de ejemplo, todos ficticios. Tus cambios se guardan en una copia solo para ti."
+    }
   },
   "Dashboard": {
     "title": "Inicio",

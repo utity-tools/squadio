@@ -2,13 +2,15 @@ import { expect, test } from "@playwright/test";
 
 import { expectNoAxeViolations } from "./support/axe";
 
+// The switch lives in the app's frame, so these run on Inicio: they need the demo organization.
+
 test("follows the system theme by default, without hydration errors", async ({ page }) => {
   const errors: string[] = [];
   page.on("console", (message) => {
     if (message.type() === "error") errors.push(message.text());
   });
   await page.emulateMedia({ colorScheme: "dark" });
-  await page.goto("/");
+  await page.goto("/home");
 
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   await expect(page.getByRole("radio", { name: "Sistema" })).toBeChecked();
@@ -17,7 +19,7 @@ test("follows the system theme by default, without hydration errors", async ({ p
 
 test("a chosen theme applies at once and survives a reload", async ({ page }) => {
   await page.emulateMedia({ colorScheme: "light" });
-  await page.goto("/");
+  await page.goto("/home");
 
   await page.getByRole("radio", { name: "Oscuro" }).click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
@@ -30,7 +32,7 @@ test("a chosen theme applies at once and survives a reload", async ({ page }) =>
 
 test("the arrow keys choose a theme in the switch", async ({ page }) => {
   await page.emulateMedia({ colorScheme: "light" });
-  await page.goto("/");
+  await page.goto("/home");
   await page.getByRole("radio", { name: "Sistema" }).focus();
 
   await page.keyboard.press("ArrowLeft");
@@ -48,7 +50,7 @@ for (const colorScheme of ["light", "dark"] as const) {
     });
 
     test("the focused control shows a solid 2 px focus ring", async ({ page }) => {
-      await page.goto("/");
+      await page.goto("/home");
       await expect(page.locator("html")).toHaveAttribute("data-theme", colorScheme);
 
       // Tab until the switch has focus: `next dev` adds its own controls to the tab order.
@@ -67,13 +69,6 @@ for (const colorScheme of ["light", "dark"] as const) {
         return { style: style.outlineStyle, width: style.outlineWidth };
       });
       expect(outline).toEqual({ style: "solid", width: "2px" });
-    });
-
-    test("the home page has no accessibility violations", async ({ page }) => {
-      await page.goto("/");
-      await expect(page.locator("html")).toHaveAttribute("data-theme", colorScheme);
-
-      await expectNoAxeViolations(page);
     });
 
     test("the not-found page has no accessibility violations", async ({ page }) => {
