@@ -4,7 +4,7 @@ import { expectNoAxeViolations } from "./support/axe";
 import { expectHydrated } from "./support/hydration";
 
 // Inicio at /home (boards 01 and 14, decisions of 2026-11-05): the demo organization at a glance.
-// `/` stays the public home page until the landing. Needs the demo organization.
+// `/` is the public landing (home.spec.ts). Needs the demo organization.
 
 const demoId = (n: number) => `6d656d6f-0000-4000-8000-${String(n).padStart(12, "0")}`;
 const MONEY = /Cents\\*"\s*:/;

@@ -17,7 +17,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t("title") };
 }
 
-/** Inicio: the organization at a glance. `/` stays the public home page until the landing. */
+/** Inicio: the organization at a glance. `/` is the public landing. */
 export default async function HomePage({ searchParams }: PageProps<"/[locale]/home">) {
   await assertLocale();
   return (

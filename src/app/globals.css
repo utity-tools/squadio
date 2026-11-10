@@ -220,6 +220,11 @@
     @apply outline-2 outline-offset-2 outline-ring;
   }
 
+  /* The landing's header sticks to the top: what takes focus scrolls in below it (WCAG 2.4.11). */
+  html:has([data-landing]) {
+    scroll-padding-top: 5rem;
+  }
+
   body {
     @apply bg-background font-sans text-foreground;
   }
