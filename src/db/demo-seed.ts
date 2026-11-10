@@ -18,6 +18,21 @@ import { ensureDemoOrganization } from "./organizations";
 import { type TenantTransaction, withOrganization } from "./tenant";
 import { NATIONAL_HOLIDAYS } from "@/lib/calendar/calendar";
 import { GUIDE_SCENARIO_ID, demoId } from "@/lib/demo/demo-ids";
+import {
+  DEMO_CATEGORIES as TEMPLATE,
+  DEMO_OTHER_YEARLY_COSTS,
+  DEMO_SOCIAL_SECURITY,
+  GUIDE_CLOUD,
+  GUIDE_IDS,
+  GUIDE_PRICE_CENTS,
+  GUIDE_PROJECT,
+  GUIDE_SCENARIO_NAME,
+  GUIDE_SEAT,
+  GUIDE_TEAM,
+  demoCategoryId as categoryId,
+  demoPersonId as personId,
+  demoPersonName,
+} from "@/lib/demo/guide-case";
 import { CONSULTANCY_CONFIG, CONSULTANCY_COST_CONFIG } from "@/lib/organizations/consultancy";
 import { type OngoingSpans, ongoingSpans } from "@/lib/demo/ongoing-spans";
 
@@ -30,20 +45,14 @@ export { DEMO_ORGANIZATION_ID };
 const DEMO = demoAccessContext;
 
 /** The guide scenario's name, which the deploy's smoke test looks for on its page. */
-export const GUIDE_SCENARIO_NAME = "Plan A";
+export { GUIDE_SCENARIO_NAME };
 
 export const DEMO_IDS = {
   project: demoId(100),
   guideScenario: GUIDE_SCENARIO_ID,
   leanScenario: demoId(201),
   /** Plan A's seats and its cloud cost. */
-  guide: {
-    manager: demoId(300),
-    senior: demoId(301),
-    frontend: demoId(302),
-    devops: demoId(303),
-    cloud: demoId(400),
-  },
+  guide: GUIDE_IDS,
   /** A time and materials project whose budget cap is below its revenue. */
   overBudgetScenario: demoId(202),
   /** Uses a category without a rate. */
@@ -55,23 +64,8 @@ export const DEMO_IDS = {
   upkeepScenario: demoId(206),
 } as const;
 
-/** The Consultancy template: gross annual salary and sell rate per hour, in cents. */
-const TEMPLATE = [
-  { key: "senior", name: "Senior Developer", gross: 5_200_000, sell: 6500, people: 4 },
-  { key: "junior", name: "Junior Developer", gross: 2_700_000, sell: 3500, people: 3 },
-  { key: "frontend", name: "Frontend Developer", gross: 4_200_000, sell: 5200, people: 3 },
-  { key: "devops", name: "DevOps Engineer", gross: 5_000_000, sell: 6200, people: 2 },
-  { key: "pm", name: "Project Manager", gross: 5_500_000, sell: 7000, people: 3 },
-] as const;
-
 /** A category without a rate or people: a scenario that uses it has a partial result (rule k). */
 const UNRATED_CATEGORY = { id: demoId(15), name: "Data Engineer" };
-
-type CategoryKey = (typeof TEMPLATE)[number]["key"];
-
-const categoryId = (key: CategoryKey) => demoId(10 + TEMPLATE.findIndex((c) => c.key === key));
-const personId = (key: CategoryKey, n: number) =>
-  demoId(1000 + 100 * TEMPLATE.findIndex((c) => c.key === key) + n);
 
 /** Deletes every row of the demo organization, children first. */
 async function clear(tx: TenantTransaction) {
@@ -100,17 +94,17 @@ async function insert(tx: TenantTransaction, spans: OngoingSpans) {
       organizationId,
       categoryId: categoryId(key),
       grossAnnualSalary: gross,
-      socialSecurity: 3100,
-      otherYearlyCosts: 300_000,
+      socialSecurity: DEMO_SOCIAL_SECURITY,
+      otherYearlyCosts: DEMO_OTHER_YEARLY_COSTS,
       sellRate: sell,
     })),
   );
   await tx.insert(people).values(
-    TEMPLATE.flatMap(({ key, name, people: count }) =>
+    TEMPLATE.flatMap(({ key, people: count }) =>
       Array.from({ length: count }, (_, n) => ({
         id: personId(key, n),
         organizationId,
-        name: `${name} ${n + 1}`,
+        name: demoPersonName(key, n),
         categoryId: categoryId(key),
         weeklyHours: 40,
       })),
@@ -120,13 +114,13 @@ async function insert(tx: TenantTransaction, spans: OngoingSpans) {
   await tx.insert(projects).values({
     id: DEMO_IDS.project,
     organizationId,
-    name: "Customer portal",
-    client: "Demo Client",
+    name: GUIDE_PROJECT.name,
+    client: GUIDE_PROJECT.client,
     pricingModel: "fixed",
   });
   await tx
     .insert(projectPricing)
-    .values({ organizationId, projectId: DEMO_IDS.project, price: 20_000_000 });
+    .values({ organizationId, projectId: DEMO_IDS.project, price: GUIDE_PRICE_CENTS });
   await tx.insert(scenarios).values([
     {
       id: DEMO_IDS.guideScenario,
@@ -137,54 +131,20 @@ async function insert(tx: TenantTransaction, spans: OngoingSpans) {
     { id: DEMO_IDS.leanScenario, organizationId, projectId: DEMO_IDS.project, name: "Plan B" },
   ]);
 
-  const seat = {
-    organizationId,
-    weeklyHours: 40,
-    startDate: "2027-04-01",
-    endDate: "2027-09-29",
-  };
-  // Plan A is the guide case team: senior and frontend full time, DevOps and the PM at half.
-  const lead = DEMO_IDS.guide.manager;
-  await tx.insert(assignments).values([
-    {
+  const seat = { ...GUIDE_SEAT, organizationId };
+  // Plan A is the guide case team (guide-case.ts), which the landing also draws.
+  await tx.insert(assignments).values(
+    GUIDE_TEAM.map(({ seat: key, projectRole, category, person, allocation, reportsTo }) => ({
       ...seat,
-      id: lead,
+      id: GUIDE_IDS[key],
       scenarioId: DEMO_IDS.guideScenario,
-      categoryId: categoryId("pm"),
-      personId: personId("pm", 0),
-      projectRole: "Project manager",
-      allocation: 50,
-    },
-    {
-      ...seat,
-      id: DEMO_IDS.guide.senior,
-      scenarioId: DEMO_IDS.guideScenario,
-      categoryId: categoryId("senior"),
-      personId: personId("senior", 0),
-      projectRole: "Tech lead",
-      reportsTo: lead,
-      allocation: 100,
-    },
-    {
-      ...seat,
-      id: DEMO_IDS.guide.frontend,
-      scenarioId: DEMO_IDS.guideScenario,
-      categoryId: categoryId("frontend"),
-      personId: personId("frontend", 0),
-      projectRole: "Frontend developer",
-      reportsTo: lead,
-      allocation: 100,
-    },
-    {
-      ...seat,
-      id: DEMO_IDS.guide.devops,
-      scenarioId: DEMO_IDS.guideScenario,
-      categoryId: categoryId("devops"),
-      projectRole: "DevOps engineer",
-      reportsTo: lead,
-      allocation: 50,
-    },
-  ]);
+      categoryId: categoryId(category),
+      personId: person === null ? null : personId(category, person),
+      projectRole,
+      reportsTo: reportsTo && GUIDE_IDS[reportsTo],
+      allocation,
+    })),
+  );
   // Plan B swaps the senior for a junior and drops DevOps: cheaper, with the same price.
   const leanLead = demoId(310);
   await tx.insert(assignments).values([
@@ -223,9 +183,9 @@ async function insert(tx: TenantTransaction, spans: OngoingSpans) {
       id: DEMO_IDS.guide.cloud,
       organizationId,
       scenarioId: DEMO_IDS.guideScenario,
-      label: "Cloud",
-      kind: "recurring",
-      amount: 100_000,
+      label: GUIDE_CLOUD.label,
+      kind: GUIDE_CLOUD.kind,
+      amount: GUIDE_CLOUD.monthlyCents,
     },
     {
       id: demoId(401),

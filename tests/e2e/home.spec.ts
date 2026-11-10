@@ -48,6 +48,27 @@ test("the header stays on top and leads to the demo from the keyboard", async ({
   await expect(page).toHaveURL(GUIDE);
 });
 
+for (const [device, viewport, name] of [
+  [
+    "a desktop",
+    { width: 1280, height: 800 },
+    /^Vista del simulador: .* 63\.356\s€, el 31,7\s%, en objetivo\.$/,
+  ],
+  [
+    "a phone",
+    { width: 390, height: 844 },
+    /^Vista del simulador en el móvil: .* 63\.356\s€, el 31,7\s%/,
+  ],
+] as const) {
+  test(`on ${device}, the simulator under the hero shows Plan A's margin`, async ({ page }) => {
+    await page.setViewportSize(viewport);
+    await page.goto("/");
+
+    await expect(page.getByRole("img", { name })).toBeVisible();
+    await expect(page.getByRole("img")).toHaveCount(1);
+  });
+}
+
 test("the header switches to English and back", async ({ page }) => {
   await page.goto("/");
 
