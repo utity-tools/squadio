@@ -29,7 +29,10 @@ test("the landing's call leads to the demo's guide scenario", async ({ page }) =
   // Needs the demo organization: `pnpm db:migrate` and `pnpm db:seed` (CI does both).
   await page.goto("/");
 
-  await page.getByRole("link", { name: "Probar la demo, sin cuenta" }).click();
+  await page
+    .getByRole("region", { name: TITLE })
+    .getByRole("link", { name: "Probar la demo, sin cuenta" })
+    .click();
 
   await expect(page).toHaveURL(GUIDE);
   await expect(page.getByRole("heading", { level: 1, name: "Plan A" })).toBeVisible();
@@ -83,7 +86,33 @@ test("the header switches to English and back", async ({ page }) => {
   ).toBeVisible();
 
   await page.getByRole("banner").getByRole("link", { name: "Español" }).click();
+  await expect(page.locator("html")).toHaveAttribute("lang", "es");
   await expect(page.getByRole("heading", { level: 1, name: TITLE })).toBeVisible();
+});
+
+test("the closing panel leads to the demo, and the footer to the code", async ({ page }) => {
+  await page.goto("/");
+  const footer = page.getByRole("contentinfo");
+
+  await expect(footer.getByRole("link", { name: "Código en GitHub" })).toHaveAttribute(
+    "href",
+    "https://github.com/utity-tools/squadio",
+  );
+  await page
+    .getByRole("region", { name: "Deja de descubrir el margen a final de mes." })
+    .getByRole("link", { name: "Probar la demo, sin cuenta" })
+    .click();
+
+  await expect(page).toHaveURL(GUIDE);
+});
+
+test("the footer's theme switch applies at once", async ({ page }) => {
+  await page.emulateMedia({ colorScheme: "light" });
+  await page.goto("/");
+
+  await page.getByRole("contentinfo").getByRole("radio", { name: "Oscuro" }).click();
+
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
 });
 
 test("«Entrar» leads to the sign-in page, which says sign-up is closed", async ({ page }) => {
