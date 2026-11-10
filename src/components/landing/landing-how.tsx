@@ -44,7 +44,7 @@ export function LandingHow() {
         <Step number="02" step="result">
           <ResultVisual />
         </Step>
-        <Step number="03" step="missing">
+        <Step number="03" step="missing" id="parciales">
           <MissingVisual />
         </Step>
         <Step number="04" step="compare" soon>
@@ -59,16 +59,22 @@ function Step({
   number,
   step,
   soon = false,
+  id,
   children,
 }: {
   number: string;
   step: "build" | "result" | "missing" | "compare";
   soon?: boolean;
+  /** Where a link elsewhere on the page lands: the hero's news leads to the third step. */
+  id?: string;
   children: ReactNode;
 }) {
   const t = useTranslations("Landing.how");
   return (
-    <div className="flex flex-wrap items-center gap-12 border-t py-12 last:pb-0 max-md:gap-8 max-md:py-10">
+    <div
+      id={id}
+      className="flex flex-wrap items-center gap-12 border-t py-12 last:pb-0 max-md:gap-8 max-md:py-10"
+    >
       <div className="flex min-w-0 flex-[1_1_360px] flex-col gap-3">
         <StepNumber className={cn(soon && "text-muted-foreground")}>
           {soon ? t("soon", { number }) : number}

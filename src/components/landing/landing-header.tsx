@@ -10,6 +10,8 @@ import { GUIDE_SCENARIO_ID } from "@/lib/demo/demo-ids";
 const SECTIONS = [
   { href: "#producto", key: "product" },
   { href: "#como", key: "how" },
+  { href: "#principios", key: "principles" },
+  { href: "#hoja", key: "roadmap" },
 ] as const;
 
 /**

@@ -92,6 +92,32 @@ test("the header leads to how it works, with its title clear of the header", asy
   expect(heading?.y ?? 0).toBeGreaterThanOrEqual((header?.y ?? 0) + (header?.height ?? 0));
 });
 
+test("the header leads to the roadmap, with its title clear of the header", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("/");
+
+  await page
+    .getByRole("navigation", { name: "Principal" })
+    .getByRole("link", { name: "Hoja de ruta" })
+    .click();
+
+  await expect(page).toHaveURL(/#hoja$/);
+  const title = page.getByRole("heading", { level: 2, name: "En qué punto está." });
+  await expect(title).toBeInViewport();
+  const header = await page.getByRole("banner").boundingBox();
+  const heading = await title.boundingBox();
+  expect(heading?.y ?? 0).toBeGreaterThanOrEqual((header?.y ?? 0) + (header?.height ?? 0));
+});
+
+test("the news above the title leads to the step that shows partial results", async ({ page }) => {
+  await page.goto("/");
+
+  await page.getByRole("link", { name: /^Nuevo Resultados parciales/ }).click();
+
+  await expect(page).toHaveURL(/#parciales$/);
+  await expect(page.getByRole("heading", { level: 3, name: "Sabe qué falta" })).toBeInViewport();
+});
+
 test("on a phone, the hero offers how it works under the call to the demo", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");

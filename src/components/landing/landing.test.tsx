@@ -160,13 +160,31 @@ describe("Landing", () => {
     expect(footer.getByRole("radio", { name: "Sistema" })).toBeInTheDocument();
   });
 
-  it("leads from the header to the product and to how it works", () => {
+  it("leads from the header to every section it names, in the page's order", () => {
     renderWithIntl(<Landing />);
 
     const nav = within(screen.getByRole("navigation", { name: "Principal" }));
-    expect(nav.getByRole("link", { name: "Producto" })).toHaveAttribute("href", "#producto");
-    expect(nav.getByRole("link", { name: "Cómo funciona" })).toHaveAttribute("href", "#como");
-    expect(document.getElementById("producto")).not.toBeNull();
+    const links = nav.getAllByRole("link");
+    expect(links.map((link) => [link.textContent, link.getAttribute("href")])).toEqual([
+      ["Producto", "#producto"],
+      ["Cómo funciona", "#como"],
+      ["Principios", "#principios"],
+      ["Hoja de ruta", "#hoja"],
+    ]);
+    for (const link of links) {
+      expect(document.getElementById(link.getAttribute("href")?.slice(1) ?? "")).not.toBeNull();
+    }
+  });
+
+  it("announces what is new above the title and leads to the step that shows it", () => {
+    renderWithIntl(<Landing />);
+
+    const hero = within(screen.getByRole("region", { name: TITLE }));
+    const news = hero.getByRole("link", {
+      name: "Nuevo Resultados parciales: si falta un dato, ves qué cifras quedan pendientes",
+    });
+    expect(news).toHaveAttribute("href", "#parciales");
+    expect(document.getElementById("parciales")).toHaveTextContent("Sabe qué falta");
   });
 
   it("offers to see how it works next to the hero's call", () => {
@@ -176,11 +194,11 @@ describe("Landing", () => {
     expect(hero.getByRole("link", { name: "Ver cómo funciona" })).toHaveAttribute("href", "#como");
   });
 
-  it("leads to how it works from the footer", () => {
+  it("leads to how it works and to the roadmap from the footer", () => {
     renderWithIntl(<Landing />);
 
-    expect(
-      within(screen.getByRole("contentinfo")).getByRole("link", { name: "Cómo funciona" }),
-    ).toHaveAttribute("href", "#como");
+    const footer = within(screen.getByRole("contentinfo"));
+    expect(footer.getByRole("link", { name: "Cómo funciona" })).toHaveAttribute("href", "#como");
+    expect(footer.getByRole("link", { name: "Hoja de ruta" })).toHaveAttribute("href", "#hoja");
   });
 });
