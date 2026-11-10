@@ -143,6 +143,57 @@
         }
       }
     },
+    "principles": {
+      "eyebrow": "Principles",
+      "title": "What Squadio doesn't do.",
+      "lead": "It is built to prepare proposals, not to watch anyone.",
+      "items": {
+        "salaries": {
+          "title": "Nobody's salary stored",
+          "text": "Costs are by category, never by person."
+        },
+        "judging": {
+          "title": "No judging people",
+          "text": "It analyses team structure and costs. It never suggests who to remove."
+        },
+        "money": {
+          "title": "No money for the wrong eyes",
+          "text": "Without rate access, the database doesn't send costs or margins."
+        },
+        "availability": {
+          "title": "No promises about availability",
+          "text": "Busyness is today's, based on the projects recorded in Squadio."
+        }
+      }
+    },
+    "roadmap": {
+      "eyebrow": "Roadmap",
+      "title": "Where it stands.",
+      "lead": "Every version ships something you can try. Today: the demo with sample data.",
+      "status": {
+        "available": "Available",
+        "inProgress": "In progress",
+        "later": "Later"
+      },
+      "versions": {
+        "simulate": {
+          "title": "Simulate",
+          "text": "Drag people and open roles, live cost and margin, undo and redo."
+        },
+        "prepare": {
+          "title": "Prepare",
+          "text": "Your organization with its categories, people and projects."
+        },
+        "compare": {
+          "title": "Compare",
+          "text": "Two or three scenarios side by side, and each person's load week by week."
+        },
+        "share": {
+          "title": "Share",
+          "text": "Revisions that never change and a link so someone else can choose."
+        }
+      }
+    },
     "points": {
       "label": "At a glance",
       "items": {

@@ -143,6 +143,57 @@
         }
       }
     },
+    "principles": {
+      "eyebrow": "Principios",
+      "title": "Lo que Squadio no hace.",
+      "lead": "Está pensado para preparar propuestas, no para vigilar a nadie.",
+      "items": {
+        "salaries": {
+          "title": "No guarda salarios de nadie",
+          "text": "Los costes van por categoría, nunca por persona."
+        },
+        "judging": {
+          "title": "No juzga a las personas",
+          "text": "Analiza la estructura del equipo y sus costes. Nunca sugiere a quién quitar."
+        },
+        "money": {
+          "title": "No enseña dinero a quien no debe",
+          "text": "Sin acceso a tarifas, la base de datos no envía costes ni márgenes."
+        },
+        "availability": {
+          "title": "No promete disponibilidad",
+          "text": "La ocupación es la de hoy, según los proyectos registrados en Squadio."
+        }
+      }
+    },
+    "roadmap": {
+      "eyebrow": "Hoja de ruta",
+      "title": "En qué punto está.",
+      "lead": "Cada versión entrega algo que se puede probar. Hoy, la demo con datos de ejemplo.",
+      "status": {
+        "available": "Disponible",
+        "inProgress": "En curso",
+        "later": "Después"
+      },
+      "versions": {
+        "simulate": {
+          "title": "Simular",
+          "text": "Arrastra personas y vacantes, coste y margen en vivo, deshacer y rehacer."
+        },
+        "prepare": {
+          "title": "Preparar",
+          "text": "Tu organización con sus categorías, personas y proyectos."
+        },
+        "compare": {
+          "title": "Comparar",
+          "text": "Dos o tres escenarios lado a lado y la carga de cada persona por semana."
+        },
+        "share": {
+          "title": "Compartir",
+          "text": "Revisiones que no cambian y un enlace para que otra persona elija."
+        }
+      }
+    },
     "points": {
       "label": "En pocas palabras",
       "items": {
