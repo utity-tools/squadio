@@ -1,10 +1,8 @@
 import { and, eq, lt, sql } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
-import { COPIED_TABLES } from "./copy-organization";
-import { deleteOrganization } from "./organizations";
+import { deleteOrganizationWithRows } from "./delete-organization";
 import { visitorCopies } from "./schema";
-import { setAccessContext } from "./tenant";
 
 // ADR 0011, "Clean-up": run by the owner role, the only one that reads visitor_copies directly.
 // RLS is forced on tenant tables for the owner too (ADR 0004), so each copy's rows are deleted in
@@ -28,9 +26,6 @@ export type CleanUpResult = {
   /** The organizations of the copies that could not be deleted; tomorrow's run tries again. */
   failed: string[];
 };
-
-// Children before parents: the reverse of the order the copy inserts them in.
-const DELETES = [...COPIED_TABLES].reverse();
 
 /**
  * Deletes every visitor's copy whose last save is more than `IDLE_DAYS` before `now`, with all of
@@ -66,15 +61,9 @@ export async function cleanUpVisitorCopies(
           .for("update");
         if (!claim) return false;
 
-        // Rate access, since the restricted tables hold rows of the copy too.
-        await setAccessContext(tx, { organizationId, rateAccess: true });
-        for (const table of DELETES) {
-          // RLS already limits it to the copy; the filter says so where a reader can see it.
-          await tx.execute(sql`delete from ${table} where organization_id = ${organizationId}`);
-        }
+        // The claim goes before the organization, which it references (ADR 0012).
         await tx.delete(visitorCopies).where(eq(visitorCopies.organizationId, organizationId));
-        // Last: the claim and every tenant row referenced it (ADR 0012).
-        await deleteOrganization(tx, organizationId);
+        await deleteOrganizationWithRows(tx, organizationId);
         return true;
       })
       .catch(() => null);
