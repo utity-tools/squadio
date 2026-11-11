@@ -223,3 +223,25 @@ Decided when the code lands, as amendments here (settled on 2026-11-03, see
     account without one, the two ways to start it; sign-in lands there. An account with several,
     which only the server makes today, works in its active one; a way to switch waits for
     invitations (v0.5).
+- **2026-11-11, slice 2d (deleting):** how the owner deletes the organization and an account
+  deletes itself, both from the organization page.
+  - **One helper deletes an organization with its rows** (`deleteOrganizationWithRows`,
+    `src/db/delete-organization.ts`): every tenant row inside the organization's own context with
+    rate access, children before parents, then its row in `auth.organization`, whose members and
+    invitations cascade within `auth`. The clean-up of visitors' copies uses it too. It refuses the
+    demo organization.
+  - **The organization deleted is the one the session acts in** (`memberOf`), never one the
+    browser names, and only for its owner: the membership is checked again under a row lock inside
+    the transaction. Sessions that worked in it lose it as their active organization. The account
+    stays signed in and the page offers the two ways to start one again.
+  - **Deleting an account is the server's, not Better Auth's** `deleteUser`, which stays off: it
+    cannot delete tenant rows first, which have no cascade, and it would ask for an email Squadio
+    never sends. One transaction deletes every organization the account is the only owner of, each
+    locked in id order before its owners are counted, then the account, whose sessions, provider
+    links and remaining memberships cascade. The session cookie then leads to no session, and the
+    page leads to the landing. The visitor's cookie is left alone: its copy is anonymous and the
+    clean-up already ends it.
+  - **Each delete waits behind a confirmation window** that says what goes; the organization's asks
+    for its name typed first, and neither starts on the delete button.
+  - **There is no privacy page yet.** What Neon's history and backups keep after a delete is still
+    part of the owner's processing review, before v0.3.0 (see "Deleting").

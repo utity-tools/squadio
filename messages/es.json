@@ -807,7 +807,34 @@
     "noProjects": "Esta organización todavía no tiene proyectos.",
     "noScenarios": "Todavía no hay escenarios.",
     "project": "{name} · {client}",
-    "chosen": "elegido"
+    "chosen": "elegido",
+    "delete": {
+      "heading": "Borrar",
+      "cancel": "Cancelar",
+      "deleting": "Borrando…",
+      "typeName": "Escribe «{name}» para confirmar",
+      "organization": {
+        "heading": "Borrar la organización",
+        "intro": "Borra la organización con todos sus proyectos, escenarios, categorías, costes y personas. Tu cuenta sigue abierta.",
+        "open": "Borrar la organización…",
+        "title": "¿Borrar la organización?",
+        "description": "Se borran todos sus proyectos, escenarios, categorías, costes y personas. No se puede deshacer.",
+        "confirm": "Borrar la organización"
+      },
+      "account": {
+        "heading": "Borrar tu cuenta",
+        "intro": "Borra tu cuenta, tus sesiones y el vínculo con GitHub o Google, y la organización de la que eres la única persona propietaria, con todos sus datos.",
+        "open": "Borrar tu cuenta…",
+        "title": "¿Borrar tu cuenta?",
+        "description": "Se borran tu cuenta, tus sesiones, el vínculo con GitHub o Google y la organización de la que eres la única persona propietaria, con todos sus datos. No se puede deshacer.",
+        "confirm": "Borrar mi cuenta"
+      },
+      "errors": {
+        "signed-out": "Tu sesión ha terminado. Vuelve a entrar.",
+        "no-organization": "Ya no tienes una organización que borrar.",
+        "failed": "No se ha podido borrar. Vuelve a intentarlo."
+      }
+    }
   },
   "Field": {
     "optional": "Opcional"
