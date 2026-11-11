@@ -807,7 +807,34 @@
     "noProjects": "This organization has no projects yet.",
     "noScenarios": "No scenarios yet.",
     "project": "{name} · {client}",
-    "chosen": "chosen"
+    "chosen": "chosen",
+    "delete": {
+      "heading": "Delete",
+      "cancel": "Cancel",
+      "deleting": "Deleting…",
+      "typeName": "Type “{name}” to confirm",
+      "organization": {
+        "heading": "Delete the organization",
+        "intro": "Deletes the organization with all its projects, scenarios, categories, costs and people. Your account stays open.",
+        "open": "Delete the organization…",
+        "title": "Delete the organization?",
+        "description": "All its projects, scenarios, categories, costs and people are deleted. This cannot be undone.",
+        "confirm": "Delete the organization"
+      },
+      "account": {
+        "heading": "Delete your account",
+        "intro": "Deletes your account, your sessions and the link to GitHub or Google, and the organization you are the only owner of, with all its data.",
+        "open": "Delete your account…",
+        "title": "Delete your account?",
+        "description": "Your account, your sessions, the link to GitHub or Google and the organization you are the only owner of, with all its data, are deleted. This cannot be undone.",
+        "confirm": "Delete my account"
+      },
+      "errors": {
+        "signed-out": "Your session has ended. Sign in again.",
+        "no-organization": "You no longer have an organization to delete.",
+        "failed": "Could not delete. Try again."
+      }
+    }
   },
   "Field": {
     "optional": "Optional"

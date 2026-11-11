@@ -5,6 +5,7 @@ import { Suspense } from "react";
 
 import { currentSession } from "@/auth/session";
 import { CurrentAccount } from "@/components/account/current-account";
+import { DangerZone } from "@/components/organization/danger-zone";
 import { OrganizationOverview } from "@/components/organization/organization-overview";
 import { StartOrganization } from "@/components/organization/start-organization";
 import { AppShell } from "@/components/shell/app-shell";
@@ -18,7 +19,12 @@ import { assertLocale, currentLocale } from "@/i18n/locale";
 import { redirect } from "@/i18n/navigation";
 import { VISITOR_COOKIE } from "@/lib/visitors/token";
 
-import { adoptVisitorsCopy, startEmptyOrganization } from "./actions";
+import {
+  adoptVisitorsCopy,
+  deleteOrganization,
+  deleteOwnAccount,
+  startEmptyOrganization,
+} from "./actions";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("Organization");
@@ -66,7 +72,18 @@ async function OrganizationContent() {
   if (!session) redirect({ href: "/sign-in", locale: await currentLocale() });
   const member = session && (await memberOf(db, session));
   const overview = member && (await loadOrganizationOverview(db, member));
-  if (overview) return <OrganizationOverview {...overview} />;
+  if (overview) {
+    return (
+      <>
+        <OrganizationOverview {...overview} />
+        <DangerZone
+          organizationName={overview.name}
+          deleteOrganization={deleteOrganization}
+          deleteAccount={deleteOwnAccount}
+        />
+      </>
+    );
+  }
 
   const t = await getTranslations("Organization");
   const cookie = (await cookies()).get(VISITOR_COOKIE)?.value;
@@ -79,6 +96,11 @@ async function OrganizationContent() {
         canAdopt={canAdopt}
         createEmpty={startEmptyOrganization}
         adopt={adoptVisitorsCopy}
+      />
+      <DangerZone
+        organizationName={null}
+        deleteOrganization={deleteOrganization}
+        deleteAccount={deleteOwnAccount}
       />
     </>
   );
