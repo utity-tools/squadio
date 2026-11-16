@@ -51,11 +51,12 @@ test("the rail lists the result lines and staff cost by category", async ({ page
     figure("Coste de personal · 2379,92 h"),
     "Cloud · coste extra mensual",
     "Subtotal Coste directo",
-    "Margen directo",
+    // A margin's % is its hint: the amount column holds the amount alone.
+    figure("Margen directo · \\d+(,\\d+)? %"),
     figure("Overhead · 15 %"),
     figure("Buffer · 10 %"),
     "Subtotal Coste total",
-    "Margen neto",
+    figure("Margen neto · 31,7 %"),
   ]);
 
   const categories = await categoryTable(page);
@@ -263,4 +264,15 @@ test("at a window 1000 px wide the rail shows every amount, nothing cut off", as
   });
   expect(overflow).toEqual([0, 0]);
   expect(await rail(page).evaluate((element) => element.scrollWidth - element.clientWidth)).toBe(0);
+  // A figure never splits: each amount of the statement sits on one line, here at the rail's
+  // narrowest. Plan A has no pending line, whose reason may wrap under «Pendiente».
+  const lines = await statement.getByRole("cell").evaluateAll((cells) =>
+    cells.map((cell) => {
+      const range = document.createRange();
+      range.selectNodeContents(cell);
+      const tops = new Set([...range.getClientRects()].map((rect) => Math.round(rect.top)));
+      return `${cell.textContent} ${tops.size}`;
+    }),
+  );
+  expect(lines.filter((line) => !line.endsWith(" 1"))).toEqual([]);
 });

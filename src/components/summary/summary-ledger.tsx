@@ -325,11 +325,11 @@ const SUBTOTALS: readonly LedgerLine["key"][] = ["directCost", "totalCost"];
 
 function ResultLine({ line, pricingModel }: { line: LedgerLine; pricingModel: PricingModel }) {
   const t = useTranslations("Summary.lines");
-  const tSummary = useTranslations("Summary");
   const { euros, percent, hours } = useSummaryFormat();
 
   const name = line.key === "extraCost" ? (line.label ?? t(`extraCost.${line.kind}`)) : t(line.key);
-  // What the name leaves out: how revenue is made, the hours, the extra cost's kind, the rate.
+  // What the name leaves out: how revenue is made, the hours, the extra cost's kind, the rate, a
+  // margin's %. The % sits here, not by its amount, so neither figure ever splits across lines.
   const hint = (() => {
     switch (line.key) {
       case "revenue":
@@ -341,25 +341,18 @@ function ResultLine({ line, pricingModel }: { line: LedgerLine; pricingModel: Pr
       case "overhead":
       case "buffer":
         return percent(line.basisPoints);
+      case "directMargin":
+      case "netMargin":
+        // A pending margin has no %; one without revenue has none that means anything, and the
+        // headline says why.
+        if (typeof line.cents !== "number") return null;
+        return typeof line.basisPoints === "number"
+          ? percent(line.basisPoints)
+          : t("marginHint.percentNotApplicable");
       default:
         return null;
     }
   })();
-  const isMargin = line.key === "directMargin" || line.key === "netMargin";
-  const amount =
-    isMargin && typeof line.cents === "number" ? (
-      typeof line.basisPoints === "number" ? (
-        tSummary("amountWithPercent", {
-          amount: euros(line.cents),
-          percent: percent(line.basisPoints),
-        })
-      ) : (
-        // Its margin % has no meaning without revenue; the headline says why.
-        tSummary("amountPercentNotApplicable", { amount: euros(line.cents) })
-      )
-    ) : (
-      <Value amount={line.cents} format={euros} />
-    );
   const subtotal = SUBTOTALS.includes(line.key);
   // The row's name leaves out the "i": a screen reader says it with every cell of the row.
   const tagId = useId();
@@ -407,17 +400,14 @@ function ResultLine({ line, pricingModel }: { line: LedgerLine; pricingModel: Pr
           </span>
         )}
       </th>
-      {/*
-        A margin's % may go under its amount, with its separator: each figure keeps its unit. A
-        subtotal's amount sits by its name, under the tag.
-      */}
+      {/* A figure never splits across lines. A subtotal's amount sits by its name, under the tag. */}
       <td
         className={cn(
-          "py-[7px] text-end font-mono tabular-nums",
+          "py-[7px] text-end font-mono whitespace-nowrap tabular-nums",
           subtotal ? "align-bottom" : "align-baseline",
         )}
       >
-        {amount}
+        <Value amount={line.cents} format={euros} />
       </td>
     </tr>
   );

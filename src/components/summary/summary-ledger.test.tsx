@@ -116,9 +116,12 @@ describe("SummaryLedger", () => {
     expect(plain(headline)).toContain("54.300 €");
     expect(plain(headline)).toContain("Margen % no aplicable. Sin ingresos");
     const statement = within(section("Cuenta de resultados"));
-    const row = (name: string) => plain(statement.getByRole("rowheader", { name }).parentElement!);
-    expect(row("Margen directo")).toBe("Margen directo73.500 € · % no aplicable");
-    expect(row("Margen neto")).toBe("Margen neto54.300 € · % no aplicable");
+    // The hint is part of the row's name: a screen reader says the % before the amount.
+    const row = (name: RegExp) => plain(statement.getByRole("rowheader", { name }).parentElement!);
+    expect(row(/^Margen directo\s%\sno aplicable$/)).toBe(
+      "Margen directo · % no aplicable73.500 €",
+    );
+    expect(row(/^Margen neto\s%\sno aplicable$/)).toBe("Margen neto · % no aplicable54.300 €");
     const figures = within(section("Cifras clave"));
     expect(plain(figures.getByText("Tarifa efectiva").nextElementSibling!)).toBe(
       "No aplicable Sin horas efectivas",
@@ -212,11 +215,11 @@ describe("SummaryLedger", () => {
       "Cloud · coste extra mensual6000 €",
       "Coste extra fijo500 €",
       "Subtotal Coste directo76.500 €",
-      "Margen directo73.500 € · 49 %",
+      "Margen directo · 49 %73.500 €",
       "Overhead · 15 %10.500 €",
       "Buffer · 10 %8700 €",
       "Subtotal Coste total95.700 €",
-      "Margen neto54.300 € · 36,2 %",
+      "Margen neto · 36,2 %54.300 €",
     ]);
   });
 
@@ -242,6 +245,7 @@ describe("SummaryLedger", () => {
 
     // A row's name is its line and hint, never the "i", which a screen reader would repeat.
     expect(screen.getByRole("rowheader", { name: /^Overhead\s15\s%$/ })).toBeVisible();
+    expect(screen.getByRole("rowheader", { name: /^Margen directo\s49\s%$/ })).toBeVisible();
     expect(screen.getByRole("rowheader", { name: "Subtotal Coste total" })).toBeVisible();
 
     await userEvent.hover(screen.getByRole("button", { name: "Qué es: Overhead" }));
