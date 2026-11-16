@@ -49,6 +49,15 @@ test("lists the demo's projects with their scenario, margin and status", async (
   await expect(page.getByText("Los márgenes de proyectos distintos no se suman.")).toBeVisible();
 });
 
+test("offers a visitor no way to create a project: the demo is not theirs", async ({ page }) => {
+  await page.goto("/projects");
+
+  await expect(table(page)).toBeVisible();
+  // Only a signed-in member with rate access creates projects (ADR 0005, ADR 0012); E2E never
+  // signs in, so unit and database tests cover that side.
+  await expect(page.getByRole("button", { name: /Nuevo proyecto|Crear proyecto/ })).toHaveCount(0);
+});
+
 test("marks Proyectos in the sidebar and names the page in the trail", async ({ page }) => {
   await page.goto("/projects");
 
