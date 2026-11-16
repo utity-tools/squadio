@@ -1,6 +1,7 @@
 import type { CategoryOccupancy } from "@/lib/bench/category-occupancy";
 import type { MarginStatus, ScenarioResult } from "@/lib/costing/calculate-scenario";
 import { type Amount, amountOf } from "@/lib/summary/summary";
+import type { PeriodCost } from "@/lib/projects/period-change";
 import type { PlannedPeriod } from "@/lib/projects/project-details";
 
 // docs/domain.md, "The organization at a glance": every project of the organization with its
@@ -13,7 +14,10 @@ export type PricingModel = "fixed" | "time_and_materials";
 export type ScenarioMoney = Pick<
   ScenarioResult,
   "netMarginCents" | "netMarginBasisPoints" | "marginStatus" | "warnings"
->;
+> & {
+  /** Its recurring costs without dates, which follow the planned period (rule d). */
+  undatedRecurringCosts: PeriodCost[];
+};
 
 export type PortfolioScenario = {
   id: string;

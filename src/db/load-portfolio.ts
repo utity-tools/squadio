@@ -294,6 +294,9 @@ async function portfolioIn(
         netMarginBasisPoints: result.netMarginBasisPoints,
         marginStatus: result.marginStatus,
         warnings: result.warnings,
+        undatedRecurringCosts: (own?.rows.extraCosts ?? [])
+          .filter((extra) => extra.kind === "recurring" && extra.startDate === null)
+          .map(({ id, label }) => ({ id, label })),
       },
     };
   };

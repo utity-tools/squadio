@@ -78,6 +78,9 @@ describe("loadPortfolio", () => {
         netMarginBasisPoints: page.result.netMarginBasisPoints,
         marginStatus: page.result.marginStatus,
         warnings: page.result.warnings,
+        undatedRecurringCosts: page.extraCosts
+          .filter((extra) => extra.kind === "recurring")
+          .map(({ id, label }) => ({ id, label })),
       });
       expect(scenario.effectiveHours).toBe(page.result.hours.effective);
       expect(scenario.people).toBe(page.team.filter((member) => member.person).length);
@@ -109,6 +112,17 @@ describe("loadPortfolio", () => {
     expect(planA(portfolio.projects)?.netMarginCents).toBeLessThan(
       planA(before)?.netMarginCents as number,
     );
+  });
+
+  it("names each scenario's undated recurring costs, which follow the planned period", async () => {
+    const portfolio = await loadPortfolio(app, withRates, SOME_DAY);
+    const planA = portfolio.projects
+      .flatMap((project) => project.scenarios)
+      .find((scenario) => scenario.id === DEMO_IDS.guideScenario);
+
+    expect(planA?.money?.undatedRecurringCosts).toEqual([
+      { id: DEMO_IDS.guide.cloud, label: "Cloud" },
+    ]);
   });
 
   it("gives each project its price or cap, and none to a fixed price still to agree", async () => {
