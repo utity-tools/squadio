@@ -6,6 +6,7 @@ import { cache } from "react";
 import { z } from "zod";
 
 import { CategoryCosts } from "@/components/projects/category-costs";
+import { NewScenarioButton } from "@/components/projects/new-scenario-button";
 import { ProjectHeader, ProjectScenarios } from "@/components/projects/project-page";
 import { AppPage } from "@/components/shell/app-page";
 import { Breadcrumbs } from "@/components/shell/breadcrumbs";
@@ -19,7 +20,7 @@ import { assertLocale, currentLocale } from "@/i18n/locale";
 import { redirect } from "@/i18n/navigation";
 import { madridToday } from "@/lib/bench/occupancy";
 
-import { saveCategory } from "./actions";
+import { createNewScenario, saveCategory } from "./actions";
 
 /**
  * The project this request reads, once for the title and the page: the member's organization when
@@ -96,7 +97,20 @@ export default async function ProjectPage({
           action={member ? saveCategory : null}
         />
       )}
-      <ProjectScenarios project={project} categories={categories} rateAccess={context.rateAccess} />
+      <ProjectScenarios
+        project={project}
+        categories={categories}
+        rateAccess={context.rateAccess}
+        action={
+          member ? (
+            <NewScenarioButton
+              action={createNewScenario}
+              projectId={project.id}
+              hasCategories={categories.length > 0}
+            />
+          ) : null
+        }
+      />
     </AppPage>
   );
 }

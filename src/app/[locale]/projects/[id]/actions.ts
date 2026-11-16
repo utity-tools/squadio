@@ -1,12 +1,15 @@
 "use server";
 
 import { refresh } from "next/cache";
+import { createTranslator } from "next-intl";
 import { z } from "zod";
 
 import { currentSession } from "@/auth/session";
 import { memberEditContext, memberOf } from "@/db/access";
 import { createCategory, updateCategory } from "@/db/categories";
 import { db } from "@/db/client";
+import { createScenario } from "@/db/create-scenario";
+import { redirect } from "@/i18n/navigation";
 import { routing } from "@/i18n/routing";
 import {
   type CategoryFormErrors,
@@ -90,4 +93,49 @@ export async function saveCategory(
   }
   refresh();
   return { saved: parsed.data.name, error: null, errors: {} };
+}
+
+/** Why the scenario was not created; the page says so. */
+export type CreateScenarioError =
+  "signed-out" | "no-organization" | "not-found" | "no-categories" | "failed";
+
+export type CreateScenarioState = { error: CreateScenarioError | null };
+
+/**
+ * Creates the project's next empty scenario in the signed-in member's organization, named in the
+ * form's locale («Escenario 2»), then opens it in the editor. A scenario holds no money, so any
+ * member may (ADR 0005); a visitor's copy and the demo never offer it.
+ */
+export async function createNewScenario(
+  _previous: CreateScenarioState,
+  form: FormData,
+): Promise<CreateScenarioState> {
+  const locale = localeSchema.parse(form.get("locale"));
+  const projectId = z.uuid().safeParse(form.get("projectId"));
+  if (!projectId.success) return { error: "not-found" };
+
+  const session = await currentSession();
+  if (!session) return { error: "signed-out" };
+  let scenarioId: string;
+  try {
+    const member = await memberOf(db, session);
+    if (!member) return { error: "no-organization" };
+    // `next-intl/server` reads the route's locale, which an action cannot: the form's is used.
+    const messages = (await import(`../../../../../messages/${locale}.json`)).default;
+    const t = createTranslator({ locale, messages, namespace: "Project" });
+    const result = await createScenario(
+      db,
+      memberEditContext(member),
+      projectId.data,
+      t("newScenario.name"),
+    );
+    if (!result.ok) return { error: result.reason };
+    scenarioId = result.scenarioId;
+  } catch (error) {
+    console.error(`createScenario failed: ${describe(error)}`);
+    return { error: "failed" };
+  }
+  // Outside the try: redirect throws to navigate.
+  redirect({ href: `/scenarios/${scenarioId}`, locale });
+  return { error: null };
 }

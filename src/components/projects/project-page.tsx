@@ -1,5 +1,5 @@
 import { useTranslations } from "next-intl";
-import { useId } from "react";
+import { type ReactNode, useId } from "react";
 
 import { useSummaryFormat } from "@/components/summary/summary-format";
 import { Chip } from "@/components/ui/chip";
@@ -67,13 +67,20 @@ type ProjectScenariosProps = {
   /** The organization's categories, which name what a pending margin misses. */
   categories: { id: string; name: string }[];
   rateAccess: boolean;
+  /** «Crear escenario», for a signed-in member only. */
+  action?: ReactNode;
 };
 
 /**
  * The project's scenarios, each leading to the editor: the chosen one marked, its team's size and
  * effective hours and, with rate access only, its net margin and status.
  */
-export function ProjectScenarios({ project, categories, rateAccess }: ProjectScenariosProps) {
+export function ProjectScenarios({
+  project,
+  categories,
+  rateAccess,
+  action,
+}: ProjectScenariosProps) {
   const t = useTranslations("Project");
   const { hours } = useSummaryFormat();
   const nameOf = categoryNames({ categories });
@@ -86,7 +93,10 @@ export function ProjectScenarios({ project, categories, rateAccess }: ProjectSce
 
   return (
     <Panel aria-labelledby={titleId}>
-      <PanelTitle id={titleId}>{t("scenarios")}</PanelTitle>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <PanelTitle id={titleId}>{t("scenarios")}</PanelTitle>
+        {action}
+      </div>
       {project.scenarios.length === 0 ? (
         <EmptyState
           art={<EmptyArt variant="outline" />}

@@ -428,6 +428,19 @@
         },
         "small": "Categoría pequeña: su coste puede revelar un salario"
       }
+    },
+    "newScenario": {
+      "name": "Escenario",
+      "create": "Crear escenario",
+      "creating": "Creando…",
+      "needsCategory": "Crea una categoría para montar el primer equipo.",
+      "errors": {
+        "signed-out": "Tu sesión ha terminado. Entra de nuevo para crear el escenario.",
+        "no-organization": "Tu cuenta ya no pertenece a ninguna organización.",
+        "not-found": "Este proyecto ya no existe.",
+        "failed": "No se ha podido crear el escenario. Inténtalo de nuevo.",
+        "no-categories": "Crea antes una categoría: el equipo se monta con ellas."
+      }
     }
   },
   "NotFound": {
