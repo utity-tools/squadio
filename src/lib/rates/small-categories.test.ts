@@ -4,7 +4,11 @@ import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { ZodError } from "zod";
 
-import { type HeadcountPerson, findSmallCategories } from "./small-categories";
+import {
+  type HeadcountPerson,
+  activePeopleAfterSaving,
+  findSmallCategories,
+} from "./small-categories";
 
 /** `count` people of `categoryId`, with ids unique across calls through `prefix`. */
 const people = (categoryId: string, count: number, active = true, prefix = categoryId) =>
@@ -143,6 +147,32 @@ describe("findSmallCategories properties", () => {
           expect(findSmallCategories(shuffled)).toEqual(findSmallCategories(list));
         },
       ),
+    );
+  });
+});
+
+describe("activePeopleAfterSaving", () => {
+  const team = [...people("dev", 2), ...people("pm", 3), ...people("qa", 1, false)];
+
+  it("counts a new active person in their category", () => {
+    expect(activePeopleAfterSaving(team, { id: null, categoryId: "dev", active: true })).toBe(3);
+    expect(activePeopleAfterSaving(team, { id: null, categoryId: "qa", active: true })).toBe(1);
+  });
+
+  it("does not count a new inactive person", () => {
+    expect(activePeopleAfterSaving(team, { id: null, categoryId: "qa", active: false })).toBe(0);
+  });
+
+  it("counts an edited person once, in the category they move to", () => {
+    expect(activePeopleAfterSaving(team, { id: "dev-a0", categoryId: "dev", active: true })).toBe(
+      2,
+    );
+    expect(activePeopleAfterSaving(team, { id: "pm-a0", categoryId: "dev", active: true })).toBe(3);
+  });
+
+  it("leaves out an edited person who is deactivated", () => {
+    expect(activePeopleAfterSaving(team, { id: "dev-a0", categoryId: "dev", active: false })).toBe(
+      1,
     );
   });
 });
