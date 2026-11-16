@@ -263,6 +263,40 @@ describe("structural tables", () => {
         (tx, { project }) =>
           tx.update(projects).set({ client: " " }).where(eq(projects.id, project.id)),
       ],
+      [
+        "a planned start without an end",
+        (tx, { project }) =>
+          tx
+            .update(projects)
+            .set({ plannedStart: "2027-04-01" })
+            .where(eq(projects.id, project.id)),
+      ],
+      [
+        "a planned end without a start",
+        (tx, { project }) =>
+          tx.update(projects).set({ plannedEnd: "2027-09-30" }).where(eq(projects.id, project.id)),
+      ],
+      [
+        "a planned period that ends before it starts",
+        (tx, { project }) =>
+          tx
+            .update(projects)
+            .set({ plannedStart: "2027-04-01", plannedEnd: "2027-03-31" })
+            .where(eq(projects.id, project.id)),
+      ],
+      [
+        "a blank description",
+        (tx, { project }) =>
+          tx.update(projects).set({ description: " \n " }).where(eq(projects.id, project.id)),
+      ],
+      [
+        "a description over 500 characters",
+        (tx, { project }) =>
+          tx
+            .update(projects)
+            .set({ description: "x".repeat(501) })
+            .where(eq(projects.id, project.id)),
+      ],
       ["zero net annual hours", (tx) => tx.update(config).set({ netAnnualHours: 0 })],
       [
         "a scenario version below 1",
@@ -270,6 +304,25 @@ describe("structural tables", () => {
           tx.update(scenarios).set({ version: 0 }).where(eq(scenarios.id, scenario.id)),
       ],
     ];
+
+    it("accept a project without a period or a description, and one with both", async () => {
+      const a = await contextFor();
+      const { project } = await inOrganization(a, (tx) => seedTeam(tx, a.organizationId));
+      expect(project).toMatchObject({ plannedStart: null, plannedEnd: null, description: null });
+
+      const [saved] = await inOrganization(a, (tx) =>
+        tx
+          .update(projects)
+          .set({
+            plannedStart: "2027-04-01",
+            plannedEnd: "2027-04-01",
+            description: "x".repeat(500),
+          })
+          .where(eq(projects.id, project.id))
+          .returning(),
+      );
+      expect(saved).toMatchObject({ plannedStart: "2027-04-01", plannedEnd: "2027-04-01" });
+    });
 
     it.each(cases)("reject %s", async (_name, write) => {
       const a = await contextFor();

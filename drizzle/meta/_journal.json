@@ -78,6 +78,13 @@
       "when": 1793727500627,
       "tag": "0010_release_visitor_copy",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1794842810779,
+      "tag": "0011_project_period",
+      "breakpoints": true
     }
   ]
 }

@@ -62,6 +62,9 @@ describe("createProject", () => {
         name: "Client portal",
         client: "Synthetic Bank",
         pricingModel: "fixed",
+        plannedStart: null,
+        plannedEnd: null,
+        description: null,
       },
     ]);
     expect(pricing).toEqual([{ price: 20_000_000 }]);
