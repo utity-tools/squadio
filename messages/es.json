@@ -300,6 +300,42 @@
     "empty": {
       "title": "Aún no tienes proyectos",
       "description": "Un proyecto es el encargo de un cliente. Dentro montarás uno o varios escenarios de equipo y verás su coste y su margen."
+    },
+    "new": {
+      "open": "Nuevo proyecto",
+      "openEmpty": "Crear proyecto",
+      "title": "Nuevo proyecto",
+      "description": "El encargo de un cliente y cómo se cobra.",
+      "close": "Cerrar",
+      "name": "Nombre",
+      "client": "Cliente",
+      "pricingModel": "Modelo de precio",
+      "models": {
+        "fixed": {
+          "label": "Precio cerrado",
+          "hint": "Un importe total."
+        },
+        "time_and_materials": {
+          "label": "Tiempo y materiales",
+          "hint": "Por horas."
+        }
+      },
+      "price": "Precio",
+      "priceHelp": "Sin precio, ingresos y margen quedarán pendientes.",
+      "cancel": "Cancelar",
+      "submit": "Crear proyecto",
+      "submitting": "Creando…",
+      "errors": {
+        "blank": "Escribe al menos un carácter.",
+        "too-long": "Como mucho 100 caracteres.",
+        "invalid": "Revisa este campo.",
+        "pricingModel": "Elige un modelo de precio.",
+        "price": "Escribe un importe en euros mayor que cero, con dos decimales como mucho, o déjalo vacío.",
+        "signed-out": "Tu sesión ha terminado. Entra de nuevo para crear el proyecto.",
+        "no-organization": "Tu cuenta ya no pertenece a ninguna organización.",
+        "no-rate-access": "Crear proyectos necesita acceso a tarifas.",
+        "failed": "No se ha podido crear el proyecto. Inténtalo de nuevo."
+      }
     }
   },
   "Project": {

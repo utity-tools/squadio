@@ -44,6 +44,8 @@ export type OrganizationAccess = {
   context: AccessContext;
   /** A member's organization's name; null for a visitor, whose page names the demo. */
   name: string | null;
+  /** Whether a signed-in member acts, who may change the organization's own data (ADR 0012). */
+  member: boolean;
 };
 
 /**
@@ -56,12 +58,18 @@ export async function currentOrganizationAccess(
   searchParams: AccessSearchParams = {},
 ): Promise<OrganizationAccess | null> {
   const session = await currentSession();
-  if (!session) return { context: await currentAccessContext(searchParams), name: null };
+  if (!session) {
+    return { context: await currentAccessContext(searchParams), name: null, member: false };
+  }
   const member = await memberOf(db, session);
   if (!member) return null;
   const [row] = await db
     .select({ name: organization.name })
     .from(organization)
     .where(eq(organization.id, member.organizationId));
-  return { context: memberAccessContext(member, searchParams), name: row?.name ?? null };
+  return {
+    context: memberAccessContext(member, searchParams),
+    name: row?.name ?? null,
+    member: true,
+  };
 }

@@ -300,6 +300,42 @@
     "empty": {
       "title": "You have no projects yet",
       "description": "A project is a client's piece of work. Inside it you build one or more team scenarios and see their cost and margin."
+    },
+    "new": {
+      "open": "New project",
+      "openEmpty": "Create project",
+      "title": "New project",
+      "description": "A client's engagement and how it is billed.",
+      "close": "Close",
+      "name": "Name",
+      "client": "Client",
+      "pricingModel": "Pricing model",
+      "models": {
+        "fixed": {
+          "label": "Fixed price",
+          "hint": "One total amount."
+        },
+        "time_and_materials": {
+          "label": "Time and materials",
+          "hint": "By the hour."
+        }
+      },
+      "price": "Price",
+      "priceHelp": "Without a price, revenue and margin stay pending.",
+      "cancel": "Cancel",
+      "submit": "Create project",
+      "submitting": "Creating…",
+      "errors": {
+        "blank": "Type at least one character.",
+        "too-long": "At most 100 characters.",
+        "invalid": "Check this field.",
+        "pricingModel": "Choose a pricing model.",
+        "price": "Type an amount in euros above zero, with at most two decimals, or leave it empty.",
+        "signed-out": "Your session has ended. Sign in again to create the project.",
+        "no-organization": "Your account no longer belongs to an organization.",
+        "no-rate-access": "Creating projects needs rate access.",
+        "failed": "The project could not be created. Try again."
+      }
     }
   },
   "Project": {
