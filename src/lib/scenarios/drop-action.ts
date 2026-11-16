@@ -1,3 +1,5 @@
+import type { PlannedPeriod } from "@/lib/projects/project-details";
+
 import type { Roster } from "./apply-change";
 import type { Change, Member } from "./change";
 import { moveTargets } from "./move-targets";
@@ -57,14 +59,16 @@ export type DropContext = {
   defaultWeeklyHours: number;
   /** Today as a `YYYY-MM-DD` date, in the caller's time zone. */
   today: string;
+  /** The project's planned period (`newMember`). */
+  plannedPeriod: PlannedPeriod | null;
   /** The new assignment's id: the client makes it (docs/domain.md, "Changes"). */
   newId: () => string;
 };
 
 /**
  * The change a drop dispatches, or null where it does nothing. An add takes the defaults of "Add
- * to team…": its category's name as the project role, 100% and the project's span, and an open
- * role Config's weekly hours.
+ * to team…": its category's name as the project role, 100% and the planned period or else the
+ * project span, and an open role Config's weekly hours.
  */
 export function dropChange(context: DropContext, dragged: Dragged, zone: DropZone): Change | null {
   const { team, roster } = context;
@@ -85,6 +89,7 @@ export function dropChange(context: DropContext, dragged: Dragged, zone: DropZon
     roster,
     defaultWeeklyHours: context.defaultWeeklyHours,
     today: context.today,
+    plannedPeriod: context.plannedPeriod,
   });
   return { type: "add", member };
 }

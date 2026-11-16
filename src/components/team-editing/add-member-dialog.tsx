@@ -100,6 +100,7 @@ export function AddMemberDialog({
       roster,
       defaultWeeklyHours: basis.defaultWeeklyHours,
       today: madridToday(new Date()),
+      plannedPeriod: basis.project.plannedPeriod,
     });
     if (dispatch({ type: "add", member })) {
       onClose(true);

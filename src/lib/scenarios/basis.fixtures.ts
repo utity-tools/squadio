@@ -10,6 +10,8 @@ const open = {
     name: "Project 1",
     client: "Client 1",
     pricingModel: "time_and_materials" as const,
+    plannedPeriod: null,
+    description: null,
   },
   scenario: { name: "Plan A", chosen: false, otherChosen: null },
   categories: [

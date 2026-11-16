@@ -284,7 +284,7 @@ describe("loadScenario", () => {
     }
   });
 
-  it("opens a chosen scenario without a team, with no project span", async () => {
+  it("opens a chosen scenario without a team, with no project span but its planned period", async () => {
     const context: AccessContext = {
       organizationId: await newOrganization(app),
       rateAccess: false,
@@ -302,6 +302,9 @@ describe("loadScenario", () => {
           name: "Support",
           client: "Client C",
           pricingModel: "time_and_materials",
+          plannedStart: "2027-04-01",
+          plannedEnd: "2027-12-31",
+          description: "Second-line support.",
         })
         .returning();
       const [scenario] = await tx
@@ -311,14 +314,23 @@ describe("loadScenario", () => {
       return { project: project!.id, scenario: scenario!.id };
     });
 
+    const project = {
+      id: ids.project,
+      name: "Support",
+      client: "Client C",
+      pricingModel: "time_and_materials",
+      // The planned period and the description hold no money: everyone reads them, and new
+      // assignments span the period (docs/domain.md, "Changes").
+      plannedPeriod: { start: "2027-04-01", end: "2027-12-31" },
+      description: "Second-line support.",
+    };
     expect(await loadScenario(app, context, ids.scenario, SOME_DAY)).toEqual({
-      editing: expect.objectContaining({ team: [], version: 1 }),
-      project: {
-        id: ids.project,
-        name: "Support",
-        client: "Client C",
-        pricingModel: "time_and_materials",
-      },
+      editing: expect.objectContaining({
+        basis: expect.objectContaining({ project }),
+        team: [],
+        version: 1,
+      }),
+      project,
       scenario: { name: "Plan A", chosen: true, otherChosen: null },
       team: [],
       span: null,

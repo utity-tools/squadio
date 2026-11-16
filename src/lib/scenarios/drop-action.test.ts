@@ -157,6 +157,7 @@ describe("dropChange", () => {
     ],
     defaultWeeklyHours: 40,
     today: "2027-01-15",
+    plannedPeriod: null,
     newId: () => seatId(8),
   };
 
@@ -176,6 +177,20 @@ describe("dropChange", () => {
       }),
     });
     expect(applyChange(team, roster, change!).ok).toBe(true);
+  });
+
+  it("spans the project's planned period", () => {
+    const planned = { start: "2027-04-01", end: "2027-12-31" };
+    const change = dropChange(
+      { ...context, plannedPeriod: planned },
+      { kind: "openRole", categoryId: PM },
+      onCanvas,
+    );
+
+    expect(change).toMatchObject({
+      type: "add",
+      member: { startDate: "2027-04-01", endDate: "2027-12-31" },
+    });
   });
 
   it("adds an open role with Config's weekly hours, named after its category", () => {

@@ -14,7 +14,14 @@ vi.mock("@/i18n/navigation", () => ({
 }));
 
 const guide: ScenarioHeaderProps = {
-  project: { id: "p1", name: "Customer portal", client: "Demo Client", pricingModel: "fixed" },
+  project: {
+    id: "p1",
+    name: "Customer portal",
+    client: "Demo Client",
+    pricingModel: "fixed",
+    plannedPeriod: null,
+    description: null,
+  },
   scenario: { name: "Plan A", chosen: false, otherChosen: null },
   span: { start: "2027-04-01", end: "2027-09-29", workingDays: 130 },
 };

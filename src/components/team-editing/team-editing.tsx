@@ -148,6 +148,7 @@ export function TeamEditingProvider({ children }: { children: ReactNode }) {
         categories: basis.categories,
         defaultWeeklyHours: basis.defaultWeeklyHours,
         today: madridToday(new Date()),
+        plannedPeriod: basis.project.plannedPeriod,
         newId: () => crypto.randomUUID(),
       },
       dragged,
