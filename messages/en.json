@@ -328,6 +328,13 @@
       "periodStart": "Start",
       "periodEnd": "End",
       "periodHelp": "New assignments start with these dates. It is a reference: it never limits the team.",
+      "periodChange": {
+        "moved": "Once saved, these recurring costs without dates will follow the new period:",
+        "cleared": "Once saved, these recurring costs without dates will follow each scenario's team again:",
+        "cost": "{label}, in {scenario}",
+        "unnamed": "Unnamed cost",
+        "chosen": "{scenario} is the chosen scenario: its cost will change although its team does not."
+      },
       "cancel": "Cancel",
       "errors": {
         "blank": "Type at least one character.",

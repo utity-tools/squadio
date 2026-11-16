@@ -328,6 +328,13 @@
       "periodStart": "Inicio",
       "periodEnd": "Fin",
       "periodHelp": "Las asignaciones nuevas empiezan con estas fechas. Es una referencia: nunca limita el equipo.",
+      "periodChange": {
+        "moved": "Al guardar, estos costes recurrentes sin fechas seguirán el nuevo periodo:",
+        "cleared": "Al guardar, estos costes recurrentes sin fechas volverán a seguir al equipo de cada escenario:",
+        "cost": "{label}, en {scenario}",
+        "unnamed": "Coste sin nombre",
+        "chosen": "{scenario} es el escenario elegido: su coste cambiará aunque su equipo no se mueva."
+      },
       "cancel": "Cancelar",
       "errors": {
         "blank": "Escribe al menos un carácter.",

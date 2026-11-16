@@ -4,6 +4,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { type FormEvent, useId, useState, useTransition } from "react";
 
 import type { ProjectFormState } from "@/app/[locale]/projects/actions";
+import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Field, controlClassName } from "@/components/ui/field";
 import {
@@ -21,7 +22,16 @@ import {
   type PricingModel,
   projectFormValues,
 } from "@/lib/projects/new-project";
-import { CALENDAR_YEARS, MAX_PROJECT_DESCRIPTION } from "@/lib/projects/project-details";
+import {
+  type PeriodChange,
+  type PeriodScenario,
+  costsFollowingPeriod,
+} from "@/lib/projects/period-change";
+import {
+  CALENDAR_YEARS,
+  MAX_PROJECT_DESCRIPTION,
+  plannedPeriodSchema,
+} from "@/lib/projects/project-details";
 import { cn } from "@/lib/utils";
 
 /** What the Server Action returns: whether the project was saved, or why not. */
@@ -34,8 +44,12 @@ export type NewProjectAction = (
 
 const INITIAL: NewProjectState = { saved: false, error: null, errors: {} };
 
-/** The project being edited: its id, sent with the form, and what it holds now. */
-type EditedProject = { id: string; saved: NewProject };
+/**
+ * The project being edited: its id, sent with the form, what it holds now, and its scenarios'
+ * undated recurring costs, which a new planned period moves (rule d). Editing needs rate access,
+ * so the form may name them.
+ */
+type EditedProject = { id: string; saved: NewProject; scenarios: readonly PeriodScenario[] };
 
 type NewProjectSheetProps = { action: NewProjectAction } & (
   | {
@@ -97,6 +111,16 @@ function NewProjectForm({ action, project, onSaved }: NewProjectFormProps) {
   const [state, setState] = useState(INITIAL);
   const [pending, startTransition] = useTransition();
   const [pricingModel, setPricingModel] = useState<PricingModel>(values.pricingModel);
+  const [period, setPeriod] = useState({
+    plannedStart: values.plannedStart,
+    plannedEnd: values.plannedEnd,
+  });
+  // Only a period the form would save moves anything: two dates, or none.
+  const typedPeriod = plannedPeriodSchema.safeParse(period);
+  const periodChange =
+    project && typedPeriod.success
+      ? costsFollowingPeriod(project.scenarios, project.saved.plannedPeriod, typedPeriod.data)
+      : null;
   const id = useId();
   const legendId = `${id}-pricing`;
   const pricingErrorId = `${id}-pricing-error`;
@@ -259,6 +283,10 @@ function NewProjectForm({ action, project, onSaved }: NewProjectFormProps) {
                     min={`${FIRST_YEAR}-01-01`}
                     max={`${LAST_YEAR}-12-31`}
                     defaultValue={values[date]}
+                    onChange={(event) => {
+                      const typed = event.currentTarget.value;
+                      setPeriod((current) => ({ ...current, [date]: typed }));
+                    }}
                     className={cn(TEXT, "font-mono tabular-nums")}
                   />
                 )}
@@ -268,6 +296,12 @@ function NewProjectForm({ action, project, onSaved }: NewProjectFormProps) {
           <p id={periodHelpId} className="text-[13px] text-muted-foreground">
             {t("periodHelp")}
           </p>
+          {/* Always there, so a change is announced as it appears. */}
+          <div role="status">
+            {periodChange && (
+              <PeriodChangeNotice change={periodChange} cleared={typedPeriod.data === null} />
+            )}
+          </div>
         </fieldset>
 
         {state.error && (
@@ -292,6 +326,26 @@ function NewProjectForm({ action, project, onSaved }: NewProjectFormProps) {
         </Button>
       </footer>
     </form>
+  );
+}
+
+/**
+ * What a new planned period moves (docs/domain.md, "Planned period"): every undated recurring
+ * cost of the project, and the chosen scenario's cost with them. A warning, never a block.
+ */
+function PeriodChangeNotice({ change, cleared }: { change: PeriodChange; cleared: boolean }) {
+  const t = useTranslations("Projects.new.periodChange");
+  const titleId = useId();
+  return (
+    <Alert tone="warn" className="mt-1.5">
+      <p id={titleId}>{t(cleared ? "cleared" : "moved")}</p>
+      <ul aria-labelledby={titleId} className="list-disc ps-4">
+        {change.costs.map(({ id, label, scenario }) => (
+          <li key={id}>{t("cost", { label: label ?? t("unnamed"), scenario })}</li>
+        ))}
+      </ul>
+      {change.chosen && <p className="font-medium">{t("chosen", { scenario: change.chosen })}</p>}
+    </Alert>
   );
 }
 

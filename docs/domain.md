@@ -528,6 +528,10 @@ its frozen values (rule b). Nothing here is stored; it is read again on every re
 is the organization's portfolio: `loadPortfolio` reads it, and `src/lib/portfolio` works out what
 follows.
 
+With rate access each scenario's money also lists its undated recurring costs, by id and label,
+never their amounts: the project form names the ones a new planned period moves
+([Planned period](#planned-period)). Without rate access a scenario has no money, so no list.
+
 ### A project's margin
 
 A project's margin is the net margin and status of one of its scenarios, never a sum or an average

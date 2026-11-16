@@ -16,6 +16,7 @@ export const onTarget: ScenarioMoney = {
   netMarginBasisPoints: 3170,
   marginStatus: "green",
   warnings: [],
+  undatedRecurringCosts: [],
 };
 
 /** A result whose net margin misses the cost of `categoryIds`, and the price when asked. */
@@ -29,6 +30,7 @@ export function missing(categoryIds: string[], { price = false } = {}): Scenario
     netMarginBasisPoints: { undetermined },
     marginStatus: null,
     warnings: undetermined,
+    undatedRecurringCosts: [],
   };
 }
 
