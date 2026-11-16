@@ -69,7 +69,9 @@ export type InfoTerm =
   | "totalCost"
   | "netMargin"
   | "effectiveRate"
-  | "effectiveHours";
+  | "effectiveHours"
+  | "fullyLoaded"
+  | "costPerHour";
 
 /** The "i" that says what a term of the rail means and how it is worked out. */
 export function TermInfo({ term, name }: { term: InfoTerm; name: string }) {

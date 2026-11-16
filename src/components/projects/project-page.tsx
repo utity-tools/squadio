@@ -18,8 +18,8 @@ import { type PortfolioProject, categoryNames, marginOf } from "@/lib/portfolio/
 
 import { ChosenChip, MarginFigure, MarginState } from "./margin";
 
-// The read-only project page (board 06's header, and its scenarios as the design's projects board
-// lists them). «Editar proyecto», «Categorías y costes» and «Crear escenario» come with v0.3. No
+// The project page (board 06's header, and its scenarios as the design's projects board lists
+// them); «Categorías y costes» lives in category-costs.tsx. «Editar proyecto» comes later. No
 // planned period yet: projects have none until v0.3 (docs/domain.md, "Planned period").
 
 /** The project's name, client, pricing model and, with rate access only, its price or cap. */

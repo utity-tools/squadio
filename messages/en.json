@@ -360,7 +360,75 @@
     "noTeam": "No team",
     "noScenarios": "This project has no scenarios yet",
     "noScenariosDescription": "A scenario is one way to build the team. When there are several, you choose the one you commit to.",
-    "note": "Only the chosen scenario is a commitment: it is the one that books people's occupancy."
+    "note": "Only the chosen scenario is a commitment: it is the one that books people's occupancy.",
+    "categories": {
+      "title": "Categories and costs",
+      "description": "The profiles the team needs. They belong to the whole organization: the ones you create here serve your next projects too.",
+      "columns": {
+        "category": "Category",
+        "fullyLoaded": "Fully loaded cost",
+        "costPerHour": "Cost per hour",
+        "sellRate": "Sell rate",
+        "status": "Status",
+        "actions": "Actions"
+      },
+      "perHour": "{amount}/h",
+      "manual": "manual",
+      "complete": "Complete",
+      "pending": "Pending",
+      "missingCost": "Missing the cost and the sell rate",
+      "small": "Small category: its cost may reveal a salary",
+      "edit": "Edit {name}",
+      "empty": "No categories yet. Create the first one to give the team's people and open roles a cost.",
+      "note": {
+        "fixed": "With a fixed price, the sell rate is only needed to compare.",
+        "time_and_materials": "In time and materials, the sell rate gives the revenue."
+      },
+      "saved": "Category “{name}” saved",
+      "form": {
+        "add": "Add category",
+        "titleAdd": "New category",
+        "titleEdit": "Edit category",
+        "descriptionAdd": "Its cost and sell rate serve every project of the organization.",
+        "descriptionEdit": "Scenarios that are not chosen are costed with these values; chosen ones keep what they froze.",
+        "close": "Close",
+        "name": "Name",
+        "salaryPeriod": "Gross salary",
+        "periods": {
+          "year": "Yearly",
+          "month": "Monthly"
+        },
+        "salary": {
+          "year": "Gross annual salary",
+          "month": "Gross monthly salary"
+        },
+        "payments": "Number of payments",
+        "socialSecurity": "Employer social security",
+        "otherCosts": "Other yearly costs",
+        "otherCostsHelp": "Equipment, training, insurance.",
+        "manualCostPerHour": "Manual cost per hour",
+        "manualCostPerHourHelp": "When set, it replaces the one worked out from the salary.",
+        "sellRate": "Sell rate per hour",
+        "cancel": "Cancel",
+        "submit": "Save category",
+        "submitting": "Saving…",
+        "errors": {
+          "blank": "Fill in this field.",
+          "too-long": "At most 100 characters.",
+          "invalid": "Check this field.",
+          "taken": "Another category already has this name.",
+          "amount": "Type an amount in euros, with at most two decimals.",
+          "percent": "Type a percentage, with at most two decimals.",
+          "payments": "Choose 12 or 14 payments.",
+          "signed-out": "Your session has ended. Sign in again to save the category.",
+          "no-organization": "Your account no longer belongs to any organization.",
+          "no-rate-access": "Saving costs needs rate access.",
+          "not-found": "This category no longer exists.",
+          "failed": "The category could not be saved. Try again."
+        },
+        "small": "Small category: its cost may reveal a salary"
+      }
+    }
   },
   "NotFound": {
     "title": "We couldn't find this page",
@@ -781,6 +849,14 @@
         "effectiveHours": {
           "definition": "Nominal hours less, on average, holidays, absences and training: the availability factor.",
           "formula": "nominal hours × availability factor"
+        },
+        "fullyLoaded": {
+          "definition": "What a person of the category costs a year: their gross salary, the employer's social security and other yearly costs.",
+          "formula": "gross salary × (1 + social security) + other costs"
+        },
+        "costPerHour": {
+          "definition": "The fully loaded cost spread over the organization's net hours a year, or the one you type by hand.",
+          "formula": "fully loaded cost ÷ net annual hours"
         }
       }
     },
