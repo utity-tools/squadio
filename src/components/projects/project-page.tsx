@@ -1,6 +1,7 @@
 import { useTranslations } from "next-intl";
 import { type ReactNode, useId } from "react";
 
+import { useDayRange } from "@/components/format/use-day-range";
 import { useSummaryFormat } from "@/components/summary/summary-format";
 import { Chip } from "@/components/ui/chip";
 import { EmptyArt, EmptyState } from "@/components/ui/empty-state";
@@ -19,8 +20,8 @@ import { type PortfolioProject, categoryNames, marginOf } from "@/lib/portfolio/
 import { ChosenChip, MarginFigure, MarginState } from "./margin";
 
 // The project page (board 06's header, and its scenarios as the design's projects board lists
-// them); «Categorías y costes» lives in category-costs.tsx. «Editar proyecto» comes later. No
-// planned period yet: projects have none until v0.3 (docs/domain.md, "Planned period").
+// them); «Categorías y costes» lives in category-costs.tsx. The planned period and the description
+// hold no money, so everyone who sees the project sees them (docs/domain.md, "Planned period").
 
 type ProjectHeaderProps = {
   project: PortfolioProject;
@@ -28,12 +29,16 @@ type ProjectHeaderProps = {
   action?: ReactNode;
 };
 
-/** The project's name, client, pricing model and, with rate access only, its price or cap. */
+/**
+ * The project's name, client, pricing model, planned period and description and, with rate access
+ * only, its price or cap.
+ */
 export function ProjectHeader({ project, action }: ProjectHeaderProps) {
   const t = useTranslations("Project");
   const header = useTranslations("ScenarioHeader");
   const summary = useTranslations("Summary");
   const { euros } = useSummaryFormat();
+  const dayRange = useDayRange();
   const fixed = project.pricingModel === "fixed";
 
   const price = (cents: number | null) => {
@@ -64,7 +69,21 @@ export function ProjectHeader({ project, action }: ProjectHeaderProps) {
               <dd className="font-mono tabular-nums">{price(project.price.cents)}</dd>
             </div>
           )}
+          {project.plannedPeriod && (
+            <div className="flex items-center gap-2">
+              <span aria-hidden>·</span>
+              <dt className="sr-only">{t("plannedPeriod")}</dt>
+              <dd className="whitespace-nowrap">
+                {dayRange(project.plannedPeriod.start, project.plannedPeriod.end)}
+              </dd>
+            </div>
+          )}
         </dl>
+        {project.description && (
+          <p className="max-w-prose text-sm wrap-anywhere whitespace-pre-line">
+            {project.description}
+          </p>
+        )}
       </div>
       {action}
     </div>
