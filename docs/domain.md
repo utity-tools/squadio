@@ -394,6 +394,12 @@ Editing a team needs no rate access: assignments hold hours and structure, never
 ([ADR 0005](adr/0005-rate-access-in-the-database.md)). Without rate access the summary keeps showing
 hours only.
 
+A signed-in member creates a project's scenarios from its page, one at a time: an empty team, not
+chosen, named after how many the project has («Escenario 2»), which opens in the editor. It needs no
+rate access, and the server refuses it until the organization has a category, since a team is
+built from them. A
+visitor's copy and the demo never create one.
+
 ### Changes
 
 | Change  | What it does                                                                                                                                                                                        |
@@ -589,7 +595,19 @@ project sees it.
 ## Configuration per organization
 
 Each organization creates its own categories and sets every number. A salary can be entered per year
-or per month with the number of payments (2,100 €/month × 14 = 29,400 €/year). From v0.3 an
+or per month with the number of payments, 12 or 14 (2,100 €/month × 14 = 29,400 €/year).
+
+From v0.3 a signed-in member with rate access creates and edits categories on any project's page
+(«Categorías y costes»), since they belong to the organization, not to the project. A category is
+created with its whole rate: name, salary, social security %, other yearly costs, an optional manual
+cost per hour and its sell rate; a new one starts with the template's 31% and 3,000 €. Editing a
+rate costs every scenario that is not chosen with it at once; chosen ones keep what they froze
+(rule b). A category without a rate, which the editor never creates but an older organization may
+hold, shows as pending (rule k), and editing it gives it one. Its cost and sell rate are written
+together, so "Pendiente" always means both are missing.
+
+Without rate access the card does not show: which categories lack a rate is itself restricted.
+Deleting a category is not offered yet. From v0.3 an
 organization starts empty, with the Consultancy template's Config and CostConfig and no categories,
 or as a member's adopted visitor's copy ([ADR 0012](adr/0012-sign-in-and-membership.md)). Example
 scenarios to start from come in v0.6; templates for other sectors wait for evidence.
