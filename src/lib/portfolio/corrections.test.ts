@@ -92,6 +92,32 @@ describe("corrections", () => {
     ]);
   });
 
+  it("lists a project's missing planned period once, after its missing price", () => {
+    const found = corrections(
+      portfolio([
+        project("tooling", [
+          scenario("a", { money: missing([], { price: true, period: true }) }),
+          scenario("b", { money: missing([], { period: true }) }),
+        ]),
+      ]),
+    );
+
+    expect(found).toEqual([
+      {
+        kind: "missingPrice",
+        project: { id: "tooling", name: "tooling" },
+        first: ref("a", "tooling"),
+        more: 0,
+      },
+      {
+        kind: "missingPeriod",
+        project: { id: "tooling", name: "tooling" },
+        first: ref("a", "tooling"),
+        more: 1,
+      },
+    ]);
+  });
+
   it("leads first to a chosen scenario", () => {
     const found = corrections(
       portfolio([
@@ -103,9 +129,10 @@ describe("corrections", () => {
     expect(found[0]).toMatchObject({ first: ref("b", "beta"), more: 1 });
   });
 
-  it("orders costs, then sell rates, then prices, then caps, each by name", () => {
+  it("orders costs, then sell rates, prices, planned periods and caps, each by name", () => {
     const found = corrections(
       portfolio([
+        project("alpha", [scenario("z", { money: missing([], { period: true }) })]),
         project("retainer", [scenario("a", { money: overCap })], {
           pricingModel: "time_and_materials",
         }),
@@ -121,6 +148,7 @@ describe("corrections", () => {
       "missingCost",
       "missingSellRate",
       "missingPrice",
+      "missingPeriod",
       "budgetCapExceeded",
     ]);
     expect(found.slice(0, 2).map((c) => ("category" in c ? c.category.name : ""))).toEqual([

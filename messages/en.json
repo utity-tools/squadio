@@ -259,6 +259,7 @@
       "missingCost": "Cost of {category}",
       "missingSellRate": "Sell rate of {category}",
       "missingPrice": "Price of {project}",
+      "missingPeriod": "Planned period of {project}",
       "budgetCapExceeded": "Budget cap exceeded",
       "where": "{project} › {scenario}",
       "whereMore": "{project} › {scenario} and {count, plural, one {# more scenario} other {# more scenarios}}",
@@ -267,6 +268,7 @@
         "missingCost": "cost and margins pending",
         "missingSellRate": "revenue and margins pending",
         "missingPrice": "revenue and margins pending",
+        "missingPeriod": "costs and margins pending",
         "budgetCapExceeded": "revenue is over the cap"
       },
       "openScenario": "Open the scenario<hidden>: {scenario} in {project}</hidden>",

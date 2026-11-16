@@ -20,10 +20,14 @@ export const onTarget: ScenarioMoney = {
 };
 
 /** A result whose net margin misses the cost of `categoryIds`, and the price when asked. */
-export function missing(categoryIds: string[], { price = false } = {}): ScenarioMoney {
+export function missing(
+  categoryIds: string[],
+  { price = false, period = false } = {},
+): ScenarioMoney {
   const undetermined = [
     ...(categoryIds.length > 0 ? [{ code: "missingRate" as const, categoryIds }] : []),
     ...(price ? [{ code: "missingPrice" as const }] : []),
+    ...(period ? [{ code: "missingPeriod" as const }] : []),
   ];
   return {
     netMarginCents: { undetermined },

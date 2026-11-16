@@ -171,6 +171,24 @@ describe("Dashboard", () => {
     expect(within(items[3]!).getByText("Aviso")).toHaveAttribute("data-tone", "warn");
   });
 
+  it("asks for a project's planned period, with a link to the project", () => {
+    const withoutSpan = [
+      project("tooling", "Internal tooling", [
+        scenario("draft", "First draft", { money: missing([], { period: true }) }),
+      ]),
+    ];
+    renderWithIntl(<Dashboard portfolio={{ ...portfolio, projects: withoutSpan }} {...props} />);
+
+    const item = within(
+      screen.getByRole("region", { name: "Correcciones pendientes · 1" }),
+    ).getByRole("listitem");
+    expect(plain(item)).toBe(
+      "FaltaPeriodo previsto de Internal toolingInternal tooling › First draft · costes y márgenes pendientesAbrir el proyecto: Internal tooling",
+    );
+    expect(within(item).getByRole("link")).toHaveAttribute("href", "/projects/tooling");
+    expect(within(item).getByText("Falta")).toHaveAttribute("data-tone", "pending");
+  });
+
   it("says how many more scenarios a correction affects", () => {
     const twice = projects.map((p) =>
       p.id === "portal"
