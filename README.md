@@ -3,10 +3,13 @@
 Staffing simulator for consultancies: build a project team by dragging people or open roles
 into a scenario and see cost, margin and effective rate update live, before you commit.
 
-**v0.2 is live** at [squadio.utitytools.com](https://squadio.utitytools.com): edit a scenario of a
-synthetic demo organization and watch cost and margin follow every change. Your edits go to your
-own copy of the demo, kept for 30 days after your last save. Scenario comparison comes in v0.3
-(see the [roadmap](docs/plan.md#roadmap)).
+**v0.3 is live** at [squadio.utitytools.com](https://squadio.utitytools.com): a synthetic demo
+organization with its home page, projects, people and scenarios. Edit a scenario and watch cost and
+margin follow every change; when data is missing, the estimate shows every line it can compute and
+says what each other line is waiting for. Your edits go to your own copy of the demo, kept for 30
+days after your last save. Signing in with GitHub or Google to work with your own organization is
+built but closed in production for now. Comparing scenarios comes in v0.4 (see the
+[roadmap](docs/plan.md#roadmap)).
 
 ![The demo's Plan A in the editor: the bench of people with today's occupancy, the team as a tree, and the summary rail with net margin, key figures and result lines](docs/images/editor-light.png)
 
@@ -14,19 +17,25 @@ own copy of the demo, kept for 30 days after your last save. Scenario comparison
 
 Every figure and name is synthetic.
 
-| Scenario                                                                                                                   | What it shows                                                           |
-| -------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| [Plan A](https://squadio.utitytools.com/en/scenarios/6d656d6f-0000-4000-8000-000000000200)                                 | The guide case team: tree and table views, the full summary rail        |
-| [Plan A without rate access](https://squadio.utitytools.com/en/scenarios/6d656d6f-0000-4000-8000-000000000200?access=none) | Team and hours only: the server sends no money at all                   |
-| [Over budget](https://squadio.utitytools.com/en/scenarios/6d656d6f-0000-4000-8000-000000000202)                            | Time and materials above its budget cap                                 |
-| [Missing rate](https://squadio.utitytools.com/en/scenarios/6d656d6f-0000-4000-8000-000000000203)                           | A category without a rate: no cost, never 0 €, and a marker on the node |
-| [Missing price](https://squadio.utitytools.com/en/scenarios/6d656d6f-0000-4000-8000-000000000204)                          | A fixed-price project without a price                                   |
-| [Delivery plan](https://squadio.utitytools.com/en/scenarios/6d656d6f-0000-4000-8000-000000000205)                          | A chosen scenario: frozen rates and a locked team, until unchosen       |
+| Page                                                                                                                       | What it shows                                                             |
+| -------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| [Home](https://squadio.utitytools.com/en/home)                                                                             | The organization at a glance, and the corrections its data is waiting for |
+| [Customer portal](https://squadio.utitytools.com/en/projects/6d656d6f-0000-4000-8000-000000000100)                         | A project: its categories with their costs, and its scenarios             |
+| [Plan A](https://squadio.utitytools.com/en/scenarios/6d656d6f-0000-4000-8000-000000000200)                                 | The guide case team: tree and table views, the full summary rail          |
+| [Plan A without rate access](https://squadio.utitytools.com/en/scenarios/6d656d6f-0000-4000-8000-000000000200?access=none) | Team and hours only: the server sends no money at all                     |
+| [Over budget](https://squadio.utitytools.com/en/scenarios/6d656d6f-0000-4000-8000-000000000202)                            | Time and materials above its budget cap                                   |
+| [Missing rate](https://squadio.utitytools.com/en/scenarios/6d656d6f-0000-4000-8000-000000000203)                           | A category without a rate: no cost, never 0 €, and a marker on the node   |
+| [Missing price](https://squadio.utitytools.com/en/scenarios/6d656d6f-0000-4000-8000-000000000204)                          | A fixed-price project without a price: costs shown, margins pending       |
+| [Delivery plan](https://squadio.utitytools.com/en/scenarios/6d656d6f-0000-4000-8000-000000000205)                          | A chosen scenario: frozen rates and a locked team, until unchosen         |
 
 Spanish is the default locale; drop `/en` from a link to see it in Spanish.
 
 <p>
-  <img src="docs/images/choose-dark.png" alt="Choosing Plan A in the dark theme: the dialog says what is frozen and that the team gets locked" width="49%">
+  <img src="docs/images/inicio-light.png" alt="Home: projects, scenarios with a chosen one, pending corrections and active people, with the list of corrections the data is waiting for" width="49%">
+  <img src="docs/images/project-dark.png" alt="The Customer portal project in the dark theme: its categories with costs and sell rates, one pending and one small, and its two scenarios" width="49%">
+</p>
+<p>
+  <img src="docs/images/partial-result.png" alt="A fixed-price scenario without a price: the summary shows the costs it can compute and marks revenue and margins as pending" width="49%">
   <img src="docs/images/no-rate-access.png" alt="Plan A without rate access: team, hours and the bench, no money" width="49%">
 </p>
 
@@ -35,6 +44,9 @@ Spanish is the default locale; drop `/en` from a link to see it in Spanish.
 - **One pure costing function per scenario** turns assignments, rates and cost settings into
   every result line, in integer cents, each line rounded once. The spec is
   [docs/domain.md](docs/domain.md); the reasoning is in [ADR 0002](docs/adr/0002-cost-model.md).
+- **Partial results:** a missing rate, price or planned period never turns into 0 €. The engine
+  computes every line it can, marks the others pending with what they miss, and the home page
+  lists those corrections ([partial results](docs/domain.md#partial-results)).
 - **Costs per category, never per person.** The app stores no individual salaries, and a category
   with one or two people carries a warning, since its rate reveals a salary
   ([ADR 0003](docs/adr/0003-structure-not-people.md)).
@@ -51,6 +63,14 @@ Spanish is the default locale; drop `/en` from a link to see it in Spanish.
 - **A visitor's first save makes their copy** of the demo, behind an anonymous cookie, and a daily
   job deletes copies idle for 30 days
   ([ADR 0011](docs/adr/0011-saving-edits-and-the-visitor-copy.md)).
+- **Projects have a planned period.** New assignments start from it, undated recurring costs follow
+  it, and an assignment outside it is flagged, never refused
+  ([planned period](docs/domain.md#planned-period)).
+- **Organizations and membership** ([ADR 0012](docs/adr/0012-sign-in-and-membership.md)): sign-in
+  with GitHub or Google, an empty organization or one adopted from the visitor's copy, its own
+  categories with their costs, people and projects, and the owner deleting the organization or
+  their account. Membership is resolved on the server before any tenant query, and sign-up sits
+  behind a switch that is off in production.
 - **Choosing a scenario freezes it:** its rates and cost settings are copied as they are that day,
   and its team is locked until it is unchosen. The bench's occupancy comes from chosen scenarios.
 
@@ -75,8 +95,8 @@ Performance figures will appear here once they are measured.
 
 Next.js 16 (App Router, Server Components, Cache Components, React Compiler), React 19,
 TypeScript strict, Tailwind CSS v4 and shadcn/ui, React Flow, next-intl, Postgres 18 (Neon) with
-Drizzle and Row Level Security, Zod, Vitest, fast-check and Playwright. Deployed on Vercel from
-GitHub Actions. Why each one: [ADR 0001](docs/adr/0001-stack-and-workflow.md).
+Drizzle and Row Level Security, Better Auth, Zod, Vitest, fast-check and Playwright. Deployed on
+Vercel from GitHub Actions. Why each one: [ADR 0001](docs/adr/0001-stack-and-workflow.md).
 
 ## Getting started
 
