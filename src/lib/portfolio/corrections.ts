@@ -17,7 +17,7 @@ type Affected = {
 export type Correction =
   | ({ kind: "missingCost" | "missingSellRate"; category: { id: string; name: string } } & Affected)
   | ({
-      kind: "missingPrice" | "budgetCapExceeded";
+      kind: "missingPrice" | "missingPeriod" | "budgetCapExceeded";
       project: { id: string; name: string };
     } & Affected);
 
@@ -46,6 +46,7 @@ export function corrections(portfolio: Portfolio): Correction[] {
   const costs = new Map<string, Found[]>();
   const sellRates = new Map<string, Found[]>();
   const prices = new Map<string, Found[]>();
+  const periods = new Map<string, Found[]>();
   const caps = new Map<string, Found[]>();
   for (const found of visited) {
     for (const warning of found.scenario.money?.warnings ?? []) {
@@ -59,6 +60,8 @@ export function corrections(portfolio: Portfolio): Correction[] {
         }
       } else if (warning.code === "missingPrice") {
         collect(prices, found.project.id, found);
+      } else if (warning.code === "missingPeriod") {
+        collect(periods, found.project.id, found);
       } else if (warning.code === "budgetCapExceeded") {
         collect(caps, found.project.id, found);
       }
@@ -75,7 +78,10 @@ export function corrections(portfolio: Portfolio): Correction[] {
       const group = groups.get(id);
       return group ? [{ kind, category: { id, name: nameOf(id) }, ...affected(group) }] : [];
     });
-  const byProject = (kind: "missingPrice" | "budgetCapExceeded", groups: Map<string, Found[]>) =>
+  const byProject = (
+    kind: "missingPrice" | "missingPeriod" | "budgetCapExceeded",
+    groups: Map<string, Found[]>,
+  ) =>
     portfolio.projects.flatMap(({ id, name }): Correction[] => {
       const group = groups.get(id);
       return group ? [{ kind, project: { id, name }, ...affected(group) }] : [];
@@ -85,6 +91,7 @@ export function corrections(portfolio: Portfolio): Correction[] {
     ...byCategory("missingCost", costs),
     ...byCategory("missingSellRate", sellRates),
     ...byProject("missingPrice", prices),
+    ...byProject("missingPeriod", periods),
     ...byProject("budgetCapExceeded", caps),
   ];
 }

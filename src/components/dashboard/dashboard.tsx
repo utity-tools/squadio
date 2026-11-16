@@ -172,14 +172,15 @@ function CorrectionItem({ correction }: { correction: Correction }) {
         <span className="font-semibold wrap-anywhere">
           {"category" in correction
             ? t(correction.kind, { category: correction.category.name })
-            : correction.kind === "missingPrice"
-              ? t("missingPrice", { project: correction.project.name })
-              : t("budgetCapExceeded")}
+            : correction.kind === "budgetCapExceeded"
+              ? t("budgetCapExceeded")
+              : t(correction.kind, { project: correction.project.name })}
         </span>
         <span className="text-[13px] wrap-anywhere text-muted-foreground">
           {t("detail", { where, consequence: t(`consequences.${correction.kind}`) })}
         </span>
-        {correction.kind === "missingPrice" ? (
+        {/* The price and the planned period are set on the project. */}
+        {correction.kind === "missingPrice" || correction.kind === "missingPeriod" ? (
           <Link href={`/projects/${correction.project.id}`} className={linkClass}>
             {t.rich("openProject", { project: correction.project.name, hidden })}
           </Link>

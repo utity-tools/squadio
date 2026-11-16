@@ -259,6 +259,7 @@
       "missingCost": "Coste de {category}",
       "missingSellRate": "Tarifa de venta de {category}",
       "missingPrice": "Precio de {project}",
+      "missingPeriod": "Periodo previsto de {project}",
       "budgetCapExceeded": "Tope de presupuesto superado",
       "where": "{project} › {scenario}",
       "whereMore": "{project} › {scenario} y {count, plural, one {# escenario más} other {# escenarios más}}",
@@ -267,6 +268,7 @@
         "missingCost": "coste y márgenes pendientes",
         "missingSellRate": "ingresos y márgenes pendientes",
         "missingPrice": "ingresos y márgenes pendientes",
+        "missingPeriod": "costes y márgenes pendientes",
         "budgetCapExceeded": "los ingresos superan el tope"
       },
       "openScenario": "Abrir el escenario<hidden>: {scenario} de {project}</hidden>",
