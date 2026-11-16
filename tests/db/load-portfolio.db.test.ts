@@ -7,7 +7,7 @@ import { copyOrganization } from "@/db/copy-organization";
 import { DEMO_IDS, DEMO_ORGANIZATION_ID, seedDemo } from "@/db/demo-seed";
 import { loadPortfolio, loadProject } from "@/db/load-portfolio";
 import { memberProjectContext } from "@/db/project-context";
-import { projects } from "@/db/schema";
+import { assignments, projects } from "@/db/schema";
 import { loadScenario } from "@/db/load-scenario";
 import { type AccessContext, withOrganization } from "@/db/tenant";
 import { categoryOccupancy } from "@/lib/bench/category-occupancy";
@@ -150,6 +150,35 @@ describe("loadPortfolio", () => {
       ["missingPrice", "Internal tooling", "Internal tooling › First draft", 0],
       ["budgetCapExceeded", "Support retainer", "Support retainer › Over budget", 0],
     ]);
+  });
+
+  it("costs the organization when a scenario's recurring cost has no span, and asks for the period", async () => {
+    const organizationId = await newOrganization(app);
+    await app.transaction((tx) => copyOrganization(tx, DEMO_ORGANIZATION_ID, organizationId));
+    const context: AccessContext = { organizationId, rateAccess: true };
+    const guide = copyId(DEMO_IDS.guideScenario, organizationId);
+    // The whole team removed, in a project without a planned period (rule d).
+    await withOrganization(app, context, (tx) =>
+      tx.delete(assignments).where(eq(assignments.scenarioId, guide)),
+    );
+
+    const portfolio = await loadPortfolio(app, context, SOME_DAY);
+    const scenarios = portfolio.projects.flatMap((project) => project.scenarios);
+    expect(scenarios.find((scenario) => scenario.id === guide)?.money).toMatchObject({
+      netMarginCents: { undetermined: [{ code: "missingPeriod" }] },
+      marginStatus: null,
+    });
+    // Every other scenario keeps its money.
+    expect(scenarios.filter((scenario) => scenario.money === null)).toEqual([]);
+    expect(corrections(portfolio)).toContainEqual({
+      kind: "missingPeriod",
+      project: { id: copyId(DEMO_IDS.project, organizationId), name: "Customer portal" },
+      first: expect.objectContaining({ id: guide }),
+      more: 0,
+    });
+    // Without rate access the organization opens too, with no money.
+    const open = await loadPortfolio(app, { organizationId, rateAccess: false }, SOME_DAY);
+    expect(open.projects.flatMap((project) => project.scenarios)).toHaveLength(scenarios.length);
   });
 
   it("measures occupancy by category from the bench's people, today", async () => {

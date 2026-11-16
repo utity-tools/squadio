@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 
+import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { ZodError } from "zod";
@@ -445,6 +446,36 @@ describe("loadScenario", () => {
     expect(await cloudCost()).toBe(300_000);
     await plan(null, null);
     expect(await cloudCost()).toBe(teamSpan);
+  });
+
+  it("leaves an undated recurring cost pending without a team or a planned period (rule d)", async () => {
+    const organizationId = await newOrganization(app);
+    const context: AccessContext = { organizationId, rateAccess: true };
+    await app.transaction((tx) => copyOrganization(tx, DEMO_ORGANIZATION_ID, organizationId));
+    const guide = copyId(DEMO_IDS.guideScenario, organizationId);
+    const cloud = copyId(DEMO_IDS.guide.cloud, organizationId);
+    // The whole team removed, in a project without a planned period.
+    await withOrganization(app, context, (tx) =>
+      tx.delete(assignments).where(eq(assignments.scenarioId, guide)),
+    );
+
+    const loaded = await loadScenario(app, context, guide, SOME_DAY);
+    if (!loaded?.rateAccess) throw new Error("expected a result with rate access");
+    const noPeriod = { undetermined: [{ code: "missingPeriod" }] };
+    expect(loaded.result).toMatchObject({
+      complete: false,
+      extraCosts: expect.arrayContaining([{ id: cloud, amountCents: noPeriod }]),
+      totalCostCents: noPeriod,
+      warnings: [{ code: "missingPeriod" }],
+    });
+    // The page recalculates to the same result from its basis.
+    expect(scenarioView(loaded.editing.basis, loaded.editing.team)).toEqual(
+      expect.objectContaining({ result: loaded.result }),
+    );
+    // Without rate access the page opens too, with its hours and no money.
+    expect(
+      await loadScenario(app, { organizationId, rateAccess: false }, guide, SOME_DAY),
+    ).toMatchObject({ rateAccess: false, team: [], hours: { nominal: 0, effective: 0 } });
   });
 
   it("returns null for a scenario of another organization", async () => {
