@@ -155,8 +155,9 @@ Rounding (rule g):
 A recurring extra cost is an amount per month, prorated by day per calendar month: each month it
 covers adds the amount × the days covered / the days in that month, so a whole month costs exactly
 the amount. Without dates it spans the project's planned period, or else the project span (rule d);
-so an undated recurring cost is a validation error on that extra cost only when the scenario has no
-assignments and the project has no planned period: then there is no span.
+when the scenario has no assignments and the project has no planned period there is no span, and
+the cost is undetermined until the project gets a planned period or the scenario a team
+([Partial results](#partial-results)).
 
 Margin status compares the net margin %, as rounded to basis points, with the target margin:
 **green** at or above the target, **amber** below the target with a net margin of zero or more,
@@ -211,12 +212,12 @@ cents in the data.
 
 A result is made of lines, and each line is in one of four states:
 
-| State          | Meaning                                                                       | Shown as                                                    |
-| -------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| Determined     | Computed from inputs that are all known, exactly as for a complete result     | The amount                                                  |
-| Undetermined   | An input it needs is missing: a category's rate (rule k) or a fixed price (l) | No amount, never 0, and what is missing                     |
-| Not applicable | The line has no meaning for these inputs, whatever is filled in               | No amount, and why (no revenue for a margin %, for example) |
-| Invalid        | An input breaks a validation rule                                             | The whole result fails with the field's path                |
+| State          | Meaning                                                                              | Shown as                                                    |
+| -------------- | ------------------------------------------------------------------------------------ | ----------------------------------------------------------- |
+| Determined     | Computed from inputs that are all known, exactly as for a complete result            | The amount                                                  |
+| Undetermined   | An input it needs is missing: a category's rate (k), a fixed price (l) or a span (d) | No amount, never 0, and what is missing                     |
+| Not applicable | The line has no meaning for these inputs, whatever is filled in                      | No amount, and why (no revenue for a margin %, for example) |
+| Invalid        | An input breaks a validation rule                                                    | The whole result fails with the field's path                |
 
 Invalid input never gives a partial result: validation runs first and fails as before. Only missing
 data is undetermined.
@@ -224,14 +225,17 @@ data is undetermined.
 The summary adds no figure of its own to a result, only ways to show it: it counts the lines with an
 amount ("Complete · N of N lines"), splits revenue into a cost share (100 % − net margin %, from its
 basis points) and the net margin, and holds the net margin back while the team is empty, although
-the engine determines it from the price and the extra costs.
+the engine determines it from the price and the extra costs, unless an undated recurring cost lacks
+its span.
 
 Which line depends on which:
 
 - **Staff cost of a category:** undetermined without its rate. **Staff cost:** undetermined if any
   category's line is.
-- **A fixed or recurring extra cost:** always determined. **A percentage extra cost:** undetermined
-  if its base (staff cost or revenue) is.
+- **A fixed or dated recurring extra cost:** always determined. **An undated recurring extra cost:**
+  undetermined without a span, that is in a scenario without assignments of a project without a
+  planned period (rule d). **A percentage extra cost:** undetermined if its base (staff cost or
+  revenue) is.
 - **Revenue:** with a fixed price, the price, or undetermined without one. In T&M, undetermined if
   any category of the team has no rate, since its sell rate lives in the rate.
 - **Direct cost** (staff cost and each extra cost), **overhead** (staff cost), **buffer** (direct
@@ -275,7 +279,7 @@ cost exactly the fully loaded annual cost (see the first invariant below).
 | a   | Weekly hours          | Stored on the assignment: copied from the person when one is placed (add or edit), or from Config for a new open role; an edit may change them                                                                                                                           |
 | b   | Choosing freezes      | Choosing a scenario freezes its category rates (FrozenRate) and its overhead %, buffer % and availability factor (FrozenCostConfig). Target margin is not frozen. Other scenarios always use current values. See [What choosing freezes](#what-choosing-freezes)         |
 | c   | Over-allocation       | Per person and week: chosen scenarios of other projects plus the scenario being edited. Never two scenarios of the same project                                                                                                                                          |
-| d   | Recurring extra costs | Prorated by day. Without dates they span the project's planned period, or, without one, the project span: from the first assignment start to the last end                                                                                                                |
+| d   | Recurring extra costs | Prorated by day. Without dates they span the project's planned period, or, without one, the project span: from the first assignment start to the last end. Without either, such a cost is undetermined, never 0. See [Partial results](#partial-results)                 |
 | e   | Price in T&M          | An optional budget cap with a warning. Percentages "over price" use the calculated revenue                                                                                                                                                                               |
 | f   | Margin %              | Over revenue                                                                                                                                                                                                                                                             |
 | g   | Money                 | Euros in `numeric(12,2)` in Postgres, integer cents in TypeScript; money-bearing percentages in `numeric(5,2)`, basis points in TypeScript; allocation an integer from 0 to 100 ([ADR 0010](adr/0010-money-in-postgres.md)). Rounded once per result line, EUR only      |
@@ -556,13 +560,16 @@ organization, chosen or not, gathered **once per missing input, not once per sce
   materials project uses it, since a fixed price does not need it. A category's cost and sell rate
   live in one rate today, so both corrections appear together.
 - **A project's missing price:** a fixed-price project without a price that has a scenario (rule l).
+- **A project's missing planned period:** a project without a planned period with a scenario whose
+  undated recurring cost has no span: it has no assignments (rule d).
 - **A project's exceeded budget cap:** a warning, once per time-and-materials project, for the
   scenarios whose revenue is over its cap (rule e).
 
 Each correction names the first scenario it affects (chosen scenarios first, then by project and
-scenario name) and how many more it affects, and leads to that scenario; a missing price leads to
-the project. They are listed in the order above, then by name. All of them are restricted: which
-categories lack a rate is itself restricted, so without rate access there are none, nor a count.
+scenario name) and how many more it affects, and leads to that scenario; a missing price or planned
+period leads to the project. They are listed in the order above, then by name. All of them are
+restricted: which categories lack a rate is itself restricted, so without rate access there are
+none, nor a count.
 
 ### Occupancy by category
 
@@ -586,7 +593,8 @@ for whoever reads its proposal. The period is a reference, not a limit:
   A scenario without a team flags nothing. The flags hold no money: everyone sees them.
 - **Undated recurring costs follow it** (rule d), in every scenario of the project, so all of them
   are costed over the same months. Without a planned period they follow each scenario's project span,
-  as before.
+  as before, and in a scenario without assignments they are undetermined (rule d): removing the
+  whole team or clearing the period never makes the scenario fail.
 - **Changing it keeps every assignment as it was.** What moves is the undated recurring costs, so the
   form that changes it says which ones will follow, names the chosen scenario whose cost will move
   with them, if any, and the summary recalculates. Shifting the
@@ -686,8 +694,8 @@ Property-based tests (fast-check) check these on random scenarios:
   more than half a cent per category away from the exact total.
 - With revenue above zero, the effective rate is positive before rounding (without effective hours
   there is none).
-- Filling in a partial result's missing rates and price never changes a line it had determined, nor
-  its hours.
+- Filling in a partial result's missing rates, price and planned period never changes a line it had
+  determined, nor its hours.
 
 And on random sequences of changes, undo, redo and saves (see
 [Editing a scenario](#editing-a-scenario)):
