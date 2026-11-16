@@ -252,13 +252,14 @@ async function portfolioIn(
         endDate: member.endDate,
       }));
     const own = money && moneyOf(money, project.id, scenario.id);
+    const plannedPeriod = plannedPeriodOf(project);
     const basis: ScenarioBasis = {
       project: {
         id: project.id,
         name: project.name,
         client: project.client,
         pricingModel: project.pricingModel,
-        plannedPeriod: plannedPeriodOf(project),
+        plannedPeriod,
         description: project.description,
       },
       scenario: { name: scenario.name, chosen: scenario.chosen, otherChosen: null },
@@ -266,7 +267,7 @@ async function portfolioIn(
       people: roster,
       defaultWeeklyHours: structure.config.defaultWeeklyHours,
       engine: engineBasis(
-        { pricingModel: project.pricingModel, config: structure.config },
+        { pricingModel: project.pricingModel, config: structure.config, plannedPeriod },
         own?.rows ?? null,
         scenario.chosen ? own?.frozen : undefined,
         roster,

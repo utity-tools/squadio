@@ -29,6 +29,7 @@ const stored = (overrides: Partial<StoredScenario> = {}): StoredScenario => ({
   costConfig: { overhead: 1500, buffer: 1000, targetMargin: 2500 },
   pricingModel: "fixed",
   pricing: { price: 20_000_000, overhead: null, buffer: null },
+  plannedPeriod: null,
   assignments: [assignment("lead", "2027-04-01")],
   extraCosts: [
     {
@@ -121,6 +122,7 @@ describe("toEngineInput", () => {
             endDate: undefined,
           },
         ],
+        plannedPeriod: null,
       },
       rates: [
         {
@@ -137,6 +139,13 @@ describe("toEngineInput", () => {
       },
       targetMargin: 2500,
     });
+  });
+
+  it("passes the project's planned period on, so undated recurring costs span it (rule d)", () => {
+    const plannedPeriod = { start: "2027-04-01", end: "2027-12-31" };
+
+    expect(toEngineInput(stored({ plannedPeriod })).scenario.plannedPeriod).toEqual(plannedPeriod);
+    expect(toEngineInput(stored()).scenario.plannedPeriod).toBeNull();
   });
 
   it("prefers the project's overhead and buffer when set", () => {

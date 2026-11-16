@@ -413,6 +413,40 @@ describe("loadScenario", () => {
     expect(judged.result.marginStatus).not.toBe(before.result.marginStatus);
   });
 
+  it("spans undated recurring costs over the planned period, chosen or not (rule d)", async () => {
+    const organizationId = await newOrganization(app);
+    const context: AccessContext = { organizationId, rateAccess: true };
+    await app.transaction((tx) => copyOrganization(tx, DEMO_ORGANIZATION_ID, organizationId));
+    const guide = copyId(DEMO_IDS.guideScenario, organizationId);
+    const cloud = copyId(DEMO_IDS.guide.cloud, organizationId);
+    const cloudCost = async () => {
+      const loaded = await loadScenario(app, context, guide, SOME_DAY);
+      if (!loaded?.rateAccess) throw new Error("expected a result with rate access");
+      // The page recalculates to the same result from its basis.
+      expect(scenarioView(loaded.editing.basis, loaded.editing.team)).toEqual(
+        expect.objectContaining({ result: loaded.result }),
+      );
+      return loaded.result.extraCosts.find((extra) => extra.id === cloud)?.amountCents;
+    };
+    const plan = (plannedStart: string | null, plannedEnd: string | null) =>
+      withOrganization(app, context, (tx) => tx.update(projects).set({ plannedStart, plannedEnd }));
+
+    // Without a planned period, the team's span: April to August, and 29 of September's 30 days.
+    const teamSpan = await cloudCost();
+    expect(teamSpan).toBe(596_667);
+    await plan("2027-04-01", "2027-12-31");
+    expect(await cloudCost()).toBe(900_000);
+
+    // Not frozen: a chosen scenario's undated recurring cost follows a new period too.
+    expect(await chooseScenario(app, context, { scenarioId: guide, baseVersion: 1 })).toMatchObject(
+      { ok: true },
+    );
+    await plan("2027-04-01", "2027-06-30");
+    expect(await cloudCost()).toBe(300_000);
+    await plan(null, null);
+    expect(await cloudCost()).toBe(teamSpan);
+  });
+
   it("returns null for a scenario of another organization", async () => {
     const other: AccessContext = { organizationId: randomUUID(), rateAccess: true };
 

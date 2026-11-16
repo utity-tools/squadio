@@ -1,5 +1,6 @@
 // docs/domain.md, rule d: the project span, from the first assignment start to the last end. The
-// engine prorates undated recurring costs over it, and the scenario header shows it.
+// engine prorates undated recurring costs over it when the project has no planned period, and the
+// scenario header shows it.
 
 export type SpanDates = { start: string; end: string };
 

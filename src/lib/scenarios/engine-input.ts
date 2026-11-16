@@ -5,6 +5,7 @@ import type {
   ExtraCost,
   Scenario,
 } from "@/lib/costing/calculate-scenario";
+import type { PlannedPeriod } from "@/lib/projects/project-details";
 import { type StoredCategoryRate, toEngineRate } from "@/lib/rates/engine-rate";
 
 // docs/domain.md, "Loading a scenario": the engine's inputs from a scenario's current values.
@@ -48,6 +49,8 @@ export type StoredScenario = {
   costConfig?: { overhead: number; buffer: number; targetMargin: number };
   pricingModel: "fixed" | "time_and_materials";
   pricing?: { price: number | null; overhead: number | null; buffer: number | null };
+  /** The project's, which undated recurring costs span (rule d). Never frozen: it holds no money. */
+  plannedPeriod: PlannedPeriod | null;
   assignments: StoredAssignment[];
   extraCosts: StoredExtraCost[];
   rates: StoredCategoryRate[];
@@ -133,6 +136,7 @@ export function toEngineInput(stored: StoredScenario): EngineInput {
           : { model: "timeAndMaterials", budgetCapCents: price },
       assignments: stored.assignments,
       extraCosts: stored.extraCosts.map(toExtraCost),
+      plannedPeriod: stored.plannedPeriod,
     },
     ...(frozen
       ? {

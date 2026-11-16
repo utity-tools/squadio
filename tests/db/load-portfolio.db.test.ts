@@ -1,3 +1,4 @@
+import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -6,8 +7,9 @@ import { copyOrganization } from "@/db/copy-organization";
 import { DEMO_IDS, DEMO_ORGANIZATION_ID, seedDemo } from "@/db/demo-seed";
 import { loadPortfolio, loadProject } from "@/db/load-portfolio";
 import { memberProjectContext } from "@/db/project-context";
+import { projects } from "@/db/schema";
 import { loadScenario } from "@/db/load-scenario";
-import type { AccessContext } from "@/db/tenant";
+import { type AccessContext, withOrganization } from "@/db/tenant";
 import { categoryOccupancy } from "@/lib/bench/category-occupancy";
 import { capabilitiesFor } from "@/lib/membership/capabilities";
 import { corrections } from "@/lib/portfolio/corrections";
@@ -81,6 +83,32 @@ describe("loadPortfolio", () => {
       expect(scenario.people).toBe(page.team.filter((member) => member.person).length);
       expect(scenario.openRoles).toBe(page.team.filter((member) => !member.person).length);
     }
+  });
+
+  it("costs a project's scenarios over its planned period, as their pages do (rule d)", async () => {
+    const organizationId = await newOrganization(app);
+    await app.transaction((tx) => copyOrganization(tx, DEMO_ORGANIZATION_ID, organizationId));
+    const context: AccessContext = { organizationId, rateAccess: true };
+    await withOrganization(app, context, (tx) =>
+      tx
+        .update(projects)
+        .set({ plannedStart: "2027-01-01", plannedEnd: "2027-12-31" })
+        .where(eq(projects.id, copyId(DEMO_IDS.project, organizationId))),
+    );
+    const before = (await loadPortfolio(app, withRates, SOME_DAY)).projects;
+    const portfolio = await loadPortfolio(app, context, SOME_DAY);
+
+    for (const scenario of portfolio.projects.flatMap((project) => project.scenarios)) {
+      const page = await loadScenario(app, context, scenario.id, SOME_DAY);
+      if (!page?.rateAccess) throw new Error(`expected ${scenario.name} with rate access`);
+      expect(scenario.money).toMatchObject({ netMarginCents: page.result.netMarginCents });
+    }
+    // Plan A's cloud now spans the whole year, so its margin drops.
+    const planA = (projects: typeof before) =>
+      projects.flatMap((project) => project.scenarios).find((s) => s.name === "Plan A")?.money;
+    expect(planA(portfolio.projects)?.netMarginCents).toBeLessThan(
+      planA(before)?.netMarginCents as number,
+    );
   });
 
   it("gives each project its price or cap, and none to a fixed price still to agree", async () => {

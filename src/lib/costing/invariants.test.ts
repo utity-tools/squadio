@@ -67,6 +67,14 @@ const assignmentArb = (id: string): fc.Arbitrary<Assignment> =>
       endDate: dateFrom("2026-01-01", offset + length),
     }));
 
+/** A project's planned period (docs/domain.md, "Planned period"), start not after end. */
+const plannedPeriodArb: fc.Arbitrary<NonNullable<Scenario["plannedPeriod"]>> = fc
+  .record({ offset: fc.integer({ min: 0, max: 700 }), length: fc.integer({ min: 0, max: 365 }) })
+  .map(({ offset, length }) => ({
+    start: dateFrom("2026-01-01", offset),
+    end: dateFrom("2026-01-01", offset + length),
+  }));
+
 const extraCostArb = (id: string): fc.Arbitrary<ExtraCost> =>
   fc.oneof(
     fc.record({
@@ -111,6 +119,7 @@ const scenarioArb: fc.Arbitrary<Scenario> = fc
     pricing: pricingArb,
     assignments: listOf(assignmentArb, 6),
     extraCosts: listOf(extraCostArb, 3),
+    plannedPeriod: fc.option(plannedPeriodArb),
   })
   // Without assignments an undated recurring cost has no span to cover (rule d): give it dates.
   .map((scenario) =>
@@ -196,6 +205,65 @@ describe("costing invariants", () => {
           );
 
           expect(after.totalCostCents).toBeGreaterThanOrEqual(before.totalCostCents);
+        },
+      ),
+    );
+  });
+
+  it("costs an undated recurring cost over the planned period as if it were dated over it", () => {
+    fc.assert(
+      fc.property(
+        scenarioArb,
+        plannedPeriodArb,
+        fc.integer({ min: 0, max: 500_000 }),
+        ratesArb,
+        costSettingsArb,
+        (scenario, period, amountCents, rates, costSettings) => {
+          const run = (extra: ExtraCost) =>
+            complete(
+              { ...scenario, plannedPeriod: period, extraCosts: [extra] },
+              rates,
+              costSettings,
+              TARGET_MARGIN,
+            ).extraCosts;
+          const undated = run({ id: "cloud", kind: "recurring", amountCents });
+          const dated = run({
+            id: "cloud",
+            kind: "recurring",
+            amountCents,
+            startDate: period.start,
+            endDate: period.end,
+          });
+
+          expect(undated).toEqual(dated);
+        },
+      ),
+    );
+  });
+
+  it("costs undated recurring costs the same whatever the team, with a planned period", () => {
+    fc.assert(
+      fc.property(
+        scenarioArb,
+        listOf(assignmentArb, 6),
+        plannedPeriodArb,
+        ratesArb,
+        costSettingsArb,
+        (scenario, otherTeam, period, rates, costSettings) => {
+          const recurring = (assignments: Assignment[]) => {
+            const result = complete(
+              { ...scenario, assignments, plannedPeriod: period },
+              rates,
+              costSettings,
+              TARGET_MARGIN,
+            );
+            return result.extraCosts.filter((_, index) => {
+              const extra = scenario.extraCosts[index];
+              return extra?.kind === "recurring";
+            });
+          };
+
+          expect(recurring(otherTeam)).toEqual(recurring(scenario.assignments));
         },
       ),
     );

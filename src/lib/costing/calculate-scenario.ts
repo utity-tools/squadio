@@ -86,6 +86,18 @@ const extraCostSchema = z.discriminatedUnion("kind", [
   }),
 ]);
 
+/**
+ * The project's planned period (docs/domain.md, "Planned period"): undated recurring costs span it
+ * (rule d). Not frozen. Its dates need no national calendar: prorating counts days, not hours.
+ */
+const plannedPeriodSchema = z
+  .object({ start: isoDate, end: isoDate })
+  .refine((period) => period.end >= period.start, {
+    message: "Ends before it starts",
+    path: ["end"],
+    when: valid,
+  });
+
 const uniqueIds = (items: readonly { id: string }[]) =>
   new Set(items.map((item) => item.id)).size === items.length;
 
@@ -98,16 +110,18 @@ const scenarioSchema = z
     ]),
     assignments: z.array(assignmentSchema).refine(uniqueIds, "Assignment ids repeat"),
     extraCosts: z.array(extraCostSchema).refine(uniqueIds, "Extra cost ids repeat"),
+    plannedPeriod: plannedPeriodSchema.nullish(),
   })
   .superRefine(
-    ({ assignments, extraCosts }, context) => {
-      // Without assignments there is no project span for an undated recurring cost (rule d).
-      if (assignments.length === 0) {
+    ({ assignments, extraCosts, plannedPeriod }, context) => {
+      // Without a planned period or assignments, an undated recurring cost has no span (rule d).
+      if (assignments.length === 0 && !plannedPeriod) {
         for (const [index, extra] of extraCosts.entries()) {
           if (extra.kind === "recurring" && extra.startDate === undefined) {
             context.addIssue({
               code: "custom",
-              message: "Without assignments, a recurring cost needs its own dates",
+              message:
+                "Without a planned period or assignments, a recurring cost needs its own dates",
               path: ["extraCosts", index, "startDate"],
             });
           }
@@ -432,17 +446,17 @@ export function calculateScenario(
             ),
           ).round();
 
-  // Without dates, a recurring cost spans the project (rule d).
-  const projectSpan = projectSpanDates(scenario.assignments);
+  // Without dates, a recurring cost spans the planned period, or else the project span (rule d).
+  const span = scenario.plannedPeriod ?? projectSpanDates(scenario.assignments);
 
   const extraCosts = scenario.extraCosts.map((extra) => {
     switch (extra.kind) {
       case "fixed":
         return { id: extra.id, amountCents: extra.amountCents };
       case "recurring": {
-        // Validation guarantees a project span when the cost has no dates of its own.
-        const start = extra.startDate ?? projectSpan?.start;
-        const end = extra.endDate ?? projectSpan?.end;
+        // Validation guarantees a span when the cost has no dates of its own.
+        const start = extra.startDate ?? span?.start;
+        const end = extra.endDate ?? span?.end;
         if (!start || !end) throw new Error(`No dates to prorate ${extra.id} over`);
         return { id: extra.id, amountCents: prorated(extra.amountCents, start, end) };
       }

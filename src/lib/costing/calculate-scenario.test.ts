@@ -181,6 +181,44 @@ describe("calculateScenario: extra costs", () => {
     expect(result.extraCosts).toEqual([{ id: "fee", amountCents: 446063 }]);
   });
 
+  it("spans the project's planned period when it has no dates of its own (rule d)", () => {
+    const result = complete({
+      ...guideCase,
+      plannedPeriod: { start: "2027-04-01", end: "2027-12-31" },
+    });
+
+    // April to December in full, not the team's span to 29 September.
+    expect(result.extraCosts).toEqual([{ id: "cloud", amountCents: 900000 }]);
+  });
+
+  it("keeps a recurring cost's own dates over the planned period", () => {
+    const result = complete({
+      ...guideCase,
+      plannedPeriod: { start: "2027-01-01", end: "2027-12-31" },
+      extraCosts: [{ ...cloud, startDate: "2027-04-16", endDate: "2027-06-30" }],
+    });
+
+    expect(result.extraCosts).toEqual([{ id: "cloud", amountCents: 250000 }]);
+  });
+
+  it("spans the project span without a planned period, as the guide case does", () => {
+    const withoutPeriod = complete(guideCase);
+
+    expect(complete({ ...guideCase, plannedPeriod: null }).extraCosts).toEqual(
+      withoutPeriod.extraCosts,
+    );
+  });
+
+  it("prorates an undated recurring cost over the planned period without assignments", () => {
+    const result = complete({
+      ...guideCase,
+      assignments: [],
+      plannedPeriod: { start: "2027-04-01", end: "2027-04-30" },
+    });
+
+    expect(result.extraCosts).toEqual([{ id: "cloud", amountCents: 100000 }]);
+  });
+
   it("prorates a dated recurring cost even without assignments", () => {
     const extra = { ...cloud, startDate: "2027-04-01", endDate: "2027-04-30" };
     const result = complete({ ...guideCase, assignments: [], extraCosts: [extra] });
@@ -560,6 +598,22 @@ describe("calculateScenario: validation", () => {
   it("rejects an undated recurring cost when there are no assignments to span", () => {
     expect(issuePaths(invalid({ ...guideCase, assignments: [] }))).toEqual([
       "scenario.extraCosts.0.startDate",
+    ]);
+  });
+
+  it("rejects a planned period that ends before it starts", () => {
+    const plannedPeriod = { start: "2027-05-01", end: "2027-04-30" };
+
+    expect(issuePaths(invalid({ ...guideCase, plannedPeriod }))).toEqual([
+      "scenario.plannedPeriod.end",
+    ]);
+  });
+
+  it("rejects a planned period with a date that is not a day", () => {
+    const plannedPeriod = { start: "2027-02-30", end: "2027-04-30" };
+
+    expect(issuePaths(invalid({ ...guideCase, plannedPeriod }))).toEqual([
+      "scenario.plannedPeriod.start",
     ]);
   });
 
