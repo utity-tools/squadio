@@ -28,7 +28,6 @@ vi.mock("@/db/delete-organization", () => ({
   deleteMemberOrganization: mocks.deleteMemberOrganization,
   deleteAccount: mocks.deleteAccount,
 }));
-vi.mock("@/i18n/locale", () => ({ currentLocale: async () => "es" }));
 vi.mock("@/i18n/navigation", () => ({ redirect: mocks.redirect }));
 
 const { adoptVisitorsCopy, deleteOrganization, deleteOwnAccount, startEmptyOrganization } =
@@ -157,23 +156,37 @@ describe("deleteOrganization", () => {
 });
 
 describe("deleteOwnAccount", () => {
-  it("deletes the session's account and leads to the landing", async () => {
+  const inLocale = (locale: unknown) => {
+    const form = new FormData();
+    if (typeof locale === "string") form.set("locale", locale);
+    return form;
+  };
+
+  it("deletes the session's account and leads to the landing in the form's locale", async () => {
     mocks.deleteAccount.mockResolvedValue({ deletedOrganizations: ["o"] });
-    await deleteOwnAccount();
+    await deleteOwnAccount(initial, inLocale("en"));
     expect(mocks.deleteAccount).toHaveBeenCalledWith({ client: "app" }, starter.userId);
-    expect(mocks.redirect).toHaveBeenCalledWith({ href: "/", locale: "es" });
+    expect(mocks.redirect).toHaveBeenCalledWith({ href: "/", locale: "en" });
+  });
+
+  it("leads to the default locale's landing when the form's is missing or unknown", async () => {
+    mocks.deleteAccount.mockResolvedValue({ deletedOrganizations: [] });
+    await deleteOwnAccount(initial, inLocale("xx"));
+    await deleteOwnAccount(initial, inLocale(undefined));
+    expect(mocks.redirect).toHaveBeenNthCalledWith(1, { href: "/", locale: "es" });
+    expect(mocks.redirect).toHaveBeenNthCalledWith(2, { href: "/", locale: "es" });
   });
 
   it("refuses without a session", async () => {
     mocks.session = null;
-    expect(await deleteOwnAccount()).toEqual({ error: "signed-out" });
+    expect(await deleteOwnAccount(initial, inLocale("es"))).toEqual({ error: "signed-out" });
     expect(mocks.deleteAccount).not.toHaveBeenCalled();
   });
 
   it("answers failed for an unexpected error and stays on the page", async () => {
     mocks.deleteAccount.mockRejectedValue(new Error("secret"));
     const log = vi.spyOn(console, "error").mockImplementation(() => {});
-    expect(await deleteOwnAccount()).toEqual({ error: "failed" });
+    expect(await deleteOwnAccount(initial, inLocale("es"))).toEqual({ error: "failed" });
     expect(log).toHaveBeenCalledWith("deleteAccount failed: Error");
     expect(mocks.redirect).not.toHaveBeenCalled();
   });

@@ -74,6 +74,20 @@ describe("DangerZone", () => {
     );
   });
 
+  it("sends the page's locale with the account's delete, so the action can lead to the landing", async () => {
+    const user = userEvent.setup();
+    const deleteAccount = vi.fn<DeleteAction>(ok);
+    renderWithIntl(
+      <DangerZone organizationName={null} deleteOrganization={ok} deleteAccount={deleteAccount} />,
+      { locale: "en" },
+    );
+
+    await user.click(screen.getByRole("button", { name: "Delete your account…" }));
+    await user.click(screen.getByRole("button", { name: "Delete my account" }));
+    const form = deleteAccount.mock.calls[0]?.[1];
+    expect(form?.get("locale")).toBe("en");
+  });
+
   it("closes with Cancel and forgets the typed name", async () => {
     const user = userEvent.setup();
     renderWithIntl(
