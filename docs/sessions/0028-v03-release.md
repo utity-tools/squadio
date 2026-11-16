@@ -38,6 +38,8 @@ v0.3 slice 5 (docs/plan.md, "v0.3 slices"). Slices 1 to 4 merged as
 
 ## Decisions
 
+- **v0.3.0 is tagged with sign-up still closed** (owner, 2026-11-16): docs/plan.md's slice 5 and
+  "Service limits" no longer wait for the switch, which the owner turns on as a step of their own.
 - **The README says sign-up is closed, not when it opens:** the date is the owner's.
 - **The empty-team rail note waits for v0.3.1** (owner, 2026-11-16): a scenario without a team
   does not say that its undated recurring costs wait for a planned period (handoff 0027).
