@@ -41,6 +41,7 @@ export function LiveScenarioTeam() {
         // Which categories lack a rate is restricted: without rate access, no node is marked.
         withoutRate={categoriesWithoutRate(scenario)}
         locked={scenario.scenario.chosen ? (frozen ? "frozen" : "chosen") : undefined}
+        plannedPeriod={scenario.project.plannedPeriod}
       />
     </TeamEditingProvider>
   );

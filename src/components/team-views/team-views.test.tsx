@@ -71,6 +71,27 @@ describe("TeamViews", () => {
     expect(screen.queryByText(/Equipo bloqueado/)).not.toBeInTheDocument();
   });
 
+  it("says how much of the planned period the team leaves uncovered, in either view", () => {
+    for (const query of ["?view=tree", "?view=table"]) {
+      const { unmount } = (() => {
+        stubScreen({ wide: true });
+        stubHistory(`${PATH}${query}`);
+        return renderWithIntl(
+          <TeamViews {...data} uncovered={{ startsLate: null, endsEarly: 93 }} />,
+        );
+      })();
+
+      expect(screen.getByText("El equipo acaba 93 días antes del periodo previsto")).toBeVisible();
+      unmount();
+    }
+  });
+
+  it("says nothing about the period while the team covers it", () => {
+    open("");
+
+    expect(screen.queryByText(/periodo previsto/)).not.toBeInTheDocument();
+  });
+
   it("offers the tree and the table as one named radio group", () => {
     open("");
 

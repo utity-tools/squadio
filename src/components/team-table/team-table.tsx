@@ -13,6 +13,7 @@ import {
 
 import { useDayRange } from "@/components/format/use-day-range";
 import { MemberMenu } from "@/components/team-editing/member-menu";
+import { useOutsidePeriodDetail } from "@/components/team-views/period-flags";
 import type { TeamEditing } from "@/components/team-editing/team-editing";
 import type { LayoutNode } from "@/lib/layout/compact-layout";
 import { type GridFocus, treegridMove } from "@/lib/team-table/keyboard";
@@ -89,6 +90,7 @@ export function TeamTable({
   const menuFrom = useRef<HTMLElement | null>(null);
   const format = useFormatter();
   const dayRange = useDayRange();
+  const outsideDetail = useOutsidePeriodDetail();
   const instructions = useId();
   const table = useRef<HTMLTableElement>(null);
   /** The focused cell's column, kept for the row it belongs to; null while the row has focus. */
@@ -223,12 +225,25 @@ export function TeamTable({
         return format.number(card.allocation / 100, { style: "percent" });
       case "weeklyHours":
         return hours(card.allocatedWeeklyHours);
-      case "dates":
-        return card.dates ? (
+      case "dates": {
+        const dates = card.dates ? (
           <span className="whitespace-nowrap">{dayRange(card.dates.start, card.dates.end)}</span>
         ) : (
           <span className="text-muted-foreground">{t("wholeProject")}</span>
         );
+        if (!card.outsidePeriod) return dates;
+        return (
+          <>
+            {dates}
+            {/* Read as two parts, like the tree's card. */}
+            <span className="sr-only">, </span>
+            <span data-outside-period="" className="mt-0.5 flex items-start gap-0.5 text-xs">
+              <TriangleAlertIcon aria-hidden className="mt-px size-3.5 shrink-0 text-status-warn" />
+              {outsideDetail(card.outsidePeriod)}
+            </span>
+          </>
+        );
+      }
       case "nominalHours":
         return hours(card.nominalHours);
       case "effectiveHours":

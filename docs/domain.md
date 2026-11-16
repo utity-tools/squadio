@@ -581,8 +581,9 @@ for whoever reads its proposal. The period is a reference, not a limit:
 - **New assignments start from it:** an add spans the planned period instead of the project span,
   as [Changes](#changes) says. An assignment's own dates stay editable.
 - **It never refuses an assignment.** One that starts before it or ends after it is flagged on the
-  team, with how far outside it falls; so is a planned period the team as a whole does not cover,
-  from its first start to its last end.
+  team, with how far outside it falls in calendar days; so is a planned period the team as a whole
+  does not cover, from its first start to its last end, with how many days it leaves at each side.
+  A scenario without a team flags nothing. The flags hold no money: everyone sees them.
 - **Undated recurring costs follow it** (rule d), in every scenario of the project, so all of them
   are costed over the same months. Without a planned period they follow each scenario's project span,
   as before.

@@ -35,6 +35,7 @@ describe("assignmentCards", () => {
         nominalHours: 1040,
         effectiveHours: 897.5,
         missingRate: false,
+        outsidePeriod: null,
       },
     ]);
   });
@@ -74,7 +75,9 @@ describe("assignmentCards", () => {
     const developer = { ...lead, id: "dev", category: { id: "junior", name: "Junior Developer" } };
     const both = [...hours, { id: "dev", nominalHours: 1040, effectiveHours: 897.5 }];
 
-    const cards = assignmentCards([lead, developer], both, span, new Set(["junior"]));
+    const cards = assignmentCards([lead, developer], both, span, {
+      withoutRate: new Set(["junior"]),
+    });
 
     expect(cards.map(({ id, missingRate }) => [id, missingRate])).toEqual([
       ["lead", false],
@@ -84,6 +87,22 @@ describe("assignmentCards", () => {
 
   it("marks no card when no category is missing a rate, as without rate access", () => {
     expect(assignmentCards([lead], hours, span)[0]?.missingRate).toBe(false);
+  });
+
+  it("flags how far an assignment falls outside the project's planned period", () => {
+    const plannedPeriod = { start: "2027-04-15", end: "2027-09-30" };
+
+    expect(assignmentCards([lead], hours, span, { plannedPeriod })[0]?.outsidePeriod).toEqual({
+      startsBefore: 14,
+      endsAfter: null,
+    });
+  });
+
+  it("flags nothing within the planned period, or without one", () => {
+    const plannedPeriod = { start: "2027-01-01", end: "2027-12-31" };
+
+    expect(assignmentCards([lead], hours, span, { plannedPeriod })[0]?.outsidePeriod).toBeNull();
+    expect(assignmentCards([lead], hours, span)[0]?.outsidePeriod).toBeNull();
   });
 
   it("refuses an assignment without hours", () => {

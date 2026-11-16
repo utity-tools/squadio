@@ -805,6 +805,11 @@
       "chosen": "Equipo bloqueado · escenario elegido"
     }
   },
+  "PlannedPeriod": {
+    "outside": "Fuera del periodo",
+    "outsideDetail": "{side, select, before {Empieza {before, plural, one {# día} other {# días}} antes del periodo previsto} after {Acaba {after, plural, one {# día} other {# días}} después del periodo previsto} other {Empieza {before, plural, one {# día} other {# días}} antes y acaba {after, plural, one {# día} other {# días}} después del periodo previsto}}",
+    "uncovered": "{side, select, start {El equipo empieza {start, plural, one {# día} other {# días}} después del periodo previsto} end {El equipo acaba {end, plural, one {# día} other {# días}} antes del periodo previsto} other {El equipo empieza {start, plural, one {# día} other {# días}} después y acaba {end, plural, one {# día} other {# días}} antes del periodo previsto}}"
+  },
   "Summary": {
     "undetermined": "Pendiente",
     "notApplicable": "No aplicable",

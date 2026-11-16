@@ -805,6 +805,11 @@
       "chosen": "Team locked · scenario chosen"
     }
   },
+  "PlannedPeriod": {
+    "outside": "Outside the period",
+    "outsideDetail": "{side, select, before {Starts {before, plural, one {# day} other {# days}} before the planned period} after {Ends {after, plural, one {# day} other {# days}} after the planned period} other {Starts {before, plural, one {# day} other {# days}} before and ends {after, plural, one {# day} other {# days}} after the planned period}}",
+    "uncovered": "{side, select, start {The team starts {start, plural, one {# day} other {# days}} after the planned period does} end {The team ends {end, plural, one {# day} other {# days}} before the planned period does} other {The team starts {start, plural, one {# day} other {# days}} after and ends {end, plural, one {# day} other {# days}} before the planned period}}"
+  },
   "Summary": {
     "undetermined": "Pending",
     "notApplicable": "Not applicable",
