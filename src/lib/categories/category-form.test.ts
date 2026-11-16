@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
 
-import { categoryFormErrors, categoryFormSchema } from "./category-form";
+import { categoryFormErrors, categoryFormSchema, categoryFormValues } from "./category-form";
 
 const form = {
   name: "  DevOps Engineer ",
@@ -107,5 +107,40 @@ describe("categoryFormSchema", () => {
     expect(
       errorsOf({ ...form, salaryPeriod: "month", salary: "9.999.999.999", payments: "14" }),
     ).toEqual({ salary: "invalid" });
+  });
+});
+
+describe("categoryFormValues", () => {
+  it("starts a new category with the Consultancy template's social security and other costs", () => {
+    expect(categoryFormValues(null, "es")).toEqual({
+      name: "",
+      salary: "",
+      socialSecurity: "31",
+      otherCosts: "3000",
+      manualCostPerHour: "",
+      sellRate: "",
+    });
+  });
+
+  it("writes a rate back as the form reads it, in the page's locale", () => {
+    const rate = {
+      grossAnnualSalaryCents: 4_133_333,
+      socialSecurityBasisPoints: 3117,
+      otherYearlyCostsCents: 300_000,
+      manualCostPerHourCents: 4419,
+      sellRateCents: 6205,
+    };
+    const values = categoryFormValues({ name: "Senior Developer", rate }, "es");
+    expect(values).toEqual({
+      name: "Senior Developer",
+      salary: "41333,33",
+      socialSecurity: "31,17",
+      otherCosts: "3000",
+      manualCostPerHour: "44,19",
+      sellRate: "62,05",
+    });
+    expect(categoryFormValues({ name: "x", rate }, "en").socialSecurity).toBe("31.17");
+    const read = categoryFormSchema("es").parse({ ...values, salaryPeriod: "year" });
+    expect(read.rate).toEqual(rate);
   });
 });

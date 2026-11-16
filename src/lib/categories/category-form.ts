@@ -3,6 +3,7 @@ import { z } from "zod";
 import { type AmountLocale, parseEuros } from "@/lib/money/euros";
 import { MAX_MONEY_CENTS } from "@/lib/money/numeric";
 import { parsePercent } from "@/lib/money/percent";
+import { CONSULTANCY_RATE_DEFAULTS } from "@/lib/organizations/consultancy";
 
 /** The longest category name, as long as any other name people read (src/db/schema.ts). */
 export const MAX_CATEGORY_NAME = 100;
@@ -132,4 +133,48 @@ export function categoryFormErrors(error: z.ZodError): CategoryFormErrors {
       : "invalid";
   }
   return errors;
+}
+
+/** The form's text fields, as it opens. */
+export type CategoryFormValues = {
+  name: string;
+  salary: string;
+  socialSecurity: string;
+  otherCosts: string;
+  manualCostPerHour: string;
+  sellRate: string;
+};
+
+/** Hundredths as a person types them in `locale`: no grouping, decimals only when there are some. */
+function typed(hundredths: number, locale: AmountLocale): string {
+  const units = Math.trunc(hundredths / 100);
+  const decimals = hundredths % 100;
+  if (decimals === 0) return String(units);
+  return `${units}${locale === "es" ? "," : "."}${String(decimals).padStart(2, "0")}`;
+}
+
+/**
+ * What the form opens with: a category's name and rate to edit, the salary per year, or for a
+ * new one the Consultancy template's social security and other yearly costs.
+ */
+export function categoryFormValues(
+  category: { name: string; rate: CategoryRateValues | null } | null,
+  locale: AmountLocale,
+): CategoryFormValues {
+  const rate = category?.rate;
+  return {
+    name: category?.name ?? "",
+    salary: rate ? typed(rate.grossAnnualSalaryCents, locale) : "",
+    socialSecurity: typed(
+      rate?.socialSecurityBasisPoints ?? CONSULTANCY_RATE_DEFAULTS.socialSecurity,
+      locale,
+    ),
+    otherCosts: typed(
+      rate?.otherYearlyCostsCents ?? CONSULTANCY_RATE_DEFAULTS.otherYearlyCosts,
+      locale,
+    ),
+    manualCostPerHour:
+      rate?.manualCostPerHourCents == null ? "" : typed(rate.manualCostPerHourCents, locale),
+    sellRate: rate ? typed(rate.sellRateCents, locale) : "",
+  };
 }

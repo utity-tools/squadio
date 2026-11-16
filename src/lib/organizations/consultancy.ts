@@ -11,3 +11,9 @@ export const CONSULTANCY_COST_CONFIG = {
   buffer: 1000,
   targetMargin: 2500,
 } as const;
+
+/** What a new category's rate starts with: social security and other yearly costs, in cents. */
+export const CONSULTANCY_RATE_DEFAULTS = {
+  socialSecurity: 3100,
+  otherYearlyCosts: 300_000,
+} as const;

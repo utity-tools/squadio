@@ -360,7 +360,75 @@
     "noTeam": "Sin equipo",
     "noScenarios": "Este proyecto aún no tiene escenarios",
     "noScenariosDescription": "Un escenario es una forma de armar el equipo. Cuando haya varios, elegirás con cuál te comprometes.",
-    "note": "Solo el escenario elegido cuenta como compromiso: es el que carga la ocupación de las personas."
+    "note": "Solo el escenario elegido cuenta como compromiso: es el que carga la ocupación de las personas.",
+    "categories": {
+      "title": "Categorías y costes",
+      "description": "Los perfiles que necesita el equipo. Son de toda la organización: los que crees aquí sirven para tus próximos proyectos.",
+      "columns": {
+        "category": "Categoría",
+        "fullyLoaded": "Coste completo",
+        "costPerHour": "Coste por hora",
+        "sellRate": "Tarifa de venta",
+        "status": "Estado",
+        "actions": "Acciones"
+      },
+      "perHour": "{amount}/h",
+      "manual": "manual",
+      "complete": "Completa",
+      "pending": "Pendiente",
+      "missingCost": "Falta el coste y la tarifa de venta",
+      "small": "Categoría pequeña: su coste puede revelar un salario",
+      "edit": "Editar {name}",
+      "empty": "Aún no hay categorías. Crea la primera para dar coste a las personas y vacantes del equipo.",
+      "note": {
+        "fixed": "Con precio cerrado, la tarifa de venta solo hace falta para comparar.",
+        "time_and_materials": "En tiempo y materiales, la tarifa de venta da los ingresos."
+      },
+      "saved": "Categoría «{name}» guardada",
+      "form": {
+        "add": "Añadir categoría",
+        "titleAdd": "Nueva categoría",
+        "titleEdit": "Editar categoría",
+        "descriptionAdd": "Su coste y su tarifa de venta sirven para todos los proyectos de la organización.",
+        "descriptionEdit": "Los escenarios no elegidos se recalculan con estos valores; los elegidos conservan los que congelaron.",
+        "close": "Cerrar",
+        "name": "Nombre",
+        "salaryPeriod": "Salario bruto",
+        "periods": {
+          "year": "Anual",
+          "month": "Mensual"
+        },
+        "salary": {
+          "year": "Salario bruto anual",
+          "month": "Salario bruto mensual"
+        },
+        "payments": "Número de pagas",
+        "socialSecurity": "Seguridad Social a cargo de la empresa",
+        "otherCosts": "Otros costes anuales",
+        "otherCostsHelp": "Equipo, formación, seguros.",
+        "manualCostPerHour": "Coste por hora manual",
+        "manualCostPerHourHelp": "Si lo escribes, sustituye al que se calcula del salario.",
+        "sellRate": "Tarifa de venta por hora",
+        "cancel": "Cancelar",
+        "submit": "Guardar categoría",
+        "submitting": "Guardando…",
+        "errors": {
+          "blank": "Rellena este campo.",
+          "too-long": "Como mucho 100 caracteres.",
+          "invalid": "Revisa este campo.",
+          "taken": "Ya hay una categoría con este nombre.",
+          "amount": "Escribe un importe en euros, con dos decimales como mucho.",
+          "percent": "Escribe un porcentaje, con dos decimales como mucho.",
+          "payments": "Elige 12 o 14 pagas.",
+          "signed-out": "Tu sesión ha terminado. Entra de nuevo para guardar la categoría.",
+          "no-organization": "Tu cuenta ya no pertenece a ninguna organización.",
+          "no-rate-access": "Guardar costes necesita acceso a tarifas.",
+          "not-found": "Esta categoría ya no existe.",
+          "failed": "No se ha podido guardar la categoría. Inténtalo de nuevo."
+        },
+        "small": "Categoría pequeña: su coste puede revelar un salario"
+      }
+    }
   },
   "NotFound": {
     "title": "No encontramos esta página",
@@ -781,6 +849,14 @@
         "effectiveHours": {
           "definition": "Las horas nominales descontando, de media, vacaciones, ausencias y formación: el factor de disponibilidad.",
           "formula": "horas nominales × factor de disponibilidad"
+        },
+        "fullyLoaded": {
+          "definition": "Lo que cuesta al año una persona de la categoría: su salario bruto, la Seguridad Social a cargo de la empresa y otros costes anuales.",
+          "formula": "salario bruto × (1 + Seguridad Social) + otros costes"
+        },
+        "costPerHour": {
+          "definition": "El coste completo repartido entre las horas netas al año de la organización, o el que escribas a mano.",
+          "formula": "coste completo ÷ horas netas al año"
         }
       }
     },

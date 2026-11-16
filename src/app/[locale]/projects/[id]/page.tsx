@@ -5,9 +5,11 @@ import { connection } from "next/server";
 import { cache } from "react";
 import { z } from "zod";
 
+import { CategoryCosts } from "@/components/projects/category-costs";
 import { ProjectHeader, ProjectScenarios } from "@/components/projects/project-page";
 import { AppPage } from "@/components/shell/app-page";
 import { Breadcrumbs } from "@/components/shell/breadcrumbs";
+import { loadCategoryCosts } from "@/db/categories";
 import { db } from "@/db/client";
 import { copyProjectLink } from "@/db/copy-link";
 import { loadProject } from "@/db/load-portfolio";
@@ -17,6 +19,8 @@ import { assertLocale, currentLocale } from "@/i18n/locale";
 import { redirect } from "@/i18n/navigation";
 import { madridToday } from "@/lib/bench/occupancy";
 
+import { saveCategory } from "./actions";
+
 /**
  * The project this request reads, once for the title and the page: the member's organization when
  * it holds the project (ADR 0012), or else the visitor's copy or the demo (ADR 0011), as the editor
@@ -24,13 +28,16 @@ import { madridToday } from "@/lib/bench/occupancy";
  */
 const projectOfRequest = cache(async (id: string, access: string | undefined) => {
   const query = access === undefined ? {} : { access };
-  const context =
-    (await memberProjectContext(db, await currentMember(), id, query)) ??
-    (await currentAccessContext(query));
+  const memberContext = await memberProjectContext(db, await currentMember(), id, query);
+  const context = memberContext ?? (await currentAccessContext(query));
   // Its scenarios are costed with today's calendar year when they have no team: a value of the
   // request, never of a prerender.
   await connection();
-  return { context, loaded: await loadProject(db, context, id, madridToday(new Date())) };
+  return {
+    context,
+    member: memberContext !== null,
+    loaded: await loadProject(db, context, id, madridToday(new Date())),
+  };
 });
 
 const accessOf = (value: string | string[] | undefined) =>
@@ -48,7 +55,10 @@ export async function generateMetadata({
   return { title: loaded?.project.name ?? t("title") };
 }
 
-/** A project, read only: board 06's header and its scenarios, each leading to the editor. */
+/**
+ * A project (board 06): its header, the organization's categories and costs with rate access, and
+ * its scenarios, each leading to the editor.
+ */
 export default async function ProjectPage({
   params,
   searchParams,
@@ -58,7 +68,7 @@ export default async function ProjectPage({
   // An id that is not a UUID, or a project of another organization, is simply not found.
   if (!z.uuid().safeParse(id).success) notFound();
   const query = await searchParams;
-  const { context, loaded } = await projectOfRequest(id, accessOf(query.access));
+  const { context, member, loaded } = await projectOfRequest(id, accessOf(query.access));
   if (!loaded) {
     // A template link, followed by a visitor who has a copy, leads to their copy of it.
     const href = await copyProjectLink(db, context, id, query);
@@ -68,6 +78,9 @@ export default async function ProjectPage({
 
   const { project, categories } = loaded;
   const t = await getTranslations("Projects");
+  // Rates are restricted: without rate access there is no card at all (ADR 0005). Writing one is
+  // only for a signed-in member; a visitor's copy and the demo read them.
+  const costs = await loadCategoryCosts(db, context);
   return (
     <AppPage
       current="inside-projects"
@@ -76,6 +89,13 @@ export default async function ProjectPage({
       }
     >
       <ProjectHeader project={project} />
+      {costs && (
+        <CategoryCosts
+          {...costs}
+          pricingModel={project.pricingModel}
+          action={member ? saveCategory : null}
+        />
+      )}
       <ProjectScenarios project={project} categories={categories} rateAccess={context.rateAccess} />
     </AppPage>
   );

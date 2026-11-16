@@ -2,8 +2,10 @@ import { type Page, expect, test } from "@playwright/test";
 
 import { expectNoAxeViolations } from "./support/axe";
 
-// The read-only project page: board 06's header, without «Editar proyecto» or «Categorías y
-// costes», and the project's scenarios leading to the editor. Needs the demo organization.
+// The project page: board 06's header, the organization's categories and costs with rate access,
+// and the project's scenarios leading to the editor. A visitor, as here, reads the demo and writes
+// nothing: adding a category or a scenario is for a signed-in member, whom E2E never is. Needs the
+// demo organization.
 
 const demoId = (n: number) => `6d656d6f-0000-4000-8000-${String(n).padStart(12, "0")}`;
 const PORTAL = demoId(100);
@@ -41,10 +43,31 @@ test("names the client, the pricing model and the price, and offers no edits", a
 
   const main = page.getByRole("main");
   await expect(main).toContainText("Demo Client");
-  await expect(main.getByText("Precio cerrado")).toBeVisible();
+  await expect(main.getByText("Precio cerrado", { exact: true })).toBeVisible();
   await expect(main).toContainText(/200\.000\s€/);
-  await expect(main.getByRole("button")).toHaveCount(0);
-  await expect(main).not.toContainText(/Editar proyecto|Crear escenario|Categorías y costes/);
+  await expect(main).not.toContainText(/Editar proyecto|Crear escenario|Añadir categoría/);
+  await expect(main.getByRole("button", { name: /Editar/ })).toHaveCount(0);
+});
+
+test("shows the organization's categories with their costs, read only", async ({ page }) => {
+  await page.goto(`/projects/${PORTAL}`);
+
+  const costs = page.getByRole("table", { name: "Categorías y costes" });
+  await expect(costs.getByRole("columnheader")).toHaveText([
+    /Categoría/,
+    /Coste completo/,
+    /Coste por hora/,
+    /Tarifa de venta/,
+    /Estado/,
+  ]);
+  const devOps = costs.getByRole("row", { name: /DevOps Engineer/ });
+  await expect(devOps).toContainText(/68\.500\s€/);
+  await expect(devOps).toContainText(/44,19\s€\/h/);
+  await expect(devOps).toContainText(/62,00\s€\/h/);
+  await expect(devOps).toContainText("Completa");
+  // The demo's two DevOps engineers: their category's cost may reveal a salary (rule j).
+  await expect(devOps).toContainText("Categoría pequeña");
+  await expect(page.getByRole("main")).toContainText("solo hace falta para comparar");
 });
 
 test("lists the project's scenarios, each leading to the editor", async ({ page }) => {
@@ -77,7 +100,9 @@ test("marks the chosen scenario, and says what each other project misses", async
 
   await page.goto(`/projects/${RETAINER}`);
   await expect(page.getByRole("main")).toContainText(/Tope de 50\.000\s€/);
-  await expect(page.getByRole("main").getByText("Tiempo y materiales")).toBeVisible();
+  await expect(
+    page.getByRole("main").getByText("Tiempo y materiales", { exact: true }),
+  ).toBeVisible();
 });
 
 test("without rate access shows the project and its scenarios, and no money", async ({ page }) => {
@@ -112,7 +137,7 @@ test("speaks English under /en", async ({ page }) => {
   await page.goto(`/en/projects/${PORTAL}`);
 
   await expect(page.getByRole("table", { name: "Scenarios" })).toBeVisible();
-  await expect(page.getByRole("main").getByText("Fixed price")).toBeVisible();
+  await expect(page.getByRole("main").getByText("Fixed price", { exact: true })).toBeVisible();
 });
 
 for (const colorScheme of ["light", "dark"] as const) {
