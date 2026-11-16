@@ -40,18 +40,23 @@ export function useWhyNoAmount() {
   const format = useFormatter();
   return (amount: Exclude<Amount, number>, { ownRate = false } = {}) => {
     if (amount.state === "notApplicable") return t(`reasons.${amount.reason}`);
-    const { categories, price } = amount.missing;
-    if (categories.length === 0) {
-      // The engine never leaves a line undetermined without naming what it misses.
-      if (!price) throw new Error("An undetermined line misses nothing");
-      return t("missing.price");
+    const { categories, rates, price, period } = amount.missing;
+    const rest = whatElse();
+    // A missing span is named last, after whatever else the line misses (rule d).
+    if (period) return rest === null ? t("missing.period") : t("missing.withPeriod", { rest });
+    // The engine never leaves a line undetermined without naming what it misses.
+    if (rest === null) throw new Error("An undetermined line misses nothing");
+    return rest;
+
+    function whatElse() {
+      if (categories.length === 0) return price ? t("missing.price") : null;
+      if (ownRate) return t("missing.ownRate");
+      const values = { categories: format.list(categories), count: categories.length };
+      // Only a fixed price can be missing, and its revenue never misses a rate: the rates are costs.
+      if (price) return t("missing.rateAndPrice", values);
+      const key = { cost: "rate", sellRate: "sellRate", both: "rateAndSellRate" } as const;
+      return t(`missing.${key[rates]}`, values);
     }
-    if (ownRate) return t("missing.ownRate");
-    const values = { categories: format.list(categories), count: categories.length };
-    // Only a fixed price can be missing, and its revenue never misses a rate: the rates are costs.
-    if (price) return t("missing.rateAndPrice", values);
-    const key = { cost: "rate", sellRate: "sellRate", both: "rateAndSellRate" } as const;
-    return t(`missing.${key[amount.missing.rates]}`, values);
   };
 }
 

@@ -340,6 +340,7 @@ describe("calculateScenario: partial results", () => {
   const withoutPrice: Scenario = { ...guideCase, pricing: { model: "fixed" } };
   const noRate = { undetermined: [{ code: "missingRate", categoryIds: ["qa"] }] };
   const noPrice = { undetermined: [{ code: "missingPrice" }] };
+  const noPeriod = { undetermined: [{ code: "missingPeriod" }] };
   const partial = (scenario: Scenario) => {
     const result = calculateScenario(scenario, rates, costSettings, TARGET_MARGIN);
     if (result.complete) throw new Error("expected a partial result");
@@ -467,6 +468,60 @@ describe("calculateScenario: partial results", () => {
     expect(result.warnings).toEqual([{ code: "missingRate", categoryIds: ["qa"] }]);
   });
 
+  it("leaves an undated recurring cost undetermined without a team or a planned period (rule d)", () => {
+    expect(partial({ ...guideCase, assignments: [] })).toEqual({
+      complete: false,
+      hours: { nominal: 0, effective: 0 },
+      assignments: [],
+      staffCostCents: 0,
+      staffCostByCategory: [],
+      extraCosts: [{ id: "cloud", amountCents: noPeriod }],
+      directCostCents: noPeriod,
+      overheadCents: 0,
+      bufferCents: noPeriod,
+      totalCostCents: noPeriod,
+      revenueCents: 20000000,
+      directMarginCents: noPeriod,
+      directMarginBasisPoints: noPeriod,
+      netMarginCents: noPeriod,
+      netMarginBasisPoints: noPeriod,
+      effectiveRateCents: null,
+      marginStatus: null,
+      warnings: [{ code: "missingPeriod" }],
+    });
+  });
+
+  it("keeps the other extra costs without a span, dated recurring ones included", () => {
+    const dated: ExtraCost = {
+      ...cloud,
+      id: "dated",
+      startDate: "2027-04-01",
+      endDate: "2027-04-30",
+    };
+    const share: ExtraCost = {
+      id: "share",
+      kind: "percentage",
+      basisPoints: 500,
+      base: "staffCost",
+    };
+    const result = partial({ ...guideCase, assignments: [], extraCosts: [cloud, dated, share] });
+
+    expect(result.extraCosts).toEqual([
+      { id: "cloud", amountCents: noPeriod },
+      { id: "dated", amountCents: 100000 },
+      { id: "share", amountCents: 0 },
+    ]);
+  });
+
+  it("names a missing span after a missing price", () => {
+    const result = partial({ ...withoutPrice, assignments: [] });
+
+    expect(result.netMarginCents).toEqual({
+      undetermined: [{ code: "missingPrice" }, { code: "missingPeriod" }],
+    });
+    expect(result.warnings).toEqual([{ code: "missingPrice" }, { code: "missingPeriod" }]);
+  });
+
   it("has no effective rate without effective hours, whatever revenue is", () => {
     const result = partial({ ...withoutPrice, assignments: [], extraCosts: [] });
 
@@ -592,12 +647,6 @@ describe("calculateScenario: validation", () => {
 
     expect(issuePaths(invalid({ ...guideCase, assignments: [bad] }))).toEqual([
       `scenario.assignments.0.${field}`,
-    ]);
-  });
-
-  it("rejects an undated recurring cost when there are no assignments to span", () => {
-    expect(issuePaths(invalid({ ...guideCase, assignments: [] }))).toEqual([
-      "scenario.extraCosts.0.startDate",
     ]);
   });
 

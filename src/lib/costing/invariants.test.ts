@@ -121,18 +121,12 @@ const scenarioArb: fc.Arbitrary<Scenario> = fc
     extraCosts: listOf(extraCostArb, 3),
     plannedPeriod: fc.option(plannedPeriodArb),
   })
-  // Without assignments an undated recurring cost has no span to cover (rule d): give it dates.
+  // Without assignments an undated recurring cost spans only a planned period (rule d): give the
+  // project one, so the scenario is complete.
   .map((scenario) =>
-    scenario.assignments.length > 0
+    scenario.assignments.length > 0 || scenario.plannedPeriod
       ? scenario
-      : {
-          ...scenario,
-          extraCosts: scenario.extraCosts.map((extra) =>
-            extra.kind === "recurring"
-              ? { ...extra, startDate: "2027-04-01", endDate: "2027-09-29" }
-              : extra,
-          ),
-        },
+      : { ...scenario, plannedPeriod: { start: "2027-04-01", end: "2027-09-29" } },
   );
 
 const complete = (...args: Parameters<typeof calculateScenario>) => {
@@ -416,21 +410,32 @@ describe("costing invariants", () => {
         costSettingsArb,
         fc.subarray(CATEGORIES),
         fc.boolean(),
-        (scenario, rates, costSettings, withoutRate, withoutPrice) => {
+        fc.boolean(),
+        (scenario, rates, costSettings, withoutRate, withoutPrice, withoutPeriod) => {
           const filled = complete(scenario, rates, costSettings, TARGET_MARGIN);
+          // Only without a team is a planned period the span's sole source (rule d).
+          const dropPeriod = withoutPeriod && scenario.assignments.length === 0;
           const partial = calculateScenario(
-            withoutPrice && scenario.pricing.model === "fixed"
-              ? { ...scenario, pricing: { model: "fixed" } }
-              : scenario,
+            {
+              ...scenario,
+              ...(withoutPrice && scenario.pricing.model === "fixed"
+                ? { pricing: { model: "fixed" } }
+                : {}),
+              ...(dropPeriod ? { plannedPeriod: null } : {}),
+            },
             rates.filter((rate) => !withoutRate.includes(rate.categoryId)),
             costSettings,
             TARGET_MARGIN,
           );
 
-          // Complete exactly when no category on the team lost its rate and the price was kept.
+          // Complete exactly when no category on the team lost its rate, the price was kept and
+          // every undated recurring cost kept its span.
           const lostRate = scenario.assignments.some((a) => withoutRate.includes(a.categoryId));
           const lostPrice = withoutPrice && scenario.pricing.model === "fixed";
-          expect(partial.complete).toBe(!lostRate && !lostPrice);
+          const lostPeriod =
+            dropPeriod &&
+            scenario.extraCosts.some((e) => e.kind === "recurring" && e.startDate === undefined);
+          expect(partial.complete).toBe(!lostRate && !lostPrice && !lostPeriod);
           expect(partial.hours).toEqual(filled.hours);
           expect(partial.assignments).toEqual(filled.assignments);
           const { staffCostByCategory, extraCosts, marginStatus, warnings } = partial;

@@ -52,7 +52,7 @@ describe("marginOf", () => {
   it("says what a pending margin misses, by category name, with no status", () => {
     const pending = {
       state: "undetermined",
-      missing: { categories: ["DevOps Engineer"], rates: "cost", price: true },
+      missing: { categories: ["DevOps Engineer"], rates: "cost", price: true, period: false },
     };
 
     expect(marginOf(missing(["devops"], { price: true }), nameOf, "fixed")).toEqual({
@@ -65,7 +65,7 @@ describe("marginOf", () => {
   it("says a time-and-materials margin misses both the cost and the sell rate", () => {
     expect(marginOf(missing(["devops"]), nameOf, "time_and_materials").netMarginCents).toEqual({
       state: "undetermined",
-      missing: { categories: ["DevOps Engineer"], rates: "both", price: false },
+      missing: { categories: ["DevOps Engineer"], rates: "both", price: false, period: false },
     });
   });
 

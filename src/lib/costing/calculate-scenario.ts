@@ -113,20 +113,7 @@ const scenarioSchema = z
     plannedPeriod: plannedPeriodSchema.nullish(),
   })
   .superRefine(
-    ({ assignments, extraCosts, plannedPeriod }, context) => {
-      // Without a planned period or assignments, an undated recurring cost has no span (rule d).
-      if (assignments.length === 0 && !plannedPeriod) {
-        for (const [index, extra] of extraCosts.entries()) {
-          if (extra.kind === "recurring" && extra.startDate === undefined) {
-            context.addIssue({
-              code: "custom",
-              message:
-                "Without a planned period or assignments, a recurring cost needs its own dates",
-              path: ["extraCosts", index, "startDate"],
-            });
-          }
-        }
-      }
+    ({ assignments }, context) => {
       const ids = new Set(assignments.map((a) => a.id));
       for (const [index, a] of assignments.entries()) {
         if (a.reportsTo != null && !ids.has(a.reportsTo)) {
@@ -204,6 +191,8 @@ export type MarginStatus = "green" | "amber" | "red";
 export type Warning =
   | { code: "missingRate"; categoryIds: string[] }
   | { code: "missingPrice" }
+  /** An undated recurring cost without a span: no planned period and no assignments (rule d). */
+  | { code: "missingPeriod" }
   | { code: "budgetCapExceeded"; revenueCents: number; budgetCapCents: number };
 
 type Hours = {
@@ -211,8 +200,11 @@ type Hours = {
   assignments: { id: string; nominalHours: number; effectiveHours: number }[];
 };
 
-/** What leaves a line undetermined: a category's rate (rule k) or a fixed price (rule l). */
-export type Missing = Extract<Warning, { code: "missingRate" | "missingPrice" }>;
+/**
+ * What leaves a line undetermined: a category's rate (rule k), a fixed price (rule l) or the span of
+ * an undated recurring cost (rule d).
+ */
+export type Missing = Extract<Warning, { code: "missingRate" | "missingPrice" | "missingPeriod" }>;
 
 /**
  * A line that missing data leaves without an amount (never 0), naming everything it misses
@@ -268,8 +260,9 @@ export type CategoryStaffCost = CompleteResult["staffCostByCategory"][number];
 export type CompleteResult = Hours & { complete: true } & Lines<number, number | null>;
 
 /**
- * Some rate or the fixed price is missing: every line that does not need it is computed exactly as
- * in a complete result, and the others are undetermined, never 0 (rules k and l).
+ * Some rate, the fixed price or a recurring cost's span is missing: every line that does not need it
+ * is computed exactly as in a complete result, and the others are undetermined, never 0 (rules d,
+ * k and l).
  */
 export type PartialResult = Hours & { complete: false } & Lines<
     number | Undetermined,
@@ -282,14 +275,16 @@ export type ScenarioResult = CompleteResult | PartialResult;
 export const isDetermined = <T>(line: T | Undetermined): line is T =>
   typeof line !== "object" || line === null || !("undetermined" in line);
 
-/** Everything the lines miss, each category once, rates first. */
+/** Everything the lines miss, each category once: rates first, then the price, then a span. */
 function missingOf(lines: readonly (number | null | Undetermined)[]): Missing[] {
   const categories = new Set<string>();
   let price = false;
+  let period = false;
   for (const line of lines) {
     if (isDetermined(line)) continue;
     for (const missing of line.undetermined) {
       if (missing.code === "missingPrice") price = true;
+      else if (missing.code === "missingPeriod") period = true;
       else for (const category of missing.categoryIds) categories.add(category);
     }
   }
@@ -298,6 +293,7 @@ function missingOf(lines: readonly (number | null | Undetermined)[]): Missing[] 
       ? [{ code: "missingRate" as const, categoryIds: [...categories] }]
       : []),
     ...(price ? [{ code: "missingPrice" as const }] : []),
+    ...(period ? [{ code: "missingPeriod" as const }] : []),
   ];
 }
 
@@ -454,11 +450,15 @@ export function calculateScenario(
       case "fixed":
         return { id: extra.id, amountCents: extra.amountCents };
       case "recurring": {
-        // Validation guarantees a span when the cost has no dates of its own.
-        const start = extra.startDate ?? span?.start;
-        const end = extra.endDate ?? span?.end;
-        if (!start || !end) throw new Error(`No dates to prorate ${extra.id} over`);
-        return { id: extra.id, amountCents: prorated(extra.amountCents, start, end) };
+        // Validation gives a cost both dates or neither; without them it needs the span.
+        const dates =
+          extra.startDate !== undefined && extra.endDate !== undefined
+            ? { start: extra.startDate, end: extra.endDate }
+            : span;
+        const amountCents: number | Undetermined = dates
+          ? prorated(extra.amountCents, dates.start, dates.end)
+          : { undetermined: [{ code: "missingPeriod" }] };
+        return { id: extra.id, amountCents };
       }
       case "percentage": {
         const base = extra.base === "staffCost" ? staffCostCents : revenueCents;
@@ -526,10 +526,12 @@ export function calculateScenario(
     }
   }
 
-  // A missing rate leaves its category's cost undetermined, and a missing price the revenue.
+  // A missing rate leaves its category's cost undetermined, a missing price the revenue and a
+  // missing span an undated recurring cost.
   const warnings: Warning[] = missingOf([
     ...staffCostByCategory.map((line) => line.costCents),
     revenueCents,
+    ...extraCosts.map((extra) => extra.amountCents),
   ]);
   // The cap is judged only against a determined revenue (rule e).
   if (

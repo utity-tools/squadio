@@ -506,6 +506,8 @@ function SummaryWarnings({ warnings }: { warnings: SummaryWarning[] }) {
         });
       case "missingPrice":
         return t("missingPrice.description");
+      case "missingPeriod":
+        return t("missingPeriod.description");
       case "budgetCapExceeded":
         return t("budgetCapExceeded.description", {
           revenue: euros(warning.revenueCents),

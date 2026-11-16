@@ -307,7 +307,8 @@ describe("SummaryLedger", () => {
       categories: string[],
       price = false,
       rates: "cost" | "sellRate" | "both" = "cost",
-    ) => ({ state: "undetermined", missing: { categories, rates, price } }) as const;
+      period = false,
+    ) => ({ state: "undetermined", missing: { categories, rates, price, period } }) as const;
     const noRates = missing(["DevOps Engineer", "Project Manager"]);
     const all = missing(["DevOps Engineer", "Project Manager"], true);
     // DevOps and the PM without a rate, and no price: the senior's line and the extra cost keep
@@ -440,6 +441,41 @@ describe("SummaryLedger", () => {
         ),
       ).toBeInTheDocument();
       expect(screen.getByRole("heading", { name: "Falta el precio" })).toBeVisible();
+    });
+
+    it("says an undated recurring cost misses the planned period, and warns about it", () => {
+      const period = missing([], false, "cost", true);
+      const withoutSpan: Ledger = {
+        ...complete,
+        headline: { ...complete.headline, netMarginCents: period, netMarginBasisPoints: period },
+        figures: { ...complete.figures, totalCostCents: period },
+        lines: complete.lines.map((line) =>
+          line.key === "netMargin"
+            ? { ...line, cents: missing([], true, "cost", true) }
+            : line.key === "extraCost" && line.kind === "recurring"
+              ? { ...line, cents: period }
+              : line.key === "directCost" || line.key === "totalCost"
+                ? { ...line, cents: period }
+                : line,
+        ),
+        warnings: [{ code: "missingPeriod" }],
+      };
+      renderWithIntl(<SummaryLedger ledger={withoutSpan} team={team} pricingModel="fixed" />);
+
+      const statement = within(section("Cuenta de resultados"));
+      const row = (name: string) =>
+        plain(statement.getByRole("rowheader", { name: new RegExp(name) }).parentElement!);
+      expect(row("Cloud")).toBe("Cloud · coste extra mensualPendiente Falta el periodo previsto");
+      expect(row("Coste total")).toBe("Subtotal Coste totalPendiente Falta el periodo previsto");
+      expect(row("Margen neto")).toBe(
+        "Margen netoPendiente Falta el precio. Falta el periodo previsto",
+      );
+      expect(screen.getByRole("heading", { name: "Falta el periodo previsto" })).toBeVisible();
+      expect(
+        screen.getByText(
+          "El escenario no tiene equipo y el proyecto no tiene periodo previsto: los costes recurrentes sin fechas, el coste total, el margen y lo que depende de ellos quedan pendientes.",
+        ),
+      ).toBeInTheDocument();
     });
 
     it("says time-and-materials revenue misses the sell rate, and its margins both", () => {
