@@ -785,8 +785,8 @@
     },
     "hours": "{hours} h",
     "rate": "{amount}/h",
-    "amountWithPercent": "{amount} · {percent}",
-    "amountPercentNotApplicable": "{amount} · % no aplicable",
+    "amountWithPercent": "{amount} · {percent}",
+    "amountPercentNotApplicable": "{amount} · % no aplicable",
     "headline": {
       "netMargin": "Margen neto",
       "percentNotApplicable": "Margen % no aplicable. {reason}",
@@ -820,6 +820,9 @@
       "directMargin": "Margen directo",
       "netMargin": "Margen neto",
       "subtotal": "Subtotal",
+      "marginHint": {
+        "percentNotApplicable": "% no aplicable"
+      },
       "revenueHint": {
         "fixed": "precio cerrado",
         "time_and_materials": "tiempo y materiales"
