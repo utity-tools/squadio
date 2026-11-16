@@ -48,3 +48,11 @@ export function parseHundredthsIn(
  */
 export const parseEuros = (text: string, locale: AmountLocale): number | null =>
   parseHundredthsIn(text, locale, "€", MAX_MONEY_CENTS);
+
+/** Hundredths as a person types them in `locale`: no grouping, decimals only when there are some. */
+export function typedHundredths(hundredths: number, locale: AmountLocale): string {
+  const units = Math.trunc(hundredths / 100);
+  const decimals = hundredths % 100;
+  if (decimals === 0) return String(units);
+  return `${units}${locale === "es" ? "," : "."}${String(decimals).padStart(2, "0")}`;
+}

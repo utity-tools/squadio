@@ -43,6 +43,8 @@ const project = (
   name,
   client: "Demo Client",
   pricingModel,
+  plannedPeriod: null,
+  description: null,
   price: { cents: 20_000_000 },
   scenarios,
 });

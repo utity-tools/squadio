@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { type AmountLocale, parseEuros } from "@/lib/money/euros";
+import { type AmountLocale, parseEuros, typedHundredths as typed } from "@/lib/money/euros";
 import { MAX_MONEY_CENTS } from "@/lib/money/numeric";
 import { parsePercent } from "@/lib/money/percent";
 import { CONSULTANCY_RATE_DEFAULTS } from "@/lib/organizations/consultancy";
@@ -144,14 +144,6 @@ export type CategoryFormValues = {
   manualCostPerHour: string;
   sellRate: string;
 };
-
-/** Hundredths as a person types them in `locale`: no grouping, decimals only when there are some. */
-function typed(hundredths: number, locale: AmountLocale): string {
-  const units = Math.trunc(hundredths / 100);
-  const decimals = hundredths % 100;
-  if (decimals === 0) return String(units);
-  return `${units}${locale === "es" ? "," : "."}${String(decimals).padStart(2, "0")}`;
-}
 
 /**
  * What the form opens with: a category's name and rate to edit, the salary per year, or for a

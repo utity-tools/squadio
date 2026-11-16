@@ -40,6 +40,9 @@ async function readStructure(tx: TenantTransaction) {
         name: projects.name,
         client: projects.client,
         pricingModel: projects.pricingModel,
+        plannedStart: projects.plannedStart,
+        plannedEnd: projects.plannedEnd,
+        description: projects.description,
       })
       .from(projects)
       .orderBy(asc(projects.name), asc(projects.id)),
@@ -297,7 +300,16 @@ async function portfolioIn(
     projects: structure.projects
       .filter((project) => projectId === undefined || project.id === projectId)
       .map((project) => ({
-        ...project,
+        id: project.id,
+        name: project.name,
+        client: project.client,
+        pricingModel: project.pricingModel,
+        description: project.description,
+        // Both or neither (projects_planned_period_check).
+        plannedPeriod:
+          project.plannedStart !== null && project.plannedEnd !== null
+            ? { start: project.plannedStart, end: project.plannedEnd }
+            : null,
         price: money && {
           cents: money.pricing.find((row) => row.projectId === project.id)?.price ?? null,
         },

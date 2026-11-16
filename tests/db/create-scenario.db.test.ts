@@ -35,6 +35,8 @@ beforeAll(async () => {
     client: "Synthetic Bank",
     pricingModel: "fixed",
     priceCents: null,
+    plannedPeriod: null,
+    description: null,
   });
   if (!created.ok) throw new Error("expected the project");
   projectId = created.projectId;

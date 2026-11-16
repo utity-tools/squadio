@@ -1,6 +1,7 @@
 import type { CategoryOccupancy } from "@/lib/bench/category-occupancy";
 import type { MarginStatus, ScenarioResult } from "@/lib/costing/calculate-scenario";
 import { type Amount, amountOf } from "@/lib/summary/summary";
+import type { PlannedPeriod } from "@/lib/projects/project-details";
 
 // docs/domain.md, "The organization at a glance": every project of the organization with its
 // scenarios, costed as the scenario page costs each one. Money is restricted (ADR 0005): without
@@ -31,6 +32,9 @@ export type PortfolioProject = {
   name: string;
   client: string;
   pricingModel: PricingModel;
+  /** Open to everyone: they hold no money (docs/domain.md, "Planned period"). */
+  plannedPeriod: PlannedPeriod | null;
+  description: string | null;
   /** The fixed price or the T&M budget cap, null when it has none. Null without rate access. */
   price: { cents: number | null } | null;
   /** In name order. */

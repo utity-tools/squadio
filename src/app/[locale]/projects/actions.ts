@@ -14,14 +14,21 @@ import {
   newProjectSchema,
 } from "@/lib/projects/new-project";
 
-// The Server Action behind «Nuevo proyecto» (docs/plan.md, v0.3 slice 3). Who acts and in which
-// organization comes from the session, read on the server; the form sends the project and its
-// page's locale, which the price is read in and the new project's page opens in.
+// The Server Action behind «Nuevo proyecto» (docs/plan.md, v0.3 slice 3); editing a project is on
+// its page (`[id]/actions.ts`), with the same form. Who acts and in which organization comes from
+// the session, read on the server; the form sends the project and its page's locale, which the
+// price is read in and the new project's page opens in.
 
-/** Why creating the project did not happen, beyond its fields; the form says so. */
-export type CreateProjectError = "signed-out" | "no-organization" | "no-rate-access" | "failed";
+/** Why saving the project did not happen, beyond its fields; the form says so. */
+export type ProjectFormError =
+  "signed-out" | "no-organization" | "no-rate-access" | "not-found" | "failed";
 
-export type CreateProjectState = { error: CreateProjectError | null; errors: NewProjectErrors };
+/** The project form's state: `saved` once an edit is saved; creating leads to the project. */
+export type ProjectFormState = {
+  saved: boolean;
+  error: ProjectFormError | null;
+  errors: NewProjectErrors;
+};
 
 /** The page's locale, sent by the form: `next/root-params` cannot be read inside an action. */
 const localeSchema = z.enum(routing.locales).catch(routing.defaultLocale);
@@ -33,21 +40,26 @@ function describe(error: unknown): string {
   return `${error.name}${code}`;
 }
 
-const fail = (error: CreateProjectError): CreateProjectState => ({ error, errors: {} });
+const fail = (error: ProjectFormError): ProjectFormState => ({ saved: false, error, errors: {} });
 
 /** Creates a project in the signed-in member's organization, then leads to its page. */
 export async function createNewProject(
-  _previous: CreateProjectState,
+  _previous: ProjectFormState,
   form: FormData,
-): Promise<CreateProjectState> {
+): Promise<ProjectFormState> {
   const locale = localeSchema.parse(form.get("locale"));
   const parsed = newProjectSchema(locale).safeParse({
     name: form.get("name"),
     client: form.get("client"),
     pricingModel: form.get("pricingModel"),
     price: form.get("price"),
+    plannedStart: form.get("plannedStart"),
+    plannedEnd: form.get("plannedEnd"),
+    description: form.get("description"),
   });
-  if (!parsed.success) return { error: null, errors: newProjectErrors(parsed.error) };
+  if (!parsed.success) {
+    return { saved: false, error: null, errors: newProjectErrors(parsed.error) };
+  }
 
   const session = await currentSession();
   if (!session) return fail("signed-out");
@@ -64,5 +76,5 @@ export async function createNewProject(
   }
   // Outside the try: redirect throws to navigate.
   redirect({ href: `/projects/${projectId}`, locale });
-  return { error: null, errors: {} };
+  return { saved: false, error: null, errors: {} };
 }

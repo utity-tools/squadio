@@ -309,6 +309,8 @@
       "close": "Cerrar",
       "name": "Nombre",
       "client": "Cliente",
+      "descriptionField": "Descripción",
+      "descriptionHelp": "Para quien lea la propuesta. Hasta {max} caracteres.",
       "pricingModel": "Modelo de precio",
       "models": {
         "fixed": {
@@ -322,19 +324,46 @@
       },
       "price": "Precio",
       "priceHelp": "Sin precio, ingresos y margen quedarán pendientes.",
+      "period": "Periodo previsto",
+      "periodStart": "Inicio",
+      "periodEnd": "Fin",
+      "periodHelp": "Las asignaciones nuevas empiezan con estas fechas. Es una referencia: nunca limita el equipo.",
       "cancel": "Cancelar",
-      "submit": "Crear proyecto",
-      "submitting": "Creando…",
       "errors": {
         "blank": "Escribe al menos un carácter.",
         "too-long": "Como mucho 100 caracteres.",
         "invalid": "Revisa este campo.",
         "pricingModel": "Elige un modelo de precio.",
         "price": "Escribe un importe en euros mayor que cero, con dos decimales como mucho, o déjalo vacío.",
-        "signed-out": "Tu sesión ha terminado. Entra de nuevo para crear el proyecto.",
-        "no-organization": "Tu cuenta ya no pertenece a ninguna organización.",
-        "no-rate-access": "Crear proyectos necesita acceso a tarifas.",
-        "failed": "No se ha podido crear el proyecto. Inténtalo de nuevo."
+        "description": "Como mucho {max} caracteres.",
+        "date": "Escribe una fecha válida.",
+        "incomplete": "Pon las dos fechas, o ninguna.",
+        "outside-calendar": "Elige una fecha entre {first} y {last}.",
+        "ends-before-start": "El fin no puede ser anterior al inicio."
+      },
+      "create": {
+        "submit": "Crear proyecto",
+        "submitting": "Creando…",
+        "errors": {
+          "signed-out": "Tu sesión ha terminado. Entra de nuevo para crear el proyecto.",
+          "no-organization": "Tu cuenta ya no pertenece a ninguna organización.",
+          "no-rate-access": "Crear proyectos necesita acceso a tarifas.",
+          "failed": "No se ha podido crear el proyecto. Inténtalo de nuevo."
+        }
+      },
+      "edit": {
+        "open": "Editar proyecto",
+        "title": "Editar proyecto",
+        "description": "Lo que cambies aquí lo ven todos los escenarios del proyecto.",
+        "submit": "Guardar cambios",
+        "submitting": "Guardando…",
+        "errors": {
+          "signed-out": "Tu sesión ha terminado. Entra de nuevo para guardar el proyecto.",
+          "no-organization": "Tu cuenta ya no pertenece a ninguna organización.",
+          "no-rate-access": "Editar proyectos necesita acceso a tarifas.",
+          "not-found": "Este proyecto ya no existe en tu organización.",
+          "failed": "No se ha podido guardar el proyecto. Inténtalo de nuevo."
+        }
       }
     }
   },

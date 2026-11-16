@@ -1,9 +1,9 @@
 "use client";
 
 import { useLocale, useTranslations } from "next-intl";
-import { type FormEvent, startTransition, useActionState, useId, useState } from "react";
+import { type FormEvent, useId, useState, useTransition } from "react";
 
-import type { CreateProjectState } from "@/app/[locale]/projects/actions";
+import type { ProjectFormState } from "@/app/[locale]/projects/actions";
 import { Button } from "@/components/ui/button";
 import { Field, controlClassName } from "@/components/ui/field";
 import {
@@ -14,36 +14,52 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { MAX_PROJECT_TEXT, PRICING_MODELS, type PricingModel } from "@/lib/projects/new-project";
+import {
+  MAX_PROJECT_TEXT,
+  type NewProject,
+  PRICING_MODELS,
+  type PricingModel,
+  projectFormValues,
+} from "@/lib/projects/new-project";
+import { CALENDAR_YEARS, MAX_PROJECT_DESCRIPTION } from "@/lib/projects/project-details";
 import { cn } from "@/lib/utils";
 
-/** What the Server Action returns: why the project was not created, or nothing. */
-export type NewProjectState = CreateProjectState;
+/** What the Server Action returns: whether the project was saved, or why not. */
+export type NewProjectState = ProjectFormState;
 
 export type NewProjectAction = (
   previous: NewProjectState,
   form: FormData,
 ) => Promise<NewProjectState>;
 
-const INITIAL: NewProjectState = { error: null, errors: {} };
+const INITIAL: NewProjectState = { saved: false, error: null, errors: {} };
 
-type NewProjectSheetProps = {
-  action: NewProjectAction;
-  /** «Nuevo proyecto» above the list, «Crear proyecto» in the empty state (board 05). */
-  trigger: "new" | "create";
-};
+/** The project being edited: its id, sent with the form, and what it holds now. */
+type EditedProject = { id: string; saved: NewProject };
+
+type NewProjectSheetProps = { action: NewProjectAction } & (
+  | {
+      /** «Nuevo proyecto» above the list, «Crear proyecto» in the empty state (board 05). */
+      trigger: "new" | "create";
+      project?: never;
+    }
+  | { trigger: "edit"; project: EditedProject }
+);
 
 /**
- * «Nuevo proyecto» (board 05): a side sheet with the project's name, client, pricing model and,
- * for a fixed price, its optional price. The Server Action leads to the new project's page; until
- * then the sheet stays open, so a failure is read in it with what was typed kept.
+ * The project form (board 05), to create a project or edit one: a side sheet with the project's
+ * name, client, description, pricing model and, for a fixed price, its optional price, and its
+ * optional planned period. Creating leads to the new project's page; editing closes the sheet once
+ * saved. Until then the sheet stays open, so a failure is read in it with what was typed kept.
  */
-export function NewProjectSheet({ action, trigger }: NewProjectSheetProps) {
+export function NewProjectSheet({ action, trigger, project }: NewProjectSheetProps) {
   const t = useTranslations("Projects.new");
+  const [open, setOpen] = useState(false);
+  const label = { new: t("open"), create: t("openEmpty"), edit: t("edit.open") }[trigger];
   return (
-    <Sheet>
+    <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button>{t(trigger === "new" ? "open" : "openEmpty")}</Button>
+        <Button variant={trigger === "edit" ? "outline" : "default"}>{label}</Button>
       </SheetTrigger>
       <SheetContent
         closeLabel={t("close")}
@@ -56,7 +72,7 @@ export function NewProjectSheet({ action, trigger }: NewProjectSheetProps) {
           name.focus();
         }}
       >
-        <NewProjectForm action={action} />
+        <NewProjectForm action={action} project={project ?? null} onSaved={() => setOpen(false)} />
       </SheetContent>
     </Sheet>
   );
@@ -64,55 +80,103 @@ export function NewProjectSheet({ action, trigger }: NewProjectSheetProps) {
 
 const TEXT = controlClassName();
 const AMOUNT = controlClassName({ numeric: true });
+const FIRST_YEAR = Math.min(...CALENDAR_YEARS);
+const LAST_YEAR = Math.max(...CALENDAR_YEARS);
 
-function NewProjectForm({ action }: { action: NewProjectAction }) {
+type NewProjectFormProps = {
+  action: NewProjectAction;
+  project: EditedProject | null;
+  onSaved: () => void;
+};
+
+function NewProjectForm({ action, project, onSaved }: NewProjectFormProps) {
   const t = useTranslations("Projects.new");
+  const field = useTranslations("Field");
   const locale = useLocale();
-  const [state, formAction, pending] = useActionState(action, INITIAL);
-  const [pricingModel, setPricingModel] = useState<PricingModel>("fixed");
+  const values = projectFormValues(project?.saved ?? null, locale === "en" ? "en" : "es");
+  const [state, setState] = useState(INITIAL);
+  const [pending, startTransition] = useTransition();
+  const [pricingModel, setPricingModel] = useState<PricingModel>(values.pricingModel);
   const id = useId();
   const legendId = `${id}-pricing`;
   const pricingErrorId = `${id}-pricing-error`;
+  const periodId = `${id}-period`;
+  const periodHelpId = `${id}-period-help`;
   const { errors } = state;
+  const mode = project ? "edit" : "create";
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (pending) return;
     // Not the form's `action`: React would reset the fields after it, losing what was typed.
     const data = new FormData(event.currentTarget);
-    startTransition(() => formAction(data));
+    startTransition(async () => {
+      const next = await action(state, data);
+      setState(next);
+      if (next.saved) onSaved();
+    });
   }
+
+  const dateError = (date: "plannedStart" | "plannedEnd") => {
+    const error = errors[date];
+    if (!error) return undefined;
+    if (error === "outside-calendar") {
+      return t("errors.outside-calendar", { first: FIRST_YEAR, last: LAST_YEAR });
+    }
+    if (error === "incomplete" || error === "ends-before-start") return t(`errors.${error}`);
+    return t("errors.date");
+  };
 
   return (
     <form noValidate onSubmit={submit} className="flex min-h-full flex-col">
       <input type="hidden" name="locale" value={locale} />
+      {project && <input type="hidden" name="projectId" value={project.id} />}
       <header className="flex flex-col gap-1 border-b px-6 pe-14 pt-6 pb-4">
-        <SheetTitle className="text-xl">{t("title")}</SheetTitle>
-        <SheetDescription>{t("description")}</SheetDescription>
+        <SheetTitle className="text-xl">{t(project ? "edit.title" : "title")}</SheetTitle>
+        <SheetDescription>{t(project ? "edit.description" : "description")}</SheetDescription>
       </header>
 
       <div className="flex flex-1 flex-col gap-5 px-6 py-5">
-        <Field label={t("name")} error={errors.name && t(`errors.${errors.name}`)}>
+        <Field label={t("name")} error={errors.name && t(`errors.${textError(errors.name)}`)}>
           {(control) => (
             <input
               {...control}
               name="name"
               required
               maxLength={MAX_PROJECT_TEXT}
+              defaultValue={values.name}
               autoComplete="off"
               className={TEXT}
             />
           )}
         </Field>
-        <Field label={t("client")} error={errors.client && t(`errors.${errors.client}`)}>
+        <Field label={t("client")} error={errors.client && t(`errors.${textError(errors.client)}`)}>
           {(control) => (
             <input
               {...control}
               name="client"
               required
               maxLength={MAX_PROJECT_TEXT}
+              defaultValue={values.client}
               autoComplete="off"
               className={TEXT}
+            />
+          )}
+        </Field>
+        <Field
+          label={t("descriptionField")}
+          help={t("descriptionHelp", { max: MAX_PROJECT_DESCRIPTION })}
+          error={errors.description && t("errors.description", { max: MAX_PROJECT_DESCRIPTION })}
+          optional
+        >
+          {(control) => (
+            <textarea
+              {...control}
+              name="description"
+              rows={3}
+              maxLength={MAX_PROJECT_DESCRIPTION}
+              defaultValue={values.description}
+              className={cn(TEXT, "h-auto min-h-18 py-2")}
             />
           )}
         </Field>
@@ -155,6 +219,7 @@ function NewProjectForm({ action }: { action: NewProjectAction }) {
                   {...control}
                   name="price"
                   inputMode="decimal"
+                  defaultValue={values.price}
                   autoComplete="off"
                   className={cn(AMOUNT, "pe-7")}
                 />
@@ -169,9 +234,48 @@ function NewProjectForm({ action }: { action: NewProjectAction }) {
           </Field>
         )}
 
+        {/* docs/domain.md, "Planned period": a reference for new assignments, never a limit. */}
+        <fieldset
+          aria-labelledby={periodId}
+          aria-describedby={periodHelpId}
+          className="flex flex-col gap-1.5"
+        >
+          <legend id={periodId} className="mb-1.5 flex w-full justify-between gap-2 text-sm">
+            <span className="font-medium">{t("period")}</span>{" "}
+            <span className="text-[13px] text-muted-foreground">{field("optional")}</span>
+          </legend>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {(["plannedStart", "plannedEnd"] as const).map((date) => (
+              <Field
+                key={date}
+                label={t(date === "plannedStart" ? "periodStart" : "periodEnd")}
+                error={dateError(date)}
+              >
+                {(control) => (
+                  <input
+                    {...control}
+                    type="date"
+                    name={date}
+                    min={`${FIRST_YEAR}-01-01`}
+                    max={`${LAST_YEAR}-12-31`}
+                    defaultValue={values[date]}
+                    className={cn(TEXT, "font-mono tabular-nums")}
+                  />
+                )}
+              </Field>
+            ))}
+          </div>
+          <p id={periodHelpId} className="text-[13px] text-muted-foreground">
+            {t("periodHelp")}
+          </p>
+        </fieldset>
+
         {state.error && (
           <p role="alert" className="text-[13px] text-status-bad-text">
-            {t(`errors.${state.error}`)}
+            {project
+              ? t(`edit.errors.${state.error}`)
+              : // Only an edit finds no project.
+                t(`create.errors.${state.error === "not-found" ? "failed" : state.error}`)}
           </p>
         )}
       </div>
@@ -184,12 +288,16 @@ function NewProjectForm({ action }: { action: NewProjectAction }) {
         </SheetClose>
         {/* Marked unavailable rather than disabled while it works, so it keeps the focus. */}
         <Button type="submit" aria-disabled={pending} className="aria-disabled:opacity-50">
-          {t(pending ? "submitting" : "submit")}
+          {t(pending ? `${mode}.submitting` : `${mode}.submit`)}
         </Button>
       </footer>
     </form>
   );
 }
+
+/** A name's or client's error: the period's errors never reach them. */
+const textError = (error: string): "blank" | "too-long" | "invalid" =>
+  error === "blank" || error === "too-long" ? error : "invalid";
 
 type PricingCardProps = { model: PricingModel; checked: boolean; onChange: () => void };
 

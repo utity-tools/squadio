@@ -1,6 +1,14 @@
 import { z } from "zod";
 
-import { type AmountLocale, parseEuros } from "@/lib/money/euros";
+import { type AmountLocale, parseEuros, typedHundredths } from "@/lib/money/euros";
+
+import {
+  type DescriptionError,
+  type PlannedPeriod,
+  type PlannedPeriodError,
+  descriptionSchema,
+  plannedPeriodSchema,
+} from "./project-details";
 
 /** The longest name or client, as long as any other name people read (src/db/schema.ts). */
 export const MAX_PROJECT_TEXT = 100;
@@ -10,17 +18,22 @@ export const PRICING_MODELS = ["fixed", "time_and_materials"] as const;
 
 export type PricingModel = (typeof PRICING_MODELS)[number];
 
-/** A project as the «Nuevo proyecto» form creates it. */
+/** A project as the project form creates or edits it. */
 export type NewProject = {
   name: string;
   client: string;
   pricingModel: PricingModel;
   /** A fixed price's price; null when it is not known yet, and always null in T&M. */
   priceCents: number | null;
+  /** Null without one: new assignments then span the project span (docs/domain.md, "Changes"). */
+  plannedPeriod: PlannedPeriod | null;
+  description: string | null;
 };
 
-export type NewProjectField = "name" | "client" | "pricingModel" | "price";
-export type NewProjectError = "blank" | "too-long" | "invalid";
+export type NewProjectField =
+  "name" | "client" | "pricingModel" | "price" | "plannedStart" | "plannedEnd" | "description";
+export type NewProjectError =
+  "blank" | "too-long" | "invalid" | PlannedPeriodError | DescriptionError;
 export type NewProjectErrors = Partial<Record<NewProjectField, NewProjectError>>;
 
 const text = z
@@ -46,9 +59,10 @@ const price = (locale: AmountLocale) =>
     });
 
 /**
- * A new project as the form sends it: name, client, pricing model and, for a fixed price, the
- * price typed in `locale`. A price sent with time and materials is dropped: its budget cap is not
- * part of this form. Issues carry a NewProjectError as their message.
+ * A project as the form sends it: name, client, pricing model, for a fixed price the price typed
+ * in `locale`, and the optional planned period and description. A price sent with time and
+ * materials is dropped: its budget cap is not part of this form. Issues carry a NewProjectError
+ * as their message.
  */
 export const newProjectSchema = (locale: AmountLocale) =>
   z
@@ -57,16 +71,68 @@ export const newProjectSchema = (locale: AmountLocale) =>
       client: text,
       pricingModel: z.enum(PRICING_MODELS, { error: "invalid" }),
       price: price(locale),
+      description: descriptionSchema,
     })
-    .transform(({ name, client, pricingModel, price: priceCents }): NewProject => ({
-      name,
-      client,
-      pricingModel,
-      priceCents: pricingModel === "fixed" ? priceCents : null,
-    }));
+    .and(plannedPeriodSchema.transform((plannedPeriod) => ({ plannedPeriod })))
+    .transform(
+      ({
+        name,
+        client,
+        pricingModel,
+        price: priceCents,
+        plannedPeriod,
+        description,
+      }): NewProject => ({
+        name,
+        client,
+        pricingModel,
+        priceCents: pricingModel === "fixed" ? priceCents : null,
+        plannedPeriod,
+        description,
+      }),
+    );
 
-const FIELDS: readonly string[] = ["name", "client", "pricingModel", "price"];
-const ERRORS: readonly string[] = ["blank", "too-long", "invalid"];
+/** What the project form's fields hold, as typed. */
+export type ProjectFormValues = Record<Exclude<NewProjectField, "pricingModel">, string> & {
+  pricingModel: PricingModel;
+};
+
+/**
+ * What the form opens with: a project to edit, its price typed in `locale`, or an empty fixed
+ * price project.
+ */
+export function projectFormValues(
+  project: NewProject | null,
+  locale: AmountLocale,
+): ProjectFormValues {
+  return {
+    name: project?.name ?? "",
+    client: project?.client ?? "",
+    pricingModel: project?.pricingModel ?? "fixed",
+    price: project?.priceCents == null ? "" : typedHundredths(project.priceCents, locale),
+    plannedStart: project?.plannedPeriod?.start ?? "",
+    plannedEnd: project?.plannedPeriod?.end ?? "",
+    description: project?.description ?? "",
+  };
+}
+
+const FIELDS: readonly string[] = [
+  "name",
+  "client",
+  "pricingModel",
+  "price",
+  "plannedStart",
+  "plannedEnd",
+  "description",
+];
+const ERRORS: readonly string[] = [
+  "blank",
+  "too-long",
+  "invalid",
+  "incomplete",
+  "outside-calendar",
+  "ends-before-start",
+];
 
 /** The first error of each field, for the form to show next to it. */
 export function newProjectErrors(error: z.ZodError): NewProjectErrors {
