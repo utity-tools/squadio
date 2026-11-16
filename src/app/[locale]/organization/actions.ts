@@ -2,13 +2,14 @@
 
 import { refresh } from "next/cache";
 import { cookies } from "next/headers";
+import { z } from "zod";
 
 import { currentSession } from "@/auth/session";
 import { db } from "@/db/client";
 import { deleteAccount, deleteMemberOrganization } from "@/db/delete-organization";
 import { adoptVisitorCopy, createEmptyOrganization } from "@/db/start-organization";
-import { currentLocale } from "@/i18n/locale";
 import { redirect } from "@/i18n/navigation";
+import { routing } from "@/i18n/routing";
 import { organizationNameSchema } from "@/lib/organizations/name";
 import { VISITOR_COOKIE } from "@/lib/visitors/token";
 
@@ -99,11 +100,17 @@ export async function deleteOrganization(): Promise<DeleteState> {
   return { error: null };
 }
 
+/** The page's locale, sent by the form: `next/root-params` cannot be read inside an action. */
+const localeSchema = z.enum(routing.locales).catch(routing.defaultLocale);
+
 /**
  * Deletes the session's account and the organizations it was the only owner of, then leads to the
- * landing. Its sessions go with it, so the session cookie leads nowhere.
+ * landing in the form's locale. Its sessions go with it, so the session cookie leads nowhere.
  */
-export async function deleteOwnAccount(): Promise<DeleteState> {
+export async function deleteOwnAccount(
+  _previous: DeleteState,
+  form: FormData,
+): Promise<DeleteState> {
   const session = await currentSession();
   if (!session) return { error: "signed-out" };
   try {
@@ -113,6 +120,6 @@ export async function deleteOwnAccount(): Promise<DeleteState> {
     return { error: "failed" };
   }
   // Outside the try: redirect throws to navigate.
-  redirect({ href: "/", locale: await currentLocale() });
+  redirect({ href: "/", locale: localeSchema.parse(form.get("locale")) });
   return { error: null };
 }

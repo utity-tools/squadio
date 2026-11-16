@@ -1,7 +1,7 @@
 "use client";
 
 import { Trash2Icon } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useActionState, useId, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -20,7 +20,8 @@ import { controlClassName } from "@/components/ui/field";
 /** What a delete form's Server Action returns: why it did not delete, or null. */
 export type DeleteFormState = { error: "signed-out" | "no-organization" | "failed" | null };
 
-export type DeleteAction = (previous: DeleteFormState) => Promise<DeleteFormState>;
+/** The form sends the page's locale, so an action that navigates knows where to lead. */
+export type DeleteAction = (previous: DeleteFormState, form: FormData) => Promise<DeleteFormState>;
 
 const INITIAL: DeleteFormState = { error: null };
 
@@ -40,6 +41,7 @@ type DeleteDialogProps = {
  */
 function DeleteDialog({ kind, action, confirmName }: DeleteDialogProps) {
   const t = useTranslations("Organization.delete");
+  const locale = useLocale();
   const [state, formAction, pending] = useActionState(action, INITIAL);
   const [typed, setTyped] = useState("");
   const input = useRef<HTMLInputElement>(null);
@@ -79,6 +81,7 @@ function DeleteDialog({ kind, action, confirmName }: DeleteDialogProps) {
           }}
           className="flex flex-col gap-5"
         >
+          <input type="hidden" name="locale" value={locale} />
           {confirmName !== undefined && (
             <div className="flex flex-col gap-1.5">
               <label htmlFor={inputId} className="text-sm font-medium">
