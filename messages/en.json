@@ -371,6 +371,7 @@
     "title": "Project",
     "loading": "Loading the project…",
     "client": "Client",
+    "plannedPeriod": "Planned period",
     "pricingModel": "Pricing model",
     "price": "Price",
     "cap": "Budget cap",

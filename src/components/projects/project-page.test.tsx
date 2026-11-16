@@ -16,8 +16,8 @@ vi.mock("@/i18n/navigation", () => ({
   ),
 }));
 
-// The read-only project page: board 06's header, without «Editar proyecto», and the project's
-// scenarios, each leading to the editor. Synthetic names and figures.
+// The project page: board 06's header, with the planned period and the description, and the
+// project's scenarios, each leading to the editor. Synthetic names and figures.
 
 const scenario = (overrides: Partial<PortfolioScenario> & { id: string; name: string }) => ({
   chosen: false,
@@ -51,6 +51,8 @@ const withoutRates: PortfolioProject = {
 };
 
 const categories = [{ id: "data", name: "Data Engineer" }];
+/** The definition after a term of the header. */
+const periodOf = (term: string) => screen.getByText(term, { selector: "dt" }).nextElementSibling!;
 const plain = (element: Element) => element.textContent?.replace(/[  ]/g, " ") ?? "";
 
 describe("ProjectHeader", () => {
@@ -83,6 +85,39 @@ describe("ProjectHeader", () => {
     renderWithIntl(<ProjectHeader project={{ ...portal, price: { cents: null } }} />);
 
     expect(screen.getByText("Falta el precio")).toHaveAttribute("data-tone", "pending");
+  });
+
+  it("shows the planned period and the description, the same without rate access", () => {
+    const planned = {
+      ...withoutRates,
+      plannedPeriod: { start: "2027-04-01", end: "2027-09-30" },
+      description: "A portal for the bank's clients.\nPhase one.",
+    };
+    renderWithIntl(<ProjectHeader project={planned} />);
+
+    expect(plain(periodOf("Periodo previsto"))).toBe("1 abr – 30 sept 2027");
+    const description = screen.getByText(/A portal for the bank's clients/);
+    expect(description).toHaveTextContent("A portal for the bank's clients. Phase one.", {
+      normalizeWhitespace: true,
+    });
+    expect(description).toHaveClass("whitespace-pre-line");
+  });
+
+  it("shows neither without a planned period or a description", () => {
+    renderWithIntl(<ProjectHeader project={portal} />);
+
+    expect(screen.queryByText("Periodo previsto")).toBeNull();
+  });
+
+  it("speaks English under /en", () => {
+    renderWithIntl(
+      <ProjectHeader
+        project={{ ...portal, plannedPeriod: { start: "2027-04-01", end: "2027-09-30" } }}
+      />,
+      { locale: "en" },
+    );
+
+    expect(plain(periodOf("Planned period"))).toBe("Apr 1 – Sep 30, 2027");
   });
 
   it("shows no price without rate access", () => {
