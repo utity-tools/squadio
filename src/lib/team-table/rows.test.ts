@@ -22,6 +22,7 @@ const card = (id: string, hours: Partial<AssignmentCard> = {}): AssignmentCard =
   nominalHours: 100,
   effectiveHours: 90,
   missingRate: false,
+  outsidePeriod: null,
   ...hours,
 });
 

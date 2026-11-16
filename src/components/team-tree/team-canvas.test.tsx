@@ -203,7 +203,9 @@ describe("TeamCanvas", () => {
   });
 
   it("marks the nodes whose category has no rate with an icon and text", () => {
-    const cards = assignmentCards(guideTeam, guideHours, guideSpan, new Set(["c-senior"]));
+    const cards = assignmentCards(guideTeam, guideHours, guideSpan, {
+      withoutRate: new Set(["c-senior"]),
+    });
     renderWithIntl(<Stateful cards={cards} />);
 
     const lead = node(/^Tech lead/);
@@ -220,6 +222,35 @@ describe("TeamCanvas", () => {
     );
     expect(lead.querySelector("[data-missing-rate] svg")).toHaveClass("text-status-warn");
     expect(node(/^Project manager/)).not.toHaveTextContent("Falta el coste");
+  });
+
+  it("flags the nodes outside the planned period, with how far outside they fall", () => {
+    const plannedPeriod = { start: "2027-04-15", end: "2027-09-29" };
+    const cards = assignmentCards(guideTeam, guideHours, guideSpan, { plannedPeriod });
+    renderWithIntl(<Stateful cards={cards} />);
+
+    const lead = node(/^Tech lead/);
+    expect(lead).toHaveAccessibleName(
+      lines(
+        "Tech lead",
+        "Senior Developer 1",
+        "Senior Developer",
+        "Fuera del periodo",
+        "Empieza 14 días antes del periodo previsto",
+        "100 %",
+        "40 h/sem",
+        "897,5 h efectivas",
+      ),
+    );
+    expect(lead.querySelector("[data-outside-period] svg")).toHaveClass("text-status-warn");
+  });
+
+  it("flags no node within the planned period", () => {
+    const plannedPeriod = { start: "2027-01-01", end: "2027-12-31" };
+    const cards = assignmentCards(guideTeam, guideHours, guideSpan, { plannedPeriod });
+    renderWithIntl(<Stateful cards={cards} />);
+
+    expect(screen.queryByText("Fuera del periodo")).not.toBeInTheDocument();
   });
 
   it("marks no node when every category has a rate", () => {

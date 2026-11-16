@@ -1,4 +1,6 @@
 import type { Warning } from "@/lib/costing/calculate-scenario";
+import type { PlannedPeriod } from "@/lib/projects/project-details";
+import { type OutsidePeriod, outsidePeriod } from "@/lib/scenarios/period-flags";
 import type { ProjectSpan } from "@/lib/scenarios/project-span";
 
 // docs/design/canvas-brief.md, "Tree view": what a node card shows. Structure and hours only, never
@@ -29,6 +31,11 @@ export type AssignmentCard = {
    * access.
    */
   missingRate: boolean;
+  /**
+   * How far the assignment falls outside the project's planned period, flagged but never refused
+   * (docs/domain.md, "Planned period"); null within it or without one. Open to everyone.
+   */
+  outsidePeriod: OutsidePeriod | null;
 };
 
 type Assignment = {
@@ -46,15 +53,19 @@ type AssignmentHours = { id: string; nominalHours: number; effectiveHours: numbe
 
 const NO_CATEGORIES: ReadonlySet<string> = new Set();
 
-/**
- * One card per assignment, in the team's order; the hours come from the engine. `withoutRate`
- * holds the categories without a rate, which only a user with rate access may know.
- */
+type CardOptions = {
+  /** The categories without a rate, which only a user with rate access may know. */
+  withoutRate?: ReadonlySet<string>;
+  /** The project's, which flags the assignments outside it. */
+  plannedPeriod?: PlannedPeriod | null;
+};
+
+/** One card per assignment, in the team's order; the hours come from the engine. */
 export function assignmentCards(
   team: readonly Assignment[],
   hours: readonly AssignmentHours[],
   span: ProjectSpan | null,
-  withoutRate: ReadonlySet<string> = NO_CATEGORIES,
+  { withoutRate = NO_CATEGORIES, plannedPeriod = null }: CardOptions = {},
 ): AssignmentCard[] {
   const hoursOf = new Map(hours.map((line) => [line.id, line]));
   return team.map((assignment) => {
@@ -73,6 +84,7 @@ export function assignmentCards(
       nominalHours: line.nominalHours,
       effectiveHours: line.effectiveHours,
       missingRate: withoutRate.has(assignment.category.id),
+      outsidePeriod: outsidePeriod(assignment, plannedPeriod),
     };
   });
 }

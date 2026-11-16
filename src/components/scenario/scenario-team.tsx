@@ -4,6 +4,8 @@ import { Suspense } from "react";
 
 import type { TeamAssignment } from "@/lib/scenarios/scenario-view";
 import { type LayoutError, layoutTeam } from "@/lib/layout/compact-layout";
+import type { PlannedPeriod } from "@/lib/projects/project-details";
+import { uncoveredPeriod } from "@/lib/scenarios/period-flags";
 import type { ProjectSpan } from "@/lib/scenarios/project-span";
 import { type AssignmentCard, assignmentCards } from "@/lib/team-tree/cards";
 import { cn } from "@/lib/utils";
@@ -24,6 +26,8 @@ export type ScenarioTeamProps = {
   withoutRate?: ReadonlySet<string>;
   /** A chosen scenario's team is locked; with rate access, its costs and rates are frozen. */
   locked?: "frozen" | "chosen";
+  /** The project's: what falls outside it is flagged on the team, never refused. */
+  plannedPeriod?: PlannedPeriod | null;
 };
 
 /**
@@ -31,9 +35,16 @@ export type ScenarioTeamProps = {
  * assignments the layout cannot draw, or else the tree and table views of the canvas brief. The
  * cards and the layout are computed once, here, for both views.
  */
-export function ScenarioTeam({ team, hours, span, withoutRate, locked }: ScenarioTeamProps) {
+export function ScenarioTeam({
+  team,
+  hours,
+  span,
+  withoutRate,
+  locked,
+  plannedPeriod = null,
+}: ScenarioTeamProps) {
   if (team.length === 0) return <EmptyTeam />;
-  const cards = assignmentCards(team, hours, span, withoutRate);
+  const cards = assignmentCards(team, hours, span, { withoutRate, plannedPeriod });
   const layout = layoutTeam(team);
   if (!layout.ok) return <UndrawableTeam error={layout.error} cards={cards} />;
   return (
@@ -44,6 +55,7 @@ export function ScenarioTeam({ team, hours, span, withoutRate, locked }: Scenari
         nodes={layout.nodes}
         cards={cards}
         locked={locked}
+        uncovered={uncoveredPeriod(team, plannedPeriod)}
       />
     </Suspense>
   );

@@ -43,6 +43,7 @@ import type { TeamEditing } from "@/components/team-editing/team-editing";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useDayRange } from "@/components/format/use-day-range";
+import { useOutsidePeriodDetail } from "@/components/team-views/period-flags";
 import { type LayoutNode, NODE_HEIGHT, NODE_WIDTH } from "@/lib/layout/compact-layout";
 import type { AssignmentCard } from "@/lib/team-tree/cards";
 import { type Point, edgePath, teamEdges } from "@/lib/team-tree/edges";
@@ -352,6 +353,8 @@ function AssignmentNode({ data: { card, selected, onPath, tabbable } }: NodeProp
   const t = useTranslations("TeamTree");
   const format = useFormatter();
   const dayRange = useDayRange();
+  const outsideDetail = useOutsidePeriodDetail();
+  const tPeriod = useTranslations("PlannedPeriod");
   const { select, tooltips, editing, menuFor, setMenuFor } = useContext(CanvasContext);
   const drag = useTeamDrag();
   const { dragged, over } = useDragState();
@@ -436,6 +439,18 @@ function AssignmentNode({ data: { card, selected, onPath, tabbable } }: NodeProp
                   </span>
                 </>
               )}
+              {card.outsidePeriod && (
+                <>
+                  <Pause />
+                  <span data-outside-period="" className="flex shrink-0 items-center gap-0.5">
+                    <TriangleAlertIcon aria-hidden className="size-3.5 text-status-warn" />
+                    {tPeriod("outside")}
+                  </span>
+                  <Pause />
+                  {/* The card has no room for it: the tooltip shows it. */}
+                  <span className="sr-only">{outsideDetail(card.outsidePeriod)}</span>
+                </>
+              )}
             </span>
             <Pause />
             <span className="w-full truncate text-xs leading-4 text-muted-foreground">
@@ -463,6 +478,7 @@ function AssignmentNode({ data: { card, selected, onPath, tabbable } }: NodeProp
           <span className="block">{person}</span>
           <span className="block">{card.category}</span>
           {card.missingRate && <span className="block">{t("missingRateDetail")}</span>}
+          {card.outsidePeriod && <span className="block">{outsideDetail(card.outsidePeriod)}</span>}
           <span className="block">{t("nominalHours", { hours: hours(card.nominalHours) })}</span>
         </TooltipContent>
       </Tooltip>

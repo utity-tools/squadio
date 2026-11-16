@@ -19,9 +19,11 @@ import {
   queryWithView,
   viewInQuery,
 } from "@/lib/team-views/query";
+import type { UncoveredPeriod } from "@/lib/scenarios/period-flags";
 import type { AssignmentCard } from "@/lib/team-tree/cards";
 import { treeNavigation } from "@/lib/team-tree/navigation";
 
+import { UncoveredPeriodNote } from "./period-flags";
 import { useWideScreen } from "./use-wide-screen";
 import { ViewSwitch } from "./view-switch";
 
@@ -34,6 +36,8 @@ export type TeamViewsProps = {
    * rates are frozen too.
    */
   locked?: "frozen" | "chosen";
+  /** How much of the planned period the team leaves uncovered, if any: flagged, never refused. */
+  uncovered?: UncoveredPeriod | null;
 };
 
 /**
@@ -46,7 +50,7 @@ export type TeamViewsProps = {
  * menu, the bar an "Add to team…" button, and the focus manager's requests select the assignment a
  * step touched and, when asked, focus it.
  */
-export function TeamViews({ team, nodes, cards, locked }: TeamViewsProps) {
+export function TeamViews({ team, nodes, cards, locked, uncovered = null }: TeamViewsProps) {
   const query = useSearchParams();
   const ids = team.map(({ id }) => id);
   // The URL only seeds this state. The app router updates `useSearchParams` inside a transition,
@@ -146,6 +150,7 @@ export function TeamViews({ team, nodes, cards, locked }: TeamViewsProps) {
         <ViewSwitch view={view} onViewChange={changeView} />
         {editing && <AddToTeamButton editing={editing} />}
         {locked && <LockedNote locked={locked} />}
+        {uncovered && <UncoveredPeriodNote uncovered={uncovered} />}
       </ViewBar>
       {view === "tree" && (
         <div className="min-h-96 flex-1">

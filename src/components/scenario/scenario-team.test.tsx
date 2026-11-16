@@ -50,6 +50,28 @@ describe("ScenarioTeam", () => {
     expect(node(/^Tech lead/)).not.toHaveTextContent("Falta el coste");
   });
 
+  it("flags what falls outside the planned period, and what the team leaves uncovered", () => {
+    // The demo's First draft: a team until 29 September in a period until 31 December.
+    const plannedPeriod = { start: "2027-03-29", end: "2027-12-31" };
+    renderWithIntl(<ScenarioTeam {...guide} plannedPeriod={plannedPeriod} />);
+
+    expect(
+      screen.getByText(
+        "El equipo empieza 3 días después y acaba 93 días antes del periodo previsto",
+      ),
+    ).toBeVisible();
+    // Never refused: every assignment lies within the period, so none is flagged.
+    expect(screen.queryByText("Fuera del periodo")).not.toBeInTheDocument();
+  });
+
+  it("flags the assignments outside the planned period", () => {
+    const plannedPeriod = { start: "2027-05-01", end: "2027-09-29" };
+    renderWithIntl(<ScenarioTeam {...guide} plannedPeriod={plannedPeriod} />);
+
+    expect(node(/^Tech lead/)).toHaveTextContent("Fuera del periodo");
+    expect(screen.queryByText(/El equipo/)).not.toBeInTheDocument();
+  });
+
   it("marks nothing without the categories missing a rate", () => {
     stubHistory("/scenarios/guide?view=table");
     renderWithIntl(<ScenarioTeam {...guide} />);

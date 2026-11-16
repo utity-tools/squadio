@@ -340,13 +340,28 @@ describe("TeamTable", () => {
   });
 
   it("marks the rows whose category has no rate with an icon and text", () => {
-    const cards = assignmentCards(team, hours, span, new Set(["c-senior"]));
+    const cards = assignmentCards(team, hours, span, { withoutRate: new Set(["c-senior"]) });
     renderWithIntl(<Stateful cards={cards} />);
 
     const category = within(row("Tech lead")).getAllByRole("gridcell")[2]!;
     expect(category).toHaveTextContent("Senior Developer, Falta el coste");
     expect(category.querySelector("[data-missing-rate] svg")).toHaveClass("text-status-warn");
     expect(cells("Project manager")[2]).toBe("Project Manager");
+  });
+
+  it("flags the rows outside the planned period in their dates, with how far outside", () => {
+    const plannedPeriod = { start: "2027-04-01", end: "2027-06-15" };
+    const cards = assignmentCards(team, hours, span, { plannedPeriod });
+    renderWithIntl(<Stateful cards={cards} />);
+
+    const dates = within(row("Tech lead")).getAllByRole("gridcell")[6]!;
+    expect(dates).toHaveTextContent(
+      "Todo el proyecto, Acaba 106 días después del periodo previsto",
+    );
+    expect(dates.querySelector("[data-outside-period] svg")).toHaveClass("text-status-warn");
+    expect(within(row("Frontend Developer")).getAllByRole("gridcell")[6]).toHaveTextContent(
+      "Acaba 15 días después del periodo previsto",
+    );
   });
 
   it("marks no row when every category has a rate", () => {
