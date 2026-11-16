@@ -48,7 +48,8 @@ export type Amount =
   | number
   | {
       state: "undetermined";
-      missing: { categories: string[]; rates: MissingRates; price: boolean };
+      /** `period`: an undated recurring cost has no span, without a planned period or team. */
+      missing: { categories: string[]; rates: MissingRates; price: boolean; period: boolean };
     }
   | { state: "notApplicable"; reason: "noRevenue" | "noEffectiveHours" };
 
@@ -85,6 +86,7 @@ export type CategoryLine = {
 export type SummaryWarning =
   | { code: "missingRate"; categories: string[]; sellRates: boolean }
   | { code: "missingPrice" }
+  | { code: "missingPeriod" }
   | { code: "budgetCapExceeded"; revenueCents: number; budgetCapCents: number };
 
 /**
@@ -143,6 +145,7 @@ export function amountOf(
       categories,
       rates: categories.length > 0 ? rates : "cost",
       price: line.undetermined.some((missing) => missing.code === "missingPrice"),
+      period: line.undetermined.some((missing) => missing.code === "missingPeriod"),
     },
   };
 }

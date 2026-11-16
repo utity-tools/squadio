@@ -189,9 +189,10 @@ describe("ledger", () => {
       categories: string[],
       price = false,
       rates: "cost" | "sellRate" | "both" = "cost",
+      period = false,
     ) => ({
       state: "undetermined",
-      missing: { categories, rates, price },
+      missing: { categories, rates, price, period },
     });
     const noRates = missing(["Project Manager", "DevOps Engineer"]);
 
@@ -284,6 +285,41 @@ describe("ledger", () => {
       expect(ledger({ ...input, result: withNeither }).headline.netMarginCents).toEqual(
         missing(["DevOps Engineer", "Project Manager"], true),
       );
+    });
+
+    it("names a missing planned period, alone or with the price (rule d)", () => {
+      const period = { undetermined: [{ code: "missingPeriod" as const }] };
+      const withoutSpan: PartialResult = {
+        ...complete,
+        complete: false,
+        extraCosts: [
+          { id: "cloud", amountCents: period },
+          { id: "licence", amountCents: 50_000 },
+        ],
+        directCostCents: period,
+        bufferCents: period,
+        totalCostCents: period,
+        directMarginCents: period,
+        directMarginBasisPoints: period,
+        netMarginCents: {
+          undetermined: [{ code: "missingPrice" }, { code: "missingPeriod" }],
+        },
+        netMarginBasisPoints: period,
+        marginStatus: null,
+        warnings: [{ code: "missingPrice" }, { code: "missingPeriod" }],
+      };
+      const summary = ledger({ ...input, result: withoutSpan });
+
+      expect(summary.lines).toContainEqual({
+        key: "extraCost",
+        id: "cloud",
+        label: "Cloud",
+        kind: "recurring",
+        cents: missing([], false, "cost", true),
+      });
+      expect(summary.figures.totalCostCents).toEqual(missing([], false, "cost", true));
+      expect(summary.headline.netMarginCents).toEqual(missing([], true, "cost", true));
+      expect(summary.warnings).toEqual([{ code: "missingPrice" }, { code: "missingPeriod" }]);
     });
 
     it("says time-and-materials revenue misses the sell rate, and its margins both", () => {

@@ -59,7 +59,7 @@ export function corrections(portfolio: Portfolio): Correction[] {
         }
       } else if (warning.code === "missingPrice") {
         collect(prices, found.project.id, found);
-      } else {
+      } else if (warning.code === "budgetCapExceeded") {
         collect(caps, found.project.id, found);
       }
     }

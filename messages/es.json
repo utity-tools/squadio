@@ -818,6 +818,8 @@
       "sellRate": "{count, plural, one {Falta la tarifa de venta de {categories}} other {Faltan las tarifas de venta de {categories}}}",
       "rateAndSellRate": "{count, plural, one {Faltan el coste y la tarifa de venta de {categories}} other {Faltan los costes y las tarifas de venta de {categories}}}",
       "price": "Falta el precio",
+      "period": "Falta el periodo previsto",
+      "withPeriod": "{rest}. Falta el periodo previsto",
       "rateAndPrice": "{count, plural, one {Falta el coste de {categories}} other {Faltan los costes de {categories}}}. Falta el precio",
       "ownRate": "Falta el coste"
     },
@@ -896,6 +898,10 @@
       "missingPrice": {
         "title": "Falta el precio",
         "description": "El proyecto es de precio cerrado y no tiene precio: los ingresos, el margen y lo que depende de ellos quedan pendientes."
+      },
+      "missingPeriod": {
+        "title": "Falta el periodo previsto",
+        "description": "El escenario no tiene equipo y el proyecto no tiene periodo previsto: los costes recurrentes sin fechas, el coste total, el margen y lo que depende de ellos quedan pendientes."
       },
       "budgetCapExceeded": {
         "title": "Tope de presupuesto superado",
