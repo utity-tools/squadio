@@ -10,6 +10,8 @@ const mocks = vi.hoisted(() => ({
   createCategory: vi.fn(),
   updateCategory: vi.fn(),
   refresh: vi.fn(),
+  createScenario: vi.fn(),
+  redirect: vi.fn(),
 }));
 vi.mock("@/db/client", () => ({ db: { client: "app" } }));
 vi.mock("@/auth/session", () => ({ currentSession: async () => mocks.session }));
@@ -22,8 +24,10 @@ vi.mock("@/db/categories", () => ({
   updateCategory: mocks.updateCategory,
 }));
 vi.mock("next/cache", () => ({ refresh: mocks.refresh }));
+vi.mock("@/db/create-scenario", () => ({ createScenario: mocks.createScenario }));
+vi.mock("@/i18n/navigation", () => ({ redirect: mocks.redirect }));
 
-const { saveCategory } = await import("./actions");
+const { createNewScenario, saveCategory } = await import("./actions");
 
 const organizationId = "0b5e0c1e-0000-4000-8000-000000000002";
 const categoryId = "0b5e0c1e-0000-4000-8000-000000000003";
@@ -65,6 +69,8 @@ beforeEach(() => {
   mocks.createCategory.mockReset();
   mocks.updateCategory.mockReset();
   mocks.refresh.mockReset();
+  mocks.createScenario.mockReset();
+  mocks.redirect.mockReset();
 });
 
 describe("saveCategory", () => {
@@ -144,6 +150,55 @@ describe("saveCategory", () => {
     mocks.createCategory.mockRejectedValue(new Error("DevOps Engineer"));
     expect((await saveCategory(initial, form(devOps))).error).toBe("failed");
     expect(log).toHaveBeenCalledWith("saveCategory failed: Error");
+    log.mockRestore();
+  });
+});
+
+const projectId = "0b5e0c1e-0000-4000-8000-000000000004";
+
+describe("createNewScenario", () => {
+  it("creates the project's next scenario, named in the form's locale, and opens it", async () => {
+    mocks.member = { organizationId, capabilities: { rateAccess: false } };
+    mocks.createScenario.mockResolvedValue({ ok: true, scenarioId: "s" });
+    await createNewScenario({ error: null }, form({ projectId, locale: "en" }));
+    expect(mocks.createScenario).toHaveBeenCalledWith(
+      { client: "app" },
+      { organizationId, rateAccess: false },
+      projectId,
+      "Scenario",
+    );
+    expect(mocks.redirect).toHaveBeenCalledWith({ href: "/scenarios/s", locale: "en" });
+  });
+
+  it("refuses a project id that is not one, or a project of another organization", async () => {
+    expect(await createNewScenario({ error: null }, form({ projectId: "x" }))).toEqual({
+      error: "not-found",
+    });
+    mocks.createScenario.mockResolvedValue({ ok: false, reason: "not-found" });
+    expect(await createNewScenario({ error: null }, form({ projectId }))).toEqual({
+      error: "not-found",
+    });
+    expect(mocks.redirect).not.toHaveBeenCalled();
+  });
+
+  it("refuses a signed-out request and an account without an organization", async () => {
+    mocks.session = null;
+    expect((await createNewScenario({ error: null }, form({ projectId }))).error).toBe(
+      "signed-out",
+    );
+    mocks.session = { userId: "u", sessionId: "s", activeOrganizationId: null };
+    mocks.member = null;
+    expect((await createNewScenario({ error: null }, form({ projectId }))).error).toBe(
+      "no-organization",
+    );
+    expect(mocks.createScenario).not.toHaveBeenCalled();
+  });
+
+  it("says it failed when the database does, without logging the values", async () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    mocks.createScenario.mockRejectedValue(new Error("Client portal"));
+    expect((await createNewScenario({ error: null }, form({ projectId }))).error).toBe("failed");
+    expect(log).toHaveBeenCalledWith("createScenario failed: Error");
     log.mockRestore();
   });
 });

@@ -428,6 +428,19 @@
         },
         "small": "Small category: its cost may reveal a salary"
       }
+    },
+    "newScenario": {
+      "name": "Scenario",
+      "create": "Create scenario",
+      "creating": "Creating…",
+      "needsCategory": "Create a category to build the first team.",
+      "errors": {
+        "signed-out": "Your session has ended. Sign in again to create the scenario.",
+        "no-organization": "Your account no longer belongs to any organization.",
+        "not-found": "This project no longer exists.",
+        "failed": "The scenario could not be created. Try again.",
+        "no-categories": "Create a category first: the team is built from them."
+      }
     }
   },
   "NotFound": {
