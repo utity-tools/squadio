@@ -73,7 +73,7 @@ export type MoneyRows = Required<Pick<StoredScenario, "extraCosts" | "rates">> &
  * access), the hours inputs only: never a money figure.
  */
 export function engineBasis(
-  structural: Pick<StoredScenario, "pricingModel" | "config">,
+  structural: Pick<StoredScenario, "pricingModel" | "config" | "plannedPeriod">,
   money: MoneyRows | null,
   frozen: FrozenValues | undefined,
   roster: readonly RosterPerson[],

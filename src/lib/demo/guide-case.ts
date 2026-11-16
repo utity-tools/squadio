@@ -146,6 +146,8 @@ function costPlanA(unrated?: DemoCategoryKey) {
     costConfig: CONSULTANCY_COST_CONFIG,
     pricingModel: "fixed",
     pricing: { price: GUIDE_PRICE_CENTS, overhead: null, buffer: null },
+    // Customer portal has no planned period: the cloud spans the team (rule d).
+    plannedPeriod: null,
     assignments: GUIDE_TEAM.map(({ seat, category, allocation, reportsTo }) => ({
       ...GUIDE_SEAT,
       id: GUIDE_IDS[seat],

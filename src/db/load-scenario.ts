@@ -218,14 +218,20 @@ export async function loadScenario(
     // The engine's inputs without a team: `scenarioView` adds it, and its year's calendar.
     const money = context.rateAccess ? await readMoney(tx, scenarioId, projectId) : null;
     const frozen = money && structure.chosen ? await readFrozen(tx, scenarioId) : undefined;
-    const engine = engineBasis({ pricingModel, config: settings }, money, frozen, structure.roster);
+    const plannedPeriod = plannedPeriodOf(structure);
+    const engine = engineBasis(
+      { pricingModel, config: settings, plannedPeriod },
+      money,
+      frozen,
+      structure.roster,
+    );
     const basis: ScenarioBasis = {
       project: {
         id: projectId,
         name: structure.project,
         client: structure.client,
         pricingModel,
-        plannedPeriod: plannedPeriodOf(structure),
+        plannedPeriod,
         description: structure.description,
       },
       scenario: {

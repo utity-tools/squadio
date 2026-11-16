@@ -377,7 +377,8 @@ team to show it and recalculate it on every change, with the same pure function 
 (`scenarioView` in `src/lib/scenarios`). It holds the open part's project and scenario, every
 category and person of the organization (name, category, weekly hours and whether active, which
 the change model checks against), Config's default weekly hours, the project's planned period (new
-assignments start from it, and it holds no money) and the engine's inputs without assignments. With rate access these are the engine's inputs, never the stored salaries, plus every
+assignments start from it, the engine's inputs carry it for undated recurring costs, and it holds
+no money) and the engine's inputs without assignments. With rate access these are the engine's inputs, never the stored salaries, plus every
 small category of the organization; for a chosen scenario its frozen rates, which cover only the
 categories its team uses, since its team cannot be edited; without it, only the hours inputs, which hold no money
 ([ADR 0005](adr/0005-rate-access-in-the-database.md)). The team, as the change model's
