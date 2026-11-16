@@ -244,3 +244,23 @@ for (const access of ["full", "none"] as const) {
     });
   }
 }
+
+test("at a window 1000 px wide the rail shows every amount, nothing cut off", async ({ page }) => {
+  // The rail is at its narrowest, 280 px, up to a window 1272 px wide.
+  await page.setViewportSize({ width: 1000, height: 750 });
+  await page.goto(`/scenarios/${GUIDE_SCENARIO}`);
+  await categoryTable(page);
+
+  const statement = region(page, "Cuenta de resultados");
+  await expect(statement.getByRole("row", { name: /Ingresos/ })).toContainText(figure("200.000 €"));
+  // Every table ends inside the rail's padding: the rail never scrolls sideways.
+  const overflow = await rail(page).evaluate((element) => {
+    const end =
+      element.getBoundingClientRect().right - parseFloat(getComputedStyle(element).paddingRight);
+    return [...element.querySelectorAll("table")].map((table) =>
+      Math.max(0, Math.round(table.getBoundingClientRect().right - end)),
+    );
+  });
+  expect(overflow).toEqual([0, 0]);
+  expect(await rail(page).evaluate((element) => element.scrollWidth - element.clientWidth)).toBe(0);
+});

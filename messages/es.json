@@ -785,8 +785,8 @@
     },
     "hours": "{hours} h",
     "rate": "{amount}/h",
-    "amountWithPercent": "{amount} · {percent}",
-    "amountPercentNotApplicable": "{amount} · % no aplicable",
+    "amountWithPercent": "{amount} · {percent}",
+    "amountPercentNotApplicable": "{amount} · % no aplicable",
     "headline": {
       "netMargin": "Margen neto",
       "percentNotApplicable": "Margen % no aplicable. {reason}",
