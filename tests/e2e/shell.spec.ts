@@ -166,6 +166,8 @@ for (const colorScheme of ["light", "dark"] as const) {
       await page.emulateMedia({ colorScheme });
       await page.goto("/home");
       await expect(page.locator("html")).toHaveAttribute("data-theme", colorScheme);
+      // Inicio streams in: axe on the shell alone finds no level-one heading.
+      await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
       if (state === "folded") {
         const fold = page.getByRole("button", { name: "Plegar la barra lateral" });
         await expectHydrated(fold);
