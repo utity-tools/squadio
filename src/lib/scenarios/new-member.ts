@@ -1,12 +1,14 @@
 import { z } from "zod";
 
 import { projectSpanDates } from "@/lib/costing/project-span";
+import type { PlannedPeriod } from "@/lib/projects/project-details";
 
 import type { Roster } from "./apply-change";
 import type { Member } from "./change";
 
-// docs/domain.md, "Changes": a new assignment starts at 100% and spans the project (rule d), or,
-// in a scenario without assignments, the next full month. Weekly hours follow rule a.
+// docs/domain.md, "Changes": a new assignment starts at 100% and spans the project's planned
+// period, or else the project span (rule d), or, in a scenario without assignments of a project
+// without a planned period, the next full month. Weekly hours follow rule a.
 
 export type NewMemberInput = {
   id: string;
@@ -20,6 +22,8 @@ export type NewMemberInput = {
   defaultWeeklyHours: number;
   /** Today as a `YYYY-MM-DD` date, in the caller's time zone. */
   today: string;
+  /** The project's planned period, which new assignments span first; null without one. */
+  plannedPeriod: PlannedPeriod | null;
 };
 
 /** The first and last day of the month after `today`'s. */
@@ -57,7 +61,7 @@ export function newMember(input: NewMemberInput): Member {
       weeklyHours: input.defaultWeeklyHours,
     };
   }
-  const span = projectSpanDates(input.team) ?? nextFullMonth(input.today);
+  const span = input.plannedPeriod ?? projectSpanDates(input.team) ?? nextFullMonth(input.today);
   return {
     id: input.id,
     projectRole: input.projectRole,

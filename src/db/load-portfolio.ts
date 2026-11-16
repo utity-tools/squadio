@@ -9,7 +9,7 @@ import type { Member } from "@/lib/scenarios/change";
 import type { FrozenValues } from "@/lib/scenarios/engine-input";
 import { type ScenarioBasis, scenarioView } from "@/lib/scenarios/scenario-view";
 
-import { type MoneyRows, engineBasis, frozenValues } from "./scenario-basis";
+import { type MoneyRows, engineBasis, frozenValues, plannedPeriodOf } from "./scenario-basis";
 import {
   assignments,
   categories,
@@ -258,6 +258,8 @@ async function portfolioIn(
         name: project.name,
         client: project.client,
         pricingModel: project.pricingModel,
+        plannedPeriod: plannedPeriodOf(project),
+        description: project.description,
       },
       scenario: { name: scenario.name, chosen: scenario.chosen, otherChosen: null },
       categories: structure.categories,
@@ -305,11 +307,7 @@ async function portfolioIn(
         client: project.client,
         pricingModel: project.pricingModel,
         description: project.description,
-        // Both or neither (projects_planned_period_check).
-        plannedPeriod:
-          project.plannedStart !== null && project.plannedEnd !== null
-            ? { start: project.plannedStart, end: project.plannedEnd }
-            : null,
+        plannedPeriod: plannedPeriodOf(project),
         price: money && {
           cents: money.pricing.find((row) => row.projectId === project.id)?.price ?? null,
         },

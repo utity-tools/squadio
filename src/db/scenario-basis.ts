@@ -1,3 +1,4 @@
+import type { PlannedPeriod } from "@/lib/projects/project-details";
 import { findSmallCategories } from "@/lib/rates/small-categories";
 import {
   type FrozenValues,
@@ -10,6 +11,18 @@ import type { RosterPerson, ScenarioBasis } from "@/lib/scenarios/scenario-view"
 // docs/domain.md, "Loading a scenario": the engine's part of a scenario's basis, from the rows the
 // loaders read. One scenario's page and the whole organization's projects (load-portfolio.ts) build
 // it here, so both cost a scenario the same way.
+
+/**
+ * A project's planned period from its two columns, which hold both dates or neither
+ * (projects_planned_period_check). Not frozen: it holds no money (docs/domain.md, "Planned period").
+ */
+export function plannedPeriodOf(row: {
+  plannedStart: string | null;
+  plannedEnd: string | null;
+}): PlannedPeriod | null {
+  if (row.plannedStart === null || row.plannedEnd === null) return null;
+  return { start: row.plannedStart, end: row.plannedEnd };
+}
 
 /** A chosen scenario's frozen settings, as frozen_cost_config stores them. */
 type FrozenSettingsRow = Pick<

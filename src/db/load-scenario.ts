@@ -25,7 +25,7 @@ import {
   scenarioView,
 } from "@/lib/scenarios/scenario-view";
 
-import { engineBasis, frozenValues } from "./scenario-basis";
+import { engineBasis, frozenValues, plannedPeriodOf } from "./scenario-basis";
 import { type AccessContext, type TenantTransaction, withOrganization } from "./tenant";
 
 // docs/domain.md, "Loading a scenario". The view comes from `scenarioView`, the function the page
@@ -44,6 +44,9 @@ async function readStructure(tx: TenantTransaction, scenarioId: string, today: s
       project: projects.name,
       client: projects.client,
       pricingModel: projects.pricingModel,
+      plannedStart: projects.plannedStart,
+      plannedEnd: projects.plannedEnd,
+      description: projects.description,
       name: scenarios.name,
       chosen: scenarios.chosen,
       version: scenarios.version,
@@ -217,7 +220,14 @@ export async function loadScenario(
     const frozen = money && structure.chosen ? await readFrozen(tx, scenarioId) : undefined;
     const engine = engineBasis({ pricingModel, config: settings }, money, frozen, structure.roster);
     const basis: ScenarioBasis = {
-      project: { id: projectId, name: structure.project, client: structure.client, pricingModel },
+      project: {
+        id: projectId,
+        name: structure.project,
+        client: structure.client,
+        pricingModel,
+        plannedPeriod: plannedPeriodOf(structure),
+        description: structure.description,
+      },
       scenario: {
         name: structure.name,
         chosen: structure.chosen,

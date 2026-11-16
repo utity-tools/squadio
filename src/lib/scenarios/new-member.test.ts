@@ -1,5 +1,5 @@
 // @vitest-environment node
-// docs/domain.md, "Changes": what a new assignment starts with.
+// docs/domain.md, "Changes" and "Planned period": what a new assignment starts with.
 import { describe, expect, it } from "vitest";
 
 import { applyChange } from "./apply-change";
@@ -12,7 +12,10 @@ const base = {
   reportsTo: seatId(1),
   defaultWeeklyHours: 40,
   today: "2027-02-10",
+  plannedPeriod: null,
 };
+
+const planned = { start: "2027-04-01", end: "2027-12-31" };
 
 describe("newMember", () => {
   it("takes a person's category and weekly hours (rule a) and spans the project", () => {
@@ -59,6 +62,22 @@ describe("newMember", () => {
         filledBy: { categoryId: SENIOR },
       }),
     ).toMatchObject({ startDate: "2028-01-01", endDate: "2028-01-31" });
+  });
+
+  it("spans the planned period first, whatever the team spans", () => {
+    expect(
+      newMember({ ...base, plannedPeriod: planned, team, roster, filledBy: { categoryId: PM } }),
+    ).toMatchObject({ startDate: "2027-04-01", endDate: "2027-12-31" });
+    expect(
+      newMember({
+        ...base,
+        plannedPeriod: planned,
+        reportsTo: null,
+        team: [],
+        roster,
+        filledBy: { personId: personId(2) },
+      }),
+    ).toMatchObject({ startDate: "2027-04-01", endDate: "2027-12-31" });
   });
 
   it("makes an assignment the team accepts", () => {

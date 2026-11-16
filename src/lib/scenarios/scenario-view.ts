@@ -1,5 +1,6 @@
 import { calendarWorkingHours } from "@/lib/calendar/calendar";
 import { type ScenarioResult, calculateScenario } from "@/lib/costing/calculate-scenario";
+import type { PlannedPeriod } from "@/lib/projects/project-details";
 import type { SmallCategory } from "@/lib/rates/small-categories";
 
 import type { Roster } from "./apply-change";
@@ -40,6 +41,9 @@ export type OpenScenario = {
     name: string;
     client: string;
     pricingModel: StoredScenario["pricingModel"];
+    /** Not frozen, and it holds no money: new assignments span it (docs/domain.md, "Changes"). */
+    plannedPeriod: PlannedPeriod | null;
+    description: string | null;
   };
   scenario: {
     name: string;
