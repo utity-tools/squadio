@@ -38,3 +38,20 @@ export function findSmallCategories(people: readonly HeadcountPerson[]): SmallCa
   // Code-unit order, the same in every locale. Map keys are unique, so no two ids are equal.
   return small.toSorted((a, b) => (a.categoryId < b.categoryId ? -1 : 1));
 }
+
+/** A person about to be saved: `id` null for a new one. */
+export type SavedPerson = { id: string | null; categoryId: string; active: boolean };
+
+/**
+ * How many active people `person`'s category will have once they are saved, for the person form
+ * to warn before rule j applies: an edited person counts once, in their new category.
+ */
+export function activePeopleAfterSaving(
+  people: readonly HeadcountPerson[],
+  person: SavedPerson,
+): number {
+  const others = people.filter(
+    (other) => other.id !== person.id && other.categoryId === person.categoryId && other.active,
+  );
+  return others.length + (person.active ? 1 : 0);
+}
