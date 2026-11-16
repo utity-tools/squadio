@@ -23,8 +23,9 @@ still to be checked with users.
 ## Roadmap
 
 Every version ships something that can be shown. v0.1 shipped on 2026-10-26
-([handoff 0011](sessions/0011-read-only-canvas.md)) and v0.2 on 2026-10-29
-([handoff 0017](sessions/0017-seed-dates-daily-reseed-and-v02.md)).
+([handoff 0011](sessions/0011-read-only-canvas.md)), v0.2 on 2026-10-29
+([handoff 0017](sessions/0017-seed-dates-daily-reseed-and-v02.md)) and v0.3 on 2026-11-16
+([handoff 0028](sessions/0028-v03-release.md)), with sign-up still closed in production.
 
 After v0.2 the owner reviewed the product's UX and its definition, and the roadmap was planned
 again on 2026-10-29. The review lives in a private repository (`utity-tools/squadio-research`,
@@ -75,7 +76,8 @@ decisions below are the owner's, not evidence of use.
   processed: the effective terms and regions of Vercel, Neon, Google and GitHub, who can reach the
   data, and what deleting keeps. v0.3's code can reach `main` before that, behind a switch that is
   off in production ([ADR 0012](adr/0012-sign-in-and-membership.md)). v0.3.0 is tagged after the
-  review, and the switch is turned on by the owner. A privacy page, OAuth and a delete button are
+  review; the owner turns the switch on as a step of their own, when they choose (decided on
+  2026-11-16, after the review). A privacy page, OAuth and a delete button are
   not by themselves proof of compliance, and the README will not claim it.
 - **The demo stays anonymous and synthetic.** Visitors keep their copy as today
   ([ADR 0011](adr/0011-saving-edits-and-the-visitor-copy.md)) and are never asked for real names.
@@ -95,7 +97,7 @@ designed from the second slice on, not added at the end.
 | 2   | Identity and membership | Sign-in with GitHub and Google behind the sign-up switch, an empty organization or the adopted visitor's copy, membership resolved on the server before `withOrganization`, and the owner deleting the organization or their account. DB tests prove a member cannot reach another organization and that rate access follows the member ([ADR 0012](adr/0012-sign-in-and-membership.md)) |
 | 3   | Own data                | Inside a project's flow, with rate access, create and edit categories with their costs, people and open roles, and a project with its name, client and pricing model; the categories' costs are entered without leaving the project. Small categories warn (rule j)                                                                                                                      |
 | 4   | Project and period      | The project's planned period and description: new assignments start from the planned period, undated recurring costs follow it, and assignments outside it are flagged, never refused ([planned period](domain.md#planned-period)). Slice 3's project form grows into this one, never a second form                                                                                      |
-| 5   | v0.3 release            | The owner's processing review is done and the switch is on in production. Handoff, README with new screenshots, tag `v0.3.0`                                                                                                                                                                                                                                                             |
+| 5   | v0.3 release            | The owner's processing review is done; the switch stays off until the owner turns it on. Handoff, README with new screenshots, tag `v0.3.0`                                                                                                                                                                                                                                              |
 
 ### v0.2 slices
 
