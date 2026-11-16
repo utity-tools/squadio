@@ -143,12 +143,27 @@ export const projects = pgTable(
     name: text("name").notNull(),
     client: text("client").notNull(),
     pricingModel: pricingModel("pricing_model").notNull(),
+    /** The planned period, both or neither (docs/domain.md, "Planned period"); never a limit. */
+    plannedStart: date("planned_start", { mode: "string" }),
+    plannedEnd: date("planned_end", { mode: "string" }),
+    /** For whoever reads the proposal; it holds no money, so everyone reads it. */
+    description: text("description"),
   },
   (t) => [
     tenantIsolation(),
     unique("projects_organization_id_id_key").on(t.organizationId, t.id),
     nameCheck("projects", "name"),
     nameCheck("projects", "client"),
+    check(
+      "projects_planned_period_check",
+      sql`(planned_start is null) = (planned_end is null)
+          and (planned_end is null or planned_end >= planned_start)`,
+    ),
+    // Not blank, at most 500 characters: MAX_PROJECT_DESCRIPTION in src/lib/projects.
+    check(
+      "projects_description_check",
+      sql`description ~ '\\S' and char_length(description) <= 500`,
+    ),
   ],
 ).enableRLS();
 
