@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { createProject } from "@/db/create-project";
+import { createProject, updateProject } from "@/db/create-project";
 import { deleteOrganizationWithRows } from "@/db/delete-organization";
 import { projectPricing, projects } from "@/db/schema";
 import { withOrganization } from "@/db/tenant";
@@ -38,6 +38,14 @@ const fixed: NewProject = {
   client: "Synthetic Bank",
   pricingModel: "fixed",
   priceCents: 20_000_000,
+  plannedPeriod: null,
+  description: null,
+};
+
+const withPeriod: NewProject = {
+  ...fixed,
+  plannedPeriod: { start: "2027-04-01", end: "2027-09-30" },
+  description: "A portal for the bank's clients.",
 };
 
 /** The project and its pricing row, read with rate access. */
@@ -68,6 +76,16 @@ describe("createProject", () => {
       },
     ]);
     expect(pricing).toEqual([{ price: 20_000_000 }]);
+  });
+
+  it("creates a project with its planned period and description", async () => {
+    const result = await createProject(app, withRates(), withPeriod);
+    if (!result.ok) throw new Error("expected the project");
+    expect((await read(result.projectId)).project[0]).toMatchObject({
+      plannedStart: "2027-04-01",
+      plannedEnd: "2027-09-30",
+      description: "A portal for the bank's clients.",
+    });
   });
 
   it("leaves the price of a fixed price project without one pending", async () => {
@@ -116,5 +134,99 @@ describe("createProject", () => {
     expect(result).toEqual({ ok: false, reason: "no-rate-access" });
     const after = await withOrganization(app, withRates(), (tx) => tx.select().from(projects));
     expect(after).toHaveLength(before.length);
+  });
+});
+
+describe("updateProject", () => {
+  const created = async (project: NewProject = fixed) => {
+    const result = await createProject(app, withRates(), project);
+    if (!result.ok) throw new Error("expected the project");
+    return result.projectId;
+  };
+
+  it("saves every field of the form, the price in project_pricing", async () => {
+    const projectId = await created();
+    const result = await updateProject(app, withRates(), projectId, {
+      ...withPeriod,
+      name: "Client portal v2",
+      priceCents: 25_000_000,
+    });
+    expect(result).toEqual({ ok: true });
+    const { project, pricing } = await read(projectId);
+    expect(project[0]).toMatchObject({
+      name: "Client portal v2",
+      plannedStart: "2027-04-01",
+      plannedEnd: "2027-09-30",
+      description: "A portal for the bank's clients.",
+    });
+    expect(pricing).toEqual([{ price: 25_000_000 }]);
+  });
+
+  it("prices a fixed price project that has no pricing row yet", async () => {
+    const projectId = await created();
+    await withOrganization(app, withRates(), (tx) =>
+      tx.delete(projectPricing).where(eq(projectPricing.projectId, projectId)),
+    );
+    expect(await updateProject(app, withRates(), projectId, fixed)).toEqual({ ok: true });
+    expect((await read(projectId)).pricing).toEqual([{ price: 20_000_000 }]);
+  });
+
+  it("clears the planned period and the description", async () => {
+    const projectId = await created(withPeriod);
+    await updateProject(app, withRates(), projectId, fixed);
+    expect((await read(projectId)).project[0]).toMatchObject({
+      plannedStart: null,
+      plannedEnd: null,
+      description: null,
+    });
+  });
+
+  it("keeps a time and materials project's budget cap, which the form does not hold", async () => {
+    const projectId = await created({ ...fixed, pricingModel: "time_and_materials" });
+    await withOrganization(app, withRates(), (tx) =>
+      tx
+        .update(projectPricing)
+        .set({ price: 5_000_000 })
+        .where(eq(projectPricing.projectId, projectId)),
+    );
+    await updateProject(app, withRates(), projectId, {
+      ...withPeriod,
+      pricingModel: "time_and_materials",
+      priceCents: null,
+    });
+    expect((await read(projectId)).pricing).toEqual([{ price: 5_000_000 }]);
+  });
+
+  it("drops a fixed price that would become a budget cap", async () => {
+    const projectId = await created();
+    await updateProject(app, withRates(), projectId, {
+      ...fixed,
+      pricingModel: "time_and_materials",
+      priceCents: null,
+    });
+    const { project, pricing } = await read(projectId);
+    expect(project[0]?.pricingModel).toBe("time_and_materials");
+    expect(pricing).toEqual([{ price: null }]);
+  });
+
+  it("refuses without rate access and changes nothing", async () => {
+    const projectId = await created();
+    const result = await updateProject(app, { organizationId, rateAccess: false }, projectId, {
+      ...withPeriod,
+    });
+    expect(result).toEqual({ ok: false, reason: "no-rate-access" });
+    expect((await read(projectId)).project[0]?.plannedStart).toBeNull();
+  });
+
+  it("finds no project of another organization", async () => {
+    const projectId = await created();
+    const result = await updateProject(
+      app,
+      { organizationId: otherOrganizationId, rateAccess: true },
+      projectId,
+      withPeriod,
+    );
+    expect(result).toEqual({ ok: false, reason: "not-found" });
+    expect((await read(projectId)).project[0]?.description).toBeNull();
   });
 });

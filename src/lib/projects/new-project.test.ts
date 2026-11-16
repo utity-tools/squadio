@@ -2,7 +2,12 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
-import { MAX_PROJECT_TEXT, newProjectErrors, newProjectSchema } from "./new-project";
+import {
+  MAX_PROJECT_TEXT,
+  newProjectErrors,
+  newProjectSchema,
+  projectFormValues,
+} from "./new-project";
 
 const fixed = { name: "Client portal", client: "Synthetic Bank", pricingModel: "fixed" };
 
@@ -13,6 +18,39 @@ describe("newProjectSchema", () => {
       client: "Synthetic Bank",
       pricingModel: "fixed",
       priceCents: 20000000,
+      plannedPeriod: null,
+      description: null,
+    });
+  });
+
+  it("keeps the planned period and the description", () => {
+    const project = newProjectSchema("es").parse({
+      ...fixed,
+      plannedStart: "2027-04-01",
+      plannedEnd: "2027-09-30",
+      description: " A portal for the bank's clients. ",
+    });
+    expect(project).toMatchObject({
+      plannedPeriod: { start: "2027-04-01", end: "2027-09-30" },
+      description: "A portal for the bank's clients.",
+    });
+  });
+
+  it("says what is wrong with the planned period and the description", () => {
+    const result = newProjectSchema("es").safeParse({
+      ...fixed,
+      plannedStart: "2027-04-01",
+      plannedEnd: "2027-03-01",
+      description: "x".repeat(501),
+    });
+    expect(newProjectErrors(result.error!)).toEqual({
+      plannedEnd: "ends-before-start",
+      description: "too-long",
+    });
+    const incomplete = newProjectSchema("es").safeParse({ ...fixed, plannedEnd: "2099-01-01" });
+    expect(newProjectErrors(incomplete.error!)).toEqual({
+      plannedStart: "incomplete",
+      plannedEnd: "outside-calendar",
     });
   });
 
@@ -78,6 +116,63 @@ describe("newProjectSchema", () => {
           const { priceCents } = result.data;
           if (pricingModel === "time_and_materials") expect(priceCents).toBeNull();
           else expect(priceCents === null || priceCents > 0).toBe(true);
+        },
+      ),
+    );
+  });
+});
+
+describe("projectFormValues", () => {
+  it("opens an empty form for a new project", () => {
+    expect(projectFormValues(null, "es")).toEqual({
+      name: "",
+      client: "",
+      pricingModel: "fixed",
+      price: "",
+      plannedStart: "",
+      plannedEnd: "",
+      description: "",
+    });
+  });
+
+  it("fills a project back in, its price typed in the page's locale", () => {
+    const project = {
+      name: "Client portal",
+      client: "Synthetic Bank",
+      pricingModel: "fixed" as const,
+      priceCents: 2000050,
+      plannedPeriod: { start: "2027-04-01", end: "2027-09-30" },
+      description: "A portal.",
+    };
+    expect(projectFormValues(project, "es")).toEqual({
+      name: "Client portal",
+      client: "Synthetic Bank",
+      pricingModel: "fixed",
+      price: "20000,50",
+      plannedStart: "2027-04-01",
+      plannedEnd: "2027-09-30",
+      description: "A portal.",
+    });
+    expect(projectFormValues({ ...project, priceCents: 150000 }, "en").price).toBe("1500");
+  });
+
+  it("parses back to the same project", () => {
+    fc.assert(
+      fc.property(
+        fc.constantFrom("es", "en"),
+        fc.option(fc.integer({ min: 1, max: 10 ** 11 }), { nil: null }),
+        (locale: "es" | "en", priceCents) => {
+          const project = {
+            name: "Client portal",
+            client: "Synthetic Bank",
+            pricingModel: "fixed" as const,
+            priceCents,
+            plannedPeriod: { start: "2027-04-01", end: "2027-09-30" },
+            description: "A portal.",
+          };
+          expect(newProjectSchema(locale).parse(projectFormValues(project, locale))).toEqual(
+            project,
+          );
         },
       ),
     );

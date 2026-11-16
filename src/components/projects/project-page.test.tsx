@@ -33,6 +33,8 @@ const portal: PortfolioProject = {
   name: "Customer portal",
   client: "Demo Client",
   pricingModel: "fixed",
+  plannedPeriod: null,
+  description: null,
   price: { cents: 20_000_000 },
   scenarios: [
     scenario({ id: "s1", name: "Plan A", chosen: true }),

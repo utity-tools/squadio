@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   updateCategory: vi.fn(),
   refresh: vi.fn(),
   createScenario: vi.fn(),
+  updateProject: vi.fn(),
   redirect: vi.fn(),
 }));
 vi.mock("@/db/client", () => ({ db: { client: "app" } }));
@@ -25,9 +26,10 @@ vi.mock("@/db/categories", () => ({
 }));
 vi.mock("next/cache", () => ({ refresh: mocks.refresh }));
 vi.mock("@/db/create-scenario", () => ({ createScenario: mocks.createScenario }));
+vi.mock("@/db/create-project", () => ({ updateProject: mocks.updateProject }));
 vi.mock("@/i18n/navigation", () => ({ redirect: mocks.redirect }));
 
-const { createNewScenario, saveCategory } = await import("./actions");
+const { createNewScenario, editProject, saveCategory } = await import("./actions");
 
 const organizationId = "0b5e0c1e-0000-4000-8000-000000000002";
 const categoryId = "0b5e0c1e-0000-4000-8000-000000000003";
@@ -70,6 +72,7 @@ beforeEach(() => {
   mocks.updateCategory.mockReset();
   mocks.refresh.mockReset();
   mocks.createScenario.mockReset();
+  mocks.updateProject.mockReset();
   mocks.redirect.mockReset();
 });
 
@@ -199,6 +202,81 @@ describe("createNewScenario", () => {
     mocks.createScenario.mockRejectedValue(new Error("Client portal"));
     expect((await createNewScenario({ error: null }, form({ projectId }))).error).toBe("failed");
     expect(log).toHaveBeenCalledWith("createScenario failed: Error");
+    log.mockRestore();
+  });
+});
+
+describe("editProject", () => {
+  const projectId = "0b5e0c1e-0000-4000-8000-000000000004";
+  const unsaved = { saved: false, error: null, errors: {} };
+  const portal = {
+    projectId,
+    name: "Client portal",
+    client: "Synthetic Bank",
+    pricingModel: "fixed",
+    price: "1,500.50",
+    plannedStart: "2027-04-01",
+    plannedEnd: "2027-09-30",
+    description: "A portal.",
+    locale: "en",
+  };
+
+  it("saves the form over the project in the member's organization, then refreshes", async () => {
+    mocks.updateProject.mockResolvedValue({ ok: true });
+    expect(await editProject(unsaved, form(portal))).toEqual({
+      saved: true,
+      error: null,
+      errors: {},
+    });
+    expect(mocks.updateProject).toHaveBeenCalledWith(
+      { client: "app" },
+      { organizationId, rateAccess: true },
+      projectId,
+      {
+        name: "Client portal",
+        client: "Synthetic Bank",
+        pricingModel: "fixed",
+        priceCents: 150050,
+        plannedPeriod: { start: "2027-04-01", end: "2027-09-30" },
+        description: "A portal.",
+      },
+    );
+    expect(mocks.refresh).toHaveBeenCalledOnce();
+  });
+
+  it("says which fields are wrong without touching the database", async () => {
+    const state = await editProject(unsaved, form({ ...portal, plannedEnd: "" }));
+    expect(state).toEqual({ saved: false, error: null, errors: { plannedEnd: "incomplete" } });
+    expect(mocks.updateProject).not.toHaveBeenCalled();
+  });
+
+  it("finds no project behind an id that is not a UUID", async () => {
+    expect((await editProject(unsaved, form({ ...portal, projectId: "p" }))).error).toBe(
+      "not-found",
+    );
+    expect(mocks.updateProject).not.toHaveBeenCalled();
+  });
+
+  it("refuses a signed-out request and an account without an organization", async () => {
+    mocks.session = null;
+    expect((await editProject(unsaved, form(portal))).error).toBe("signed-out");
+    mocks.session = { userId: "u", sessionId: "s", activeOrganizationId: null };
+    mocks.member = null;
+    expect((await editProject(unsaved, form(portal))).error).toBe("no-organization");
+    expect(mocks.updateProject).not.toHaveBeenCalled();
+  });
+
+  it("passes on why the database did not save it", async () => {
+    mocks.updateProject.mockResolvedValue({ ok: false, reason: "no-rate-access" });
+    expect((await editProject(unsaved, form(portal))).error).toBe("no-rate-access");
+    expect(mocks.refresh).not.toHaveBeenCalled();
+  });
+
+  it("says it failed when the database does, without logging the values", async () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    mocks.updateProject.mockRejectedValue(new Error("Synthetic Bank"));
+    expect((await editProject(unsaved, form(portal))).error).toBe("failed");
+    expect(log).toHaveBeenCalledWith("updateProject failed: Error");
     log.mockRestore();
   });
 });

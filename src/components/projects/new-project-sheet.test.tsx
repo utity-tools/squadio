@@ -5,13 +5,16 @@ import { describe, expect, it, vi } from "vitest";
 import { expectNoAxeViolations } from "@/test/axe";
 import { renderWithIntl } from "@/test/render";
 
+import type { NewProject } from "@/lib/projects/new-project";
+
 import { type NewProjectAction, NewProjectSheet } from "./new-project-sheet";
 
 // Board 05's «Nuevo proyecto»: a side sheet with name, client, the pricing model as two radio
 // cards and, for a fixed price, an optional price. The Server Action leads to the project's page;
 // a failure keeps the sheet open with what was typed.
 
-const succeeding = () => vi.fn<NewProjectAction>(async () => ({ error: null, errors: {} }));
+const succeeding = () =>
+  vi.fn<NewProjectAction>(async () => ({ saved: false, error: null, errors: {} }));
 
 async function open(action: NewProjectAction = succeeding(), locale: "es" | "en" = "es") {
   renderWithIntl(<NewProjectSheet action={action} trigger="new" />, { locale });
@@ -58,11 +61,64 @@ describe("NewProjectSheet", () => {
       client: "Synthetic Bank",
       pricingModel: "fixed",
       price: "200.000,00",
+      plannedStart: "",
+      plannedEnd: "",
+      description: "",
     });
+  });
+
+  it("sends the planned period and the description, both optional", async () => {
+    const action = succeeding();
+    await open(action);
+
+    expect(screen.getByRole("group", { name: /Periodo previsto/ })).toHaveAccessibleDescription(
+      /Las asignaciones nuevas empiezan con estas fechas/,
+    );
+    await userEvent.type(screen.getByLabelText("Inicio"), "2027-04-01");
+    await userEvent.type(screen.getByLabelText("Fin"), "2027-09-30");
+    await userEvent.type(
+      screen.getByRole("textbox", { name: /Descripción/ }),
+      "A portal for the bank's clients.",
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Crear proyecto" }));
+
+    await waitFor(() => expect(action).toHaveBeenCalledOnce());
+    expect(Object.fromEntries(action.mock.calls[0]![1].entries())).toMatchObject({
+      plannedStart: "2027-04-01",
+      plannedEnd: "2027-09-30",
+      description: "A portal for the bank's clients.",
+    });
+  });
+
+  it("says what is wrong with the planned period and the description", async () => {
+    const action = vi.fn<NewProjectAction>(async () => ({
+      saved: false,
+      error: null,
+      errors: {
+        plannedStart: "outside-calendar",
+        plannedEnd: "ends-before-start",
+        description: "too-long",
+      },
+    }));
+    await open(action);
+
+    await userEvent.click(screen.getByRole("button", { name: "Crear proyecto" }));
+
+    await waitFor(() => expect(screen.getByLabelText("Inicio")).toBeInvalid());
+    expect(screen.getByLabelText("Inicio")).toHaveAccessibleDescription(
+      "Elige una fecha entre 2026 y 2028.",
+    );
+    expect(screen.getByLabelText("Fin")).toHaveAccessibleDescription(
+      "El fin no puede ser anterior al inicio.",
+    );
+    expect(screen.getByRole("textbox", { name: /Descripción/ })).toHaveAccessibleDescription(
+      "Como mucho 500 caracteres.",
+    );
   });
 
   it("shows each field's error and keeps what was typed", async () => {
     const action = vi.fn<NewProjectAction>(async () => ({
+      saved: false,
       error: null,
       errors: { client: "blank", price: "invalid" },
     }));
@@ -83,7 +139,11 @@ describe("NewProjectSheet", () => {
   });
 
   it("says why the project was not created", async () => {
-    const action = vi.fn<NewProjectAction>(async () => ({ error: "no-rate-access", errors: {} }));
+    const action = vi.fn<NewProjectAction>(async () => ({
+      saved: false,
+      error: "no-rate-access",
+      errors: {},
+    }));
     await open(action);
 
     await userEvent.click(screen.getByRole("button", { name: "Crear proyecto" }));
@@ -111,6 +171,87 @@ describe("NewProjectSheet", () => {
 
   it("has no accessibility violations", async () => {
     await open();
+
+    await expectNoAxeViolations();
+  });
+});
+
+const saved: NewProject = {
+  name: "Client portal",
+  client: "Synthetic Bank",
+  pricingModel: "fixed",
+  priceCents: 2_000_050,
+  plannedPeriod: { start: "2027-04-01", end: "2027-09-30" },
+  description: "A portal for the bank's clients.",
+};
+
+async function openEdit(action: NewProjectAction, locale: "es" | "en" = "es") {
+  renderWithIntl(<NewProjectSheet action={action} trigger="edit" project={{ id: "p1", saved }} />, {
+    locale,
+  });
+  await userEvent.click(
+    screen.getByRole("button", { name: locale === "es" ? "Editar proyecto" : "Edit project" }),
+  );
+  return screen.getByRole("dialog", { name: locale === "es" ? "Editar proyecto" : "Edit project" });
+}
+
+describe("NewProjectSheet, editing a project", () => {
+  it("opens with the project filled in, its price typed in the page's locale", async () => {
+    await openEdit(succeeding());
+
+    expect(screen.getByRole("textbox", { name: "Nombre" })).toHaveValue("Client portal");
+    expect(screen.getByRole("textbox", { name: "Cliente" })).toHaveValue("Synthetic Bank");
+    expect(screen.getByRole("radio", { name: "Precio cerrado" })).toBeChecked();
+    expect(screen.getByRole("textbox", { name: /Precio/ })).toHaveValue("20000,50");
+    expect(screen.getByLabelText("Inicio")).toHaveValue("2027-04-01");
+    expect(screen.getByLabelText("Fin")).toHaveValue("2027-09-30");
+    expect(screen.getByRole("textbox", { name: /Descripción/ })).toHaveValue(
+      "A portal for the bank's clients.",
+    );
+  });
+
+  it("sends the project's id with the form and closes once it is saved", async () => {
+    const action = vi.fn<NewProjectAction>(async () => ({ saved: true, error: null, errors: {} }));
+    await openEdit(action);
+
+    await userEvent.clear(screen.getByLabelText("Inicio"));
+    await userEvent.clear(screen.getByLabelText("Fin"));
+    await userEvent.click(screen.getByRole("button", { name: "Guardar cambios" }));
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(Object.fromEntries(action.mock.calls[0]![1].entries())).toMatchObject({
+      projectId: "p1",
+      plannedStart: "",
+      plannedEnd: "",
+    });
+    expect(screen.getByRole("button", { name: "Editar proyecto" })).toHaveFocus();
+  });
+
+  it("says why the project was not saved, and stays open", async () => {
+    const action = vi.fn<NewProjectAction>(async () => ({
+      saved: false,
+      error: "not-found",
+      errors: {},
+    }));
+    await openEdit(action);
+
+    await userEvent.click(screen.getByRole("button", { name: "Guardar cambios" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Este proyecto ya no existe en tu organización.",
+    );
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+  });
+
+  it("speaks English under /en", async () => {
+    await openEdit(succeeding(), "en");
+
+    expect(screen.getByRole("textbox", { name: /Price/ })).toHaveValue("20000.50");
+    expect(screen.getByRole("button", { name: "Save changes" })).toBeInTheDocument();
+  });
+
+  it("has no accessibility violations", async () => {
+    await openEdit(succeeding());
 
     await expectNoAxeViolations();
   });

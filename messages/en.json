@@ -309,6 +309,8 @@
       "close": "Close",
       "name": "Name",
       "client": "Client",
+      "descriptionField": "Description",
+      "descriptionHelp": "For whoever reads the proposal. Up to {max} characters.",
       "pricingModel": "Pricing model",
       "models": {
         "fixed": {
@@ -322,19 +324,46 @@
       },
       "price": "Price",
       "priceHelp": "Without a price, revenue and margin stay pending.",
+      "period": "Planned period",
+      "periodStart": "Start",
+      "periodEnd": "End",
+      "periodHelp": "New assignments start with these dates. It is a reference: it never limits the team.",
       "cancel": "Cancel",
-      "submit": "Create project",
-      "submitting": "Creating…",
       "errors": {
         "blank": "Type at least one character.",
         "too-long": "At most 100 characters.",
         "invalid": "Check this field.",
         "pricingModel": "Choose a pricing model.",
         "price": "Type an amount in euros above zero, with at most two decimals, or leave it empty.",
-        "signed-out": "Your session has ended. Sign in again to create the project.",
-        "no-organization": "Your account no longer belongs to an organization.",
-        "no-rate-access": "Creating projects needs rate access.",
-        "failed": "The project could not be created. Try again."
+        "description": "At most {max} characters.",
+        "date": "Type a valid date.",
+        "incomplete": "Give both dates, or neither.",
+        "outside-calendar": "Choose a date between {first} and {last}.",
+        "ends-before-start": "The end cannot be before the start."
+      },
+      "create": {
+        "submit": "Create project",
+        "submitting": "Creating…",
+        "errors": {
+          "signed-out": "Your session has ended. Sign in again to create the project.",
+          "no-organization": "Your account no longer belongs to an organization.",
+          "no-rate-access": "Creating projects needs rate access.",
+          "failed": "The project could not be created. Try again."
+        }
+      },
+      "edit": {
+        "open": "Edit project",
+        "title": "Edit project",
+        "description": "What you change here applies to every scenario of the project.",
+        "submit": "Save changes",
+        "submitting": "Saving…",
+        "errors": {
+          "signed-out": "Your session has ended. Sign in again to save the project.",
+          "no-organization": "Your account no longer belongs to an organization.",
+          "no-rate-access": "Editing projects needs rate access.",
+          "not-found": "This project no longer exists in your organization.",
+          "failed": "The project could not be saved. Try again."
+        }
       }
     }
   },

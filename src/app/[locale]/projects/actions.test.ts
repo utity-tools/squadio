@@ -22,7 +22,7 @@ vi.mock("@/i18n/navigation", () => ({ redirect: mocks.redirect }));
 const { createNewProject } = await import("./actions");
 
 const organizationId = "0b5e0c1e-0000-4000-8000-000000000002";
-const initial = { error: null, errors: {} };
+const initial = { saved: false, error: null, errors: {} };
 
 function form(fields: Record<string, string>) {
   const data = new FormData();
@@ -56,11 +56,30 @@ describe("createNewProject", () => {
     expect(mocks.createProject).toHaveBeenCalledWith(
       { client: "app" },
       { organizationId, rateAccess: true },
-      { name: "Client portal", client: "Synthetic Bank", pricingModel: "fixed", priceCents: 2e7 },
+      {
+        name: "Client portal",
+        client: "Synthetic Bank",
+        pricingModel: "fixed",
+        priceCents: 2e7,
+        plannedPeriod: null,
+        description: null,
+      },
     );
     expect(mocks.redirect).toHaveBeenCalledWith({
       href: "/projects/p",
       locale: "es",
+    });
+  });
+
+  it("sends the planned period and the description", async () => {
+    mocks.createProject.mockResolvedValue({ ok: true, projectId: "p" });
+    await createNewProject(
+      initial,
+      form({ ...fixed, plannedStart: "2027-04-01", plannedEnd: "2027-09-30", description: " A " }),
+    );
+    expect(mocks.createProject.mock.calls[0]?.[2]).toMatchObject({
+      plannedPeriod: { start: "2027-04-01", end: "2027-09-30" },
+      description: "A",
     });
   });
 
@@ -73,13 +92,18 @@ describe("createNewProject", () => {
 
   it("says which fields are wrong without touching the database", async () => {
     const state = await createNewProject(initial, form({ ...fixed, name: " ", price: "abc" }));
-    expect(state).toEqual({ error: null, errors: { name: "blank", price: "invalid" } });
+    expect(state).toEqual({
+      saved: false,
+      error: null,
+      errors: { name: "blank", price: "invalid" },
+    });
     expect(mocks.createProject).not.toHaveBeenCalled();
   });
 
   it("refuses a signed-out request", async () => {
     mocks.session = null;
     expect(await createNewProject(initial, form(fixed))).toEqual({
+      saved: false,
       error: "signed-out",
       errors: {},
     });

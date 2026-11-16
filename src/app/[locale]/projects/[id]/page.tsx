@@ -6,6 +6,7 @@ import { cache } from "react";
 import { z } from "zod";
 
 import { CategoryCosts } from "@/components/projects/category-costs";
+import { NewProjectSheet } from "@/components/projects/new-project-sheet";
 import { NewScenarioButton } from "@/components/projects/new-scenario-button";
 import { ProjectHeader, ProjectScenarios } from "@/components/projects/project-page";
 import { AppPage } from "@/components/shell/app-page";
@@ -20,7 +21,7 @@ import { assertLocale, currentLocale } from "@/i18n/locale";
 import { redirect } from "@/i18n/navigation";
 import { madridToday } from "@/lib/bench/occupancy";
 
-import { createNewScenario, saveCategory } from "./actions";
+import { createNewScenario, editProject, saveCategory } from "./actions";
 
 /**
  * The project this request reads, once for the title and the page: the member's organization when
@@ -89,7 +90,30 @@ export default async function ProjectPage({
         <Breadcrumbs items={[{ label: t("title"), href: "/projects" }, { label: project.name }]} />
       }
     >
-      <ProjectHeader project={project} />
+      <ProjectHeader
+        project={project}
+        action={
+          // The form also writes the price, so editing needs rate access, as creating does.
+          member && project.price ? (
+            <NewProjectSheet
+              action={editProject}
+              trigger="edit"
+              project={{
+                id: project.id,
+                saved: {
+                  name: project.name,
+                  client: project.client,
+                  pricingModel: project.pricingModel,
+                  // A T&M cap is not the form's: it keeps it (updateProject).
+                  priceCents: project.pricingModel === "fixed" ? project.price.cents : null,
+                  plannedPeriod: project.plannedPeriod,
+                  description: project.description,
+                },
+              }}
+            />
+          ) : null
+        }
+      />
       {costs && (
         <CategoryCosts
           {...costs}

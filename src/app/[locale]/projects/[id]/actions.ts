@@ -8,6 +8,7 @@ import { currentSession } from "@/auth/session";
 import { memberEditContext, memberOf } from "@/db/access";
 import { createCategory, updateCategory } from "@/db/categories";
 import { db } from "@/db/client";
+import { updateProject } from "@/db/create-project";
 import { createScenario } from "@/db/create-scenario";
 import { redirect } from "@/i18n/navigation";
 import { routing } from "@/i18n/routing";
@@ -16,6 +17,9 @@ import {
   categoryFormErrors,
   categoryFormSchema,
 } from "@/lib/categories/category-form";
+import { newProjectErrors, newProjectSchema } from "@/lib/projects/new-project";
+
+import type { ProjectFormError, ProjectFormState } from "../actions";
 
 // The Server Actions of a project's page (docs/plan.md, v0.3 slice 3). Who acts and in which
 // organization comes from the session, read on the server; the form sends its fields and its
@@ -138,4 +142,50 @@ export async function createNewScenario(
   // Outside the try: redirect throws to navigate.
   redirect({ href: `/scenarios/${scenarioId}`, locale });
   return { error: null };
+}
+
+const projectFail = (error: ProjectFormError): ProjectFormState => ({
+  saved: false,
+  error,
+  errors: {},
+});
+
+/**
+ * Saves the project form over the project the form's `projectId` names, in the signed-in member's
+ * organization, then refreshes its page. The form also writes the price, so it needs rate access
+ * (ADR 0005). Changing the planned period moves no assignment (docs/domain.md, "Planned period").
+ */
+export async function editProject(
+  _previous: ProjectFormState,
+  form: FormData,
+): Promise<ProjectFormState> {
+  const locale = localeSchema.parse(form.get("locale"));
+  const parsed = newProjectSchema(locale).safeParse({
+    name: form.get("name"),
+    client: form.get("client"),
+    pricingModel: form.get("pricingModel"),
+    price: form.get("price"),
+    plannedStart: form.get("plannedStart"),
+    plannedEnd: form.get("plannedEnd"),
+    description: form.get("description"),
+  });
+  if (!parsed.success) {
+    return { saved: false, error: null, errors: newProjectErrors(parsed.error) };
+  }
+  const projectId = z.uuid().safeParse(form.get("projectId"));
+  if (!projectId.success) return projectFail("not-found");
+
+  const session = await currentSession();
+  if (!session) return projectFail("signed-out");
+  try {
+    const member = await memberOf(db, session);
+    if (!member) return projectFail("no-organization");
+    const result = await updateProject(db, memberEditContext(member), projectId.data, parsed.data);
+    if (!result.ok) return projectFail(result.reason);
+  } catch (error) {
+    console.error(`updateProject failed: ${describe(error)}`);
+    return projectFail("failed");
+  }
+  refresh();
+  return { saved: true, error: null, errors: {} };
 }

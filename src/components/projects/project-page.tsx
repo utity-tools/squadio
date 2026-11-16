@@ -22,8 +22,14 @@ import { ChosenChip, MarginFigure, MarginState } from "./margin";
 // them); «Categorías y costes» lives in category-costs.tsx. «Editar proyecto» comes later. No
 // planned period yet: projects have none until v0.3 (docs/domain.md, "Planned period").
 
+type ProjectHeaderProps = {
+  project: PortfolioProject;
+  /** «Editar proyecto», for a signed-in member with rate access only. */
+  action?: ReactNode;
+};
+
 /** The project's name, client, pricing model and, with rate access only, its price or cap. */
-export function ProjectHeader({ project }: { project: PortfolioProject }) {
+export function ProjectHeader({ project, action }: ProjectHeaderProps) {
   const t = useTranslations("Project");
   const header = useTranslations("ScenarioHeader");
   const summary = useTranslations("Summary");
@@ -36,28 +42,31 @@ export function ProjectHeader({ project }: { project: PortfolioProject }) {
   };
 
   return (
-    <div className="flex min-w-0 flex-col gap-1.5">
-      <h1 className="text-[26px] font-semibold tracking-tight wrap-anywhere">{project.name}</h1>
-      <dl className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
-        <div className="flex items-center gap-2">
-          <dt className="sr-only">{t("client")}</dt>
-          <dd>{project.client}</dd>
-        </div>
-        <div className="flex items-center gap-2">
-          <span aria-hidden>·</span>
-          <dt className="sr-only">{t("pricingModel")}</dt>
-          <dd>
-            <Chip>{header(`pricingModels.${project.pricingModel}`)}</Chip>
-          </dd>
-        </div>
-        {project.price && (
+    <div className="flex flex-wrap items-start justify-between gap-3">
+      <div className="flex min-w-0 flex-col gap-1.5">
+        <h1 className="text-[26px] font-semibold tracking-tight wrap-anywhere">{project.name}</h1>
+        <dl className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+          <div className="flex items-center gap-2">
+            <dt className="sr-only">{t("client")}</dt>
+            <dd>{project.client}</dd>
+          </div>
           <div className="flex items-center gap-2">
             <span aria-hidden>·</span>
-            <dt className="sr-only">{fixed ? t("price") : t("cap")}</dt>
-            <dd className="font-mono tabular-nums">{price(project.price.cents)}</dd>
+            <dt className="sr-only">{t("pricingModel")}</dt>
+            <dd>
+              <Chip>{header(`pricingModels.${project.pricingModel}`)}</Chip>
+            </dd>
           </div>
-        )}
-      </dl>
+          {project.price && (
+            <div className="flex items-center gap-2">
+              <span aria-hidden>·</span>
+              <dt className="sr-only">{fixed ? t("price") : t("cap")}</dt>
+              <dd className="font-mono tabular-nums">{price(project.price.cents)}</dd>
+            </div>
+          )}
+        </dl>
+      </div>
+      {action}
     </div>
   );
 }
