@@ -379,12 +379,15 @@ function ResultLine({ line, pricingModel }: { line: LedgerLine; pricingModel: Pr
         aria-labelledby={[subtotal && tagId, nameId, hint && hintId].filter(Boolean).join(" ")}
         className="py-[7px] pe-3 text-start align-baseline font-[inherit]"
       >
-        {/* The name never breaks: its tag, its "i" and its words stay on one line. */}
+        {/*
+          The name never breaks: its "i" and its words stay on one line. A subtotal's tag sits on
+          a line of its own, so the narrowest rail, 280 px, still fits every amount.
+        */}
         <span className="whitespace-nowrap">
           {subtotal && (
             <span
               id={tagId}
-              className="me-1.5 text-[10px] font-semibold tracking-[0.06em] text-muted-foreground uppercase"
+              className="block text-[10px] font-semibold tracking-[0.06em] text-muted-foreground uppercase"
             >
               {t("subtotal")}
             </span>
@@ -404,7 +407,16 @@ function ResultLine({ line, pricingModel }: { line: LedgerLine; pricingModel: Pr
           </span>
         )}
       </th>
-      <td className="py-[7px] text-end align-baseline font-mono whitespace-nowrap tabular-nums">
+      {/*
+        A margin's % may go under its amount, with its separator: each figure keeps its unit. A
+        subtotal's amount sits by its name, under the tag.
+      */}
+      <td
+        className={cn(
+          "py-[7px] text-end font-mono tabular-nums",
+          subtotal ? "align-bottom" : "align-baseline",
+        )}
+      >
         {amount}
       </td>
     </tr>
@@ -418,7 +430,8 @@ function ResultLine({ line, pricingModel }: { line: LedgerLine; pricingModel: Pr
 function CategoryTable({ categories }: { categories: CategoryLine[] }) {
   const t = useTranslations("Summary.categories");
   const { euros, cents, hours } = useSummaryFormat();
-  const figure = "py-2 ps-2 text-end align-top font-mono whitespace-nowrap tabular-nums";
+  // Figures a size below the names, and headers that may break, so the narrowest rail fits them.
+  const figure = "py-2 ps-1 text-end align-top font-mono text-xs whitespace-nowrap tabular-nums";
 
   return (
     <details className="border-t pt-3">
@@ -429,16 +442,16 @@ function CategoryTable({ categories }: { categories: CategoryLine[] }) {
         <caption className="sr-only">{t("title")}</caption>
         <thead className="text-xs text-muted-foreground">
           <tr>
-            <th scope="col" className="pb-1 text-start font-medium">
+            <th scope="col" className="pb-1 text-start font-medium wrap-anywhere">
               {t("category")}
             </th>
-            <th scope="col" className="pb-1 text-end font-medium">
+            <th scope="col" className="pb-1 text-end font-medium wrap-anywhere">
               {t("effectiveHours")}
             </th>
-            <th scope="col" className="pb-1 text-end font-medium">
+            <th scope="col" className="pb-1 text-end font-medium wrap-anywhere">
               {t("costPerHour")}
             </th>
-            <th scope="col" className="pb-1 text-end font-medium">
+            <th scope="col" className="pb-1 text-end font-medium wrap-anywhere">
               {t("cost")}
             </th>
           </tr>
