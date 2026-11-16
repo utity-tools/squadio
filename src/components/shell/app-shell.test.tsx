@@ -114,7 +114,7 @@ describe("AppShell", () => {
     );
   });
 
-  it("always offers Inicio and Proyectos, then the sections the page adds", () => {
+  it("always offers Inicio, Proyectos and Personas, then the sections the page adds", () => {
     renderWithIntl(
       <AppShell scope="app" current="home" sections={<li>Organización</li>}>
         <main />
@@ -126,10 +126,25 @@ describe("AppShell", () => {
     expect(links.map((link) => [link.textContent, link.getAttribute("href")])).toEqual([
       ["Inicio", "/home"],
       ["Proyectos", "/projects"],
+      ["Personas", "/people"],
     ]);
     expect(links[0]).toHaveAttribute("aria-current", "page");
     expect(links[1]).not.toHaveAttribute("aria-current");
+    expect(links[2]).not.toHaveAttribute("aria-current");
     expect(within(nav).getByText("Organización")).toBeInTheDocument();
+  });
+
+  it("marks Personas as the current page on the people list", () => {
+    renderWithIntl(
+      <AppShell scope="app" current="people">
+        <main />
+      </AppShell>,
+    );
+    const nav = screen.getByRole("navigation", { name: "Secciones" });
+    expect(within(nav).getByRole("link", { name: "Personas" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
   });
 
   it("marks Proyectos, with lucide's folder, as the current page on the projects list", () => {

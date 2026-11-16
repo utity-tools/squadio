@@ -4,7 +4,7 @@ import { and, asc, eq, gte, isNotNull, lte } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
 import { occupancy } from "@/lib/bench/occupancy";
-import type { Person, PersonForm } from "@/lib/people/person-form";
+import type { ListedPerson, PersonForm } from "@/lib/people/person-form";
 import { type SmallCategory, findSmallCategories } from "@/lib/rates/small-categories";
 
 import { assignments, categories, categoryRates, config, people, scenarios } from "./schema";
@@ -81,9 +81,6 @@ export async function updatePerson(
   }
   return { ok: true };
 }
-
-/** A person as the people page lists them, with how busy they are today. */
-export type ListedPerson = Person & { occupancy: number };
 
 /** The people page's data. */
 export type PeopleList = {
