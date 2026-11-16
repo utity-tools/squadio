@@ -16,6 +16,9 @@ export type Person = {
   active: boolean;
 };
 
+/** A person as the people page lists them, with how busy they are today. */
+export type ListedPerson = Person & { occupancy: number };
+
 /** A person as the person form creates or edits it. */
 export type PersonForm = Omit<Person, "id">;
 

@@ -8,7 +8,7 @@ import { OrganizationLink } from "./organization-link";
 
 type AppPageProps = {
   /** The section the page belongs to. */
-  current?: "home" | "projects" | "inside-projects";
+  current?: "home" | "projects" | "inside-projects" | "people";
   crumbs?: ReactNode;
   children: ReactNode;
 };
