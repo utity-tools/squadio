@@ -6,7 +6,7 @@ import { renderWithIntl } from "@/test/render";
 
 import { ProjectsEmpty } from "./projects-empty";
 
-// Board 05's empty state, without «Crear proyecto» until projects can be created (v0.3).
+// Board 05's empty state: «Crear proyecto» for whoever may create a project, nothing otherwise.
 
 describe("ProjectsEmpty", () => {
   it("says there are no projects yet and what a project is", () => {
@@ -23,7 +23,13 @@ describe("ProjectsEmpty", () => {
     expect(document.querySelector('[data-art="outline"]')).toBeInTheDocument();
   });
 
-  it("offers no action the app cannot take yet", () => {
+  it("offers the action it is given", () => {
+    renderWithIntl(<ProjectsEmpty action={<button type="button">Crear proyecto</button>} />);
+
+    expect(screen.getByRole("button", { name: "Crear proyecto" })).toBeInTheDocument();
+  });
+
+  it("offers no action without one", () => {
     renderWithIntl(<ProjectsEmpty />);
 
     expect(screen.queryByRole("button")).toBeNull();

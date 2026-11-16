@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { connection } from "next/server";
 import { Suspense } from "react";
 
+import { NewProjectSheet } from "@/components/projects/new-project-sheet";
 import { ProjectsEmpty } from "@/components/projects/projects-empty";
 import { ProjectsTable } from "@/components/projects/projects-table";
 import { AppPage } from "@/components/shell/app-page";
@@ -13,6 +14,8 @@ import { currentOrganizationAccess } from "@/db/request-access";
 import { assertLocale, currentLocale } from "@/i18n/locale";
 import { redirect } from "@/i18n/navigation";
 import { madridToday } from "@/lib/bench/occupancy";
+
+import { createNewProject } from "./actions";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("Projects");
@@ -42,7 +45,25 @@ async function ProjectsContent({
   // Occupancy is measured on today in Madrid: a value of the request, never of a prerender.
   await connection();
   const portfolio = await loadPortfolio(db, access.context, madridToday(new Date()));
-  if (portfolio.projects.length === 0) return <ProjectsEmpty />;
+  // Creating a project writes its price, so only a member with rate access may (ADR 0005); a
+  // visitor's copy and the demo never offer it.
+  const canCreate = access.member && access.context.rateAccess;
+  if (portfolio.projects.length === 0) {
+    return (
+      <ProjectsEmpty
+        action={canCreate ? <NewProjectSheet action={createNewProject} trigger="create" /> : null}
+      />
+    );
+  }
   const t = await getTranslations("Projects");
-  return <ProjectsTable portfolio={portfolio} label={t("title")} />;
+  return (
+    <>
+      {canCreate && (
+        <div className="flex justify-end">
+          <NewProjectSheet action={createNewProject} trigger="new" />
+        </div>
+      )}
+      <ProjectsTable portfolio={portfolio} label={t("title")} />
+    </>
+  );
 }
