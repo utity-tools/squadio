@@ -490,6 +490,9 @@ are anchored instead to the day the seed runs, in `Europe/Madrid`:
 - **Run plan:** from the first working day of the month 4 months back to the last working day of the
   month 7 months ahead.
 
+Internal tooling's planned period, 1 April to 31 December 2027, is fixed too, not anchored to the
+seed's day: its scenario has no extra costs, so it moves no figure.
+
 Both are clamped to the years the national calendar lists (rule h), and never start after or end
 before the seed's day, so they always cover it: on the calendar's first or last day off, covering it
 wins and a span starts or ends on that day. A seed run on a day outside those years fails: the
@@ -588,6 +591,7 @@ for whoever reads its proposal. The period is a reference, not a limit:
 scenario, and different scenarios of one project have different spans, so any value would change
 the cost of some scenario without anyone asking. Their results stay exactly as they are until
 someone sets a planned period.
+The demo seed plans one on Internal tooling ([The demo's dates](#the-demos-dates)).
 
 The description is 1 to 500 characters, not blank, and holds no money, so everyone who sees the
 project sees it.

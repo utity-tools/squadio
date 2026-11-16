@@ -214,13 +214,18 @@ async function insertWarningScenarios(tx: TenantTransaction) {
       client: "Demo Client",
       pricingModel: "time_and_materials",
     },
-    // Fixed price with no project_pricing row: the price is still to be agreed.
+    // Fixed price with no project_pricing row: the price is still to be agreed. The demo's one
+    // planned period: its scenario has no extra costs, so the period moves no figure, and new
+    // assignments span it (docs/domain.md, "Planned period").
     {
       id: tooling,
       organizationId,
       name: "Internal tooling",
       client: "Demo Client",
       pricingModel: "fixed",
+      plannedStart: "2027-04-01",
+      plannedEnd: "2027-12-31",
+      description: "Internal tools for the delivery teams, priced once the scope is agreed.",
     },
   ]);
   // About 793 effective hours of a senior at €65/h bill €51,565, above the €50,000 cap.

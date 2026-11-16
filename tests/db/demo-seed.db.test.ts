@@ -1,4 +1,4 @@
-import { count, eq, inArray, sql } from "drizzle-orm";
+import { count, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import type { PgTable } from "drizzle-orm/pg-core";
 import { afterAll, describe, expect, it } from "vitest";
@@ -158,6 +158,30 @@ describe("seedDemo", () => {
     // The bench has people busy on that day.
     const loaded = await loadScenario(app, demo, DEMO_IDS.guideScenario, today);
     expect(loaded?.editing.basis.people.filter((person) => person.occupancy > 0)).toHaveLength(5);
+  });
+
+  it("plans only Internal tooling's period, so no other project's figures move", async () => {
+    await seedDemo(app, SOME_DAY);
+
+    const planned = await withOrganization(app, demo, (tx) =>
+      tx
+        .select({
+          name: projects.name,
+          start: projects.plannedStart,
+          end: projects.plannedEnd,
+          description: projects.description,
+        })
+        .from(projects)
+        .where(isNotNull(projects.plannedStart)),
+    );
+    expect(planned).toEqual([
+      {
+        name: "Internal tooling",
+        start: "2027-04-01",
+        end: "2027-12-31",
+        description: expect.stringMatching(/\S/),
+      },
+    ]);
   });
 
   it("fails on a day outside the calendar's years, leaving the previous rows", async () => {
