@@ -86,6 +86,21 @@ decisions below are the owner's, not evidence of use.
 - **Load is what Squadio knows.** A person's load comes from the chosen scenarios registered here;
   an empty week means nothing is registered, not that the person is free.
 
+### v0.4 slices
+
+v0.4 ships in five pull requests, tests first, in this order, planned on 2026-11-17 at 7 to 9
+working days. The rules come first, so the riskiest slice, the weekly load, starts from settled
+decisions: how partial weeks count, where load shows and whether the chosen scenario sits next to
+drafts ([comparing scenarios](domain.md#comparing-scenarios), [weekly load](domain.md#weekly-load)).
+
+| #   | Slice                  | Done when                                                                                                                                                                                                                                                                                    |
+| --- | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0   | Rules                  | The domain and the glossary describe comparing scenarios and the weekly load, with worked examples that the next slices turn into unit tests. Docs only                                                                                                                                      |
+| 1   | Duplicate a scenario   | A member duplicates a scenario of a project into a new draft with the same team and extra costs, to make a variant without rebuilding it                                                                                                                                                     |
+| 2   | Compare side by side   | Two or three scenarios of a project side by side, the chosen one next to drafts: result lines and their differences from the baseline with rate access, team and hours for everyone, an undetermined figure never shown as a difference. It works with the keyboard and on mobile, read-only |
+| 3   | Weekly load and rule c | The bench shows each person's load week by week over the scenario's weeks, and the team flags over-allocated people with the weeks and the projects behind them (rule c), the first health check. Measured with realistic data                                                               |
+| 4   | v0.4 release           | Handoff, README with new screenshots, tag `v0.4.0`                                                                                                                                                                                                                                           |
+
 ### v0.3 slices
 
 v0.3 ships in five pull requests or more, tests first, in this order. Access and deletion are
