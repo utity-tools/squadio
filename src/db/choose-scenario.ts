@@ -141,11 +141,13 @@ async function mark(tx: TenantTransaction, scenarioId: string, chosen: boolean) 
 
 /**
  * The checks choosing and unchoosing share: the context's organization, rate access, and the
- * scenario locked at the version the page shows. Returns the locked scenario or the refusal.
+ * scenario locked at the version the page shows, and its project before it when `lockProject`.
+ * Returns the locked scenario or the refusal.
  */
 async function lockScenario(
   tx: TenantTransaction,
   { scenarioId, baseVersion }: z.output<typeof choiceInputSchema>,
+  { lockProject = false }: { lockProject?: boolean } = {},
 ) {
   const { rows } = await tx.execute<{ organization: string | null; rates: boolean }>(
     sql`select app.current_organization_id() as organization, app.has_rate_access() as rates`,
@@ -156,6 +158,23 @@ async function lockScenario(
     return { refused: { ok: false, reason: "template" } as const };
   }
   if (!context.rates) return { refused: { ok: false, reason: "no-rate-access" } as const };
+  if (lockProject) {
+    // The project first, as duplicating takes it (duplicate-scenario.ts): writers that lock a
+    // project and its scenarios take them in one order, so they never deadlock.
+    await tx
+      .select({ id: projects.id })
+      .from(projects)
+      .where(
+        eq(
+          projects.id,
+          tx
+            .select({ id: scenarios.projectId })
+            .from(scenarios)
+            .where(eq(scenarios.id, scenarioId)),
+        ),
+      )
+      .for("update");
+  }
   // The lock makes a concurrent save or choice of the same scenario wait for this one.
   const [scenario] = await tx
     .select({
@@ -179,16 +198,11 @@ export async function chooseScenarioIn(
   input: ChoiceInput,
 ): Promise<ChooseResult> {
   const request = choiceInputSchema.parse(input);
-  const locked = await lockScenario(tx, request);
-  if (locked.refused) return locked.refused;
-  if (locked.scenario.chosen) return { ok: false, reason: "no-change" };
   // Two choices in one project take turns on the project's row, so the second one sees the first
   // as the project's chosen scenario below, instead of tripping the rule i index.
-  await tx
-    .select({ id: projects.id })
-    .from(projects)
-    .where(eq(projects.id, locked.scenario.projectId))
-    .for("update");
+  const locked = await lockScenario(tx, request, { lockProject: true });
+  if (locked.refused) return locked.refused;
+  if (locked.scenario.chosen) return { ok: false, reason: "no-change" };
 
   // Checked before anything else is written, so a refusal leaves the project as it was.
   if ((await freezeScenario(tx, request.scenarioId)) === "missing-rate") {

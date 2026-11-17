@@ -61,6 +61,8 @@ export async function duplicateScenarioIn(
     .where(eq(scenarios.id, scenarioId));
   if (!original) return { ok: false, reason: "not-found" };
   // The project's lock makes two duplicates at once take turns, so they count and name apart.
+  // Choosing locks the project before its scenarios too (choose-scenario.ts), so the two never
+  // deadlock.
   await tx
     .select({ id: projects.id })
     .from(projects)
