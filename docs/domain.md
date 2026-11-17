@@ -403,7 +403,8 @@ A signed-in member creates a project's scenarios from its page, one at a time: a
 chosen, named after how many the project has («Escenario 2»), which opens in the editor. It needs no
 rate access, and the server refuses it until the organization has a category, since a team is
 built from them. A
-visitor's copy and the demo never create one.
+visitor's copy and the demo never create an empty one; anyone with rate access may duplicate one
+instead ([Duplicating a scenario](#duplicating-a-scenario)).
 
 ### Changes
 
@@ -523,6 +524,47 @@ template is never chosen or unchosen: only its visitors' copies are
 **A chosen scenario's team cannot be edited.** It is a commitment, and a category added after
 choosing would have no frozen rate, while writing one needs rate access that editing does not. To
 change it, unchoose it, edit it and choose it again, which freezes the current values.
+
+### Duplicating a scenario
+
+From v0.4 a scenario can be duplicated, to make a variant of a team without rebuilding it. The copy
+is a new scenario of the same project, in one transaction:
+
+- **What it copies:** every assignment, with new ids and its `reports to` pointing at the copy's
+  assignment that matches the one it pointed at, so the team tree is the same; and every extra
+  cost, with a new id. A scenario has no settings of its own besides its name: overrides live on
+  the project (ProjectPricing), which both scenarios share. Nothing is shared with the original, so
+  editing one never touches the other.
+- **What it does not copy:** whether it is chosen, and the frozen rows. The copy is always a draft
+  with version 1, costed with the current values (rule b). A chosen scenario may be duplicated:
+  its copy keeps its team and extra costs but not its frozen rates, so its cost differs when rates
+  changed after choosing. A non-chosen scenario and its copy give the same cost and margin.
+- **People are copied as they are:** a person who was deactivated or moved to another category
+  after being assigned stays on the copy, as a loaded team keeps them ([Changes](#changes)).
+- **Its name** is the original's followed by a suffix in the language of whoever duplicates, like a
+  new scenario's: in Spanish « (copia)», or « (copia 2)», « (copia 3)» and so on, the first one no
+  scenario of the project has (« (copy)» in English). The original's name is cut at the end, never
+  the suffix, so the whole stays within 100 characters, and spaces the cut leaves at its end are
+  dropped. A copy of a copy is numbered with the original, not given a second suffix: duplicating
+  «Plan A (copia)» gives «Plan A (copia 2)», or the next number the project does not have. A name
+  counts as a copy when it ends in the suffix of the language of whoever duplicates.
+- **It needs rate access,** like choosing: extra costs are restricted money
+  ([ADR 0005](adr/0005-rate-access-in-the-database.md)), and a copy without them would cost
+  differently without its author seeing it. A page without rate access, `?access=none` included,
+  does not offer it, and the server refuses whoever lacks it. A member also needs to edit teams,
+  since the copy is a team to edit.
+- **At most 20 scenarios per project:** duplicating into a project that has 20 is refused, for
+  members and visitors alike. The limit is on duplicating only: creating an empty scenario is
+  not limited in v0.4.
+- **It waits for the original:** a save or a choice of the original waits for the copy, or the copy
+  for them, so the copy never holds half a save. Choosing and duplicating lock the project before
+  its scenarios, so neither waits on the other forever.
+- **Visitors duplicate in their copy:** the demo template is never written, so a visitor without a
+  copy gets one in the same transaction, as on a first save
+  ([ADR 0011](adr/0011-saving-edits-and-the-visitor-copy.md)).
+
+The copy opens in the editor. Comparing it with its original matches people by person, since its
+assignments have new ids ([Comparing scenarios](#comparing-scenarios)).
 
 ## The organization at a glance
 
@@ -915,6 +957,10 @@ And on random sequences of changes, undo, redo and saves (see
 - Applying an accepted change's inverse gives back exactly the team before it, unless it places
   again a person who is now inactive or in another category, and then it is rejected.
 - Applying what is left to save to the last saved team gives exactly the current team.
+
+And on random names, for [duplicating a scenario](#duplicating-a-scenario): the copy's name is
+always one the project does not have, within 100 characters. A DB test checks that a non-chosen
+scenario and its copy give the same cost and margin, with the same team tree.
 
 ## Out of scope for v1
 
