@@ -21,6 +21,7 @@ import { assertLocale, currentLocale } from "@/i18n/locale";
 import { redirect } from "@/i18n/navigation";
 import { madridToday } from "@/lib/bench/occupancy";
 
+import { duplicateScenario } from "../../scenarios/[id]/actions";
 import { createNewScenario, editProject, saveCategory } from "./actions";
 
 /**
@@ -131,6 +132,7 @@ export default async function ProjectPage({
         project={project}
         categories={categories}
         rateAccess={context.rateAccess}
+        duplicate={duplicateScenario}
         action={
           member ? (
             <NewScenarioButton

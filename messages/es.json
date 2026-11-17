@@ -392,7 +392,8 @@
       "team": "Equipo",
       "effectiveHours": "Horas efectivas",
       "netMargin": "Margen neto",
-      "status": "Estado"
+      "status": "Estado",
+      "actions": "Acciones"
     },
     "team": "{people, plural, one {# persona} other {# personas}}{openRoles, plural, =0 {} one { · # vacante} other { · # vacantes}}",
     "openRolesOnly": "{openRoles, plural, one {# vacante} other {# vacantes}}",
@@ -1103,5 +1104,20 @@
     "fictitious": "Nombres y cifras ficticios",
     "fictitiousCopy": "Nombres y cifras ficticios · tu copia",
     "organizationPrefix": "Organización:"
+  },
+  "DuplicateScenario": {
+    "suffix": " (copia)",
+    "numberedSuffix": " (copia {n})",
+    "button": "Duplicar",
+    "named": "Duplicar {name}",
+    "duplicating": "Duplicando…",
+    "waiting": "Se podrá duplicar cuando se guarden los cambios.",
+    "errors": {
+      "not-found": "Este escenario ya no existe. Recarga la página.",
+      "too-many": "Este proyecto ya tiene 20 escenarios, el máximo.",
+      "no-rate-access": "Duplicar copia costes, y necesita acceso a tarifas.",
+      "limit": "Hoy no se pueden crear más copias de la demo. Vuelve a intentarlo mañana.",
+      "failed": "No se ha podido duplicar el escenario. Inténtalo de nuevo."
+    }
   }
 }

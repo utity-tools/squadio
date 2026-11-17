@@ -10,6 +10,7 @@ import { Bench } from "@/components/bench/bench";
 import { HistoryControls } from "@/components/scenario/history-controls";
 import { SaveStatus } from "@/components/scenario/save-status";
 import { ScenarioAnnouncer } from "@/components/scenario/scenario-announcer";
+import { ScenarioDuplicate } from "@/components/scenario/duplicate-scenario";
 import { ScenarioChoice } from "@/components/scenario/scenario-choice";
 import { ScenarioEditor } from "@/components/scenario/scenario-editor";
 import {
@@ -31,7 +32,7 @@ import { assertLocale, currentLocale } from "@/i18n/locale";
 import { redirect } from "@/i18n/navigation";
 import { madridToday } from "@/lib/bench/occupancy";
 
-import { saveScenario, setScenarioChoice } from "./actions";
+import { duplicateScenario, saveScenario, setScenarioChoice } from "./actions";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("ScenarioPage");
@@ -93,6 +94,7 @@ export default async function ScenarioPage({
             <>
               <SaveStatus />
               <HistoryControls />
+              <ScenarioDuplicate send={duplicateScenario} />
               <ScenarioChoice scenarioId={id} send={setScenarioChoice} />
             </>
           }

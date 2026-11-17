@@ -1,16 +1,20 @@
 "use server";
 
-import { refresh } from "next/cache";
+import { refresh, revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
+import { createTranslator } from "next-intl";
 import { z } from "zod";
 
 import { keepsRateAccess } from "@/db/access";
 import { choiceInputSchema } from "@/db/choose-scenario";
 import { db } from "@/db/client";
+import { duplicateInputSchema } from "@/db/duplicate-scenario";
 import { currentMember } from "@/db/request-access";
 import { saveInputSchema } from "@/db/save-scenario";
-import { saveScenarioFor, setChoiceFor } from "@/db/scenario-writes";
+import { duplicateScenarioFor, saveScenarioFor, setChoiceFor } from "@/db/scenario-writes";
 import type { VisitorChoiceResult } from "@/db/visitor-choose";
+import type { VisitorDuplicateResult } from "@/db/visitor-duplicate";
+import { routing } from "@/i18n/routing";
 import type { VisitorSaveResult } from "@/db/visitor-save";
 
 // ADR 0011, "Saving", and docs/domain.md, "Choosing a scenario": the Server Actions that save a
@@ -24,6 +28,9 @@ type Failed = { ok: false; reason: "failed" };
 export type SaveScenarioResult = VisitorSaveResult | { ok: false; reason: "invalid" } | Failed;
 
 export type ScenarioChoiceResult = VisitorChoiceResult | { ok: false; reason: "invalid" } | Failed;
+
+export type DuplicateScenarioResult =
+  VisitorDuplicateResult | { ok: false; reason: "invalid" } | Failed;
 
 /** What may be logged about an unexpected error: its kind and Postgres code, never its values. */
 function describe(error: unknown): string {
@@ -71,6 +78,41 @@ export async function setScenarioChoice(input: unknown): Promise<ScenarioChoiceR
     return result;
   } catch (error) {
     console.error(`setScenarioChoice failed: ${describe(error)}`);
+    return { ok: false, reason: "failed" };
+  }
+}
+
+const duplicateActionSchema = z.strictObject({
+  ...duplicateInputSchema.shape,
+  /** The page's locale, which names the copy: `next/root-params` cannot be read in an action. */
+  locale: z.enum(routing.locales),
+});
+
+/**
+ * Duplicates a scenario into a new draft of its project (docs/domain.md, "Duplicating a
+ * scenario") and returns the copy's id, which the page then opens. Used by the project's page and
+ * the scenario's.
+ */
+export async function duplicateScenario(input: unknown): Promise<DuplicateScenarioResult> {
+  const parsed = duplicateActionSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, reason: "invalid" };
+  const { locale, ...request } = parsed.data;
+  try {
+    const messages = (await import(`../../../../../messages/${locale}.json`)).default;
+    const t = createTranslator({ locale, messages, namespace: "DuplicateScenario" });
+    const writer = { member: await currentMember(), jar: await cookies() };
+    const result = await duplicateScenarioFor(db, writer, request, {
+      // A page without rate access offers no «Duplicar»; the member's or the visitor's own rate
+      // access decides on the server.
+      rateAccess: true,
+      suffix: (n) => (n === 1 ? t("suffix") : t("numberedSuffix", { n })),
+    });
+    // The router keeps the project's page it left and would show it again, without the copy, on
+    // the way back.
+    if (result.ok) revalidatePath("/[locale]/projects/[id]", "page");
+    return result;
+  } catch (error) {
+    console.error(`duplicateScenario failed: ${describe(error)}`);
     return { ok: false, reason: "failed" };
   }
 }

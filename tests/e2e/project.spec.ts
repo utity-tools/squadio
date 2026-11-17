@@ -80,6 +80,8 @@ test("lists the project's scenarios, each leading to the editor", async ({ page 
     "Horas efectivas",
     "Margen neto",
     "Estado",
+    // «Duplicar», with rate access (docs/domain.md, "Duplicating a scenario").
+    "Acciones",
   ]);
   await scenarios(page).getByRole("link", { name: "Plan A" }).click();
 
