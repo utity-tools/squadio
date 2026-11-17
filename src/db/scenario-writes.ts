@@ -9,10 +9,17 @@ import {
   chooseScenario,
   unchooseScenario,
 } from "./choose-scenario";
+import {
+  type CopySuffix,
+  type DuplicateInput,
+  duplicateInputSchema,
+  duplicateScenario,
+} from "./duplicate-scenario";
 import { type SaveInput, saveInputSchema, saveScenarioChanges } from "./save-scenario";
 import { scenarios } from "./schema";
 import { type AccessContext, withOrganization } from "./tenant";
 import { type VisitorChoiceResult, chooseForVisitor, unchooseForVisitor } from "./visitor-choose";
+import { type VisitorDuplicateResult, duplicateForVisitor } from "./visitor-duplicate";
 import { type VisitorSaveResult, saveForVisitor } from "./visitor-save";
 import type { CookieJar } from "./visitor-write";
 
@@ -101,4 +108,25 @@ export async function setChoiceFor(
   const step = chosen ? chooseScenario : unchooseScenario;
   const result = await step(db, withRates, request);
   return result.ok ? { ...result, scenarioId: request.scenarioId } : result;
+}
+
+/**
+ * Duplicates a scenario: in the member's organization when it holds the scenario, with the
+ * member's rate access unless the page took it away, or else as a visitor. Extra costs are
+ * restricted money, so it needs rate access (docs/domain.md, "Duplicating a scenario"). Throws a
+ * ZodError on input that is not a valid duplicate.
+ */
+export async function duplicateScenarioFor(
+  db: NodePgDatabase,
+  { member, jar }: Writer,
+  input: DuplicateInput,
+  { rateAccess, suffix }: { rateAccess: boolean; suffix: CopySuffix },
+): Promise<VisitorDuplicateResult> {
+  const request = duplicateInputSchema.parse(input);
+  const context = await memberWriteContext(db, member, request.scenarioId);
+  if (!context || !member) return duplicateForVisitor(db, jar, request, rateAccess, suffix);
+  const withRates = { ...context, rateAccess: context.rateAccess && rateAccess };
+  if (!member.capabilities.edit) return { ok: false, reason: "not-found" };
+  if (!withRates.rateAccess) return { ok: false, reason: "no-rate-access" };
+  return duplicateScenario(db, withRates, request, suffix);
 }

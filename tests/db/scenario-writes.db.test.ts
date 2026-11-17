@@ -5,7 +5,12 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { type Member, memberOf } from "@/db/access";
 import { DEMO_IDS, DEMO_ORGANIZATION_ID, seedDemo } from "@/db/demo-seed";
 import { assignments, frozenCostConfig, scenarios } from "@/db/schema";
-import { memberPageContext, saveScenarioFor, setChoiceFor } from "@/db/scenario-writes";
+import {
+  duplicateScenarioFor,
+  memberPageContext,
+  saveScenarioFor,
+  setChoiceFor,
+} from "@/db/scenario-writes";
 import { withOrganization } from "@/db/tenant";
 import type { CookieJar } from "@/db/visitor-write";
 import type { Change } from "@/lib/scenarios/change";
@@ -266,6 +271,71 @@ describe("setChoiceFor", () => {
     ).toEqual({ ok: false, reason: "not-found" });
     expect(await versionOf(bob.organizationId, scenarioId)).toBe(before);
     expect(await frozenIn(bob.organizationId, scenarioId)).toEqual([]);
+    expect(sets).toEqual([]);
+    expect(await claims()).toEqual([]);
+  });
+});
+
+describe("duplicateScenarioFor", () => {
+  const suffix = (n: number) => (n === 1 ? " (copia)" : ` (copia ${n})`);
+  const scenariosIn = (organizationId: string) =>
+    withOrganization(app, { organizationId, rateAccess: false }, (tx) =>
+      tx.select({ id: scenarios.id, name: scenarios.name }).from(scenarios),
+    );
+
+  it("duplicates a member's scenario in their organization, with no copy and no cookie", async () => {
+    const scenarioId = copyId(DEMO_IDS.leanScenario, ada.organizationId);
+    const { cookies, sets } = jar();
+    const result = await duplicateScenarioFor(
+      app,
+      { member: adaMember, jar: cookies },
+      { scenarioId },
+      { rateAccess: true, suffix },
+    );
+    if (!result.ok) throw new Error(`expected a copy, got ${result.reason}`);
+    expect(result.version).toBe(1);
+    const names = (await scenariosIn(ada.organizationId)).map(({ name }) => name);
+    expect(names.some((name) => name.endsWith(" (copia)"))).toBe(true);
+    expect(sets).toEqual([]);
+    expect(await claims()).toEqual([]);
+  });
+
+  it("refuses a member's duplicate on a page without rate access, or without the capability", async () => {
+    const scenarioId = copyId(DEMO_IDS.leanScenario, ada.organizationId);
+    const before = (await scenariosIn(ada.organizationId)).length;
+    const withoutRates: Member = {
+      ...adaMember,
+      capabilities: { rateAccess: false, edit: true, choose: false },
+    };
+    for (const [member, rateAccess] of [
+      [adaMember, false],
+      [withoutRates, true],
+    ] as const) {
+      expect(
+        await duplicateScenarioFor(
+          app,
+          { member, jar: jar().cookies },
+          { scenarioId },
+          { rateAccess, suffix },
+        ),
+      ).toEqual({ ok: false, reason: "no-rate-access" });
+    }
+    expect(await scenariosIn(ada.organizationId)).toHaveLength(before);
+  });
+
+  it("never duplicates another organization's scenario: it is not found, and no copy is kept", async () => {
+    const scenarioId = copyId(DEMO_IDS.leanScenario, bob.organizationId);
+    const before = (await scenariosIn(bob.organizationId)).length;
+    const { cookies, sets } = jar();
+    expect(
+      await duplicateScenarioFor(
+        app,
+        { member: adaMember, jar: cookies },
+        { scenarioId },
+        { rateAccess: true, suffix },
+      ),
+    ).toEqual({ ok: false, reason: "not-found" });
+    expect(await scenariosIn(bob.organizationId)).toHaveLength(before);
     expect(sets).toEqual([]);
     expect(await claims()).toEqual([]);
   });
