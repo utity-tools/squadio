@@ -278,7 +278,7 @@ cost exactly the fully loaded annual cost (see the first invariant below).
 | --- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | a   | Weekly hours          | Stored on the assignment: copied from the person when one is placed (add or edit), or from Config for a new open role; an edit may change them                                                                                                                           |
 | b   | Choosing freezes      | Choosing a scenario freezes its category rates (FrozenRate) and its overhead %, buffer % and availability factor (FrozenCostConfig). Target margin is not frozen. Other scenarios always use current values. See [What choosing freezes](#what-choosing-freezes)         |
-| c   | Over-allocation       | Per person and week: chosen scenarios of other projects plus the scenario being edited. Never two scenarios of the same project                                                                                                                                          |
+| c   | Over-allocation       | Per person and week: chosen scenarios of other projects plus the scenario being edited. Never two scenarios of the same project. See [Weekly load](#weekly-load)                                                                                                         |
 | d   | Recurring extra costs | Prorated by day. Without dates they span the project's planned period, or, without one, the project span: from the first assignment start to the last end. Without either, such a cost is undetermined, never 0. See [Partial results](#partial-results)                 |
 | e   | Price in T&M          | An optional budget cap with a warning. Percentages "over price" use the calculated revenue                                                                                                                                                                               |
 | f   | Margin %              | Over revenue                                                                                                                                                                                                                                                             |
@@ -480,7 +480,7 @@ chosen scenario with one of their assignments covering today (start and end incl
 `Europe/Madrid` time zone. It is an integer percentage and may exceed 100%, which is
 over-allocation (rule c). Open roles and scenarios that are not chosen do not count. It holds no
 money, so everyone sees it. Week by week over-allocation, with the scenario being edited, is v0.4's
-health check. The bench also marks who is already on the team being edited, since a person can be
+health check ([Weekly load](#weekly-load)). The bench also marks who is already on the team being edited, since a person can be
 on a scenario only once.
 
 ### The demo's dates
@@ -609,6 +609,217 @@ The demo seed plans one on Internal tooling ([The demo's dates](#the-demos-dates
 
 The description is 1 to 500 characters, not blank, and holds no money, so everyone who sees the
 project sees it.
+
+## Comparing scenarios
+
+From v0.4 a project's scenarios can be compared side by side, to answer «which team suits this
+project better?» before choosing one. A comparison is a view, not data: nothing is stored, and it is
+read again on every request. It is one pure function in `src/lib/comparison`, over the results the
+scenario page already gets.
+
+### What can be compared
+
+- **Two or three scenarios of the same project**, each once. Scenarios of different projects are
+  never compared: each margin % is over its own revenue (rule f), and their prices are unrelated.
+- **The chosen scenario may sit next to drafts.** It is costed as its page costs it, with its frozen
+  values (rule b), and the drafts with the current ones; the comparison says which column uses frozen
+  values, since part of a difference may come from rates changed after choosing.
+- **A scenario without assignments** may be compared: its lines are what the engine gives it.
+- **Target margin** is the organization's current one for every column (rule b), so the margin
+  statuses are judged against the same goal.
+
+### The baseline
+
+The first column is the **baseline**: the chosen scenario when it is among those compared, or else
+the first one picked. The other columns show their figures and, for each line, the **difference**
+from the baseline: that column's value minus the baseline's. The baseline only orders the columns
+and signs the differences: it never changes a figure.
+
+### What it shows
+
+With rate access, for each scenario, the summary's result lines and the differences between them:
+
+| Line                                                       | Difference                                                                             |
+| ---------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| Staff cost of each category                                | In cents. A category absent from a team counts as 0 € and 0 hours there                |
+| Staff cost                                                 | In cents                                                                               |
+| Extra costs                                                | Their sum, in cents: the sum of each extra cost's rounded line, undetermined if any is |
+| Direct cost, overhead, buffer, total                       | In cents                                                                               |
+| Revenue                                                    | In cents. With a fixed price it is the same price in every column: a 0 € change        |
+| Direct and net margin, with their %                        | Margins in cents; their % in percentage points, from their basis points                |
+| Margin status                                              | None: each column shows its own status                                                 |
+| Effective rate                                             | In cents per hour                                                                      |
+| Nominal and effective hours, per scenario and per category | In hours, exact                                                                        |
+
+- **Categories** are listed once, as the union of the teams: the baseline's in its order, then the
+  others' new ones in the order they first appear. A category absent from a team shows «not on this
+  team», never 0 €; for the difference it counts as 0, so the difference is the other column's whole
+  amount.
+- **Each extra cost** is listed in its column by label and kind, without a difference: extra costs
+  belong to their scenario (another team may need other infrastructure), so two scenarios' extra
+  costs are not the same cost even when their labels match. Their sum has a difference.
+- **Differences are exact:** every result line is already rounded to the cent, so a difference of two
+  of them is exact and never rounded again. A difference of 0 is shown as no change, not hidden.
+- **Effective rate** comes first with a fixed price: revenue is the same in every column, so it is
+  the figure that tells the teams apart (revenue ÷ effective hours). In T&M revenue moves with the
+  team, and net margin is the figure to read.
+
+Everyone, with or without rate access, sees **the team differences**, which hold no money:
+
+- **People:** a person in a column and not in the baseline **enters**; a person in the baseline and
+  not in a column **leaves**; a person in both shows the changes to their category, project role,
+  allocation, weekly hours and dates, if any. People are matched by person, never by assignment id,
+  since a duplicated scenario gives its assignments new ids.
+- **Open roles** cannot be matched one by one: they are compared per category, as how many open roles
+  each column has and their nominal hours.
+- **Hours** per scenario and per category, nominal and effective, with their differences.
+
+Without rate access the comparison shows only that: teams and hours, never a result line, a margin
+status, an effective rate or a difference in money (rule j,
+[ADR 0005](adr/0005-rate-access-in-the-database.md)).
+
+### Partial results in a comparison
+
+A figure keeps its state ([Partial results](#partial-results)): an undetermined line is shown as
+undetermined in its column, with what is missing, and a line not applicable as not applicable.
+
+- **A difference needs both figures.** When the line is undetermined or not applicable in the column
+  or in the baseline, there is no difference, never one computed from 0 or from a subtotal. The
+  difference cell says which column lacks the figure.
+- **A category absent from a team is not undetermined:** it counts as 0 (see above). A category
+  present without a rate is undetermined, and so is its difference.
+- **Hours are always determined**, so their differences always exist.
+
+### Comparison examples
+
+These become the unit tests of `src/lib/comparison`. All three scenarios belong to the guide case's
+project (fixed price of 200,000 €, 1 April to 29 September 2027, cloud at 1,000 € a month without
+dates, 1,984 calendar working hours, target margin 25%), and every assignment is at 40 hours a week:
+
+- **Plan A**, the guide case and the chosen scenario: Project Manager 50%, Senior Developer 100%,
+  Frontend Developer 100%, DevOps Engineer 50%.
+- **Plan B:** Plan A with a Junior Developer at 100% instead of the Frontend Developer.
+- **Plan C:** Plan A without the DevOps Engineer.
+
+Plan A is the baseline, since it is chosen. Differences are from it:
+
+| Line                |               Plan A |               Plan B |              Plan B − A |                Plan C |               Plan C − A |
+| ------------------- | -------------------: | -------------------: | ----------------------: | --------------------: | -----------------------: |
+| Staff cost          |         105,318.35 € |          95,017.95 € |            −10,300.40 € |           87,364.72 € |             −17,953.63 € |
+| Extra costs (cloud) |           5,966.67 € |           5,966.67 € |                     0 € |            5,966.67 € |                      0 € |
+| Direct cost         |         111,285.02 € |         100,984.62 € |            −10,300.40 € |           93,331.39 € |             −17,953.63 € |
+| Overhead            |          15,797.75 € |          14,252.69 € |             −1,545.06 € |           13,104.71 € |              −2,693.04 € |
+| Buffer              |          12,708.28 € |          11,523.73 € |             −1,184.55 € |           10,643.61 € |              −2,064.67 € |
+| Total cost          |         139,791.05 € |         126,761.04 € |            −13,030.01 € |          117,079.71 € |             −22,711.34 € |
+| Revenue             |         200,000.00 € |         200,000.00 € |                     0 € |          200,000.00 € |                      0 € |
+| Direct margin       | 88,714.98 € (44.36%) | 99,015.38 € (49.51%) | +10,300.40 € (+5.15 pp) | 106,668.61 € (53.33%) |  +17,953.63 € (+8.97 pp) |
+| Net margin          | 60,208.95 € (30.10%) | 73,238.96 € (36.62%) | +13,030.01 € (+6.52 pp) |  82,920.29 € (41.46%) | +22,711.34 € (+11.36 pp) |
+| Margin status       |                green |                green |                         |                 green |                          |
+| Effective hours     |              2,437.5 |              2,437.5 |                       0 |              2,031.25 |                  −406.25 |
+| Effective rate      |            82.05 €/h |            82.05 €/h |                   0 €/h |             98.46 €/h |               +16.41 €/h |
+
+- **Categories:** Project Manager, Senior Developer, Frontend Developer and DevOps Engineer in
+  Plan A's order, then Junior Developer, new in Plan B. In Plan B the Frontend Developer is «not on
+  this team» and its difference is −30,413.71 €; the Junior Developer is not on Plan A's team and
+  its difference is +20,113.31 €. In Plan C the DevOps Engineer's difference is −17,953.63 €.
+- **Effective rate:** Plan B has the same hours as Plan A, so the same effective rate, although it
+  costs 13,030.01 € less; Plan C has 406.25 fewer effective hours, so each hour of the same price is
+  worth 16.41 € more.
+- **Team:** in Plan B the Frontend Developer's person leaves and the Junior Developer's enters; in
+  Plan C the DevOps Engineer's person leaves. Without rate access these team differences and the
+  hours are all the comparison shows.
+- **Partial result:** in an organization where the Junior Developer has no rate, Plan B's Junior
+  Developer line, staff cost, direct cost, overhead, buffer, total cost and both margins are
+  undetermined, with «Falta el coste de Junior Developer», and none of them has a difference.
+  Revenue (the fixed price), the extra costs and the effective rate stay determined, with their
+  differences of 0; so do the hours. Plan B's margin status is none. Plan C, which does not use
+  the Junior Developer, is unchanged.
+
+## Weekly load
+
+From v0.4 the editor shows how busy each person is **week by week**, and flags over-allocation
+(rule c), the first health check. It extends [How busy a person is](#how-busy-a-person-is), which
+stays as today's figure, from a single day to the weeks of a scenario. It is one pure function in
+`src/lib/load`, over assignments and dates: it holds no money, so everyone sees it.
+
+**Load is what Squadio knows.** It comes only from the scenarios registered here: a week without
+load means nothing is registered for that person, never that they are free. The UI says so wherever
+it shows load.
+
+### Which scenarios load a person
+
+For the scenario on the page, being edited or only viewed:
+
+- **That scenario**, whether chosen or not.
+- **The chosen scenario of every other project** (rule i keeps it to one per project).
+- **Never two scenarios of the same project:** they are alternatives, not extra work. The project's
+  own chosen scenario does not count when another of its scenarios is on the page; that one stands in
+  for it. A chosen scenario on the page counts once.
+- **Nothing else:** scenarios that are not chosen, other than the one on the page, commit no one.
+  Open roles load no one, since they have no person. An assignment at 0% loads nothing.
+
+### What a week is
+
+A week is an ISO week, Monday to Sunday, in `Europe/Madrid`, like every date in Squadio. Its
+**working days** are those of the national calendar (rule h): weekdays that are not national
+holidays, so most weeks have 5 and a week with a holiday on a weekday has fewer. The days of the
+week before 1 January 2026, the calendar's first listed day, are weekdays without a national holiday
+(29 to 31 December 2025), so they count as working days of that week, although no assignment can
+cover them.
+
+### Load in a week
+
+An assignment loads a week in proportion to the working days of that week it covers:
+
+```math
+\text{load}_{\text{assignment, week}} = \text{allocation} \times \frac{\text{workingDays}(\text{assignment} \cap \text{week})}{\text{workingDays}(\text{week})}
+```
+
+A person's load in a week is the sum over the assignments that load them (see above). It is a
+percentage, kept exact as a fraction, and may exceed 100%.
+
+- **Allocation, not hours:** load sums allocations, as today's occupancy does. An assignment's weekly
+  hours, which may differ from the person's (rule a), do not change it.
+- **A week without working days** carries no load, and nothing to judge.
+- **Partial weeks** are what the proportion is for: an assignment at 100% that ends on a Wednesday
+  and the next one at 100% that starts on the Thursday load that week 100%, not 200%.
+
+**A week is over-allocated** when the person's exact load is above 100%. The display rounds the load
+to a whole percent, half up; an over-allocated week whose load would round to 100% shows «>100 %»,
+so an over-allocated week never reads 100%.
+
+### Where it shows
+
+- **On the bench**, each active person has a strip of weeks with their load, over the weeks of the
+  scenario on the page: from the week of the earliest of its first assignment start and the project's
+  planned start to the week of the latest of its last assignment end and the planned end. A scenario
+  without assignments, of a project without a planned period, has no weeks, and the bench shows only
+  today's occupancy, as before.
+- **On the team** (canvas and table), an assignment with a person is flagged when that person is
+  over-allocated in at least one week the assignment covers, a week with at least one of its working
+  days. The flag lists those weeks, each with the load and the projects whose chosen scenarios add
+  to it, by name. It is a warning, never a block: the change is still accepted and saved.
+- **Inactive people** keep loading the weeks of their assignments, since a chosen scenario still
+  commits them; they are not on the bench, but their assignments on the team are still flagged.
+
+The flag names projects, never costs, and judges the team's structure, never the person
+([ADR 0003](adr/0003-structure-not-people.md)).
+
+### Load examples
+
+These become the unit tests of `src/lib/load`. One person, all assignments at their 40 hours a week,
+dates in 2027. «X» and «Y» are two projects; the scenario on the page belongs to Y.
+
+| Case                  | Assignments                                                                                      | Week                         | Load                                                                 | Over-allocated |
+| --------------------- | ------------------------------------------------------------------------------------------------ | ---------------------------- | -------------------------------------------------------------------- | -------------- |
+| Handover              | X chosen, 100% to Wed 9 June. Y on the page, 100% from Thu 10 June                               | 7–13 June (5 working days)   | 100% × 3/5 + 100% × 2/5 = **100%**                                   | No             |
+| Overlap               | X chosen, 100% to Thu 10 June. Y on the page, 100% from Wed 9 June                               | 7–13 June (5)                | 100% × 4/5 + 100% × 3/5 = **140%**                                   | Yes            |
+| Holiday               | X chosen, 80% all of October. Y on the page, 50% from Wed 13 October                             | 11–17 October (4: 12 is off) | 80% × 4/4 + 50% × 3/4 = **117.5%**, «118 %»                          | Yes            |
+| Rounds to 100%        | X chosen, 99% all of December. Y on the page, 4% from Fri 10 December                            | 6–12 December (3: 6, 8 off)  | 99% + 4% × 1/3 = **100.33…%**, «>100 %»                              | Yes            |
+| Same project (rule c) | Y chosen, 60%. Y's draft on the page, 60%. X chosen, 50%, all in the same weeks                  | any of them                  | 60% (draft) + 50% (X) = **110%**; Y's chosen scenario does not count | Yes            |
+| Chosen on the page    | Y chosen and on the page, 60%. X chosen, 50%, in the same weeks                                  | any of them                  | 60% + 50% = **110%**, Y counted once                                 | Yes            |
+| Drafts commit no one  | X's draft (not chosen), 100%. Y on the page, 60%, in the same weeks                              | any of them                  | **60%**                                                              | No             |
+| Open role             | Y on the page: an open role at 100% of the person's category, and the person at 50% in X, chosen | any of them                  | **50%**: the open role loads no one                                  | No             |
 
 ## Configuration per organization
 
