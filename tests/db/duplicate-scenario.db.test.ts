@@ -5,13 +5,21 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { ZodError } from "zod";
 
+import { chooseScenario } from "@/db/choose-scenario";
 import { copyOrganization } from "@/db/copy-organization";
 import { deleteOrganizationWithRows } from "@/db/delete-organization";
 import { DEMO_IDS, DEMO_ORGANIZATION_ID, seedDemo } from "@/db/demo-seed";
 import { duplicateScenario } from "@/db/duplicate-scenario";
 import { loadScenario } from "@/db/load-scenario";
 import { saveScenarioChanges } from "@/db/save-scenario";
-import { assignments, extraCosts, frozenCostConfig, frozenRates, scenarios } from "@/db/schema";
+import {
+  assignments,
+  extraCosts,
+  frozenCostConfig,
+  frozenRates,
+  projects,
+  scenarios,
+} from "@/db/schema";
 import { type AccessContext, withOrganization } from "@/db/tenant";
 import { duplicateForVisitor } from "@/db/visitor-duplicate";
 import type { CookieJar } from "@/db/visitor-write";
@@ -25,7 +33,7 @@ import { SOME_DAY, appPool, newOrganization, ownerPool } from "./support";
 // scenario's assignments and extra costs, in one transaction, with rate access only. Each test
 // works in a fresh copy of the demo organization. Synthetic data only.
 
-const app = drizzle(appPool(2));
+const app = drizzle(appPool(4));
 const owner = ownerPool();
 const suffix = (n: number) => (n === 1 ? " (copia)" : ` (copia ${n})`);
 
@@ -73,6 +81,19 @@ const scenarioCount = (context = withRates()) =>
     context,
     async (tx) => (await tx.select({ n: count() }).from(scenarios))[0]?.n,
   );
+
+/** Waits until `count` sessions wait on a lock. */
+async function waitForLockWaiters(count: number) {
+  for (let tries = 0; tries < 500; tries++) {
+    const { rows } = await owner.query<{ waiting: number }>(
+      `select count(*)::int as waiting from pg_stat_activity
+        where datname = current_database() and cardinality(pg_blocking_pids(pid)) > 0`,
+    );
+    if ((rows[0]?.waiting ?? 0) >= count) return;
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+  throw new Error(`Fewer than ${count} sessions waited on a lock`);
+}
 
 /** The figures a scenario's summary shows: cost and margin. */
 async function figures(scenarioId: string) {
@@ -255,6 +276,36 @@ describe("duplicateScenario", () => {
       reason: "too-many",
     });
     expect(await ofProject()).toHaveLength(MAX_SCENARIOS_PER_PROJECT);
+  });
+
+  it("waits for a choice of the same scenario instead of deadlocking with it", async () => {
+    // A transaction holds the project; a duplicate queues on it first, then a choice of the same
+    // scenario. Were choosing to lock the scenario before the project, the duplicate would get the
+    // project and wait for the scenario the choice holds, while the choice waits for the project.
+    const draft = ours(DEMO_IDS.leanScenario);
+    const project = (await scenarioRow(draft))?.projectId ?? "";
+    const version = (await scenarioRow(draft))?.version ?? 1;
+    let release = () => {};
+    const held = new Promise<void>((resolve) => (release = resolve));
+    let locked = () => {};
+    const holding = new Promise<void>((resolve) => (locked = resolve));
+    const blocker = withOrganization(app, withRates(), async (tx) => {
+      await tx.select().from(projects).where(eq(projects.id, project)).for("update");
+      locked();
+      await held;
+    });
+    await holding;
+
+    const duplicate = duplicateScenario(app, withRates(), { scenarioId: draft }, suffix);
+    await waitForLockWaiters(1);
+    const choice = chooseScenario(app, withRates(), { scenarioId: draft, baseVersion: version });
+    await waitForLockWaiters(2);
+    release();
+    await blocker;
+
+    const [copy, chosen] = await Promise.all([duplicate, choice]);
+    expect(copy.ok).toBe(true);
+    expect(chosen.ok).toBe(true);
   });
 
   it("refuses input that is not a scenario id", async () => {
