@@ -1,4 +1,5 @@
 import { screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 import type { PortfolioProject, PortfolioScenario } from "@/lib/portfolio/portfolio";
@@ -9,6 +10,7 @@ import { renderWithIntl } from "@/test/render";
 import { ProjectHeader, ProjectScenarios } from "./project-page";
 
 vi.mock("@/i18n/navigation", () => ({
+  useRouter: () => ({ push: vi.fn() }),
   Link: ({ href, children, ...props }: { href: string; children: React.ReactNode }) => (
     <a href={href} {...props}>
       {children}
@@ -129,6 +131,34 @@ describe("ProjectHeader", () => {
 });
 
 describe("ProjectScenarios", () => {
+  it("offers «Duplicar» on each scenario with rate access, named after it", async () => {
+    const send = vi.fn(async () => ({ ok: false as const, reason: "failed" }));
+    renderWithIntl(
+      <ProjectScenarios project={portal} categories={categories} rateAccess duplicate={send} />,
+    );
+    const table = screen.getByRole("table", { name: "Escenarios" });
+    const planB = within(table).getByRole("row", { name: /^Plan B/ });
+    await userEvent.setup().click(within(planB).getByRole("button", { name: "Duplicar Plan B" }));
+    expect(send).toHaveBeenCalledWith({ scenarioId: "s2", locale: "es" });
+    expect(within(table).getAllByRole("button", { name: /^Duplicar / })).toHaveLength(
+      portal.scenarios.length,
+    );
+    await expectNoAxeViolations();
+  });
+
+  it("offers no «Duplicar» without rate access: extra costs are restricted money", () => {
+    renderWithIntl(
+      <ProjectScenarios
+        project={portal}
+        categories={categories}
+        rateAccess={false}
+        duplicate={vi.fn()}
+      />,
+    );
+    expect(screen.queryByRole("button", { name: /Duplicar/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("columnheader", { name: "Acciones" })).not.toBeInTheDocument();
+  });
+
   it("lists each scenario, leading to the editor, with the chosen one marked", () => {
     renderWithIntl(<ProjectScenarios project={portal} categories={categories} rateAccess />);
 

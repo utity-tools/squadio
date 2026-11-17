@@ -2,6 +2,7 @@ import { useTranslations } from "next-intl";
 import { type ReactNode, useId } from "react";
 
 import { useDayRange } from "@/components/format/use-day-range";
+import { DuplicateButton, type SendDuplicate } from "@/components/scenario/duplicate-scenario";
 import { useSummaryFormat } from "@/components/summary/summary-format";
 import { Chip } from "@/components/ui/chip";
 import { EmptyArt, EmptyState } from "@/components/ui/empty-state";
@@ -97,6 +98,8 @@ type ProjectScenariosProps = {
   rateAccess: boolean;
   /** «Crear escenario», for a signed-in member only. */
   action?: ReactNode;
+  /** The Server Action behind each scenario's «Duplicar», shown with rate access only. */
+  duplicate?: SendDuplicate;
 };
 
 /**
@@ -108,11 +111,14 @@ export function ProjectScenarios({
   categories,
   rateAccess,
   action,
+  duplicate,
 }: ProjectScenariosProps) {
   const t = useTranslations("Project");
   const { hours } = useSummaryFormat();
   const nameOf = categoryNames({ categories });
   const titleId = useId();
+  // Extra costs are restricted money: duplicating needs rate access (ADR 0005).
+  const send = rateAccess ? duplicate : undefined;
 
   const team = (people: number, openRoles: number) => {
     if (people > 0) return t("team", { people, openRoles });
@@ -158,6 +164,11 @@ export function ProjectScenarios({
                       <TableHead scope="col">{t("columns.status")}</TableHead>
                     </>
                   )}
+                  {send && (
+                    <TableHead scope="col">
+                      <span className="sr-only">{t("columns.actions")}</span>
+                    </TableHead>
+                  )}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -186,6 +197,15 @@ export function ProjectScenarios({
                           </TableCell>
                           <TableCell>{margin && <MarginState margin={margin} />}</TableCell>
                         </>
+                      )}
+                      {send && (
+                        <TableCell className="text-right">
+                          <DuplicateButton
+                            scenarioId={scenario.id}
+                            name={scenario.name}
+                            send={send}
+                          />
+                        </TableCell>
                       )}
                     </TableRow>
                   );

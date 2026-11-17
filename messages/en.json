@@ -392,7 +392,8 @@
       "team": "Team",
       "effectiveHours": "Effective hours",
       "netMargin": "Net margin",
-      "status": "Status"
+      "status": "Status",
+      "actions": "Actions"
     },
     "team": "{people, plural, one {# person} other {# people}}{openRoles, plural, =0 {} one { · # open role} other { · # open roles}}",
     "openRolesOnly": "{openRoles, plural, one {# open role} other {# open roles}}",
@@ -1103,5 +1104,20 @@
     "fictitious": "Fictitious names and figures",
     "fictitiousCopy": "Fictitious names and figures · your copy",
     "organizationPrefix": "Organization:"
+  },
+  "DuplicateScenario": {
+    "suffix": " (copy)",
+    "numberedSuffix": " (copy {n})",
+    "button": "Duplicate",
+    "named": "Duplicate {name}",
+    "duplicating": "Duplicating…",
+    "waiting": "It can be duplicated once the changes are saved.",
+    "errors": {
+      "not-found": "This scenario no longer exists. Reload the page.",
+      "too-many": "This project already has 20 scenarios, the most it can hold.",
+      "no-rate-access": "Duplicating copies costs, so it needs rate access.",
+      "limit": "No more copies of the demo can be made today. Try again tomorrow.",
+      "failed": "The scenario could not be duplicated. Try again."
+    }
   }
 }
