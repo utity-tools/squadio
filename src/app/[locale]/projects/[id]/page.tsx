@@ -18,7 +18,7 @@ import { loadProject } from "@/db/load-portfolio";
 import { memberProjectContext } from "@/db/project-context";
 import { currentAccessContext, currentMember } from "@/db/request-access";
 import { assertLocale, currentLocale } from "@/i18n/locale";
-import { redirect } from "@/i18n/navigation";
+import { getPathname, redirect } from "@/i18n/navigation";
 import { madridToday } from "@/lib/bench/occupancy";
 
 import { duplicateScenario } from "../../scenarios/[id]/actions";
@@ -133,6 +133,13 @@ export default async function ProjectPage({
         categories={categories}
         rateAccess={context.rateAccess}
         duplicate={duplicateScenario}
+        compare={{
+          action: getPathname({
+            href: `/projects/${project.id}/compare`,
+            locale: await currentLocale(),
+          }),
+          access: accessOf(query.access),
+        }}
         action={
           member ? (
             <NewScenarioButton

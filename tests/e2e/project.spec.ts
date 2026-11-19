@@ -75,6 +75,8 @@ test("lists the project's scenarios, each leading to the editor", async ({ page 
 
   await expect(scenarios(page).getByRole("link")).toHaveText(["Plan A", "Plan B"]);
   await expect(scenarios(page).getByRole("columnheader")).toHaveText([
+    // The ticks that pick scenarios to compare (docs/domain.md, "Comparing scenarios").
+    "Comparar",
     "Escenario",
     "Equipo",
     "Horas efectivas",
@@ -111,6 +113,7 @@ test("without rate access shows the project and its scenarios, and no money", as
   const response = await page.goto(`/projects/${PORTAL}?access=none`);
 
   await expect(scenarios(page).getByRole("columnheader")).toHaveText([
+    "Comparar",
     "Escenario",
     "Equipo",
     "Horas efectivas",
