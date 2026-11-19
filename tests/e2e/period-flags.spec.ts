@@ -1,6 +1,7 @@
 import { type Page, expect, test } from "@playwright/test";
 
 import { expectNoAxeViolations } from "./support/axe";
+import { expectOnCopy } from "./support/copy";
 import { expectHydrated } from "./support/hydration";
 
 // docs/domain.md, "Planned period": a reference, never a limit. The demo's Internal tooling plans
@@ -61,6 +62,7 @@ for (const colorScheme of ["light", "dark"] as const) {
     await expect(
       page.getByRole("region", { name: "Datos del escenario" }).getByText("Guardado"),
     ).toBeVisible();
+    await expectOnCopy(page, FIRST_DRAFT);
     await expectNoAxeViolations(page);
 
     // The tree's node says it too, with the detail for a screen reader.
