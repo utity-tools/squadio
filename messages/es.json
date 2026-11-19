@@ -915,7 +915,7 @@
       },
       "missingPeriod": {
         "title": "Falta el periodo previsto",
-        "description": "El escenario no tiene equipo y el proyecto no tiene periodo previsto: los costes recurrentes sin fechas, el coste total, el margen y lo que depende de ellos quedan pendientes."
+        "description": "Los costes recurrentes sin fechas no tienen periodo sobre el que repartirse. Fija el periodo previsto del proyecto o añade a alguien al equipo."
       },
       "budgetCapExceeded": {
         "title": "Tope de presupuesto superado",
