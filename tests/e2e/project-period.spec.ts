@@ -1,6 +1,7 @@
 import { type Page, expect, test } from "@playwright/test";
 
 import { expectNoAxeViolations } from "./support/axe";
+import { expectOnCopy } from "./support/copy";
 import { expectHydrated } from "./support/hydration";
 
 // docs/domain.md, "Planned period": the demo's Internal tooling plans 1 April to 31 December 2027,
@@ -82,6 +83,7 @@ for (const colorScheme of ["light", "dark"] as const) {
     await expect(
       page.getByRole("region", { name: "Datos del escenario" }).getByText("Guardado"),
     ).toBeVisible();
+    await expectOnCopy(page, FIRST_DRAFT);
     await expectNoAxeViolations(page);
   });
 }
