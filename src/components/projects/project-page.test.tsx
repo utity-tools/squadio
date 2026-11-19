@@ -247,4 +247,65 @@ describe("ProjectScenarios", () => {
     );
     await expectNoAxeViolations();
   });
+
+  describe("picking scenarios to compare", () => {
+    const compare = { action: "/projects/p1/compare" };
+
+    it("ticks scenarios into a GET form to the comparison, for everyone", () => {
+      renderWithIntl(
+        <ProjectScenarios
+          project={withoutRates}
+          categories={categories}
+          rateAccess={false}
+          compare={{ ...compare, access: "none" }}
+        />,
+      );
+
+      const tick = screen.getByRole("checkbox", { name: "Comparar Plan B" });
+      const form = document.getElementById(tick.getAttribute("form") ?? "");
+      expect(form).toHaveAttribute("method", "get");
+      expect(form).toHaveAttribute("action", "/projects/p1/compare");
+      expect(tick).toHaveAttribute("name", "s");
+      expect(tick).toHaveAttribute("value", "s2");
+      // Without rate access the comparison keeps it away: the form carries the page's ?access=.
+      expect(form?.querySelector('input[name="access"]')).toHaveAttribute("value", "none");
+      expect(screen.getAllByRole("checkbox")).toHaveLength(4);
+    });
+
+    it("asks for two or three before it compares", async () => {
+      const user = userEvent.setup();
+      renderWithIntl(
+        <ProjectScenarios project={portal} categories={categories} rateAccess compare={compare} />,
+      );
+      const submit = vi.fn((event: SubmitEvent) => event.preventDefault());
+      document.addEventListener("submit", submit);
+
+      await user.click(screen.getByRole("checkbox", { name: "Comparar Plan A" }));
+      await user.click(screen.getByRole("button", { name: "Comparar" }));
+      expect(screen.getByRole("status")).toHaveTextContent("Marca al menos dos escenarios.");
+      expect(submit.mock.calls[0]?.[0].defaultPrevented).toBe(true);
+
+      for (const name of ["Plan B", "Vacantes", "Draft"]) {
+        await user.click(screen.getByRole("checkbox", { name: `Comparar ${name}` }));
+      }
+      await user.click(screen.getByRole("button", { name: "Comparar" }));
+      expect(screen.getByRole("status")).toHaveTextContent("Marca tres escenarios como mucho.");
+      document.removeEventListener("submit", submit);
+      await expectNoAxeViolations();
+    });
+
+    it("offers no ticks with a single scenario", () => {
+      renderWithIntl(
+        <ProjectScenarios
+          project={{ ...portal, scenarios: portal.scenarios.slice(0, 1) }}
+          categories={categories}
+          rateAccess
+          compare={compare}
+        />,
+      );
+
+      expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Comparar" })).not.toBeInTheDocument();
+    });
+  });
 });

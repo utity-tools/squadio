@@ -18,6 +18,7 @@ import {
 import { Link } from "@/i18n/navigation";
 import { type PortfolioProject, categoryNames, marginOf } from "@/lib/portfolio/portfolio";
 
+import { CompareForm, PICKED } from "./compare-form";
 import { ChosenChip, MarginFigure, MarginState } from "./margin";
 
 // The project page (board 06's header, and its scenarios as the design's projects board lists
@@ -100,6 +101,11 @@ type ProjectScenariosProps = {
   action?: ReactNode;
   /** The Server Action behind each scenario's «Duplicar», shown with rate access only. */
   duplicate?: SendDuplicate;
+  /**
+   * Where «Comparar» leads, the comparison page's path with its locale, and the page's `?access=`.
+   * Teams and hours hold no money, so everyone compares (docs/domain.md, "Comparing scenarios").
+   */
+  compare?: { action: string; access?: string };
 };
 
 /**
@@ -112,11 +118,16 @@ export function ProjectScenarios({
   rateAccess,
   action,
   duplicate,
+  compare,
 }: ProjectScenariosProps) {
   const t = useTranslations("Project");
+  const compareText = useTranslations("Comparison.pick");
   const { hours } = useSummaryFormat();
   const nameOf = categoryNames({ categories });
   const titleId = useId();
+  const compareId = useId();
+  // A comparison takes two or three scenarios: with one, there is nothing to tick.
+  const picking = compare !== undefined && project.scenarios.length >= 2;
   // Extra costs are restricted money: duplicating needs rate access (ADR 0005).
   const send = rateAccess ? duplicate : undefined;
 
@@ -151,6 +162,11 @@ export function ProjectScenarios({
             <Table aria-labelledby={titleId} className="min-w-140">
               <TableHeader>
                 <TableRow>
+                  {picking && (
+                    <TableHead scope="col" className="w-0">
+                      <span className="sr-only">{compareText("column")}</span>
+                    </TableHead>
+                  )}
                   <TableHead scope="col">{t("columns.scenario")}</TableHead>
                   <TableHead scope="col">{t("columns.team")}</TableHead>
                   <TableHead scope="col" numeric>
@@ -177,6 +193,18 @@ export function ProjectScenarios({
                     scenario.money && marginOf(scenario.money, nameOf, project.pricingModel);
                   return (
                     <TableRow key={scenario.id}>
+                      {picking && (
+                        <TableCell className="w-0">
+                          <input
+                            type="checkbox"
+                            name={PICKED}
+                            value={scenario.id}
+                            form={compareId}
+                            aria-label={compareText("label", { name: scenario.name })}
+                            className="size-4 align-middle accent-brand-solid"
+                          />
+                        </TableCell>
+                      )}
                       <TableCell>
                         <span className="inline-flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
                           <Link
@@ -213,6 +241,9 @@ export function ProjectScenarios({
               </TableBody>
             </Table>
           </div>
+          {picking && (
+            <CompareForm id={compareId} action={compare.action} access={compare.access} />
+          )}
           <p className="text-[13px] text-muted-foreground">{t("note")}</p>
         </>
       )}
