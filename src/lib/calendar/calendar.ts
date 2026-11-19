@@ -130,3 +130,44 @@ export function monthsCovered(start: string, end: string): MonthCovered[] {
   }
   return months;
 }
+
+/** An ISO week, Monday to Sunday, and its working days (docs/domain.md, "What a week is"). */
+export type Week = { readonly start: string; readonly end: string; readonly workingDays: number };
+
+const firstListedDay = dayNumber(
+  `${Math.min(...Object.keys(NATIONAL_HOLIDAYS).map(Number))}-01-01`,
+);
+
+/**
+ * Whether `day` is a working day. The days before the calendar's first listed day are weekdays
+ * without a national holiday, so the week holding 1 January of the first year has its working days;
+ * after the listed years it throws, as `workingDays` does: dates are validated to the listed years
+ * before they reach it, and the last listed day is a Sunday, so no week runs past it.
+ */
+function isWorkingDay(day: number): boolean {
+  const date = isoDate(day);
+  if (day >= firstListedDay && !(Number(date.slice(0, 4)) in NATIONAL_HOLIDAYS)) {
+    throw new CalendarError(`No national holidays are listed for ${date.slice(0, 4)}`);
+  }
+  const weekday = new Date(day * DAY_MS).getUTCDay();
+  return weekday !== 0 && weekday !== 6 && !holidays.has(date);
+}
+
+/** Whether `date` is a working day, by the same rule as the weeks below. */
+export function isWorkingDate(date: string): boolean {
+  return isWorkingDay(dayNumber(date));
+}
+
+/** The ISO weeks from the one holding `first` to the one holding `last`, in order. */
+export function isoWeeks(first: string, last: string): Week[] {
+  const [from, to] = period(first, last);
+  // The epoch, day 0, was a Thursday: Monday is 3 days before it.
+  const monday = from - ((from + 3) % 7);
+  const weeks: Week[] = [];
+  for (let start = monday; start <= to; start += 7) {
+    let days = 0;
+    for (let day = start; day < start + 7; day++) if (isWorkingDay(day)) days++;
+    weeks.push({ start: isoDate(start), end: isoDate(start + 6), workingDays: days });
+  }
+  return weeks;
+}

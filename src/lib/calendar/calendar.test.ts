@@ -7,6 +7,8 @@ import {
   NATIONAL_HOLIDAYS,
   calendarWorkingHours,
   hasNationalHolidays,
+  isWorkingDate,
+  isoWeeks,
   monthsCovered,
   workingDays,
 } from "./calendar";
@@ -177,5 +179,80 @@ describe("monthsCovered", () => {
 
   it("rejects an end before the start", () => {
     expect(() => monthsCovered("2027-04-02", "2027-04-01")).toThrow(CalendarError);
+  });
+});
+
+describe("isoWeeks", () => {
+  const monday = (date: string) => new Date(`${date}T00:00:00Z`).getUTCDay() === 1;
+
+  it.each([
+    ["a full week", "2027-06-09", "2027-06-09", "2027-06-07", 5],
+    ["a week with a holiday on a weekday", "2027-10-13", "2027-10-13", "2027-10-11", 4],
+    ["a week with two holidays", "2027-12-10", "2027-12-10", "2027-12-06", 3],
+    ["a week with a holiday at the weekend", "2027-08-15", "2027-08-15", "2027-08-09", 5],
+  ])("counts the working days of %s", (_case, first, last, start, days) => {
+    expect(isoWeeks(first, last)).toEqual([{ start, end: addDays(start, 6), workingDays: days }]);
+  });
+
+  it("counts the days before the calendar's first listed day as weekdays without holidays", () => {
+    // 29 to 31 December 2025 are working days; 1 January is a holiday, 2 January a Friday.
+    expect(isoWeeks("2026-01-01", "2026-01-01")).toEqual([
+      { start: "2025-12-29", end: "2026-01-04", workingDays: 4 },
+    ]);
+  });
+
+  it("lists every week from the one holding the first day to the one holding the last", () => {
+    expect(isoWeeks("2027-06-09", "2027-06-22").map((week) => week.start)).toEqual([
+      "2027-06-07",
+      "2027-06-14",
+      "2027-06-21",
+    ]);
+  });
+
+  it("gives consecutive Monday to Sunday weeks covering both days", () => {
+    fc.assert(
+      fc.property(dateIn(listedYears), dateIn(listedYears), (...dates) => {
+        const [first, last] = dates.sort();
+        if (!first || !last) return;
+        const weeks = isoWeeks(first, last);
+        weeks.forEach((week, index) => {
+          expect(monday(week.start)).toBe(true);
+          expect(week.end).toBe(addDays(week.start, 6));
+          if (index > 0) expect(week.start).toBe(addDays(weeks[index - 1]?.start ?? "", 7));
+        });
+        expect(weeks[0]?.start.localeCompare(first)).toBeLessThanOrEqual(0);
+        expect(weeks.at(-1)?.end.localeCompare(last)).toBeGreaterThanOrEqual(0);
+        expect(weeks.at(-1)?.start.localeCompare(last)).toBeLessThanOrEqual(0);
+      }),
+    );
+  });
+
+  it("agrees with workingDays on weeks inside the listed years", () => {
+    fc.assert(
+      fc.property(dateIn([2026, 2027, 2028]), (day) => {
+        const [week] = isoWeeks(day, day);
+        if (!week || !hasNationalHolidays(week.start)) return;
+        expect(week.workingDays).toBe(workingDays(week.start, week.end));
+      }),
+    );
+  });
+
+  it("rejects an end before the start", () => {
+    expect(() => isoWeeks("2027-04-02", "2027-04-01")).toThrow(CalendarError);
+  });
+
+  it("counts the working days isWorkingDate finds", () => {
+    fc.assert(
+      fc.property(dateIn([2026, 2027, 2028]), (day) => {
+        for (const week of isoWeeks(day, day)) {
+          const days = Array.from({ length: 7 }, (_, offset) => addDays(week.start, offset));
+          expect(days.filter(isWorkingDate)).toHaveLength(week.workingDays);
+        }
+      }),
+    );
+  });
+
+  it("rejects days after the listed years", () => {
+    expect(() => isoWeeks("2028-12-31", "2029-01-01")).toThrow(CalendarError);
   });
 });
