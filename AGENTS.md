@@ -44,6 +44,7 @@ See [ADR 0001](docs/adr/0001-stack-and-workflow.md) for why.
 | E2E tests (dev server)                 | `pnpm test:e2e`                     |
 | E2E tests (production build, as in CI) | `pnpm test:e2e:prod`                |
 | E2E tests in CI's Linux browser        | `pnpm test:e2e:linux`               |
+| Retake the README's screenshots        | `pnpm screenshots`                  |
 | Generate a migration                   | `pnpm db:generate`                  |
 | Apply migrations (as the owner role)   | `pnpm db:migrate`                   |
 | Seed the demo organization             | `pnpm db:seed`                      |
