@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import { guideSpan, guideTeam } from "@/test/guide-team";
@@ -137,6 +137,53 @@ describe("ScenarioSummary", () => {
           "En tiempo y materiales los ingresos salen de las horas del equipo: aparecen con él.",
         ),
       ).toBeVisible();
+    });
+
+    it("says what to do when an undated recurring cost has no span (rule d)", async () => {
+      const noPeriod = { undetermined: [{ code: "missingPeriod" as const }] };
+      const base = empty(20_000_000);
+      if (!base.rateAccess) throw new Error("the empty scenario has rate access");
+      const scenario: ScenarioSummaryProps["scenario"] = {
+        ...base,
+        result: {
+          ...base.result,
+          complete: false,
+          extraCosts: [{ id: "cloud", amountCents: noPeriod }],
+          directCostCents: noPeriod,
+          bufferCents: noPeriod,
+          totalCostCents: noPeriod,
+          directMarginCents: noPeriod,
+          directMarginBasisPoints: noPeriod,
+          netMarginCents: noPeriod,
+          netMarginBasisPoints: noPeriod,
+          marginStatus: null,
+          warnings: [{ code: "missingPeriod" }],
+        },
+        extraCosts: [{ id: "cloud", label: "Cloud", kind: "recurring" }],
+      };
+      renderWithIntl(<ScenarioSummary scenario={scenario} />);
+
+      const warning = screen.getByRole("listitem");
+      expect(
+        within(warning).getByRole("heading", { level: 3, name: "Falta el periodo previsto" }),
+      ).toBeVisible();
+      expect(warning).toHaveTextContent(
+        "Los costes recurrentes sin fechas no tienen periodo sobre el que repartirse. Fija el periodo previsto del proyecto o añade a alguien al equipo.",
+      );
+      // The margin still waits for the team.
+      expect(screen.getByRole("region", { name: "Margen neto" })).toHaveTextContent(
+        "Aparece en cuanto haya alguien en el equipo.",
+      );
+      await expectNoAxeViolations();
+    });
+
+    it.each([
+      ["with a price", 20_000_000],
+      ["without a price, which the note already names", noPrice],
+    ] as const)("shows no warning while nothing misses a span, %s", (_, revenueCents) => {
+      renderWithIntl(<ScenarioSummary scenario={empty(revenueCents)} />);
+
+      expect(screen.queryByRole("heading", { level: 3 })).not.toBeInTheDocument();
     });
   });
 
