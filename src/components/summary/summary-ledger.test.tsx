@@ -470,10 +470,12 @@ describe("SummaryLedger", () => {
       expect(row("Margen neto")).toBe(
         "Margen netoPendiente Falta el precio. Falta el periodo previsto",
       );
-      expect(screen.getByRole("heading", { name: "Falta el periodo previsto" })).toBeVisible();
+      expect(
+        screen.getByRole("heading", { level: 3, name: "Falta el periodo previsto" }),
+      ).toBeVisible();
       expect(
         screen.getByText(
-          "El escenario no tiene equipo y el proyecto no tiene periodo previsto: los costes recurrentes sin fechas, el coste total, el margen y lo que depende de ellos quedan pendientes.",
+          "Los costes recurrentes sin fechas no tienen periodo sobre el que repartirse. Fija el periodo previsto del proyecto o añade a alguien al equipo.",
         ),
       ).toBeInTheDocument();
     });

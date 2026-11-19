@@ -915,7 +915,7 @@
       },
       "missingPeriod": {
         "title": "The planned period is missing",
-        "description": "The scenario has no team and the project has no planned period: undated recurring costs, total cost, margin and what depends on them are pending."
+        "description": "Undated recurring costs have no period to spread over. Set the project's planned period or add someone to the team."
       },
       "budgetCapExceeded": {
         "title": "Budget cap exceeded",

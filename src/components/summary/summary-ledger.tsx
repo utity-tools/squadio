@@ -85,16 +85,21 @@ export function SummaryLedger({ ledger, team, pricingModel }: SummaryLedgerProps
 /**
  * The rail of a scenario without a team (board "Primer escenario"): the margin waits for the team,
  * and a fixed price already shows its revenue, or what it misses. A statement of zeros would say
- * nothing, so there is none.
+ * nothing, so there is none. An undated recurring cost without a span warns, saying how to give
+ * it one.
  */
 export function SummaryEmpty({ ledger, pricingModel }: Omit<SummaryLedgerProps, "team">) {
   const t = useTranslations("Summary");
   const { euros } = useSummaryFormat();
   const revenue = ledger.lines.find((line) => line.key === "revenue");
+  const period = ledger.warnings.filter((warning) => warning.code === "missingPeriod");
 
   return (
     <div className="flex flex-col gap-4">
       <h2 className="text-[15px] font-semibold">{t("title")}</h2>
+      {/* An undated recurring cost without a span says what gives it one (rule d); the note below
+          already says what the price and the team leave pending. */}
+      {period.length > 0 && <SummaryWarnings warnings={period} />}
       <section
         aria-label={t("headline.netMargin")}
         className="flex flex-col gap-1.5 rounded-xl border bg-muted px-4.5 py-4"
