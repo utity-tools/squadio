@@ -7,15 +7,17 @@ import { Eyebrow, SectionTitle } from "./landing-section";
 
 type Status = "available" | "inProgress" | "later";
 
-// The versions as docs/plan.md orders them: v0.2 Simular shipped, v0.3 Preparar is being built.
+// The versions as docs/plan.md orders them: v0.2 Simular, v0.3 Preparar and v0.4 Comparar shipped,
+// and v0.5 Compartir comes next. Preparar counts as shipped although sign-up stays closed in
+// production (owner, 2026-11-19).
 const VERSIONS: readonly {
   key: "simulate" | "prepare" | "compare" | "share";
   status: Status;
 }[] = [
   { key: "simulate", status: "available" },
-  { key: "prepare", status: "inProgress" },
-  { key: "compare", status: "later" },
-  { key: "share", status: "later" },
+  { key: "prepare", status: "available" },
+  { key: "compare", status: "available" },
+  { key: "share", status: "inProgress" },
 ];
 
 const TONE = { available: "ok", inProgress: "warn", later: "muted" } as const satisfies Record<
@@ -26,7 +28,7 @@ const TONE = { available: "ok", inProgress: "warn", later: "muted" } as const sa
 /**
  * «Hoja de ruta» (design "Landing", #hoja): where each version stands. The chip says the status in
  * words and with a dot, so colour is never the only signal (ADR 0014); the muted chip has no dot
- * of its own, so it gets one here. The version that is out is outlined in the brand's colour.
+ * of its own, so it gets one here. The versions that are out are outlined in the brand's colour.
  */
 export function LandingRoadmap() {
   const t = useTranslations("Landing.roadmap");
