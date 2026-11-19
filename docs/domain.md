@@ -700,6 +700,9 @@ With rate access, for each scenario, the summary's result lines and the differen
 - **Each extra cost** is listed in its column by label and kind, without a difference: extra costs
   belong to their scenario (another team may need other infrastructure), so two scenarios' extra
   costs are not the same cost even when their labels match. Their sum has a difference.
+- **Small categories** keep their warning next to their staff cost in every column (rule j,
+  [Small categories](#small-categories)): a difference between two columns can reveal a salary as
+  well as the cost itself.
 - **Differences are exact:** every result line is already rounded to the cent, so a difference of two
   of them is exact and never rounded again. A difference of 0 is shown as no change, not hidden.
 - **Effective rate** comes first with a fixed price: revenue is the same in every column, so it is
