@@ -21,10 +21,14 @@ import {
   type BenchPerson,
   benchGroups,
 } from "@/lib/bench/bench";
+import type { Week } from "@/lib/calendar/calendar";
 import { utcDay } from "@/lib/calendar/utc-day";
 import { plainSpaces } from "@/lib/format/plain-spaces";
+import { type WeekLoad, scenarioWeeks, weeklyLoad } from "@/lib/load/weekly-load";
 import type { Dragged } from "@/lib/scenarios/drop-action";
 import { cn } from "@/lib/utils";
+
+import { WeekStrip } from "./week-strip";
 
 const FIELD =
   "h-8 w-full min-w-0 rounded-md border bg-transparent px-2 text-sm shadow-xs placeholder:text-muted-foreground dark:bg-input/30";
@@ -67,6 +71,14 @@ export function Bench({
   const categoryId = useId();
 
   const groups = benchGroups(basis, team, filter);
+  // Recalculated on every change: the weeks follow the team (docs/domain.md, "Where it shows").
+  const weeks = scenarioWeeks(team, basis.project.plannedPeriod);
+  const loads = weeklyLoad({
+    projectId: basis.project.id,
+    team,
+    commitments: basis.commitments,
+    weeks,
+  });
   const count = groups.reduce((sum, group) => sum + group.people.length, 0);
   const announced = useSettled(count, SETTLE_MS);
   const searching = filter.query.trim() !== "";
@@ -135,6 +147,7 @@ export function Bench({
             day: plainSpaces(format.dateTime(utcDay(day), { dateStyle: "long", timeZone: "UTC" })),
           })}
         </p>
+        {weeks.length > 0 && <p className="text-xs text-muted-foreground">{t("weeklyNote")}</p>}
       </div>
 
       {/*
@@ -170,7 +183,12 @@ export function Bench({
           <ul className="flex flex-col gap-2">
             {group.openRole && <OpenRoleCard category={group.category} />}
             {group.people.map((person) => (
-              <BenchCard key={person.id} person={person} />
+              <BenchCard
+                key={person.id}
+                person={person}
+                weeks={weeks}
+                loads={loads.get(person.id)}
+              />
             ))}
           </ul>
         </div>
@@ -179,7 +197,16 @@ export function Bench({
   );
 }
 
-function BenchCard({ person }: { person: BenchPerson }) {
+function BenchCard({
+  person,
+  weeks,
+  loads,
+}: {
+  person: BenchPerson;
+  /** The weeks of the scenario on the page; none without a team or a planned period. */
+  weeks: readonly Week[];
+  loads: readonly WeekLoad[] | undefined;
+}) {
   const t = useTranslations("Bench");
   const format = useFormatter();
   const percent = format.number(person.occupancy / 100, { style: "percent" });
@@ -218,6 +245,7 @@ function BenchCard({ person }: { person: BenchPerson }) {
           {t("overAllocated")}
         </p>
       )}
+      {weeks.length > 0 && <WeekStrip name={person.name} weeks={weeks} loads={loads} />}
     </DraggableCard>
   );
 }
@@ -295,6 +323,8 @@ function DraggableCard({
               const onGrip =
                 event.target instanceof Element && event.target.closest("[data-drag-grip]");
               if (event.pointerType !== "mouse" && !onGrip) return;
+              // A button on the card, such as the one listing the weeks, is clicked, not dragged.
+              if (event.target instanceof Element && event.target.closest("button")) return;
               drag.start(event, dragged, label);
             }
           : undefined

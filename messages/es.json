@@ -685,7 +685,18 @@
     "emptyHintCategory": "Prueba con otro nombre o quita el filtro de categoría.",
     "clear": "Quitar filtros",
     "openRole": "Vacante",
-    "openRoleOf": "Vacante ({category})"
+    "openRoleOf": "Vacante ({category})",
+    "weeklyNote": "Carga por semana del escenario, según lo registrado en Squadio: una semana vacía no significa que la persona esté libre.",
+    "weeksOver": "{count, plural, one {# semana} other {# semanas}} por encima del 100 %",
+    "weekPeak": "Semana de más carga: {percent}",
+    "noLoad": "Sin carga registrada en estas semanas",
+    "showWeeks": "Ver semanas",
+    "hideWeeks": "Ocultar semanas",
+    "weeksOf": "Carga semanal de {name}",
+    "week": "Semana del {day}",
+    "noWorkingDays": "sin días laborables",
+    "overWeek": "sobreasignación",
+    "weeksFor": "de {name}"
   },
   "ScenarioError": {
     "title": "No hemos podido abrir este escenario",
@@ -1191,5 +1202,8 @@
       "tooMany": "Marca tres escenarios como mucho."
     },
     "amountWithPoints": "{amount} · {points}"
+  },
+  "Load": {
+    "aboveHundred": ">{percent}"
   }
 }

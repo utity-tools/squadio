@@ -22,13 +22,13 @@ const basis: ScenarioBasis = {
   people: hoursBasis.people.map((person) => ({ ...person, occupancy: BUSY[person.id] ?? 0 })),
 };
 
-function renderBench(people = basis.people) {
+function renderBench(people = basis.people, overrides: Partial<ScenarioBasis> = {}) {
   const stores: ScenarioStore[] = [];
   const view = renderWithIntl(
     <ScenarioStoreProvider>
       <ScenarioEditor
         scenarioId={seatId(99)}
-        editing={{ basis: { ...basis, people }, team, version: 1 }}
+        editing={{ basis: { ...basis, people, ...overrides }, team, version: 1 }}
         save={never}
       >
         <Bench day="2026-10-29" />
@@ -207,5 +207,81 @@ describe("Bench", () => {
   it("shows no money", () => {
     const { container } = renderBench();
     expect(container.textContent).not.toContain("€");
+  });
+
+  describe("weekly load", () => {
+    // The team spans 1 April to 29 September 2027; person 1 leads it at 100% and person 3 manages
+    // it at 100%. Another project's chosen scenario adds person 1 at 50% for four weeks of April.
+    const commitments = [
+      {
+        id: "commitment-1",
+        personId: personId(1),
+        projectId: "project-2",
+        projectName: "Project 2",
+        allocation: 50,
+        startDate: "2027-04-05",
+        endDate: "2027-04-30",
+      },
+    ];
+
+    it("sums up each person's weeks, and says load is what Squadio knows", () => {
+      renderBench(basis.people, { commitments });
+      expect(within(card("Person 1")).getByText("4 semanas por encima del 100 %")).toBeVisible();
+      expect(within(card("Person 3")).getByText("Semana de más carga: 100 %")).toBeVisible();
+      expect(
+        within(card("Person 2")).getByText("Sin carga registrada en estas semanas"),
+      ).toBeVisible();
+      expect(
+        screen.getByText(/una semana vacía no significa que la persona esté libre/),
+      ).toBeVisible();
+    });
+
+    it("lists the weeks with their load from the keyboard", async () => {
+      const user = userEvent.setup();
+      renderBench(basis.people, { commitments });
+      const toggle = within(card("Person 1")).getByRole("button", { name: /^Ver semanas de / });
+      expect(toggle).toHaveAccessibleName("Ver semanas de Person 1");
+      expect(toggle).toHaveAttribute("aria-expanded", "false");
+
+      toggle.focus();
+      await user.keyboard("{Enter}");
+      expect(toggle).toHaveAttribute("aria-expanded", "true");
+      expect(toggle).toHaveAccessibleName(/^Ocultar semanas de /);
+      const weeks = within(screen.getByRole("list", { name: "Carga semanal de Person 1" }));
+      expect(weeks.getAllByRole("listitem")).toHaveLength(27);
+      expect(weeks.getByText("Semana del 5 abr 2027").closest("li")).toHaveTextContent(
+        /150 %.*sobreasignación/,
+      );
+      expect(weeks.getByText("Semana del 3 may 2027").closest("li")).toHaveTextContent("100 %");
+      expect(weeks.getByText("Semana del 3 may 2027").closest("li")).not.toHaveTextContent(
+        "sobreasignación",
+      );
+
+      await user.keyboard("{Enter}");
+      expect(
+        screen.queryByRole("list", { name: "Carga semanal de Person 1" }),
+      ).not.toBeInTheDocument();
+    });
+
+    it("shows an over-allocated week that rounds to 100% as above it", async () => {
+      const user = userEvent.setup();
+      renderBench(basis.people, {
+        commitments: [{ ...commitments[0]!, allocation: 1, endDate: "2027-04-05" }],
+      });
+      await user.click(within(card("Person 1")).getByRole("button", { name: /^Ver semanas de / }));
+      // 100% + 1% × 1/5 = 100.2%.
+      expect(screen.getByText("Semana del 5 abr 2027").closest("li")).toHaveTextContent(">100 %");
+    });
+
+    it("has no weeks without a team or a planned period", () => {
+      const stores = renderBench(basis.people, { commitments });
+      act(() => {
+        for (const member of [...team].reverse()) {
+          stores.store.getState().dispatch({ type: "remove", id: member.id });
+        }
+      });
+      expect(screen.queryByRole("button", { name: /^Ver semanas de / })).not.toBeInTheDocument();
+      expect(screen.queryByText(/una semana vacía/)).not.toBeInTheDocument();
+    });
   });
 });
