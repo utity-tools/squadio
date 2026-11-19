@@ -1119,5 +1119,77 @@
       "limit": "Hoy no se pueden crear más copias de la demo. Vuelve a intentarlo mañana.",
       "failed": "No se ha podido duplicar el escenario. Inténtalo de nuevo."
     }
+  },
+  "Comparison": {
+    "title": "Comparar escenarios",
+    "heading": "Comparar escenarios de {project}",
+    "intro": "Las diferencias son respecto a la referencia, {baseline}. Esta vista solo lee: para cambiar un equipo, abre su escenario.",
+    "baseline": "Referencia",
+    "frozen": "Valores congelados",
+    "frozenNote": "{name} está elegido: se calcula con las tarifas y porcentajes que congeló al elegirlo. Parte de una diferencia puede venir de tarifas cambiadas después.",
+    "team": "<nowrap>{people, plural, one {# persona} other {# personas}}</nowrap>{openRoles, plural, =0 {} one { · <nowrap># vacante</nowrap>} other { · <nowrap># vacantes</nowrap>}}",
+    "noTeam": "Sin equipo",
+    "line": "Línea",
+    "sections": {
+      "result": "Resultado",
+      "categories": "Coste de personal por categoría",
+      "hours": "Horas",
+      "people": "Personas",
+      "openRoles": "Vacantes por categoría"
+    },
+    "lines": {
+      "effectiveRate": "Tarifa efectiva",
+      "extraCosts": "Costes extra",
+      "extraCostList": "Detalle de costes extra",
+      "status": "Estado del margen",
+      "nominalHours": "Horas nominales",
+      "effectiveHours": "Horas efectivas",
+      "openRoles": "Vacantes",
+      "openRoleHours": "Horas nominales de vacantes"
+    },
+    "readFirst": {
+      "fixed": "Con precio cerrado los ingresos son los mismos: la tarifa efectiva es la cifra que distingue a los equipos.",
+      "time_and_materials": "En tiempo y materiales los ingresos cambian con el equipo: el margen neto es la cifra que leer."
+    },
+    "absent": "No está en este equipo",
+    "noExtraCosts": "Sin costes extra",
+    "noStatus": "Sin estado",
+    "noChange": "Sin cambio",
+    "missingIn": {
+      "column": "Sin diferencia: falta la cifra de {name}",
+      "baseline": "Sin diferencia: falta la cifra de la referencia",
+      "both": "Sin diferencia: falta la cifra en las dos"
+    },
+    "points": "{value} pp",
+    "person": {
+      "enters": "Entra",
+      "leaves": "Sale",
+      "same": "Sin cambios",
+      "absent": "No está",
+      "changes": "Cambia: {fields}",
+      "fields": {
+        "category": "categoría",
+        "projectRole": "rol",
+        "allocation": "dedicación",
+        "weeklyHours": "horas semanales",
+        "dates": "fechas",
+        "seats": "asignaciones"
+      },
+      "seat": "{projectRole} · {category} · <nowrap>{allocation} %</nowrap>"
+    },
+    "invalid": {
+      "title": "Elige dos o tres escenarios",
+      "description": "Una comparación pone dos o tres escenarios del mismo proyecto lado a lado. Vuelve al proyecto y marca los que quieras comparar.",
+      "back": "Volver a {project}"
+    },
+    "pick": {
+      "label": "Comparar {name}",
+      "column": "Comparar",
+      "submit": "Comparar",
+      "hint": "Marca dos o tres escenarios para verlos lado a lado.",
+      "tooFew": "Marca al menos dos escenarios.",
+      "tooMany": "Marca tres escenarios como mucho."
+    },
+    "amountWithPoints": "{amount} · {points}"
   }
 }
