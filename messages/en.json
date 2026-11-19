@@ -685,7 +685,18 @@
     "emptyHintCategory": "Try another name, or clear the category filter.",
     "clear": "Clear filters",
     "openRole": "Open role",
-    "openRoleOf": "Open role ({category})"
+    "openRoleOf": "Open role ({category})",
+    "weeklyNote": "Load per week of the scenario, from what is registered in Squadio: an empty week does not mean the person is free.",
+    "weeksOver": "{count, plural, one {# week} other {# weeks}} above 100%",
+    "weekPeak": "Busiest week: {percent}",
+    "noLoad": "No load registered in these weeks",
+    "showWeeks": "Show weeks",
+    "hideWeeks": "Hide weeks",
+    "weeksOf": "Weekly load of {name}",
+    "week": "Week of {day}",
+    "noWorkingDays": "no working days",
+    "overWeek": "over-allocated",
+    "weeksFor": "for {name}"
   },
   "ScenarioError": {
     "title": "We couldn't open this scenario",
@@ -1191,5 +1202,8 @@
       "tooMany": "Tick three scenarios at most."
     },
     "amountWithPoints": "{amount} · {points}"
+  },
+  "Load": {
+    "aboveHundred": ">{percent}"
   }
 }
