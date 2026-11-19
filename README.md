@@ -3,15 +3,16 @@
 Staffing simulator for consultancies: build a project team by dragging people or open roles
 into a scenario and see cost, margin and effective rate update live, before you commit.
 
-**v0.3 is live** at [squadio.utitytools.com](https://squadio.utitytools.com): a synthetic demo
+**v0.4 is live** at [squadio.utitytools.com](https://squadio.utitytools.com): a synthetic demo
 organization with its home page, projects, people and scenarios. Edit a scenario and watch cost and
 margin follow every change; when data is missing, the estimate shows every line it can compute and
-says what each other line is waiting for. Your edits go to your own copy of the demo, kept for 30
-days after your last save. Signing in with GitHub or Google to work with your own organization is
-built but closed in production for now. Comparing scenarios comes in v0.4 (see the
-[roadmap](docs/plan.md#roadmap)).
+says what each other line is waiting for. Duplicate a scenario to try a variant, compare two or
+three side by side, and see each person's load week by week, with the people the team over-allocates
+flagged. Your edits go to your own copy of the demo, kept for 30 days after your last save. Signing
+in with GitHub or Google to work with your own organization is built but closed in production for
+now. Sharing a proposal comes in v0.5 (see the [roadmap](docs/plan.md#roadmap)).
 
-![The demo's Plan A in the editor: the bench of people with today's occupancy, the team as a tree, and the summary rail with net margin, key figures and result lines](docs/images/editor-light.png)
+![The demo's Plan A in the editor: the bench of people with today's occupancy and their weekly load, the team as a tree with an over-allocated project manager, and the summary rail with net margin, key figures and result lines](docs/images/editor-light.png)
 
 ## Try the demo
 
@@ -20,19 +21,25 @@ Every figure and name is synthetic.
 | Page                                                                                                                       | What it shows                                                             |
 | -------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
 | [Home](https://squadio.utitytools.com/en/home)                                                                             | The organization at a glance, and the corrections its data is waiting for |
-| [Customer portal](https://squadio.utitytools.com/en/projects/6d656d6f-0000-4000-8000-000000000100)                         | A project: its categories with their costs, and its scenarios             |
+| [Customer portal](https://squadio.utitytools.com/en/projects/6d656d6f-0000-4000-8000-000000000100)                         | A project: its categories with their costs, and its scenarios to compare  |
 | [Plan A](https://squadio.utitytools.com/en/scenarios/6d656d6f-0000-4000-8000-000000000200)                                 | The guide case team: tree and table views, the full summary rail          |
 | [Plan A without rate access](https://squadio.utitytools.com/en/scenarios/6d656d6f-0000-4000-8000-000000000200?access=none) | Team and hours only: the server sends no money at all                     |
 | [Over budget](https://squadio.utitytools.com/en/scenarios/6d656d6f-0000-4000-8000-000000000202)                            | Time and materials above its budget cap                                   |
 | [Missing rate](https://squadio.utitytools.com/en/scenarios/6d656d6f-0000-4000-8000-000000000203)                           | A category without a rate: no cost, never 0 €, and a marker on the node   |
 | [Missing price](https://squadio.utitytools.com/en/scenarios/6d656d6f-0000-4000-8000-000000000204)                          | A fixed-price project without a price: costs shown, margins pending       |
-| [Delivery plan](https://squadio.utitytools.com/en/scenarios/6d656d6f-0000-4000-8000-000000000205)                          | A chosen scenario: frozen rates and a locked team, until unchosen         |
+| [Delivery plan](https://squadio.utitytools.com/en/scenarios/6d656d6f-0000-4000-8000-000000000205)                          | A chosen scenario: frozen rates, a locked team, an over-allocated lead    |
 
+To compare scenarios, tick two or three on a project's page, or open
+[Plan A and Plan B side by side](https://squadio.utitytools.com/en/projects/6d656d6f-0000-4000-8000-000000000100/compare?s=6d656d6f-0000-4000-8000-000000000200&s=6d656d6f-0000-4000-8000-000000000201).
 Spanish is the default locale; drop `/en` from a link to see it in Spanish.
 
 <p>
+  <img src="docs/images/compare-light.png" alt="Plan A and Plan B of Customer portal side by side: each result line of both, and Plan B's differences from Plan A, the baseline" width="49%">
+  <img src="docs/images/over-allocation-dark.png" alt="The chosen Delivery plan in the dark theme: its tech lead flagged as over-allocated on the tree, and on the bench the same person's weeks above 100%" width="49%">
+</p>
+<p>
   <img src="docs/images/inicio-light.png" alt="Home: projects, scenarios with a chosen one, pending corrections and active people, with the list of corrections the data is waiting for" width="49%">
-  <img src="docs/images/project-dark.png" alt="The Customer portal project in the dark theme: its categories with costs and sell rates, one pending and one small, and its two scenarios" width="49%">
+  <img src="docs/images/project-dark.png" alt="The Customer portal project in the dark theme: its categories with costs and sell rates, one pending and one small, and its two scenarios, each with a box to compare it and a button to duplicate it" width="49%">
 </p>
 <p>
   <img src="docs/images/partial-result.png" alt="A fixed-price scenario without a price: the summary shows the costs it can compute and marks revenue and margins as pending" width="49%">
@@ -73,6 +80,16 @@ Spanish is the default locale; drop `/en` from a link to see it in Spanish.
   behind a switch that is off in production.
 - **Choosing a scenario freezes it:** its rates and cost settings are copied as they are that day,
   and its team is locked until it is unchosen. The bench's occupancy comes from chosen scenarios.
+- **Duplicating and comparing scenarios** ([comparing scenarios](docs/domain.md#comparing-scenarios)):
+  a copy is a new draft with the same team and extra costs. Two or three scenarios of a project sit
+  side by side, against the chosen one or else the first picked: result lines and their differences
+  with rate access, team and hours for everyone, and an undetermined figure never shown as a
+  difference.
+- **Weekly load and over-allocation** ([weekly load](docs/domain.md#weekly-load)): the bench shows
+  each person's load in every week of the scenario, counting the chosen scenarios of other
+  projects, and the team flags whoever goes above 100% with the weeks and the projects behind it.
+  Load is what Squadio knows: an empty week means nothing is registered, not that the person is
+  free.
 
 The vocabulary is in the [glossary](docs/glossary.md) and every decision in [docs/adr](docs/adr).
 
@@ -89,7 +106,10 @@ Each claim here is checked in CI on every pull request ([ci.yml](.github/workflo
 - **End-to-end tests** (Playwright) run on a production build, with axe (WCAG 2.2 AA and best
   practices) in the light and dark themes and with and without rate access.
 
-Performance figures will appear here once they are measured.
+The weekly load is measured with a synthetic consultancy of 150 people and 30 other projects'
+chosen scenarios ([the test](tests/db/weekly-load-scale.db.test.ts)): loading a scenario with its
+1,500 commitments took 7.3 ms and recalculating after an edit 3.3 ms, on a laptop, on 2026-11-19.
+The test prints the times and asserts none, so CI stays steady.
 
 ## Stack
 
