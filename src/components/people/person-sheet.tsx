@@ -2,7 +2,7 @@
 
 import { PencilIcon } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
-import { type FormEvent, useId, useRef, useState, useTransition } from "react";
+import { type FormEvent, useId, useState, useTransition } from "react";
 
 import type { SavePersonState } from "@/app/[locale]/people/actions";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,8 @@ import {
 import { MAX_PERSON_TEXT, type Person, personFormValues } from "@/lib/people/person-form";
 import { type HeadcountPerson, activePeopleAfterSaving } from "@/lib/rates/small-categories";
 import { cn } from "@/lib/utils";
+
+const focusOnMount = (node: HTMLInputElement | null) => node?.focus();
 
 export type SavePersonAction = (
   previous: SavePersonState,
@@ -126,7 +128,6 @@ function PersonFormBody({
   // Each saved person, with «Añadir otra después», starts the fields afresh.
   const [round, setRound] = useState(0);
   const [lastSaved, setLastSaved] = useState<string | null>(null);
-  const formRef = useRef<HTMLFormElement>(null);
   const activeId = useId();
   const { errors } = state;
 
@@ -155,10 +156,6 @@ function PersonFormBody({
         setActive(values.active);
         setRound((count) => count + 1);
         setLastSaved(next.saved);
-        // The fields are new ones: focus the name once they are in the document.
-        requestAnimationFrame(() =>
-          formRef.current?.querySelector<HTMLInputElement>("input[name=name]")?.focus(),
-        );
         return;
       }
       onSaved(next.saved);
@@ -183,7 +180,7 @@ function PersonFormBody({
     errors.categoryId && t(errors.categoryId === "blank" ? "errors.blank" : "errors.category");
 
   return (
-    <form ref={formRef} noValidate onSubmit={submit} className="flex min-h-full flex-col">
+    <form noValidate onSubmit={submit} className="flex min-h-full flex-col">
       {person && <input type="hidden" name="personId" value={person.id} />}
       <header className="flex flex-col gap-1 border-b px-6 pe-14 pt-6 pb-4">
         <SheetTitle className="text-xl">{t(person ? "titleEdit" : "titleAdd")}</SheetTitle>
@@ -195,6 +192,9 @@ function PersonFormBody({
           {(control) => (
             <input
               {...control}
+              // After a save with «Añadir otra después» the fields are new ones: the name takes the
+              // focus as it reaches the document, whenever the transition commits.
+              ref={round > 0 ? focusOnMount : undefined}
               name="name"
               defaultValue={values.name}
               required
