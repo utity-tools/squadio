@@ -211,42 +211,53 @@ export async function loadScenario(
 ): Promise<EditableScenario | null> {
   const scenarioId = z.uuid().parse(scenarioIdInput);
   const day = z.iso.date().parse(today);
-  return withOrganization(db, context, async (tx) => {
-    const structure = await readStructure(tx, scenarioId, day);
-    if (!structure) return null;
-    const { projectId, pricingModel, config: settings, team } = structure;
-    // The engine's inputs without a team: `scenarioView` adds it, and its year's calendar.
-    const money = context.rateAccess ? await readMoney(tx, scenarioId, projectId) : null;
-    const frozen = money && structure.chosen ? await readFrozen(tx, scenarioId) : undefined;
-    const plannedPeriod = plannedPeriodOf(structure);
-    const engine = engineBasis(
-      { pricingModel, config: settings, plannedPeriod },
-      money,
-      frozen,
-      structure.roster,
-    );
-    const basis: ScenarioBasis = {
-      project: {
-        id: projectId,
-        name: structure.project,
-        client: structure.client,
-        pricingModel,
-        plannedPeriod,
-        description: structure.description,
-      },
-      scenario: {
-        name: structure.name,
-        chosen: structure.chosen,
-        otherChosen: structure.otherChosen,
-      },
-      categories: structure.categories,
-      people: structure.roster,
-      defaultWeeklyHours: settings.defaultWeeklyHours,
-      engine,
-    };
-    return {
-      ...scenarioView(basis, team),
-      editing: { basis, team, version: structure.version },
-    };
-  });
+  return withOrganization(db, context, (tx) => scenarioIn(tx, context, scenarioId, day));
+}
+
+/**
+ * `loadScenario` inside a tenant transaction that is already open, so a comparison reads its
+ * scenarios in one. The id and the day must already be valid.
+ */
+export async function scenarioIn(
+  tx: TenantTransaction,
+  context: AccessContext,
+  scenarioId: string,
+  day: string,
+): Promise<EditableScenario | null> {
+  const structure = await readStructure(tx, scenarioId, day);
+  if (!structure) return null;
+  const { projectId, pricingModel, config: settings, team } = structure;
+  // The engine's inputs without a team: `scenarioView` adds it, and its year's calendar.
+  const money = context.rateAccess ? await readMoney(tx, scenarioId, projectId) : null;
+  const frozen = money && structure.chosen ? await readFrozen(tx, scenarioId) : undefined;
+  const plannedPeriod = plannedPeriodOf(structure);
+  const engine = engineBasis(
+    { pricingModel, config: settings, plannedPeriod },
+    money,
+    frozen,
+    structure.roster,
+  );
+  const basis: ScenarioBasis = {
+    project: {
+      id: projectId,
+      name: structure.project,
+      client: structure.client,
+      pricingModel,
+      plannedPeriod,
+      description: structure.description,
+    },
+    scenario: {
+      name: structure.name,
+      chosen: structure.chosen,
+      otherChosen: structure.otherChosen,
+    },
+    categories: structure.categories,
+    people: structure.roster,
+    defaultWeeklyHours: settings.defaultWeeklyHours,
+    engine,
+  };
+  return {
+    ...scenarioView(basis, team),
+    editing: { basis, team, version: structure.version },
+  };
 }
