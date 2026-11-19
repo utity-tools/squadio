@@ -25,6 +25,7 @@ const open = {
     occupancy: 0,
   })),
   defaultWeeklyHours: 40,
+  commitments: [],
 };
 
 /** A basis without rate access: the engine gets no money (ADR 0005). */

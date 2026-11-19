@@ -266,6 +266,8 @@ async function portfolioIn(
       categories: structure.categories,
       people: roster,
       defaultWeeklyHours: structure.config.defaultWeeklyHours,
+      // The portfolio costs scenarios; it shows no weekly load.
+      commitments: [],
       engine: engineBasis(
         { pricingModel: project.pricingModel, config: structure.config, plannedPeriod },
         own?.rows ?? null,

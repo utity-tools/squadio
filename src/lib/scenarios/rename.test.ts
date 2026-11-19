@@ -21,11 +21,19 @@ import type { ScenarioBasis } from "./scenario-view";
 
 const copyOf = (id: string) => id.replace("-8000-", "-9000-");
 const PROJECT = "6d656d6f-0000-4000-8000-000000000100";
+const OTHER_PROJECT = "6d656d6f-0000-4000-8000-000000000104";
 const renamed = Object.fromEntries(
-  [manager.id, lead.id, developer.id, SENIOR, PM, personId(1), personId(3), PROJECT].map((id) => [
-    id,
-    copyOf(id),
-  ]),
+  [
+    manager.id,
+    lead.id,
+    developer.id,
+    SENIOR,
+    PM,
+    personId(1),
+    personId(3),
+    PROJECT,
+    OTHER_PROJECT,
+  ].map((id) => [id, copyOf(id)]),
 );
 const rename = renamer(renamed);
 
@@ -102,6 +110,17 @@ describe("renameBasis", () => {
         },
       ],
       defaultWeeklyHours: 40,
+      commitments: [
+        {
+          id: "6d656d6f-0000-4000-8000-000000000400",
+          personId: personId(1),
+          projectId: OTHER_PROJECT,
+          projectName: "Other",
+          allocation: 50,
+          startDate: "2027-03-01",
+          endDate: "2027-03-31",
+        },
+      ],
       engine: {
         rateAccess: true,
         input: {
@@ -128,6 +147,11 @@ describe("renameBasis", () => {
     if (!next.engine.rateAccess) throw new Error("expected rate access");
     expect(next.engine.input.rates[0]?.categoryId).toBe(copyOf(SENIOR));
     expect(next.engine.smallCategories).toEqual([{ categoryId: copyOf(SENIOR), activePeople: 1 }]);
+    // The other projects' commitments name the copy's people and projects.
+    expect(next.commitments[0]).toMatchObject({
+      personId: copyOf(personId(1)),
+      projectId: copyOf(OTHER_PROJECT),
+    });
     // The trail leads to the copy's project, not the template's.
     expect(next.project).toEqual({ ...basis.project, id: copyOf(PROJECT) });
   });

@@ -1,4 +1,4 @@
-import { and, eq, gte, isNotNull, lte, ne } from "drizzle-orm";
+import { and, eq, gt, gte, isNotNull, lte, ne } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { z } from "zod";
 
@@ -106,6 +106,30 @@ async function readStructure(tx: TenantTransaction, scenarioId: string, today: s
       ),
     );
   const busy = occupancy(chosen, today);
+  // The weekly load's commitments hold no money either (domain, "Weekly load"): the people of the
+  // other projects' chosen scenarios, inactive ones too, since a chosen scenario still commits them.
+  const commitments = await tx
+    .select({
+      id: assignments.id,
+      personId: assignments.personId,
+      projectId: projects.id,
+      projectName: projects.name,
+      allocation: assignments.allocation,
+      startDate: assignments.startDate,
+      endDate: assignments.endDate,
+    })
+    .from(assignments)
+    .innerJoin(scenarios, eq(scenarios.id, assignments.scenarioId))
+    .innerJoin(projects, eq(projects.id, scenarios.projectId))
+    .where(
+      and(
+        eq(scenarios.chosen, true),
+        ne(scenarios.projectId, scenario.projectId),
+        isNotNull(assignments.personId),
+        gt(assignments.allocation, 0),
+      ),
+    )
+    .orderBy(assignments.startDate, assignments.id);
   const categoryNames = await tx
     .select({ id: categories.id, name: categories.name })
     .from(categories)
@@ -128,6 +152,10 @@ async function readStructure(tx: TenantTransaction, scenarioId: string, today: s
     team,
     roster: roster.map((person) => ({ ...person, occupancy: busy.get(person.id) ?? 0 })),
     categories: categoryNames,
+    // The query keeps assignments with a person only.
+    commitments: commitments.flatMap(({ personId, ...rest }) =>
+      personId === null ? [] : [{ personId, ...rest }],
+    ),
   };
 }
 
@@ -254,6 +282,7 @@ export async function scenarioIn(
     categories: structure.categories,
     people: structure.roster,
     defaultWeeklyHours: settings.defaultWeeklyHours,
+    commitments: structure.commitments,
     engine,
   };
   return {
