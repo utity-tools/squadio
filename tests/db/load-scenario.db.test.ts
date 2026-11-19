@@ -219,6 +219,105 @@ describe("loadScenario", () => {
     });
   });
 
+  it("gives the guide case the chosen scenarios of the other projects, with their names", async () => {
+    for (const context of [withRates, withoutRates]) {
+      const loaded = await loadScenario(app, context, DEMO_IDS.guideScenario, SOME_DAY);
+      const names = new Set(loaded?.editing.basis.commitments.map((item) => item.projectName));
+      expect(names).toEqual(new Set(["Mobile app", "Platform upkeep"]));
+    }
+  });
+
+  it("loads the commitments of other projects' chosen scenarios only (rule c)", async () => {
+    const context: AccessContext = { organizationId: await newOrganization(app), rateAccess: true };
+    const organizationId = context.organizationId;
+    const ids = await withOrganization(app, context, async (tx) => {
+      await tx
+        .insert(config)
+        .values({ organizationId, netAnnualHours: 1550, defaultWeeklyHours: 40 });
+      await tx
+        .insert(costConfig)
+        .values({ organizationId, overhead: 1500, buffer: 1000, targetMargin: 2500 });
+      const [category] = await tx
+        .insert(categories)
+        .values({ organizationId, name: "Senior Developer" })
+        .returning();
+      const [active, inactive] = await tx
+        .insert(people)
+        .values([
+          { organizationId, name: "Person A", categoryId: category!.id, weeklyHours: 40 },
+          {
+            organizationId,
+            name: "Person B",
+            categoryId: category!.id,
+            weeklyHours: 40,
+            active: false,
+          },
+        ])
+        .returning();
+      const project = async (name: string) => {
+        const [row] = await tx
+          .insert(projects)
+          .values({ organizationId, name, client: "Client", pricingModel: "time_and_materials" })
+          .returning();
+        return row!.id;
+      };
+      const scenario = async (projectId: string, chosen: boolean) => {
+        const [row] = await tx
+          .insert(scenarios)
+          .values({ organizationId, projectId, name: chosen ? "Chosen" : "Draft", chosen })
+          .returning();
+        return row!.id;
+      };
+      const assign = (scenarioId: string, personId: string | null, allocation: number) =>
+        tx.insert(assignments).values({
+          organizationId,
+          scenarioId,
+          categoryId: category!.id,
+          personId,
+          projectRole: "Developer",
+          weeklyHours: 40,
+          allocation,
+          startDate: "2027-03-01",
+          endDate: "2027-03-31",
+        });
+      const page = await project("On the page");
+      const other = await project("Other");
+      const pageDraft = await scenario(page, false);
+      // The page's own chosen scenario: the page stands in for it.
+      await assign(await scenario(page, true), active!.id, 60);
+      const otherChosen = await scenario(other, true);
+      await assign(otherChosen, active!.id, 50);
+      await assign(otherChosen, inactive!.id, 40);
+      await assign(otherChosen, active!.id, 0);
+      await assign(otherChosen, null, 100);
+      // A draft commits no one.
+      await assign(await scenario(other, false), active!.id, 100);
+      return { pageDraft, other, active: active!.id, inactive: inactive!.id };
+    });
+    const commitment = (personId: string, allocation: number) => ({
+      personId,
+      projectId: ids.other,
+      projectName: "Other",
+      allocation,
+      startDate: "2027-03-01",
+      endDate: "2027-03-31",
+    });
+
+    for (const rateAccess of [true, false]) {
+      const loaded = await loadScenario(app, { ...context, rateAccess }, ids.pageDraft, SOME_DAY);
+      const commitments = (loaded?.editing.basis.commitments ?? []).toSorted(
+        (a, b) => a.allocation - b.allocation,
+      );
+      expect(commitments).toEqual([
+        { ...commitment(ids.inactive, 40), id: expect.any(String) },
+        { ...commitment(ids.active, 50), id: expect.any(String) },
+      ]);
+    }
+    // Another organization's chosen scenarios are not there for it.
+    const demo = await loadScenario(app, withRates, DEMO_IDS.guideScenario, SOME_DAY);
+    expect(demo?.editing.basis.commitments.map((item) => item.projectId)).not.toContain(ids.other);
+  });
+
   it("puts no money in the basis without rate access", async () => {
     const loaded = await loadScenario(app, withoutRates, DEMO_IDS.guideScenario, SOME_DAY);
     const { engine } = loaded?.editing.basis ?? {};

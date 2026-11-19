@@ -1,5 +1,6 @@
 import { calendarWorkingHours } from "@/lib/calendar/calendar";
 import { type ScenarioResult, calculateScenario } from "@/lib/costing/calculate-scenario";
+import type { Commitment } from "@/lib/load/weekly-load";
 import type { PlannedPeriod } from "@/lib/projects/project-details";
 import type { SmallCategory } from "@/lib/rates/small-categories";
 
@@ -102,6 +103,11 @@ export type ScenarioBasis = Omit<OpenScenario, "team" | "span"> & {
   people: RosterPerson[];
   /** Config's default weekly hours, for the calendar of the team's year. */
   defaultWeeklyHours: number;
+  /**
+   * The assignments of the other projects' chosen scenarios that commit a person, which load the
+   * page's people week by week (docs/domain.md, "Weekly load"). No money: everyone gets them.
+   */
+  commitments: Commitment[];
   /**
    * The engine's inputs with no assignments; `engineInputFor` adds the team's, and replaces the
    * calendar working hours, which here are those of the calendar's first year, unless frozen.

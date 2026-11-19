@@ -69,7 +69,8 @@ export function renameHistory(history: History, rename: Rename): History {
 
 /**
  * The basis with the ids a team names renamed, and its project's, which the trail leads to:
- * categories, people, and the categories of the rates and small categories. Extra costs are restricted rows the save never renames; the page that
+ * categories, people, the people and projects of the commitments, and the categories of the rates
+ * and small categories. Extra costs are restricted rows the save never renames; the page that
  * loads the copy replaces the basis anyway.
  */
 export function renameBasis(basis: ScenarioBasis, rename: Rename): ScenarioBasis {
@@ -86,6 +87,11 @@ export function renameBasis(basis: ScenarioBasis, rename: Rename): ScenarioBasis
       ...person,
       id: rename(person.id),
       categoryId: rename(person.categoryId),
+    })),
+    commitments: basis.commitments.map((commitment) => ({
+      ...commitment,
+      personId: rename(commitment.personId),
+      projectId: rename(commitment.projectId),
     })),
     engine: engine.rateAccess
       ? {

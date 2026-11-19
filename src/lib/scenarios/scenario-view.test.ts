@@ -49,6 +49,7 @@ const open = {
     },
   ],
   defaultWeeklyHours: 40,
+  commitments: [],
 };
 
 const costSettings = {
