@@ -10,6 +10,22 @@ type SearchParams = Record<string, string | string[] | undefined>;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+/**
+ * Where a comparison of template scenarios leads a visitor with a copy: the same comparison of
+ * their copy (`copyProject` is the copy's project path), keeping `?access=`.
+ */
+export function copyComparisonHref(
+  copyProject: string,
+  scenarioIds: readonly string[],
+  access: string | undefined,
+  copyOrganizationId: string,
+): string {
+  const query = new URLSearchParams();
+  for (const id of scenarioIds) query.append("s", copyId(id, copyOrganizationId));
+  if (access !== undefined) query.append("access", access);
+  return `${copyProject}/compare?${query.toString()}`;
+}
+
 /** The query string for the copy's page, without the leading `?`. */
 export function copyQuery(searchParams: SearchParams, copyOrganizationId: string): string {
   const query = new URLSearchParams();

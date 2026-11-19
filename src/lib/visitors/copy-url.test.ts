@@ -3,7 +3,7 @@
 import { describe, expect, it } from "vitest";
 
 import { copyId } from "./copy-id";
-import { copyQuery } from "./copy-url";
+import { copyComparisonHref, copyQuery } from "./copy-url";
 
 const ORG = "0b0e6c1a-5d2f-4c3e-9a8b-7f6e5d4c3b2a";
 const SEAT = "6d656d6f-0000-4000-8000-000000000300";
@@ -29,5 +29,16 @@ describe("copyQuery", () => {
 
   it("is empty without parameters", () => {
     expect(copyQuery({}, ORG)).toBe("");
+  });
+});
+
+describe("copyComparisonHref", () => {
+  it("leads to the same comparison of the copy, in the order picked, keeping ?access=", () => {
+    expect(copyComparisonHref("/projects/copy", [OTHER, SEAT], "none", ORG)).toBe(
+      `/projects/copy/compare?s=${copyId(OTHER, ORG)}&s=${copyId(SEAT, ORG)}&access=none`,
+    );
+    expect(copyComparisonHref("/projects/copy", [SEAT, OTHER], undefined, ORG)).toBe(
+      `/projects/copy/compare?s=${copyId(SEAT, ORG)}&s=${copyId(OTHER, ORG)}`,
+    );
   });
 });

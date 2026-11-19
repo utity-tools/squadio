@@ -1119,5 +1119,77 @@
       "limit": "No more copies of the demo can be made today. Try again tomorrow.",
       "failed": "The scenario could not be duplicated. Try again."
     }
+  },
+  "Comparison": {
+    "title": "Compare scenarios",
+    "heading": "Compare scenarios of {project}",
+    "intro": "Differences are from the baseline, {baseline}. This view is read-only: to change a team, open its scenario.",
+    "baseline": "Baseline",
+    "frozen": "Frozen values",
+    "frozenNote": "{name} is chosen: it is costed with the rates and percentages it froze when chosen. Part of a difference may come from rates changed since.",
+    "team": "<nowrap>{people, plural, one {# person} other {# people}}</nowrap>{openRoles, plural, =0 {} one { · <nowrap># open role</nowrap>} other { · <nowrap># open roles</nowrap>}}",
+    "noTeam": "No team",
+    "line": "Line",
+    "sections": {
+      "result": "Result",
+      "categories": "Staff cost by category",
+      "hours": "Hours",
+      "people": "People",
+      "openRoles": "Open roles by category"
+    },
+    "lines": {
+      "effectiveRate": "Effective rate",
+      "extraCosts": "Extra costs",
+      "extraCostList": "Extra costs in detail",
+      "status": "Margin status",
+      "nominalHours": "Nominal hours",
+      "effectiveHours": "Effective hours",
+      "openRoles": "Open roles",
+      "openRoleHours": "Open roles' nominal hours"
+    },
+    "readFirst": {
+      "fixed": "With a fixed price revenue is the same: the effective rate is the figure that tells the teams apart.",
+      "time_and_materials": "In time and materials revenue moves with the team: net margin is the figure to read."
+    },
+    "absent": "Not on this team",
+    "noExtraCosts": "No extra costs",
+    "noStatus": "No status",
+    "noChange": "No change",
+    "missingIn": {
+      "column": "No difference: {name} lacks the figure",
+      "baseline": "No difference: the baseline lacks the figure",
+      "both": "No difference: both lack the figure"
+    },
+    "points": "{value} pp",
+    "person": {
+      "enters": "Enters",
+      "leaves": "Leaves",
+      "same": "No changes",
+      "absent": "Not on it",
+      "changes": "Changes: {fields}",
+      "fields": {
+        "category": "category",
+        "projectRole": "role",
+        "allocation": "allocation",
+        "weeklyHours": "weekly hours",
+        "dates": "dates",
+        "seats": "assignments"
+      },
+      "seat": "{projectRole} · {category} · <nowrap>{allocation}%</nowrap>"
+    },
+    "invalid": {
+      "title": "Pick two or three scenarios",
+      "description": "A comparison puts two or three scenarios of the same project side by side. Go back to the project and tick the ones to compare.",
+      "back": "Back to {project}"
+    },
+    "pick": {
+      "label": "Compare {name}",
+      "column": "Compare",
+      "submit": "Compare",
+      "hint": "Tick two or three scenarios to see them side by side.",
+      "tooFew": "Tick at least two scenarios.",
+      "tooMany": "Tick three scenarios at most."
+    },
+    "amountWithPoints": "{amount} · {points}"
   }
 }
