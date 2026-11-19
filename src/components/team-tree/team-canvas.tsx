@@ -43,6 +43,7 @@ import type { TeamEditing } from "@/components/team-editing/team-editing";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useDayRange } from "@/components/format/use-day-range";
+import { useOverAllocationDetail } from "@/components/team-views/over-allocation";
 import { useOutsidePeriodDetail } from "@/components/team-views/period-flags";
 import { type LayoutNode, NODE_HEIGHT, NODE_WIDTH } from "@/lib/layout/compact-layout";
 import type { AssignmentCard } from "@/lib/team-tree/cards";
@@ -355,6 +356,8 @@ function AssignmentNode({ data: { card, selected, onPath, tabbable } }: NodeProp
   const dayRange = useDayRange();
   const outsideDetail = useOutsidePeriodDetail();
   const tPeriod = useTranslations("PlannedPeriod");
+  const overDetail = useOverAllocationDetail();
+  const tOver = useTranslations("OverAllocation");
   const { select, tooltips, editing, menuFor, setMenuFor } = useContext(CanvasContext);
   const drag = useTeamDrag();
   const { dragged, over } = useDragState();
@@ -451,6 +454,18 @@ function AssignmentNode({ data: { card, selected, onPath, tabbable } }: NodeProp
                   <span className="sr-only">{outsideDetail(card.outsidePeriod)}</span>
                 </>
               )}
+              {card.overAllocated && (
+                <>
+                  <Pause />
+                  <span data-over-allocated="" className="flex shrink-0 items-center gap-0.5">
+                    <TriangleAlertIcon aria-hidden className="size-3.5 text-status-bad" />
+                    {tOver("flag")}
+                  </span>
+                  <Pause />
+                  {/* The card has no room for it: the tooltip shows it. */}
+                  <span className="sr-only">{overDetail(card.overAllocated)}</span>
+                </>
+              )}
             </span>
             <Pause />
             <span className="w-full truncate text-xs leading-4 text-muted-foreground">
@@ -472,13 +487,14 @@ function AssignmentNode({ data: { card, selected, onPath, tabbable } }: NodeProp
             </span>
           </button>
         </TooltipTrigger>
-        <TooltipContent side="bottom" container={tooltips}>
+        <TooltipContent side="bottom" container={tooltips} className="max-w-xs">
           {/* The card truncates long text: the tooltip gives it in full. */}
           <span className="block font-semibold">{card.title}</span>
           <span className="block">{person}</span>
           <span className="block">{card.category}</span>
           {card.missingRate && <span className="block">{t("missingRateDetail")}</span>}
           {card.outsidePeriod && <span className="block">{outsideDetail(card.outsidePeriod)}</span>}
+          {card.overAllocated && <span className="block">{overDetail(card.overAllocated)}</span>}
           <span className="block">{t("nominalHours", { hours: hours(card.nominalHours) })}</span>
         </TooltipContent>
       </Tooltip>

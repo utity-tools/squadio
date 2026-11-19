@@ -1205,5 +1205,13 @@
   },
   "Load": {
     "aboveHundred": ">{percent}"
+  },
+  "OverAllocation": {
+    "flag": "Over-allocated",
+    "detail": "Above 100% in {count, plural, one {# week} other {# weeks}}: {weeks}",
+    "week": "{day}: {load}",
+    "weekWithProjects": "{day}: {load} with {projects}",
+    "more": "{count, plural, one {# more week} other {# more weeks}}",
+    "short": "{count, plural, one {# week} other {# weeks}} above 100%"
   }
 }
