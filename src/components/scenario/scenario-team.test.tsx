@@ -1,6 +1,7 @@
 import { screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { teamOverAllocation } from "@/lib/load/over-allocation";
 import { guideHours, guideSpan, guideTeam } from "@/test/guide-team";
 import { stubHistory, stubScreen } from "@/test/navigation";
 import { stubReactFlowLayout } from "@/test/react-flow";
@@ -70,6 +71,58 @@ describe("ScenarioTeam", () => {
 
     expect(node(/^Tech lead/)).toHaveTextContent("Fuera del periodo");
     expect(screen.queryByText(/El equipo/)).not.toBeInTheDocument();
+  });
+
+  describe("over-allocation (rule c)", () => {
+    // Another project's chosen scenario adds the tech lead at 50% for five weeks: four of April and
+    // one of June.
+    const commitment = (id: string, startDate: string, endDate: string) => ({
+      id,
+      personId: "p-senior",
+      projectId: "project-2",
+      projectName: "Project 2",
+      allocation: 50,
+      startDate,
+      endDate,
+    });
+    const overAllocated = teamOverAllocation({
+      projectId: "guide",
+      plannedPeriod: null,
+      team: team.map(({ id, person, allocation, startDate, endDate }) => ({
+        id,
+        personId: person?.id ?? null,
+        allocation,
+        startDate,
+        endDate,
+      })),
+      commitments: [
+        commitment("april", "2027-04-05", "2027-04-30"),
+        commitment("june", "2027-06-07", "2027-06-11"),
+      ],
+    });
+    const detail =
+      "Por encima del 100 % en 5 semanas: 5 abr 2027: 150 % con Project 2, 12 abr 2027: 150 % " +
+      "con Project 2, 19 abr 2027: 150 % con Project 2, 26 abr 2027: 150 % con Project 2 y " +
+      "1 semana más";
+
+    it("flags the person's assignment on the tree, with the weeks and the projects", () => {
+      renderWithIntl(<ScenarioTeam {...guide} overAllocated={overAllocated} />);
+
+      expect(node(/^Tech lead/)).toHaveTextContent("Sobreasignación");
+      expect(node(/^Tech lead/)).toHaveTextContent(detail);
+      expect(node(/^Project manager/)).not.toHaveTextContent("Sobreasignación");
+    });
+
+    it("flags it in the table, under the dates", () => {
+      stubHistory("/scenarios/guide?view=table");
+      renderWithIntl(<ScenarioTeam {...guide} overAllocated={overAllocated} />);
+
+      const row = screen.getByRole("row", { name: /Tech lead/ });
+      expect(row).toHaveTextContent(detail);
+      expect(screen.getByRole("row", { name: /^Project manager/ })).not.toHaveTextContent(
+        "Por encima del 100 %",
+      );
+    });
   });
 
   it("marks nothing without the categories missing a rate", () => {

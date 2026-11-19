@@ -1,5 +1,6 @@
 import type { Warning } from "@/lib/costing/calculate-scenario";
 import type { PlannedPeriod } from "@/lib/projects/project-details";
+import type { OverAllocatedWeek } from "@/lib/load/over-allocation";
 import { type OutsidePeriod, outsidePeriod } from "@/lib/scenarios/period-flags";
 import type { ProjectSpan } from "@/lib/scenarios/project-span";
 
@@ -36,6 +37,11 @@ export type AssignmentCard = {
    * (docs/domain.md, "Planned period"); null within it or without one. Open to everyone.
    */
   outsidePeriod: OutsidePeriod | null;
+  /**
+   * The weeks its person is over-allocated in, with the projects behind each (rule c), flagged but
+   * never refused; null when there are none or it is an open role. Open to everyone.
+   */
+  overAllocated: OverAllocatedWeek[] | null;
 };
 
 type Assignment = {
@@ -58,6 +64,8 @@ type CardOptions = {
   withoutRate?: ReadonlySet<string>;
   /** The project's, which flags the assignments outside it. */
   plannedPeriod?: PlannedPeriod | null;
+  /** The over-allocated weeks of each assignment, by id (`teamOverAllocation`). */
+  overAllocated?: ReadonlyMap<string, OverAllocatedWeek[]>;
 };
 
 /** One card per assignment, in the team's order; the hours come from the engine. */
@@ -65,7 +73,7 @@ export function assignmentCards(
   team: readonly Assignment[],
   hours: readonly AssignmentHours[],
   span: ProjectSpan | null,
-  { withoutRate = NO_CATEGORIES, plannedPeriod = null }: CardOptions = {},
+  { withoutRate = NO_CATEGORIES, plannedPeriod = null, overAllocated }: CardOptions = {},
 ): AssignmentCard[] {
   const hoursOf = new Map(hours.map((line) => [line.id, line]));
   return team.map((assignment) => {
@@ -85,6 +93,7 @@ export function assignmentCards(
       effectiveHours: line.effectiveHours,
       missingRate: withoutRate.has(assignment.category.id),
       outsidePeriod: outsidePeriod(assignment, plannedPeriod),
+      overAllocated: overAllocated?.get(assignment.id) ?? null,
     };
   });
 }

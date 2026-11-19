@@ -13,6 +13,7 @@ import {
 
 import { useDayRange } from "@/components/format/use-day-range";
 import { MemberMenu } from "@/components/team-editing/member-menu";
+import { useOverAllocationDetail } from "@/components/team-views/over-allocation";
 import { useOutsidePeriodDetail } from "@/components/team-views/period-flags";
 import type { TeamEditing } from "@/components/team-editing/team-editing";
 import type { LayoutNode } from "@/lib/layout/compact-layout";
@@ -91,6 +92,8 @@ export function TeamTable({
   const format = useFormatter();
   const dayRange = useDayRange();
   const outsideDetail = useOutsidePeriodDetail();
+  const overDetail = useOverAllocationDetail();
+  const tOver = useTranslations("OverAllocation");
   const instructions = useId();
   const table = useRef<HTMLTableElement>(null);
   /** The focused cell's column, kept for the row it belongs to; null while the row has focus. */
@@ -231,17 +234,43 @@ export function TeamTable({
         ) : (
           <span className="text-muted-foreground">{t("wholeProject")}</span>
         );
-        if (!card.outsidePeriod) return dates;
+        if (!card.outsidePeriod && !card.overAllocated) return dates;
         return (
-          <>
+          // Positioned, so the text only a screen reader hears stays inside the table's scroller
+          // instead of widening the page.
+          <span className="relative block">
             {dates}
-            {/* Read as two parts, like the tree's card. */}
-            <span className="sr-only">, </span>
-            <span data-outside-period="" className="mt-0.5 flex items-start gap-0.5 text-xs">
-              <TriangleAlertIcon aria-hidden className="mt-px size-3.5 shrink-0 text-status-warn" />
-              {outsideDetail(card.outsidePeriod)}
-            </span>
-          </>
+            {/* Read as parts, like the tree's card. */}
+            {card.outsidePeriod && (
+              <>
+                <span className="sr-only">, </span>
+                <span data-outside-period="" className="mt-0.5 flex items-start gap-0.5 text-xs">
+                  <TriangleAlertIcon
+                    aria-hidden
+                    className="mt-px size-3.5 shrink-0 text-status-warn"
+                  />
+                  {outsideDetail(card.outsidePeriod)}
+                </span>
+              </>
+            )}
+            {card.overAllocated && (
+              <>
+                <span className="sr-only">, </span>
+                {/*
+                  The table has no room for the weeks: it says how many, and a screen reader hears
+                  them all. The tree's tooltip and the bench list them too.
+                */}
+                <span data-over-allocated="" className="mt-0.5 flex items-start gap-0.5 text-xs">
+                  <TriangleAlertIcon
+                    aria-hidden
+                    className="mt-0.5 size-3 shrink-0 text-status-bad"
+                  />
+                  <span aria-hidden>{tOver("short", { count: card.overAllocated.length })}</span>
+                  <span className="sr-only">{overDetail(card.overAllocated)}</span>
+                </span>
+              </>
+            )}
+          </span>
         );
       }
       case "nominalHours":

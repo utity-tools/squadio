@@ -23,6 +23,7 @@ const card = (id: string, hours: Partial<AssignmentCard> = {}): AssignmentCard =
   effectiveHours: 90,
   missingRate: false,
   outsidePeriod: null,
+  overAllocated: null,
   ...hours,
 });
 

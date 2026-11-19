@@ -4,6 +4,7 @@ import { Suspense } from "react";
 
 import type { TeamAssignment } from "@/lib/scenarios/scenario-view";
 import { type LayoutError, layoutTeam } from "@/lib/layout/compact-layout";
+import type { OverAllocatedWeek } from "@/lib/load/over-allocation";
 import type { PlannedPeriod } from "@/lib/projects/project-details";
 import { uncoveredPeriod } from "@/lib/scenarios/period-flags";
 import type { ProjectSpan } from "@/lib/scenarios/project-span";
@@ -28,6 +29,8 @@ export type ScenarioTeamProps = {
   locked?: "frozen" | "chosen";
   /** The project's: what falls outside it is flagged on the team, never refused. */
   plannedPeriod?: PlannedPeriod | null;
+  /** The over-allocated weeks of each assignment, flagged on the team, never refused (rule c). */
+  overAllocated?: ReadonlyMap<string, OverAllocatedWeek[]>;
 };
 
 /**
@@ -42,9 +45,14 @@ export function ScenarioTeam({
   withoutRate,
   locked,
   plannedPeriod = null,
+  overAllocated,
 }: ScenarioTeamProps) {
   if (team.length === 0) return <EmptyTeam />;
-  const cards = assignmentCards(team, hours, span, { withoutRate, plannedPeriod });
+  const cards = assignmentCards(team, hours, span, {
+    withoutRate,
+    plannedPeriod,
+    overAllocated,
+  });
   const layout = layoutTeam(team);
   if (!layout.ok) return <UndrawableTeam error={layout.error} cards={cards} />;
   return (

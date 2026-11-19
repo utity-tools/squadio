@@ -36,8 +36,25 @@ describe("assignmentCards", () => {
         effectiveHours: 897.5,
         missingRate: false,
         outsidePeriod: null,
+        overAllocated: null,
       },
     ]);
+  });
+
+  it("carries the over-allocated weeks of the assignment's person (rule c)", () => {
+    const weeks = [
+      {
+        start: "2027-04-05",
+        end: "2027-04-11",
+        figure: { percent: 150, over: true, aboveHundred: false },
+        projects: [{ id: "x", name: "X" }],
+      },
+    ];
+    const [card] = assignmentCards([lead], hours, span, {
+      overAllocated: new Map([["lead", weeks]]),
+    });
+
+    expect(card?.overAllocated).toEqual(weeks);
   });
 
   it("names the category when the project role is empty", () => {

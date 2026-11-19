@@ -1205,5 +1205,13 @@
   },
   "Load": {
     "aboveHundred": ">{percent}"
+  },
+  "OverAllocation": {
+    "flag": "Sobreasignación",
+    "detail": "Por encima del 100 % en {count, plural, one {# semana} other {# semanas}}: {weeks}",
+    "week": "{day}: {load}",
+    "weekWithProjects": "{day}: {load} con {projects}",
+    "more": "{count, plural, one {# semana más} other {# semanas más}}",
+    "short": "{count, plural, one {# semana} other {# semanas}} por encima del 100 %"
   }
 }
