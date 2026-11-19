@@ -300,8 +300,8 @@ importers:
         specifier: ^17.6.1
         version: 17.6.1
       neonctl:
-        specifier: 8.23.3
-        version: 8.23.3(hono@4.13.13)(supports-color@7.2.0)
+        specifier: 9.5.0
+        version: 9.5.0(hono@4.13.13)(supports-color@7.2.0)
       prettier:
         specifier: ^3.10.1
         version: 3.10.1
@@ -1989,16 +1989,16 @@ packages:
       '@emnapi/core': ^1.7.1 || ^2.0.0-alpha.4
       '@emnapi/runtime': ^1.7.1 || ^2.0.0-alpha.4
 
-  '@neon/config-runtime@1.11.7':
-    resolution: {integrity: sha512-/40bTDgNZvMOeQV02s8Plk72LpcPXEBdR9igG+YKWaiK5yPbjq1ZgUSAcRh5kgyWThc8/XsHyjgX7qA9bsYgBQ==}
+  '@neon/config-runtime@1.12.3':
+    resolution: {integrity: sha512-SkaGLcfZNFCzBNTJsQUvus8LmIfGIjtWby1uYci8LDii2HpSvpDkVAqSWjKooEXB+okvToiCYz8CicJ0euXyKQ==}
     engines: {node: '>=20.19.0'}
 
-  '@neon/config@1.11.3':
-    resolution: {integrity: sha512-IzTQxkAptBwhkP+76qDs9T+m1uC3iawD8TZcgrtnFKQwo+MHG+tqENpHBUGXX42I14xLwshroR1DNOjkfNPrpg==}
+  '@neon/config@1.14.0':
+    resolution: {integrity: sha512-+B3N2Idf/Zs5shTQQKxU5v5jXmQZXAyCz56AsjBqBhTudGu81SyHXmCHM4Yv9nsj6itm+hQfqA6kg5rOGuBUkg==}
     engines: {node: '>=20.19.0'}
 
-  '@neon/realtime@0.2.0':
-    resolution: {integrity: sha512-1wfhRbrX8cA67phPRF6LRWv6jvR71l3NwVrWveMa4e+X+/rKoS4eKCnuz5cukvVfuHBSHFxDHgCiO7nCR75AXQ==}
+  '@neon/realtime@0.2.1':
+    resolution: {integrity: sha512-VHFkRPjtCFFneegpeYt6j5kB1X50SiFW8KPnXEy6iYRpo3pa4uCuFPg1wLQtRzxkeacvbatL4hFAVBALS5AcVw==}
     engines: {node: '>=20.19.0'}
     peerDependencies:
       ws: ^8.21.2
@@ -2006,8 +2006,8 @@ packages:
       ws:
         optional: true
 
-  '@neon/sdk@7.10.0':
-    resolution: {integrity: sha512-OrBjiE2EtwXH19RFqs9WlJLInJk6aM+wdOfhipeHxqWDVYdgjeEw7/ghlO03gpvkK7K6sv+tEt7uO17yfdCwDQ==}
+  '@neon/sdk@7.13.0':
+    resolution: {integrity: sha512-jJji3C+yJAOSMdK2trYnxhg2Zqh8J4FjUgiBK8B4pjVnhTfygIDjGw2JjxEbhO7hc9KfN/iMwhkO0WwmfH4H+Q==}
     engines: {node: '>=20.19.0'}
 
   '@next/env@16.4.6':
@@ -5924,13 +5924,13 @@ packages:
     resolution: {integrity: sha512-NMPBRMJgiQHjbd8phG3Vebdx4kZ1H121rbl5IkMqeOsahptB9BKo/d7oJ3zTXqTgagn2bWlNSXkh0QUGM31RYg==}
     engines: {node: '>=18'}
 
-  neon@8.23.3:
-    resolution: {integrity: sha512-WljVSQgRXqZAfDRlxQzKvpFvBYZYtOZHYtany9V0SXgUtCWVWu8SIwddu3uXCjiv6jNVfdHxjjHL3YRumN1hPg==}
+  neon@9.5.0:
+    resolution: {integrity: sha512-CtV5bQNgzBvJtna0TmULRVLkKhUC1gS4krwaeyqca9na105E04J4ll8ObLd60DxCqJ/IWFPuj9MG/BL6GISHzw==}
     engines: {node: '>=20.19.0'}
     hasBin: true
 
-  neonctl@8.23.3:
-    resolution: {integrity: sha512-u2f36AOruGFXKLfqMQAi+5F+Die+H0G0FVJYBUDaUabOAQBeKzaGIVi2qka5k9ImAiAaSkjSwq6r24AYzJ8ZUw==}
+  neonctl@9.5.0:
+    resolution: {integrity: sha512-CdJifky4Iw7MyNNqGp6CwLS4feYGki541o/VIlI+JwlNmV8HGnOVUV58VJq/9SeqyLUudNX4SoSo6QZNfSSB0w==}
     engines: {node: '>=20.19.0'}
     hasBin: true
 
@@ -8481,9 +8481,9 @@ snapshots:
       '@tybys/wasm-util': 0.10.4
     optional: true
 
-  '@neon/config-runtime@1.11.7(supports-color@7.2.0)':
+  '@neon/config-runtime@1.12.3(supports-color@7.2.0)':
     dependencies:
-      '@neon/config': 1.11.3
+      '@neon/config': 1.14.0
       '@vercel/nft': 1.11.0(supports-color@7.2.0)
       esbuild: 0.28.2
       fflate: 0.8.3
@@ -8492,20 +8492,20 @@ snapshots:
       - rollup
       - supports-color
 
-  '@neon/config@1.11.3':
+  '@neon/config@1.14.0':
     dependencies:
-      '@neon/sdk': 7.10.0
+      '@neon/sdk': 7.13.0
       jiti: 2.7.0
       zod: 4.6.7
 
-  '@neon/realtime@0.2.0(ws@8.22.0)':
+  '@neon/realtime@0.2.1(ws@8.22.0)':
     dependencies:
       base64-js: 1.5.1
       postgres-array: 3.0.4
     optionalDependencies:
       ws: 8.22.0
 
-  '@neon/sdk@7.10.0': {}
+  '@neon/sdk@7.13.0': {}
 
   '@next/env@16.4.6': {}
 
@@ -12482,15 +12482,15 @@ snapshots:
     dependencies:
       content-type: 2.1.0
 
-  neon@8.23.3(hono@4.13.13)(supports-color@7.2.0):
+  neon@9.5.0(hono@4.13.13)(supports-color@7.2.0):
     dependencies:
       '@clack/core': 0.4.2
       '@clack/prompts': 0.10.1
       '@hono/node-server': 2.0.4(hono@4.13.13)
-      '@neon/config': 1.11.3
-      '@neon/config-runtime': 1.11.7(supports-color@7.2.0)
-      '@neon/realtime': 0.2.0(ws@8.22.0)
-      '@neon/sdk': 7.10.0
+      '@neon/config': 1.14.0
+      '@neon/config-runtime': 1.12.3(supports-color@7.2.0)
+      '@neon/realtime': 0.2.1(ws@8.22.0)
+      '@neon/sdk': 7.13.0
       '@segment/analytics-node': 1.3.0
       add-mcp: 2.6.0
       ajv: 8.20.0
@@ -12531,9 +12531,9 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  neonctl@8.23.3(hono@4.13.13)(supports-color@7.2.0):
+  neonctl@9.5.0(hono@4.13.13)(supports-color@7.2.0):
     dependencies:
-      neon: 8.23.3(hono@4.13.13)(supports-color@7.2.0)
+      neon: 9.5.0(hono@4.13.13)(supports-color@7.2.0)
     transitivePeerDependencies:
       - bufferutil
       - encoding
