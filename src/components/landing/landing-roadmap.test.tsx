@@ -20,12 +20,13 @@ describe("LandingRoadmap", () => {
     expect(screen.getByRole("list").tagName).toBe("OL");
     expect(versions.map((version) => version.firstChild?.textContent)).toEqual([
       "Disponible",
+      "Disponible",
+      "Disponible",
       "En curso",
-      "Después",
-      "Después",
     ]);
     expect(versions[0]).toHaveTextContent(/^DisponibleSimularArrastra personas y vacantes/);
-    expect(versions[1]).toHaveTextContent(/^En cursoPreparar/);
+    expect(versions[2]).toHaveTextContent(/^DisponibleCompararDos o tres escenarios/);
+    expect(versions[3]).toHaveTextContent(/^En cursoCompartir/);
     expect(
       screen.getAllByRole("heading", { level: 3 }).map((heading) => heading.textContent),
     ).toEqual(["Simular", "Preparar", "Comparar", "Compartir"]);
@@ -34,11 +35,7 @@ describe("LandingRoadmap", () => {
   it("marks each status with a dot as well as its word", () => {
     renderWithIntl(<LandingRoadmap />, { locale: "en" });
 
-    for (const status of ["Available", "In progress"]) {
-      const chip = screen.getByText(status);
-      expect(chip.querySelector("[aria-hidden]")).not.toBeNull();
-    }
-    for (const chip of screen.getAllByText("Later")) {
+    for (const chip of [...screen.getAllByText("Available"), screen.getByText("In progress")]) {
       expect(chip.querySelector("[aria-hidden]")).not.toBeNull();
     }
   });
