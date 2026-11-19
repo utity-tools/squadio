@@ -24,8 +24,9 @@ still to be checked with users.
 
 Every version ships something that can be shown. v0.1 shipped on 2026-10-26
 ([handoff 0011](sessions/0011-read-only-canvas.md)), v0.2 on 2026-10-29
-([handoff 0017](sessions/0017-seed-dates-daily-reseed-and-v02.md)) and v0.3 on 2026-11-16
-([handoff 0028](sessions/0028-v03-release.md)), with sign-up still closed in production.
+([handoff 0017](sessions/0017-seed-dates-daily-reseed-and-v02.md)), v0.3 on 2026-11-16
+([handoff 0028](sessions/0028-v03-release.md)) and v0.4 on 2026-11-19
+([handoff 0029](sessions/0029-v04-release.md)), with sign-up still closed in production.
 
 After v0.2 the owner reviewed the product's UX and its definition, and the roadmap was planned
 again on 2026-10-29. The review lives in a private repository (`utity-tools/squadio-research`,
