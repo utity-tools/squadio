@@ -843,7 +843,10 @@ so an over-allocated week never reads 100%.
 - **On the team** (canvas and table), an assignment with a person is flagged when that person is
   over-allocated in at least one week the assignment covers, a week with at least one of its working
   days. The flag lists those weeks, each with the load and the projects whose chosen scenarios add
-  to it, by name. It is a warning, never a block: the change is still accepted and saved.
+  to it, by name: the first four, and how many more, so a long project stays readable (decided on
+  2026-11-19). The table, which has no room for them, shows how many weeks and gives the sentence to
+  screen readers; the tree's card shows it on hover and focus, and the bench lists every week. It
+  is a warning, never a block: the change is still accepted and saved.
 - **Inactive people** keep loading the weeks of their assignments, since a chosen scenario still
   commits them; they are not on the bench, but their assignments on the team are still flagged.
 
