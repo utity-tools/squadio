@@ -1234,7 +1234,8 @@
     "openScenario": "Abrir el escenario",
     "readOnly": "Solo lectura: una revisión nunca cambia.",
     "newer": "Este escenario tiene una revisión más nueva.",
-    "latest": "Ver la revisión {number}"
+    "latest": "Ver la revisión {number}",
+    "emptyTeam": "Esta revisión se guardó sin equipo."
   },
   "SaveRevision": {
     "button": "Guardar revisión",

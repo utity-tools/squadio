@@ -1234,7 +1234,8 @@
     "openScenario": "Open the scenario",
     "readOnly": "Read only: a revision never changes.",
     "newer": "This scenario has a newer revision.",
-    "latest": "See revision {number}"
+    "latest": "See revision {number}",
+    "emptyTeam": "This revision was saved without a team."
   },
   "SaveRevision": {
     "button": "Save revision",
