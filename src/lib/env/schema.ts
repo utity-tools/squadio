@@ -54,6 +54,15 @@ const serverSchema = clientSchema.extend({
   ),
   // Server-only: it carries the app role's password.
   DATABASE_URL: postgresUrl,
+  // Set by Vercel on its builds and functions: the commit a revision is made with (ADR 0013).
+  // Unset in development, tests and the seed, whose revisions then name no commit.
+  VERCEL_GIT_COMMIT_SHA: z.preprocess(
+    unset,
+    z
+      .string()
+      .regex(/^[0-9a-f]{40}$/, { error: "must be a 40-character lowercase hex commit SHA" })
+      .optional(),
+  ),
 });
 
 // Tooling only (migrations, database tests): the owner role. The app never reads it (ADR 0004).
