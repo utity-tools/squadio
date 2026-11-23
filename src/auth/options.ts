@@ -23,6 +23,19 @@ const withoutProviderTokens = {
   refreshTokenExpiresAt: null,
 };
 
+// The server creates organizations, memberships and invitations itself (ADR 0012, ADR 0015); the
+// plugin only gives Better Auth its tables and the session's active organization. Its limits hold
+// its own endpoints at nothing, in case one is ever served again.
+const organizations = organization({
+  allowUserToCreateOrganization: false,
+  disableOrganizationDeletion: true,
+  membershipLimit: 1,
+  invitationLimit: 0,
+});
+
+/** Every endpoint the organization plugin serves, all of them disabled. */
+const ORGANIZATION_PATHS = Object.values(organizations.endpoints).map((endpoint) => endpoint.path);
+
 export type AuthInputs = {
   db: NodePgDatabase;
   /** This deployment's own origin, NEXT_PUBLIC_APP_URL. */
@@ -79,15 +92,13 @@ export function authOptions({ db, appUrl, env }: AuthInputs) {
     },
     // Serverless instances share no memory, so the rate limit counts in the database.
     rateLimit: { storage: "database", modelName: "rateLimit" },
-    // Organizations and memberships change only through the server (ADR 0012): the browser cannot
-    // rename an organization, nor leave, remove or change a member, since the member's role is what
-    // their rate access follows. Slice 2d deletes organizations with their data, on the server.
-    disabledPaths: [
-      "/organization/update",
-      "/organization/leave",
-      "/organization/remove-member",
-      "/organization/update-member-role",
-    ],
+    // Organizations, memberships and invitations are the server's alone (ADR 0012, ADR 0015): it
+    // writes and reads them itself, inside its own transactions, so the browser reaches none of the
+    // organization plugin's endpoints. A member's role is what their rate access follows, and the
+    // plugin's own reads would show anyone in the organization its invitations and emails. The
+    // list is read from the plugin, so an endpoint an upgrade adds is off too. Slice 2d deletes
+    // organizations with their data, on the server.
+    disabledPaths: ORGANIZATION_PATHS,
     advanced: {
       cookiePrefix: "squadio",
       // auth-schema.ts: the database generates uuids.
@@ -98,14 +109,8 @@ export function authOptions({ db, appUrl, env }: AuthInputs) {
       // Production only relays the providers' callbacks to previews. It serves no endpoint that
       // completes a proxied sign-in, so whoever holds OAUTH_PROXY_SECRET cannot sign in there.
       isPreview ? proxy : { ...proxy, endpoints: {} },
-      // v0.3 has one member per organization, its owner, and no invitations (ADR 0012). The server
-      // creates organizations itself (slice 2b); the browser cannot, nor delete them.
-      organization({
-        allowUserToCreateOrganization: false,
-        disableOrganizationDeletion: true,
-        membershipLimit: 1,
-        invitationLimit: 0,
-      }),
+      // Its endpoints are all disabled above; Better Auth needs it for its tables.
+      organizations,
       // Last, so cookies set by any endpoint above reach Server Actions.
       nextCookies(),
     ],
