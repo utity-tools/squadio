@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { assertLocale, currentLocale } from "@/i18n/locale";
 import { Link, getPathname } from "@/i18n/navigation";
 import { GUIDE_SCENARIO_ID } from "@/lib/demo/demo-ids";
+import { invitationReturnPath } from "@/lib/invitations/return-path";
 
 /** A failed sign-in says so in the title too: it is what a screen reader announces on load. */
 export async function generateMetadata({
@@ -32,7 +33,11 @@ export default async function SignInPage({ searchParams }: PageProps<"/[locale]/
   );
 }
 
-/** What this request can do: it reads the session, the switch and Better Auth's `?error=`. */
+/**
+ * What this request can do: it reads the session, the switch, Better Auth's `?error=` and
+ * `?next=`, the invitation's page to come back to (ADR 0015); anything else leads to the
+ * organization page.
+ */
 async function SignInOptions({
   searchParams,
 }: Pick<PageProps<"/[locale]/sign-in">, "searchParams">) {
@@ -60,7 +65,7 @@ async function SignInOptions({
       </>
     );
   }
-  const { error } = await searchParams;
+  const { error, next } = await searchParams;
   return (
     <>
       <p className="max-w-md text-balance text-muted-foreground">{t("intro")}</p>
@@ -70,7 +75,7 @@ async function SignInOptions({
         </p>
       )}
       <SignInButtons
-        callbackPath={getPathname({ href: "/organization", locale })}
+        callbackPath={invitationReturnPath(next) ?? getPathname({ href: "/organization", locale })}
         errorPath={getPathname({ href: "/sign-in", locale })}
       />
     </>
