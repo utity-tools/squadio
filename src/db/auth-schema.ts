@@ -7,6 +7,7 @@ import { sql } from "drizzle-orm";
 import {
   bigint,
   boolean,
+  check,
   index,
   integer,
   pgSchema,
@@ -124,8 +125,12 @@ export const member = authSchema.table(
   ],
 );
 
-// The organization plugin refuses to start without it. v0.3 has no invitations, and auth/options.ts
-// limits them to none, so it stays empty until they arrive (v0.5).
+// The organization plugin refuses to start without it, but Squadio writes invitations itself
+// (ADR 0015, amendment of 2026-11-23, slice 4b): auth/options.ts disables the plugin's invitation
+// endpoints. An invitation gives a member or a viewer, never the owner; it is pending, accepted or
+// canceled (expiring is a matter of `expires_at`, not stored); its email is stored trimmed and in
+// lower case, so it compares ignoring case; and an organization holds one pending invitation per
+// email.
 export const invitation = authSchema.table(
   "invitation",
   {
@@ -134,7 +139,7 @@ export const invitation = authSchema.table(
       .notNull()
       .references(() => organization.id, { onDelete: "cascade" }),
     email: text("email").notNull(),
-    role: text("role"),
+    role: text("role").notNull(),
     status: text("status").notNull().default("pending"),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
     inviterId: uuid("inviter_id")
@@ -145,6 +150,12 @@ export const invitation = authSchema.table(
   (table) => [
     index("invitation_organization_id_idx").on(table.organizationId),
     index("invitation_email_idx").on(table.email),
+    check("invitation_role_check", sql`${table.role} in ('member', 'viewer')`),
+    check("invitation_status_check", sql`${table.status} in ('pending', 'accepted', 'canceled')`),
+    check("invitation_email_check", sql`${table.email} = lower(btrim(${table.email}))`),
+    uniqueIndex("invitation_one_pending_per_email")
+      .on(table.organizationId, table.email)
+      .where(sql`${table.status} = 'pending'`),
   ],
 );
 

@@ -99,6 +99,13 @@
       "when": 1795453721164,
       "tag": "0013_one_owner_per_organization",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1795461970079,
+      "tag": "0014_invitations",
+      "breakpoints": true
     }
   ]
 }
