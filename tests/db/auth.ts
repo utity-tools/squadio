@@ -13,11 +13,17 @@ import { parseAuthEnv } from "@/lib/env/schema";
 
 export const PRODUCTION_URL = "https://squadio.example";
 export const PREVIEW_URL = "https://squadio-pr-1.example";
+/** A server on this machine, as E2E runs it: plain HTTP, so cookies have no `__Secure-` prefix. */
+export const LOCAL_URL = "http://localhost:3000";
 const PROXY_SECRET = "synthetic-test-proxy-secret-0123456789abcdef";
+/** The synthetic secret of `.env.test` and CI, which signs session cookies. */
+export const BETTER_AUTH_SECRET = "synthetic-test-auth-secret-0123456789abcdef";
 
 type Deployment = { signUp: boolean } & (
-  { at: "production" } | { at: "preview"; productionUrl?: string }
+  { at: "production" } | { at: "local" } | { at: "preview"; productionUrl?: string }
 );
+
+const URLS = { production: PRODUCTION_URL, local: LOCAL_URL, preview: PREVIEW_URL };
 
 export type TestAuth = ReturnType<typeof authAt>;
 
@@ -25,9 +31,9 @@ export const authAt = (db: NodePgDatabase, deployment: Deployment) =>
   betterAuth(
     authOptions({
       db,
-      appUrl: deployment.at === "production" ? PRODUCTION_URL : PREVIEW_URL,
+      appUrl: URLS[deployment.at],
       env: parseAuthEnv({
-        BETTER_AUTH_SECRET: "synthetic-test-auth-secret-0123456789abcdef",
+        BETTER_AUTH_SECRET,
         OAUTH_PROXY_SECRET: PROXY_SECRET,
         AUTH_PRODUCTION_URL: deployment.at === "preview" ? PRODUCTION_URL : undefined,
         GITHUB_CLIENT_ID: "synthetic-test-github-client-id",
