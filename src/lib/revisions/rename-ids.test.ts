@@ -5,7 +5,7 @@ import { PLAN_A, RATES } from "@/lib/comparison/comparison.fixtures";
 
 import { buildRevision } from "./build-revision";
 import { planSource } from "./revision.fixtures";
-import { renameRevisionIds } from "./rename-ids";
+import { renameOpenPartIds, renameRestrictedPartIds } from "./rename-ids";
 import { type RevisionSnapshot, openPartSchema, restrictedPartSchema } from "./snapshot";
 
 // ADR 0011 and ADR 0013: a visitor's copy copies the template's revisions with new ids, so the ids
@@ -66,7 +66,16 @@ const IDS = [
 
 const renamed = (id: string) => `copy-${id}`;
 
-describe("renameRevisionIds", () => {
+/** Both parts renamed, as the visitor's copy renames each in its own table. */
+const renameRevisionIds = (
+  { open, restricted }: RevisionSnapshot,
+  rename: (id: string) => string,
+): RevisionSnapshot => ({
+  open: renameOpenPartIds(open, rename),
+  restricted: renameRestrictedPartIds(restricted, rename),
+});
+
+describe("renameOpenPartIds and renameRestrictedPartIds", () => {
   it("is tested on a revision that holds every kind of id", () => {
     const snapshot = everyKindOfId();
     const all = strings(snapshot);
