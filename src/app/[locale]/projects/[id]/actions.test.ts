@@ -3,10 +3,12 @@
 // access before writing; the member's organization comes from the session, never the form.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import type { Capabilities } from "@/lib/membership/capabilities";
+
 vi.mock("server-only", () => ({}));
 const mocks = vi.hoisted(() => ({
   session: null as null | { userId: string; sessionId: string; activeOrganizationId: null },
-  member: null as null | { organizationId: string; capabilities: { rateAccess: boolean } },
+  member: null as null | { organizationId: string; capabilities: Capabilities },
   createCategory: vi.fn(),
   updateCategory: vi.fn(),
   refresh: vi.fn(),
@@ -67,7 +69,10 @@ beforeEach(() => {
     sessionId: "s",
     activeOrganizationId: null,
   };
-  mocks.member = { organizationId, capabilities: { rateAccess: true } };
+  mocks.member = {
+    organizationId,
+    capabilities: { rateAccess: true, edit: true, choose: true, manage: true },
+  };
   mocks.createCategory.mockReset();
   mocks.updateCategory.mockReset();
   mocks.refresh.mockReset();
@@ -82,7 +87,7 @@ describe("saveCategory", () => {
     const state = await saveCategory(initial, form(devOps));
     expect(mocks.createCategory).toHaveBeenCalledWith(
       { client: "app" },
-      { organizationId, rateAccess: true },
+      { organizationId, rateAccess: true, readOnly: false },
       { name: "DevOps Engineer", rate },
     );
     expect(state).toEqual({ saved: "DevOps Engineer", error: null, errors: {} });
@@ -94,7 +99,7 @@ describe("saveCategory", () => {
     await saveCategory(initial, form({ ...devOps, categoryId }));
     expect(mocks.updateCategory).toHaveBeenCalledWith(
       { client: "app" },
-      { organizationId, rateAccess: true },
+      { organizationId, rateAccess: true, readOnly: false },
       categoryId,
       { name: "DevOps Engineer", rate },
     );
@@ -137,10 +142,17 @@ describe("saveCategory", () => {
   });
 
   it("passes on what the database refuses, without refreshing", async () => {
-    mocks.member = { organizationId, capabilities: { rateAccess: false } };
+    mocks.member = {
+      organizationId,
+      capabilities: { rateAccess: false, edit: true, choose: false, manage: false },
+    };
     mocks.createCategory.mockResolvedValue({ ok: false, reason: "no-rate-access" });
     expect((await saveCategory(initial, form(devOps))).error).toBe("no-rate-access");
-    expect(mocks.createCategory.mock.calls[0]?.[1]).toEqual({ organizationId, rateAccess: false });
+    expect(mocks.createCategory.mock.calls[0]?.[1]).toEqual({
+      organizationId,
+      rateAccess: false,
+      readOnly: false,
+    });
     mocks.updateCategory.mockResolvedValue({ ok: false, reason: "name-taken" });
     expect((await saveCategory(initial, form({ ...devOps, categoryId }))).errors).toEqual({
       name: "taken",
@@ -161,12 +173,15 @@ const projectId = "0b5e0c1e-0000-4000-8000-000000000004";
 
 describe("createNewScenario", () => {
   it("creates the project's next scenario, named in the form's locale, and opens it", async () => {
-    mocks.member = { organizationId, capabilities: { rateAccess: false } };
+    mocks.member = {
+      organizationId,
+      capabilities: { rateAccess: false, edit: true, choose: false, manage: false },
+    };
     mocks.createScenario.mockResolvedValue({ ok: true, scenarioId: "s" });
     await createNewScenario({ error: null }, form({ projectId, locale: "en" }));
     expect(mocks.createScenario).toHaveBeenCalledWith(
       { client: "app" },
-      { organizationId, rateAccess: false },
+      { organizationId, rateAccess: false, readOnly: false },
       projectId,
       "Scenario",
     );
@@ -230,7 +245,7 @@ describe("editProject", () => {
     });
     expect(mocks.updateProject).toHaveBeenCalledWith(
       { client: "app" },
-      { organizationId, rateAccess: true },
+      { organizationId, rateAccess: true, readOnly: false },
       projectId,
       {
         name: "Client portal",

@@ -3,10 +3,12 @@
 // signed-in member's rate access; the member's organization comes from the session, never the form.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import type { Capabilities } from "@/lib/membership/capabilities";
+
 vi.mock("server-only", () => ({}));
 const mocks = vi.hoisted(() => ({
   session: null as null | { userId: string; sessionId: string; activeOrganizationId: null },
-  member: null as null | { organizationId: string; capabilities: { rateAccess: boolean } },
+  member: null as null | { organizationId: string; capabilities: Capabilities },
   createPerson: vi.fn(),
   updatePerson: vi.fn(),
   refresh: vi.fn(),
@@ -59,7 +61,10 @@ beforeEach(() => {
     sessionId: "s",
     activeOrganizationId: null,
   };
-  mocks.member = { organizationId, capabilities: { rateAccess: true } };
+  mocks.member = {
+    organizationId,
+    capabilities: { rateAccess: true, edit: true, choose: true, manage: true },
+  };
   mocks.createPerson.mockReset();
   mocks.updatePerson.mockReset();
   mocks.refresh.mockReset();
@@ -71,7 +76,7 @@ describe("savePerson", () => {
     const state = await savePerson(initial, form(pablo));
     expect(mocks.createPerson).toHaveBeenCalledWith(
       { client: "app" },
-      { organizationId, rateAccess: true },
+      { organizationId, rateAccess: true, readOnly: false },
       saved,
     );
     expect(state).toEqual({ saved: "Pablo Ruiz", error: null, errors: {} });
@@ -83,7 +88,7 @@ describe("savePerson", () => {
     await savePerson(initial, form({ ...pablo, personId }));
     expect(mocks.updatePerson).toHaveBeenCalledWith(
       { client: "app" },
-      { organizationId, rateAccess: true },
+      { organizationId, rateAccess: true, readOnly: false },
       personId,
       saved,
     );
@@ -112,10 +117,17 @@ describe("savePerson", () => {
   });
 
   it("passes on what the database refuses, without refreshing", async () => {
-    mocks.member = { organizationId, capabilities: { rateAccess: false } };
+    mocks.member = {
+      organizationId,
+      capabilities: { rateAccess: false, edit: true, choose: false, manage: false },
+    };
     mocks.createPerson.mockResolvedValue({ ok: false, reason: "no-rate-access" });
     expect((await savePerson(initial, form(pablo))).error).toBe("no-rate-access");
-    expect(mocks.createPerson.mock.calls[0]?.[1]).toEqual({ organizationId, rateAccess: false });
+    expect(mocks.createPerson.mock.calls[0]?.[1]).toEqual({
+      organizationId,
+      rateAccess: false,
+      readOnly: false,
+    });
     mocks.updatePerson.mockResolvedValue({ ok: false, reason: "category-not-found" });
     expect((await savePerson(initial, form({ ...pablo, personId }))).errors).toEqual({
       categoryId: "invalid",

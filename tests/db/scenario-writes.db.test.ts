@@ -97,10 +97,12 @@ describe("memberPageContext", () => {
     expect(await memberPageContext(app, adaMember, own)).toEqual({
       organizationId: ada.organizationId,
       rateAccess: true,
+      readOnly: false,
     });
     expect(await memberPageContext(app, adaMember, own, { access: "none" })).toEqual({
       organizationId: ada.organizationId,
       rateAccess: false,
+      readOnly: false,
     });
   });
 
@@ -245,7 +247,7 @@ describe("setChoiceFor", () => {
     const scenarioId = copyId(DEMO_IDS.leanScenario, ada.organizationId);
     const withoutRates: Member = {
       ...adaMember,
-      capabilities: { rateAccess: false, edit: true, choose: false },
+      capabilities: { rateAccess: false, edit: true, choose: false, manage: false },
     };
     expect(
       await setChoiceFor(
@@ -306,7 +308,7 @@ describe("duplicateScenarioFor", () => {
     const before = (await scenariosIn(ada.organizationId)).length;
     const withoutRates: Member = {
       ...adaMember,
-      capabilities: { rateAccess: false, edit: true, choose: false },
+      capabilities: { rateAccess: false, edit: true, choose: false, manage: false },
     };
     for (const [member, rateAccess] of [
       [adaMember, false],
@@ -397,7 +399,7 @@ describe("saveRevisionFor", () => {
     const before = await revisionsIn(ada.organizationId, scenarioId);
     const withoutRates: Member = {
       ...adaMember,
-      capabilities: { rateAccess: false, edit: true, choose: false },
+      capabilities: { rateAccess: false, edit: true, choose: false, manage: false },
     };
     for (const [member, rateAccess] of [
       [adaMember, false],

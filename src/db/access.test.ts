@@ -23,21 +23,27 @@ describe("memberAccessContext and memberEditContext", () => {
   const owner: Member = {
     userId: "0b5e0c1e-0000-4000-8000-0000000000aa",
     organizationId: "0b5e0c1e-0000-4000-8000-000000000001",
-    capabilities: { rateAccess: true, edit: true, choose: true },
+    capabilities: { rateAccess: true, edit: true, choose: true, manage: true },
   };
   const withoutRates: Member = {
     ...owner,
-    capabilities: { rateAccess: false, edit: true, choose: false },
+    capabilities: { rateAccess: false, edit: true, choose: false, manage: false },
+  };
+  const viewer: Member = {
+    ...owner,
+    capabilities: { rateAccess: false, edit: false, choose: false, manage: false },
   };
 
   it("read and write in the member's organization with the member's rate access", () => {
     expect(memberAccessContext(owner)).toEqual({
       organizationId: owner.organizationId,
       rateAccess: true,
+      readOnly: false,
     });
     expect(memberEditContext(owner)).toEqual({
       organizationId: owner.organizationId,
       rateAccess: true,
+      readOnly: false,
     });
     expect(memberAccessContext(withoutRates).rateAccess).toBe(false);
     expect(memberEditContext(withoutRates).rateAccess).toBe(false);
@@ -46,5 +52,20 @@ describe("memberAccessContext and memberEditContext", () => {
   it("lets ?access=none take rate access away from a page, never grant it", () => {
     expect(memberAccessContext(owner, { access: "none" }).rateAccess).toBe(false);
     expect(memberAccessContext(withoutRates, { access: "full" }).rateAccess).toBe(false);
+  });
+
+  // ADR 0015: a viewer edits nothing, so even the context it would write with is read only.
+  it("make every context of a member who does not edit read only", () => {
+    expect(memberAccessContext(viewer)).toEqual({
+      organizationId: viewer.organizationId,
+      rateAccess: false,
+      readOnly: true,
+    });
+    expect(memberEditContext(viewer)).toEqual({
+      organizationId: viewer.organizationId,
+      rateAccess: false,
+      readOnly: true,
+    });
+    expect(memberAccessContext(withoutRates).readOnly).toBe(false);
   });
 });

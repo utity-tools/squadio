@@ -142,7 +142,7 @@ describe("createEmptyOrganization", () => {
     expect(member).toEqual({
       userId: starter.userId,
       organizationId: result.organizationId,
-      capabilities: { rateAccess: true, edit: true, choose: true },
+      capabilities: { rateAccess: true, edit: true, choose: true, manage: true },
     });
   });
 
