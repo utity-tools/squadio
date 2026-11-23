@@ -20,7 +20,8 @@ no rows instead of salaries.
 
 - **Money lives in its own tables.** Rates, costs, prices and margin settings move out of the
   structural entities into restricted ones: `CategoryRate`, `CostConfig`, `ProjectPricing`,
-  `FrozenRate`, `FrozenCostConfig` and `ExtraCost` ([domain](../domain.md#entities)). Config,
+  `FrozenRate`, `FrozenCostConfig` and `ExtraCost` ([domain](../domain.md#entities)), and from v0.5
+  `scenario_revision_money` (see the 2026-11-23 amendment). Config,
   categories, people, projects, scenarios and assignments carry no money, so everyone in the
   organization reads them.
 - **A second policy key.** Restricted tables use
@@ -128,3 +129,12 @@ no rows instead of salaries.
   only takes it away. A role v0.3 does not know gets no context at all
   ([ADR 0012, amendments](0012-sign-in-and-membership.md#amendments)). The decision itself is
   unchanged.
+- **2026-11-23:** v0.5 adds revisions ([ADR 0013](0013-scenario-revisions.md)). Their money, in
+  `scenario_revision_money`, joins the restricted tables and the guard test's list; their open
+  part, `scenario_revision`, holds structure and hours only, and its strict Zod schema has no money
+  field, since the guard test cannot see money inside JSON. Choosing a scenario writes a revision
+  instead of frozen rows, still with rate access only; `FrozenRate` and `FrozenCostConfig` are
+  retired in v0.5's slice 6, once every chosen scenario has its revision, and then dropped. Roles
+  arrive with [ADR 0015](0015-roles-and-invitations.md): the owner and members have rate access,
+  viewers do not, and a viewer's transactions are read only, so a viewer cannot edit teams although
+  the rest of this ADR allows it without rate access. The decision itself is unchanged.
