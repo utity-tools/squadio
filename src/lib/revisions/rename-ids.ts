@@ -1,4 +1,9 @@
-import { type RevisionSnapshot, openPartSchema, restrictedPartSchema } from "./snapshot";
+import {
+  type OpenPart,
+  type RestrictedPart,
+  openPartSchema,
+  restrictedPartSchema,
+} from "./snapshot";
 
 // ADR 0011 and ADR 0013: a visitor's copy copies the template's revisions with new ids, like the
 // rest of the template, so the ids inside both parts must follow the rows they name. The parts name
@@ -24,18 +29,15 @@ function renameIn(value: unknown, rename: (id: string) => string): unknown {
   );
 }
 
-/**
- * A revision's two parts with every row id renamed by `rename`, and nothing else changed. Throws
- * unless both parts, before and after, are valid snapshots of the current schema version.
- */
-export function renameRevisionIds(
-  { open, restricted }: RevisionSnapshot,
+/** An open part with every row id renamed by `rename`; throws unless it is a valid one. */
+export function renameOpenPartIds(open: unknown, rename: (id: string) => string): OpenPart {
+  return openPartSchema.parse(renameIn(openPartSchema.parse(open), rename));
+}
+
+/** A restricted part with every row id renamed by `rename`; throws unless it is a valid one. */
+export function renameRestrictedPartIds(
+  restricted: unknown,
   rename: (id: string) => string,
-): RevisionSnapshot {
-  return {
-    open: openPartSchema.parse(renameIn(openPartSchema.parse(open), rename)),
-    restricted: restrictedPartSchema.parse(
-      renameIn(restrictedPartSchema.parse(restricted), rename),
-    ),
-  };
+): RestrictedPart {
+  return restrictedPartSchema.parse(renameIn(restrictedPartSchema.parse(restricted), rename));
 }
