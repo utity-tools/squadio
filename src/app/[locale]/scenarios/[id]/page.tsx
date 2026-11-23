@@ -7,6 +7,7 @@ import { z } from "zod";
 
 import { CurrentAccount } from "@/components/account/current-account";
 import { Bench } from "@/components/bench/bench";
+import { RevisionList } from "@/components/revisions/revision-list";
 import { HistoryControls } from "@/components/scenario/history-controls";
 import { SaveStatus } from "@/components/scenario/save-status";
 import { ScenarioAnnouncer } from "@/components/scenario/scenario-announcer";
@@ -25,6 +26,7 @@ import { CurrentOrganization } from "@/components/shell/current-organization";
 import { OrganizationLink } from "@/components/shell/organization-link";
 import { db } from "@/db/client";
 import { copyLink } from "@/db/copy-link";
+import { loadRevisions } from "@/db/load-revisions";
 import { loadScenario } from "@/db/load-scenario";
 import { currentAccessContext, currentMember } from "@/db/request-access";
 import { memberPageContext } from "@/db/scenario-writes";
@@ -51,9 +53,8 @@ export default async function ScenarioPage({
   // the demo template (ADR 0011); `?access=none` shows the page without rate access (ADR 0005,
   // amendment of 2026-10-21).
   const query = await searchParams;
-  const context =
-    (await memberPageContext(db, await currentMember(), id, query)) ??
-    (await currentAccessContext(query));
+  const memberContext = await memberPageContext(db, await currentMember(), id, query);
+  const context = memberContext ?? (await currentAccessContext(query));
   // The bench says how busy people are today in Madrid (docs/domain.md): a value of the request,
   // never of a prerender.
   await connection();
@@ -65,6 +66,7 @@ export default async function ScenarioPage({
     if (href) redirect({ href, locale: await currentLocale() });
     notFound();
   }
+  const revisions = await loadRevisions(db, context, id);
 
   return (
     <ScenarioEditor scenarioId={id} editing={scenario.editing} save={saveScenario}>
@@ -100,7 +102,16 @@ export default async function ScenarioPage({
           }
           bench={<Bench day={today} />}
           team={<LiveScenarioTeam />}
-          summary={<LiveScenarioSummary />}
+          summary={
+            <div className="flex flex-col gap-8">
+              <LiveScenarioSummary />
+              {/* Nobody signs in to the demo or a visitor's copy, so its revisions are visitors'. */}
+              <RevisionList
+                revisions={revisions}
+                anonymous={memberContext ? "formerMember" : "visitor"}
+              />
+            </div>
+          }
         />
       </AppShell>
       <ScenarioAnnouncer />

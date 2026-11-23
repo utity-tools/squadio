@@ -1213,5 +1213,19 @@
     "weekWithProjects": "{day}: {load} con {projects}",
     "more": "{count, plural, one {# semana más} other {# semanas más}}",
     "short": "{count, plural, one {# semana} other {# semanas}} por encima del 100 %"
+  },
+  "Revisions": {
+    "title": "Revisiones",
+    "empty": "Todavía no hay revisiones de este escenario.",
+    "number": "Revisión {number}",
+    "anonymous": {
+      "visitor": "visitante",
+      "formerMember": "antiguo miembro"
+    },
+    "reason": {
+      "saved": "guardada",
+      "shared": "compartida",
+      "chosen": "elegida"
+    }
   }
 }
