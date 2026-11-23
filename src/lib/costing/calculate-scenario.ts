@@ -344,6 +344,23 @@ const prorated = (monthlyCents: number, start: string, end: string) =>
   ).round();
 
 /**
+ * Green at or above the target, amber below it, red with a negative net margin; judged on the
+ * rounded net margin %. Without revenue, null unless the net margin is negative; null too with an
+ * undetermined net margin. A revision, which stores no target, is judged with this against the
+ * organization's current one (rule b).
+ */
+export function marginStatusOf(
+  netMarginCents: number | Undetermined,
+  netMarginBasisPoints: number | null | Undetermined,
+  targetMargin: number,
+): MarginStatus | null {
+  if (!isDetermined(netMarginCents) || !isDetermined(netMarginBasisPoints)) return null;
+  if (netMarginCents < 0) return "red";
+  if (netMarginBasisPoints === null) return null;
+  return netMarginBasisPoints >= targetMargin ? "green" : "amber";
+}
+
+/**
  * Cost, revenue and margin of a scenario, as docs/domain.md specifies. Pure: the same inputs give
  * the same result, whether they are current values or a chosen scenario's frozen ones.
  */
@@ -495,16 +512,7 @@ export function calculateScenario(
   const marginPercent = (name: string, margin: number | Undetermined) =>
     from([margin, revenueCents], (cents, revenue) => marginBasisPoints(name, cents, revenue));
   const netMarginBasisPoints = marginPercent("net margin %", netMarginCents);
-  const marginStatus: MarginStatus | null =
-    !isDetermined(netMarginCents) || !isDetermined(netMarginBasisPoints)
-      ? null
-      : netMarginCents < 0
-        ? "red"
-        : netMarginBasisPoints === null
-          ? null
-          : netMarginBasisPoints >= targetMargin
-            ? "green"
-            : "amber";
+  const marginStatus = marginStatusOf(netMarginCents, netMarginBasisPoints, targetMargin);
 
   const lines = {
     ...Object.fromEntries(
