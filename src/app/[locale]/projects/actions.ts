@@ -21,7 +21,7 @@ import {
 
 /** Why saving the project did not happen, beyond its fields; the form says so. */
 export type ProjectFormError =
-  "signed-out" | "no-organization" | "no-rate-access" | "not-found" | "failed";
+  "signed-out" | "no-organization" | "read-only" | "no-rate-access" | "not-found" | "failed";
 
 /** The project form's state: `saved` once an edit is saved; creating leads to the project. */
 export type ProjectFormState = {
@@ -67,6 +67,8 @@ export async function createNewProject(
   try {
     const member = await memberOf(db, session);
     if (!member) return fail("no-organization");
+    // A viewer edits nothing (ADR 0015).
+    if (!member.capabilities.edit) return fail("read-only");
     const result = await createProject(db, memberEditContext(member), parsed.data);
     if (!result.ok) return fail(result.reason);
     projectId = result.projectId;

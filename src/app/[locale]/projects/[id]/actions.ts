@@ -27,7 +27,7 @@ import type { ProjectFormError, ProjectFormState } from "../actions";
 
 /** Why saving did not happen, beyond its fields; the form says so. */
 export type SaveCategoryError =
-  "signed-out" | "no-organization" | "no-rate-access" | "not-found" | "failed";
+  "signed-out" | "no-organization" | "read-only" | "no-rate-access" | "not-found" | "failed";
 
 export type SaveCategoryState = {
   /** The name of the category just saved, for the page to announce. */
@@ -80,6 +80,8 @@ export async function saveCategory(
   try {
     const member = await memberOf(db, session);
     if (!member) return fail("no-organization");
+    // A viewer edits nothing (ADR 0015).
+    if (!member.capabilities.edit) return fail("read-only");
     const context = memberEditContext(member);
     const result =
       categoryId === null
@@ -101,7 +103,7 @@ export async function saveCategory(
 
 /** Why the scenario was not created; the page says so. */
 export type CreateScenarioError =
-  "signed-out" | "no-organization" | "not-found" | "no-categories" | "failed";
+  "signed-out" | "no-organization" | "read-only" | "not-found" | "no-categories" | "failed";
 
 export type CreateScenarioState = { error: CreateScenarioError | null };
 
@@ -124,6 +126,7 @@ export async function createNewScenario(
   try {
     const member = await memberOf(db, session);
     if (!member) return { error: "no-organization" };
+    if (!member.capabilities.edit) return { error: "read-only" };
     // `next-intl/server` reads the route's locale, which an action cannot: the form's is used.
     const messages = (await import(`../../../../../messages/${locale}.json`)).default;
     const t = createTranslator({ locale, messages, namespace: "Project" });
@@ -180,6 +183,7 @@ export async function editProject(
   try {
     const member = await memberOf(db, session);
     if (!member) return projectFail("no-organization");
+    if (!member.capabilities.edit) return projectFail("read-only");
     const result = await updateProject(db, memberEditContext(member), projectId.data, parsed.data);
     if (!result.ok) return projectFail(result.reason);
   } catch (error) {

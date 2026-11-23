@@ -18,7 +18,7 @@ import {
 
 /** Why saving did not happen, beyond its fields; the form says so. */
 export type SavePersonError =
-  "signed-out" | "no-organization" | "no-rate-access" | "not-found" | "failed";
+  "signed-out" | "no-organization" | "read-only" | "no-rate-access" | "not-found" | "failed";
 
 export type SavePersonState = {
   /** The name of the person just saved, for the page to announce. */
@@ -64,6 +64,8 @@ export async function savePerson(
   try {
     const member = await memberOf(db, session);
     if (!member) return fail("no-organization");
+    // A viewer edits nothing (ADR 0015).
+    if (!member.capabilities.edit) return fail("read-only");
     const context = memberEditContext(member);
     const result =
       personId === null
