@@ -554,7 +554,8 @@
     "back": "Volver al inicio",
     "code": "Error 404",
     "demo": "Abrir la demo",
-    "logo": "Squadio"
+    "logo": "Squadio",
+    "signIn": "Entrar"
   },
   "Theme": {
     "label": "Tema",
@@ -1091,7 +1092,12 @@
         "failed": "No se ha podido borrar. Vuelve a intentarlo."
       }
     },
-    "membersLink": "Ver los miembros"
+    "membersLink": "Ver los miembros",
+    "organizationsHeading": "Tus organizaciones",
+    "activeOrganization": "en la que trabajas",
+    "workIn": "Trabajar aquí",
+    "workInLabel": "Trabajar aquí: {name}",
+    "switchFailed": "No pudimos cambiar de organización. Inténtalo de nuevo."
   },
   "Members": {
     "title": "Miembros",
@@ -1141,6 +1147,34 @@
       "not-owner": "Solo el propietario puede revocar invitaciones.",
       "not-found": "Esa invitación ya no está pendiente.",
       "failed": "No pudimos revocar la invitación. Inténtalo de nuevo."
+    }
+  },
+  "Invitation": {
+    "title": "Invitación",
+    "heading": "Te invitan a {organization}",
+    "intro": "{inviter} te invita {role}.",
+    "roles": {
+      "member": "como miembro",
+      "viewer": "como lector"
+    },
+    "roleHints": {
+      "member": "Verás las tarifas, los costes y los márgenes, y podrás editar.",
+      "viewer": "Verás los proyectos, los escenarios y los equipos sin dinero, y no podrás editar."
+    },
+    "expires": "La invitación caduca el {date}.",
+    "accept": "Aceptar la invitación",
+    "toOrganization": "Ir a tu organización",
+    "refusals": {
+      "used": "Ya se aceptó esta invitación.",
+      "revoked": "Esta invitación se revocó.",
+      "expired": "Esta invitación caducó. Pide una nueva a quien te invitó.",
+      "unverified": "GitHub o Google no han verificado tu email, así que no puedes aceptarla. Verifícalo allí y vuelve a entrar.",
+      "already-member": "Ya eres miembro de esta organización."
+    },
+    "errors": {
+      "signed-out": "Tu sesión ha terminado. Vuelve a entrar.",
+      "not-found": "Esta invitación ya no está disponible.",
+      "failed": "No pudimos aceptar la invitación. Inténtalo de nuevo."
     }
   },
   "Field": {

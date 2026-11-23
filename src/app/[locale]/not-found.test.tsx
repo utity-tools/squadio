@@ -15,6 +15,10 @@ vi.mock("@/i18n/navigation", () => ({
   ),
 }));
 
+vi.mock("@/components/account/sign-in-to-return-gate", () => ({
+  SignInToReturn: () => <button type="button">Entrar</button>,
+}));
+
 // Board «Errores», 2: the page not found keeps a header to go on from, the logo with its top
 // square gone, and two ways out.
 
@@ -47,6 +51,12 @@ describe("NotFound", () => {
       "href",
       `/scenarios/${GUIDE_SCENARIO_ID}`,
     );
+  });
+
+  it("reads nothing of the request, so it stays static and keeps its page's title", () => {
+    renderWithIntl(<NotFound />);
+
+    expect(screen.queryByRole("button", { name: "Entrar" })).not.toBeInTheDocument();
   });
 
   it("draws the logo with its top square missing", () => {

@@ -7,14 +7,17 @@ import { currentSession } from "@/auth/session";
 import { CurrentAccount } from "@/components/account/current-account";
 import { DangerZone } from "@/components/organization/danger-zone";
 import { OrganizationOverview } from "@/components/organization/organization-overview";
+import { OwnOrganizations } from "@/components/organization/own-organizations";
 import { StartOrganization } from "@/components/organization/start-organization";
 import { AppShell } from "@/components/shell/app-shell";
+import { chooseOrganization } from "@/components/shell/actions";
 import { CurrentOrganization } from "@/components/shell/current-organization";
 import { Breadcrumbs } from "@/components/shell/breadcrumbs";
 import { OrganizationLink } from "@/components/shell/organization-link";
 import { memberOf, visitorOrganization } from "@/db/access";
 import { db } from "@/db/client";
 import { loadOrganizationOverview } from "@/db/organization-overview";
+import { organizationsOf } from "@/db/switch-organization";
 import { assertLocale, currentLocale } from "@/i18n/locale";
 import { redirect } from "@/i18n/navigation";
 import { VISITOR_COOKIE } from "@/lib/visitors/token";
@@ -76,6 +79,11 @@ async function OrganizationContent() {
     return (
       <>
         <OrganizationOverview {...overview} />
+        <OwnOrganizations
+          organizations={await organizationsOf(db, member.userId)}
+          activeId={member.organizationId}
+          switchTo={chooseOrganization}
+        />
         <DangerZone
           // Only the owner deletes the organization (ADR 0015); anyone deletes their account.
           organizationName={member.capabilities.manage ? overview.name : null}

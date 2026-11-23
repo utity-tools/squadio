@@ -554,7 +554,8 @@
     "back": "Back to the home page",
     "code": "Error 404",
     "demo": "Open the demo",
-    "logo": "Squadio"
+    "logo": "Squadio",
+    "signIn": "Sign in"
   },
   "Theme": {
     "label": "Theme",
@@ -1091,7 +1092,12 @@
         "failed": "Could not delete. Try again."
       }
     },
-    "membersLink": "See the members"
+    "membersLink": "See the members",
+    "organizationsHeading": "Your organizations",
+    "activeOrganization": "the one you work in",
+    "workIn": "Work here",
+    "workInLabel": "Work here: {name}",
+    "switchFailed": "We couldn't switch organizations. Try again."
   },
   "Members": {
     "title": "Members",
@@ -1141,6 +1147,34 @@
       "not-owner": "Only the owner can revoke invitations.",
       "not-found": "That invitation is no longer pending.",
       "failed": "We couldn't revoke the invitation. Try again."
+    }
+  },
+  "Invitation": {
+    "title": "Invitation",
+    "heading": "You're invited to {organization}",
+    "intro": "{inviter} invites you {role}.",
+    "roles": {
+      "member": "as a member",
+      "viewer": "as a viewer"
+    },
+    "roleHints": {
+      "member": "You'll see rates, costs and margins, and you'll be able to edit.",
+      "viewer": "You'll see projects, scenarios and teams without money, and you won't be able to edit."
+    },
+    "expires": "The invitation expires on {date}.",
+    "accept": "Accept the invitation",
+    "toOrganization": "Go to your organization",
+    "refusals": {
+      "used": "This invitation has already been accepted.",
+      "revoked": "This invitation was revoked.",
+      "expired": "This invitation has expired. Ask whoever invited you for a new one.",
+      "unverified": "GitHub or Google hasn't verified your email, so you can't accept it. Verify it there and sign in again.",
+      "already-member": "You're already a member of this organization."
+    },
+    "errors": {
+      "signed-out": "Your session has ended. Sign in again.",
+      "not-found": "This invitation is no longer available.",
+      "failed": "We couldn't accept the invitation. Try again."
     }
   },
   "Field": {
