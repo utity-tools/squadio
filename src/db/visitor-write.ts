@@ -12,10 +12,10 @@ import { VISITOR_COPY_NAME, insertOrganization } from "./organizations";
 import { assignments, categories, people, projects, scenarios } from "./schema";
 import { type TenantTransaction, setAccessContext, withOrganization } from "./tenant";
 
-// ADR 0011: what a visitor's write does around the write itself, whether a save or a choice. With
-// a copy, the write goes into it and the claim is touched, so the clean-up keeps it; the cookie is
-// left alone, since setting one in a Server Action re-renders the whole page. Without one, a
-// single transaction claims a copy, copies the demo template and makes the write there, naming the
+// ADR 0011: what a visitor's write does around the write itself, a save, a choice or a revision.
+// With a copy, the write goes into it and the claim is touched, so the clean-up keeps it; the
+// cookie is left alone, since setting one in a Server Action re-renders the whole page. Without
+// one, a single transaction claims a copy, copies the demo template and makes the write there, naming the
 // copy's ids; a refused write or the daily limit leaves no copy and no cookie.
 
 /** The cookie operations a write needs: Next's `cookies()` in the action, a fake in tests. */

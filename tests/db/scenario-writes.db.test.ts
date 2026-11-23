@@ -4,10 +4,11 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { type Member, memberOf } from "@/db/access";
 import { DEMO_IDS, DEMO_ORGANIZATION_ID, seedDemo } from "@/db/demo-seed";
-import { assignments, frozenCostConfig, scenarios } from "@/db/schema";
+import { assignments, frozenCostConfig, scenarioRevisions, scenarios } from "@/db/schema";
 import {
   duplicateScenarioFor,
   memberPageContext,
+  saveRevisionFor,
   saveScenarioFor,
   setChoiceFor,
 } from "@/db/scenario-writes";
@@ -336,6 +337,139 @@ describe("duplicateScenarioFor", () => {
       ),
     ).toEqual({ ok: false, reason: "not-found" });
     expect(await scenariosIn(bob.organizationId)).toHaveLength(before);
+    expect(sets).toEqual([]);
+    expect(await claims()).toEqual([]);
+  });
+});
+
+describe("saveRevisionFor", () => {
+  const COMMIT = "0123456789abcdef0123456789abcdef01234567";
+  const maker = { commitSha: COMMIT, today: SOME_DAY };
+  const revisionsIn = (organizationId: string, scenarioId: string) =>
+    withOrganization(app, { organizationId, rateAccess: false }, (tx) =>
+      tx
+        .select({
+          number: scenarioRevisions.number,
+          authorId: scenarioRevisions.authorId,
+          reason: scenarioRevisions.reason,
+          commitSha: scenarioRevisions.commitSha,
+        })
+        .from(scenarioRevisions)
+        .where(eq(scenarioRevisions.scenarioId, scenarioId))
+        .orderBy(scenarioRevisions.number),
+    );
+
+  it("saves a member's revision in their organization, by them, then reuses it while nothing changes", async () => {
+    const scenarioId = copyId(DEMO_IDS.leanScenario, ada.organizationId);
+    const baseVersion = (await versionOf(ada.organizationId, scenarioId)) ?? 0;
+    const before = await revisionsIn(ada.organizationId, scenarioId);
+    const { cookies, sets } = jar();
+    const writer = { member: adaMember, jar: cookies };
+    const options = { rateAccess: true, ...maker };
+
+    const first = await saveRevisionFor(app, writer, { scenarioId, baseVersion }, options);
+    const number = before.length + 1;
+    expect(first).toEqual({
+      ok: true,
+      version: baseVersion,
+      scenarioId,
+      revision: { id: expect.any(String), number },
+      reused: false,
+    });
+    const again = await saveRevisionFor(app, writer, { scenarioId, baseVersion }, options);
+    expect(again).toMatchObject({ ok: true, revision: { number }, reused: true });
+
+    expect((await revisionsIn(ada.organizationId, scenarioId)).at(-1)).toEqual({
+      number,
+      authorId: ada.userId,
+      reason: "saved",
+      commitSha: COMMIT,
+    });
+    // A revision moves no version on: the page's next save goes on from the same one.
+    expect(await versionOf(ada.organizationId, scenarioId)).toBe(baseVersion);
+    expect(sets).toEqual([]);
+    expect(await claims()).toEqual([]);
+  });
+
+  it("refuses a member's revision on a page without rate access, or without the capability", async () => {
+    const scenarioId = copyId(DEMO_IDS.guideScenario, ada.organizationId);
+    const baseVersion = (await versionOf(ada.organizationId, scenarioId)) ?? 0;
+    const before = await revisionsIn(ada.organizationId, scenarioId);
+    const withoutRates: Member = {
+      ...adaMember,
+      capabilities: { rateAccess: false, edit: true, choose: false },
+    };
+    for (const [member, rateAccess] of [
+      [adaMember, false],
+      [withoutRates, true],
+    ] as const) {
+      expect(
+        await saveRevisionFor(
+          app,
+          { member, jar: jar().cookies },
+          { scenarioId, baseVersion },
+          { rateAccess, ...maker },
+        ),
+      ).toEqual({ ok: false, reason: "no-rate-access" });
+    }
+    expect(await revisionsIn(ada.organizationId, scenarioId)).toEqual(before);
+  });
+
+  it("never saves a revision of another organization's scenario: it is not found, and no copy is kept", async () => {
+    const scenarioId = copyId(DEMO_IDS.guideScenario, bob.organizationId);
+    const before = await revisionsIn(bob.organizationId, scenarioId);
+    const { cookies, sets } = jar();
+
+    expect(
+      await saveRevisionFor(
+        app,
+        { member: adaMember, jar: cookies },
+        { scenarioId, baseVersion: (await versionOf(bob.organizationId, scenarioId)) ?? 1 },
+        { rateAccess: true, ...maker },
+      ),
+    ).toEqual({ ok: false, reason: "not-found" });
+    expect(await revisionsIn(bob.organizationId, scenarioId)).toEqual(before);
+    expect(sets).toEqual([]);
+    expect(await claims()).toEqual([]);
+  });
+
+  it("saves a visitor's revision of the demo in a new copy, with no author, as a first save does", async () => {
+    const scenarioId = DEMO_IDS.guideScenario;
+    const before = await revisionsIn(DEMO_ORGANIZATION_ID, scenarioId);
+    const { cookies, sets } = jar();
+
+    const result = await saveRevisionFor(
+      app,
+      { member: null, jar: cookies },
+      { scenarioId, baseVersion: (await versionOf(DEMO_ORGANIZATION_ID, scenarioId)) ?? 1 },
+      { rateAccess: true, ...maker },
+    );
+
+    const [copy] = await claims();
+    if (!copy || !result.ok) throw new Error("expected a revision in a new copy");
+    const copied = copyId(scenarioId, copy.organization_id);
+    expect(result.scenarioId).toBe(copied);
+    expect(result.renamed?.[scenarioId]).toBe(copied);
+    expect(sets).toEqual([VISITOR_COOKIE]);
+    expect((await revisionsIn(copy.organization_id, copied)).at(-1)).toEqual({
+      number: result.revision.number,
+      authorId: null,
+      reason: "saved",
+      commitSha: COMMIT,
+    });
+    expect(await revisionsIn(DEMO_ORGANIZATION_ID, scenarioId)).toEqual(before);
+  });
+
+  it("refuses a visitor's revision without rate access, and makes no copy", async () => {
+    const { cookies, sets } = jar();
+    expect(
+      await saveRevisionFor(
+        app,
+        { member: null, jar: cookies },
+        { scenarioId: DEMO_IDS.guideScenario, baseVersion: 1 },
+        { rateAccess: false, ...maker },
+      ),
+    ).toEqual({ ok: false, reason: "no-rate-access" });
     expect(sets).toEqual([]);
     expect(await claims()).toEqual([]);
   });
