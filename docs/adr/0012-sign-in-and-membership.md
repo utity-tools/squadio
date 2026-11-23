@@ -255,3 +255,24 @@ Decided when the code lands, as amendments here (settled on 2026-11-03, see
   active one on the organization page. The browser still cannot change memberships, and deleting
   an organization or an account deletes as before, revisions included
   ([ADR 0013](0013-scenario-revisions.md)); an account's revisions stay, without an author.
+- **2026-11-23, signed-in E2E:** until now E2E checked the signed-out side only, since it never
+  reaches GitHub or Google and runs with sign-up off. It now signs accounts in as an owner, a
+  member or a viewer, without changing the server it tests.
+  - **The test writes what a sign-in would** (`tests/e2e/support/session.ts`): an `auth.user`, an
+    organization of its own holding a copy of the demo's synthetic rows, the `auth.member` with
+    the role and an `auth.session` that works in it, as the app role, on the local test database
+    only. It sets the `squadio.session_token` cookie, signed as Better Auth signs it,
+    `token.base64(HMAC-SHA256(token, BETTER_AUTH_SECRET))` URI-encoded, with the synthetic secret
+    the server holds in CI and `.env.test`. When the test ends it deletes the organization with
+    its rows and the account with its sessions; the demo is only read.
+  - **The server is production's:** sign-up off, no endpoint or plugin for tests, nothing in the
+    build that signs anyone in. Whoever holds `BETTER_AUTH_SECRET` and the database can already
+    make a session, so the fixture gives no one anything they did not have.
+  - **A database test keeps the cookie in step with Better Auth**
+    (`tests/db/e2e-session.db.test.ts`): Better Auth reads the fixture's session for each role and
+    refuses one signed with another secret. An upgrade that changes cookies fails there first.
+  - **Rejected:** signing in through Better Auth's handler with the OAuth proxy, as the database
+    tests do, which would need the E2E server to run as a preview with sign-up on; and a sign-in
+    route for tests, which would ship in the production build.
+  - **`pnpm test:e2e:linux`** runs the tests in a container, which joins Docker Compose's network
+    and forwards its port 5434 to Postgres, so the tests and the server use the same database URL.
