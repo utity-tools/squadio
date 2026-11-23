@@ -1227,5 +1227,20 @@
       "shared": "shared",
       "chosen": "chosen"
     }
+  },
+  "SaveRevision": {
+    "button": "Save revision",
+    "busy": "Saving revision…",
+    "saved": "Revision {number} saved",
+    "reused": "No changes: revision {number} is used",
+    "refused": {
+      "unsaved": "The changes could not be saved, so neither could the revision.",
+      "no-rate-access": "Saving a revision copies costs, so it needs rate access.",
+      "conflict": "The scenario changed in another tab. Reload the page.",
+      "not-found": "This scenario no longer exists. Reload the page.",
+      "limit": "No more copies of the demo can be made today. Try again tomorrow.",
+      "busy": "Wait for what is under way to finish.",
+      "failed": "The revision could not be saved. Try again."
+    }
   }
 }

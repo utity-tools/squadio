@@ -1227,5 +1227,20 @@
       "shared": "compartida",
       "chosen": "elegida"
     }
+  },
+  "SaveRevision": {
+    "button": "Guardar revisión",
+    "busy": "Guardando revisión…",
+    "saved": "Revisión {number} guardada",
+    "reused": "Sin cambios: se usa la revisión {number}",
+    "refused": {
+      "unsaved": "No se han podido guardar los cambios, así que la revisión tampoco.",
+      "no-rate-access": "Guardar una revisión copia costes, y necesita acceso a tarifas.",
+      "conflict": "El escenario ha cambiado en otra pestaña. Recarga la página.",
+      "not-found": "Este escenario ya no existe. Recarga la página.",
+      "limit": "Hoy no se pueden crear más copias de la demo. Vuelve a intentarlo mañana.",
+      "busy": "Espera a que termine lo que está en curso.",
+      "failed": "No se ha podido guardar la revisión. Inténtalo de nuevo."
+    }
   }
 }
