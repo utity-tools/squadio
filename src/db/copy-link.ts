@@ -5,7 +5,7 @@ import { copyId } from "@/lib/visitors/copy-id";
 import { copyQuery } from "@/lib/visitors/copy-url";
 
 import { DEMO_ORGANIZATION_ID } from "./access";
-import { projects, scenarios } from "./schema";
+import { projects, scenarioRevisions, scenarios } from "./schema";
 import { type AccessContext, withOrganization } from "./tenant";
 
 /**
@@ -47,4 +47,27 @@ export async function copyProjectLink(
   if (!found) return null;
   const query = copyQuery(searchParams, context.organizationId);
   return `/projects/${copied}${query ? `?${query}` : ""}`;
+}
+
+/**
+ * The same for a revision's link (ADR 0013, amendment of 2026-11-23): the path of their copy of a
+ * template revision, which the copy holds with the template's revisions, or null.
+ */
+export async function copyRevisionLink(
+  db: NodePgDatabase,
+  context: AccessContext,
+  id: string,
+  searchParams: Record<string, string | string[] | undefined>,
+): Promise<string | null> {
+  if (context.organizationId === DEMO_ORGANIZATION_ID) return null;
+  const copied = copyId(id, context.organizationId);
+  const [found] = await withOrganization(db, context, (tx) =>
+    tx
+      .select({ id: scenarioRevisions.id })
+      .from(scenarioRevisions)
+      .where(eq(scenarioRevisions.id, copied)),
+  );
+  if (!found) return null;
+  const query = copyQuery(searchParams, context.organizationId);
+  return `/revisions/${copied}${query ? `?${query}` : ""}`;
 }
