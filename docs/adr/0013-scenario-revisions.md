@@ -73,7 +73,8 @@ revision holds and when one is made ([revisions](../domain.md#revisions)); this 
 - **When a revision is made:** when someone with rate access asks for it («Guardar revisión»), and
   automatically when a scenario is shared or chosen. Never on a save or an autosave. Each takes
   the scenario as saved; when nothing differs from its latest revision, that one is used again and
-  no new one is made.
+  no new one is made. The load observed is not compared, since it comes from other projects: a
+  revision records what was known when it was made.
 - **Retention:** a revision lives as long as its scenario. Deleting the scenario, its project or
   the organization deletes its revisions. Deleting an account leaves its revisions without an
   author, shown as «antiguo miembro». No revision is deleted on its own in v0.5.
