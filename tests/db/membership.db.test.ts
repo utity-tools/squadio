@@ -59,11 +59,11 @@ afterAll(async () => {
 });
 
 describe("memberOf", () => {
-  it("resolves a signed-in owner to their organization, with rate access, editing and choosing", async () => {
+  it("resolves a signed-in owner to their organization, with every capability", async () => {
     expect(await memberOf(app, await sessionOf(ada))).toEqual({
       userId: ada.userId,
       organizationId: ada.organizationId,
-      capabilities: { rateAccess: true, edit: true, choose: true },
+      capabilities: { rateAccess: true, edit: true, choose: true, manage: true },
     });
   });
 
@@ -99,8 +99,8 @@ describe("memberOf", () => {
     }
   });
 
-  it("follows the member's role: a role v0.3 does not know grants nothing", async () => {
-    await setRole(ada, "member");
+  it("follows the member's role: a role Squadio does not know grants nothing", async () => {
+    await setRole(ada, "admin");
     try {
       expect(await memberOf(app, await sessionOf(ada))).toBeNull();
     } finally {

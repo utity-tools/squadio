@@ -318,10 +318,12 @@ describe("memberProjectContext", () => {
     expect(await memberProjectContext(app, member(), id)).toEqual({
       organizationId: copy,
       rateAccess: true,
+      readOnly: false,
     });
     expect(await memberProjectContext(app, member(), id, { access: "none" })).toEqual({
       organizationId: copy,
       rateAccess: false,
+      readOnly: false,
     });
   });
 

@@ -3,10 +3,12 @@
 // rate access before writing; the member's organization comes from the session, never the form.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import type { Capabilities } from "@/lib/membership/capabilities";
+
 vi.mock("server-only", () => ({}));
 const mocks = vi.hoisted(() => ({
   session: null as null | { userId: string; sessionId: string; activeOrganizationId: null },
-  member: null as null | { organizationId: string; capabilities: { rateAccess: boolean } },
+  member: null as null | { organizationId: string; capabilities: Capabilities },
   createProject: vi.fn(),
   redirect: vi.fn(),
 }));
@@ -44,7 +46,10 @@ beforeEach(() => {
     sessionId: "s",
     activeOrganizationId: null,
   };
-  mocks.member = { organizationId, capabilities: { rateAccess: true } };
+  mocks.member = {
+    organizationId,
+    capabilities: { rateAccess: true, edit: true, choose: true, manage: true },
+  };
   mocks.createProject.mockReset();
   mocks.redirect.mockReset();
 });
@@ -55,7 +60,7 @@ describe("createNewProject", () => {
     await createNewProject(initial, form(fixed));
     expect(mocks.createProject).toHaveBeenCalledWith(
       { client: "app" },
-      { organizationId, rateAccess: true },
+      { organizationId, rateAccess: true, readOnly: false },
       {
         name: "Client portal",
         client: "Synthetic Bank",
@@ -117,10 +122,17 @@ describe("createNewProject", () => {
   });
 
   it("refuses a member without rate access", async () => {
-    mocks.member = { organizationId, capabilities: { rateAccess: false } };
+    mocks.member = {
+      organizationId,
+      capabilities: { rateAccess: false, edit: true, choose: false, manage: false },
+    };
     mocks.createProject.mockResolvedValue({ ok: false, reason: "no-rate-access" });
     expect((await createNewProject(initial, form(fixed))).error).toBe("no-rate-access");
-    expect(mocks.createProject.mock.calls[0]?.[1]).toEqual({ organizationId, rateAccess: false });
+    expect(mocks.createProject.mock.calls[0]?.[1]).toEqual({
+      organizationId,
+      rateAccess: false,
+      readOnly: false,
+    });
     expect(mocks.redirect).not.toHaveBeenCalled();
   });
 

@@ -115,18 +115,27 @@ export async function memberOf(db: NodePgDatabase, signedIn: SignedIn): Promise<
   return row && capabilities ? { userId, organizationId: row.organizationId, capabilities } : null;
 }
 
-/** The context a member's pages read with: the member's rate access, unless `?access=none`. */
+/**
+ * The context a member's pages read with: the member's rate access, unless `?access=none`. A
+ * member who does not edit, a viewer, reads in read-only transactions (ADR 0015).
+ */
 export function memberAccessContext(
   { organizationId, capabilities }: Membership,
   searchParams: AccessSearchParams = {},
 ): AccessContext {
-  return { organizationId, rateAccess: capabilities.rateAccess && keepsRateAccess(searchParams) };
+  return {
+    organizationId,
+    rateAccess: capabilities.rateAccess && keepsRateAccess(searchParams),
+    readOnly: !capabilities.edit,
+  };
 }
 
 /**
  * The context a member writes with. Unlike a visitor's save, it carries the member's rate access:
  * members also write the categories' costs (ADR 0012, "Members write with their own context").
+ * A viewer's is read only too, so a write the server forgot to refuse fails in the database
+ * (ADR 0015); the Server Actions refuse a viewer before they get here.
  */
 export function memberEditContext({ organizationId, capabilities }: Membership): AccessContext {
-  return { organizationId, rateAccess: capabilities.rateAccess };
+  return { organizationId, rateAccess: capabilities.rateAccess, readOnly: !capabilities.edit };
 }
