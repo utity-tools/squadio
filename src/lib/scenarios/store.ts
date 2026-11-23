@@ -27,7 +27,9 @@ import { type ScenarioBasis, rosterOf } from "./scenario-view";
 // error, is tried again on the next step or on retry. The first save answers with the copy's ids,
 // and the store renames every id it holds, so the history survives the move to the copy. Choosing
 // goes through the store too, once nothing is left to save, since it moves the version on and,
-// from the template, makes the copy as a first save does.
+// from the template, makes the copy as a first save does. Saving a revision (ADR 0013) saves what
+// is left first, at once, and holds the autosave until it is answered, so it is made on the team
+// the page shows and no save moves the version on meanwhile.
 
 /** How long after the last step the store saves. */
 export const SAVE_DELAY_MS = 800;
@@ -58,6 +60,34 @@ export type ChoiceRequest = { scenarioId: string; baseVersion: number; chosen: b
 
 /** How a choice ended, for the dialog to say: `unsaved` while changes wait to be saved. */
 export type ChoiceAnswer = { ok: true } | { ok: false; reason: string };
+
+/** What saving a revision sends: the Server Action's input but for the request's rate access. */
+export type RevisionRequest = { scenarioId: string; baseVersion: number };
+
+/** What the revision's Server Action answers, as far as the store needs it. */
+const revisionOutcomeSchema = z.discriminatedUnion("ok", [
+  saveOutcomeSchema.options[0].extend({
+    revision: z.object({ id: z.string(), number: z.int().min(1) }),
+    /** Whether nothing differed from the latest revision, which was used again. */
+    reused: z.boolean(),
+  }),
+  saveOutcomeSchema.options[1],
+]);
+
+/**
+ * How saving a revision ended, for the page to say: its number, and whether it was the latest
+ * one used again. `unsaved` when the changes could not be saved first, `busy` while a revision or
+ * a choice is on its way.
+ */
+export type RevisionAnswer =
+  { ok: true; number: number; reused: boolean } | { ok: false; reason: string };
+
+/**
+ * The last revision's answer, for the page to say. It is kept in the store, which the move to the
+ * copy keeps, so the copy's page says what the template's page asked for. `seq` tells two equal
+ * answers apart.
+ */
+export type RevisionNote = { answer: RevisionAnswer; seq: number };
 
 /**
  * `saved`: nothing left to save. `waiting`: a save is due shortly. `saving`: one is in flight.
@@ -115,6 +145,8 @@ export type ScenarioState = {
   /** The last step refused, for the page to say why; cleared by the next step that works. */
   rejection: StepRejection | null;
   saveStatus: SaveStatus;
+  /** How the last revision ended, or null before the first. */
+  revisionNote: RevisionNote | null;
   /** Applies a change; false, with the reason in `rejection`, when it is refused. */
   dispatch: (change: Change) => boolean;
   /** Undoes the last change; false when there is nothing to undo or it is refused. */
@@ -135,6 +167,12 @@ export type ScenarioState = {
     send: (request: ChoiceRequest) => Promise<unknown>,
   ) => Promise<ChoiceAnswer>;
   /**
+   * Saves a revision of the scenario with `send`, its Server Action (docs/domain.md, "When one is
+   * made"): first the changes left to save, at once, then the revision on the version they made.
+   * Steps are still taken while it is on its way; their save waits for its answer.
+   */
+  saveRevision: (send: (request: RevisionRequest) => Promise<unknown>) => Promise<RevisionAnswer>;
+  /**
    * Takes the basis the page loaded again, after the move to the copy: the history and what is
    * left to save stay as they are.
    */
@@ -147,7 +185,13 @@ export function createScenarioStore({ scenarioId, basis, team, version, save }: 
   return createStore<ScenarioState>()((set, get) => {
     let timer: ReturnType<typeof setTimeout> | undefined;
     let inFlight = false;
+    /** The save in flight, for a revision to wait for. */
+    let saving: Promise<void> = Promise.resolve();
     let choosing = false;
+    /** A revision is being saved, from its changes' saves to its answer. */
+    let revising = false;
+    /** A revision's request is on its way: the autosave waits for its answer. */
+    let holdingSaves = false;
 
     /** Takes a write that worked: its version and, after the first one, the copy's ids. */
     const written = (
@@ -171,9 +215,15 @@ export function createScenarioStore({ scenarioId, basis, team, version, save }: 
     const saveNow = async () => {
       clearTimeout(timer);
       const { history, scenarioId: id, version: baseVersion, saveStatus } = get();
-      if (inFlight || STOPPED.has(saveStatus) || history.pending.length === 0) return;
+      if (inFlight || holdingSaves || STOPPED.has(saveStatus) || history.pending.length === 0) {
+        return;
+      }
       const changes = history.pending.slice(0, MAX_CHANGES_PER_SAVE);
       inFlight = true;
+      let settled = () => {};
+      saving = new Promise((resolve) => {
+        settled = resolve;
+      });
       set({ saveStatus: "saving" });
       let outcome: SaveOutcome;
       try {
@@ -184,6 +234,7 @@ export function createScenarioStore({ scenarioId, basis, team, version, save }: 
         outcome = { ok: false, reason: "failed" };
       }
       inFlight = false;
+      settled();
       if (!outcome.ok) {
         const status = refusedStatus(outcome.reason);
         set({ saveStatus: status });
@@ -203,6 +254,25 @@ export function createScenarioStore({ scenarioId, basis, team, version, save }: 
       timer = setTimeout(() => void saveNow(), SAVE_DELAY_MS);
     };
 
+    /**
+     * Saves every change left now, one save after another, waiting for one in flight. False when
+     * one is refused or fails, or saving had stopped: what the page shows is not all saved.
+     */
+    const saveAll = async () => {
+      for (;;) {
+        clearTimeout(timer);
+        if (inFlight) {
+          await saving;
+          continue;
+        }
+        const { saveStatus, history } = get();
+        if (STOPPED.has(saveStatus)) return false;
+        if (history.pending.length === 0) return saveStatus !== "failed";
+        await saveNow();
+        if (get().saveStatus === "failed") return false;
+      }
+    };
+
     /** Keeps a step that worked; a step that changed nothing leaves the state as it was. */
     const step = (action: StepRejection["action"], result: HistoryResult) => {
       if (!result.ok) {
@@ -210,7 +280,8 @@ export function createScenarioStore({ scenarioId, basis, team, version, save }: 
         return false;
       }
       if (result.history === get().history) return false;
-      set({ history: result.history, rejection: null });
+      // What the last revision said is about the team before this step.
+      set({ history: result.history, rejection: null, revisionNote: null });
       const { saveStatus } = get();
       if (!STOPPED.has(saveStatus)) {
         if (!inFlight) set({ saveStatus: "waiting" });
@@ -230,6 +301,37 @@ export function createScenarioStore({ scenarioId, basis, team, version, save }: 
       return true;
     };
 
+    /** Saves a revision: the changes left first, then the revision on the version they made. */
+    const revise = async (
+      send: (request: RevisionRequest) => Promise<unknown>,
+    ): Promise<RevisionAnswer> => {
+      if (revising || choosing) return { ok: false, reason: "busy" };
+      revising = true;
+      let outcome: z.infer<typeof revisionOutcomeSchema>;
+      try {
+        if (!(await saveAll())) return { ok: false, reason: "unsaved" };
+        const { scenarioId: id, version: baseVersion } = get();
+        holdingSaves = true;
+        outcome = revisionOutcomeSchema.parse(await send({ scenarioId: id, baseVersion }));
+      } catch {
+        outcome = { ok: false, reason: "failed" };
+      } finally {
+        revising = false;
+        holdingSaves = false;
+      }
+      // Steps taken meanwhile waited for the answer; their save goes now, on the same version.
+      if (get().history.pending.length > 0 && !STOPPED.has(get().saveStatus)) schedule();
+      if (!outcome.ok) {
+        // The page no longer holds the scenario as it is: saving stops, as after a save.
+        if (outcome.reason === "conflict" || outcome.reason === "not-found") {
+          set({ saveStatus: refusedStatus(outcome.reason) });
+        }
+        return { ok: false, reason: outcome.reason };
+      }
+      written(outcome, get().history);
+      return { ok: true, number: outcome.revision.number, reused: outcome.reused };
+    };
+
     return {
       scenarioId,
       basis,
@@ -239,6 +341,7 @@ export function createScenarioStore({ scenarioId, basis, team, version, save }: 
       renamed: {},
       rejection: null,
       saveStatus: "saved",
+      revisionNote: null,
       dispatch: (change) => {
         if (refusedBeforeHistory("change")) return false;
         const parsed = parseChange(change);
@@ -264,7 +367,13 @@ export function createScenarioStore({ scenarioId, basis, team, version, save }: 
       },
       setChoice: async (chosen, send) => {
         const { history, scenarioId: id, version: baseVersion, saveStatus } = get();
-        if (choosing || inFlight || saveStatus !== "saved" || history.pending.length > 0) {
+        if (
+          choosing ||
+          revising ||
+          inFlight ||
+          saveStatus !== "saved" ||
+          history.pending.length > 0
+        ) {
           return { ok: false, reason: "unsaved" };
         }
         choosing = true;
@@ -289,6 +398,11 @@ export function createScenarioStore({ scenarioId, basis, team, version, save }: 
           chosen ? { ...next, scenario: { ...next.scenario, chosen } } : next,
         );
         return { ok: true };
+      },
+      saveRevision: async (send) => {
+        const answer = await revise(send);
+        set({ revisionNote: { answer, seq: (get().revisionNote?.seq ?? 0) + 1 } });
+        return answer;
       },
       adopt: (next) => set({ basis: next, roster: rosterOf(next) }),
     };
