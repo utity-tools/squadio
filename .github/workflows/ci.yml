@@ -124,7 +124,8 @@ jobs:
       - run: pnpm db:seed
       # Built without the auth variables, as production's build is: they are read at run time only.
       - run: pnpm build
-      # The server gets them, synthetic like .env.test's: no provider knows these clients.
+      # The server gets them, synthetic like .env.test's: no provider knows these clients. The
+      # signed-in tests use the same secret and DATABASE_URL to sign their accounts in (ADR 0012).
       - run: pnpm exec playwright test
         env:
           E2E_PROD: "1"

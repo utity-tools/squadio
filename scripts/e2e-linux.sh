@@ -5,15 +5,23 @@
 # machine, with its usual environment and database, and only the browser runs in Linux: the official
 # Playwright image of the version in package.json. Arguments go to `playwright test`.
 #
-# Needs Docker and the demo organization (`pnpm db:migrate` and `pnpm db:seed`), like `pnpm test:e2e`.
+# Needs Docker, Postgres from `docker compose up -d --wait` and the demo organization (`pnpm db:migrate`
+# and `pnpm db:seed`), like `pnpm test:e2e`.
 set -euo pipefail
 
 port="${E2E_PORT:-3100}"
+# Signed-in tests write to the database themselves (ADR 0012, amendment of 2026-11-23), so the
+# container joins Docker Compose's network, where Postgres is `db`.
+network="squadio_default"
 version="$(node -p "require('@playwright/test/package.json').version")"
 image="mcr.microsoft.com/playwright:v${version}-noble"
 
 if ! docker info >/dev/null 2>&1; then
   echo "Docker is not running: start it and try again." >&2
+  exit 1
+fi
+if ! docker network inspect "$network" >/dev/null 2>&1; then
+  echo "Postgres is not running: start it with docker compose up -d --wait." >&2
   exit 1
 fi
 
@@ -39,19 +47,28 @@ curl --silent --fail --output /dev/null "http://localhost:${port}" || {
 
 # The container reaches the host's server as host.docker.internal. The browser must still see
 # localhost, as in CI: only there is plain HTTP a secure context, which `crypto.randomUUID` needs.
-# So a few lines of Node forward the container's localhost to the host. The repository is mounted
-# as it is: Playwright and the tests are plain JavaScript, so this machine's node_modules work there.
-forward="require('node:net').createServer((client) => {
-  const host = require('node:net').connect(${port}, 'host.docker.internal');
-  client.pipe(host).pipe(client);
-  client.on('error', () => host.destroy());
-  host.on('error', () => client.destroy());
-}).listen(${port}, '127.0.0.1')"
+# So a few lines of Node forward the container's localhost to the host, and its port 5434 to
+# Postgres, so the tests use the same database URL as the server, which they still check is local.
+# The repository is mounted as it is: Playwright and the tests are plain JavaScript, so this
+# machine's node_modules work there.
+forward="const net = require('node:net');
+const forward = (from, to, host) => net.createServer((client) => {
+  const target = net.connect(to, host);
+  client.pipe(target).pipe(client);
+  client.on('error', () => target.destroy());
+  target.on('error', () => client.destroy());
+}).listen(from, '127.0.0.1');
+forward(${port}, ${port}, 'host.docker.internal');
+forward(5434, 5432, 'db');"
 
+# The tests load the server's environment files themselves; exported values win, as on the host.
+# Their DATABASE_URL must use port 5434, docker-compose.yml's, the one the container forwards.
 docker run --rm --ipc=host \
+  --network "$network" \
   --add-host=host.docker.internal:host-gateway \
   --volume "$PWD:/work" --workdir /work \
   --env E2E_BASE_URL="http://localhost:${port}" \
+  --env DATABASE_URL --env BETTER_AUTH_SECRET \
   "$image" \
   sh -c 'node -e "$1" & shift; sleep 1; exec node node_modules/@playwright/test/cli.js test "$@"' \
   forward "$forward" "$@"
