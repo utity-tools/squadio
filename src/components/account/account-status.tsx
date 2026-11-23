@@ -115,11 +115,13 @@ function AccountMenu({ account }: { account: Account }) {
           <Button
             variant="ghost"
             size="sm"
-            aria-label={t("accountOf", { name: account.name })}
             title={t("accountOf", { name: account.name })}
             aria-busy={pending}
             className="h-9 gap-1 rounded-full ps-1 pe-1.5"
           >
+            {/* Named by its text, not aria-label: an aria-label must include the visible text,
+                and the initials are not words. */}
+            <span className="sr-only">{t("accountOf", { name: account.name })}</span>
             <Avatar name={account.name} className="size-7 text-[11px]" />
             <ChevronDown aria-hidden className="size-4 text-muted-foreground" />
           </Button>
