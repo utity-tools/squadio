@@ -154,3 +154,29 @@ Three roles, invitations by a link the owner copies, and sharing by an authentic
   - **Left open:** with sign-up off the sign-in page offers no provider, to existing accounts
     either, so in production only an account already signed in can accept until signing in is
     opened to existing accounts.
+- **2026-11-23, slice 4c (roles and removal):** how changing a role and removing a member landed.
+  - **Squadio writes both itself** (`src/db/memberships.ts`), as it writes invitations, never
+    through the organization plugin, whose endpoints stay disabled. Both lock the organization
+    first and check the owner again (`src/db/owner.ts`, which inviting and revoking share), then
+    lock the membership, in deleting's order, so none deadlocks: two removals at once remove once,
+    and a removal next to the organization's deletion either removes first or finds no owner.
+  - **Only a member's or a viewer's membership is ever found.** The owner's, another
+    organization's, one with a role Squadio does not know and a malformed id all answer "not
+    found", so nobody changes or removes the owner, the owner included; the partial unique index
+    stays as the second guard. The owner gives a member or a viewer the other role, and giving the
+    role it already has changes nothing.
+  - **Removing deletes only the membership.** The account stays, with its other organizations, and
+    so does its revisions' authorship: the author is the account (ADR 0013), not the membership,
+    so a removed member's revisions still show their name. Their sessions that worked in the
+    organization lose it as their active organization: `memberOf` refuses an active organization
+    that is not the account's, so without this a removed member would reach none of their
+    organizations; with it the next request acts in their earliest one, or in none. A save of
+    theirs already under way still finishes; the change counts from the next request.
+  - **The members page offers both to the owner,** on every row but the owner's: one button for
+    the other role, which keeps the focus and is announced, and «Quitar…», behind a confirmation
+    window that says what stays and starts on Cancel. After a removal the list's heading takes the
+    focus. Every other member sees the list as before, with nothing to change.
+  - **A removed member can be invited again,** as anyone who is not a member can.
+  - **No CHECK on a membership's role yet:** nothing writes a role but `owner`, `member` and
+    `viewer`, and `capabilitiesFor` gives an unknown one no context; it can come with the next
+    migration that touches `auth.member`.
