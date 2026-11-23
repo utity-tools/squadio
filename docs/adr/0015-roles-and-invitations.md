@@ -86,3 +86,34 @@ Three roles, invitations by a link the owner copies, and sharing by an authentic
   account still deletes the organizations they are the only owner of (ADR 0012).
 - Without email, an invitation's link travels by whatever channel the owner picks; it is useless
   without the invited account, but it should not be posted publicly.
+
+## Amendments
+
+- **2026-11-23, slice 4 (plan):** the owner approved how slice 4 lands, in three pull requests: 4a
+  roles and read-only transactions, 4b invitations and the members page, 4c changing a role and
+  removing a member ([plan](../plan.md#v05-slices)). What the decision above left open:
+  - **The owner stays the owner.** Nobody changes the owner's role, removes the owner or invites
+    anyone as owner. The database holds it too: a partial unique index allows one `owner`
+    membership per organization. Deleting the owner's account still deletes the organization
+    (ADR 0012).
+  - **A read-only context is a property of the access context** (`readOnly`), set by
+    `memberAccessContext` and `memberEditContext` for a role that does not edit. It opens the
+    transaction with `SET TRANSACTION READ ONLY` before the context's settings, so nothing later in
+    the transaction can make it read-write again. Every Server Action refuses a viewer first: the
+    forms' with their own message, and the scenario page's, which a viewer is never offered, as
+    they refuse any scenario the account cannot write. The pages do not offer what a viewer cannot do: the scenario's team is
+    locked, as a chosen one is.
+  - **Only the owner sees the organization's deletion** on the organization page; any member can
+    still delete their own account.
+  - **The invitation's link is its id** (`/invitations/<id>`), with no separate token: what protects
+    it is the email check. For any account but the invited one, signed out included, the page does
+    not exist and names neither the organization nor who invited.
+  - **The invited email must be verified** by the provider (`emailVerified`) as well as match.
+  - **No second invitation for the same email:** inviting an email with a pending invitation, or of
+    a member, is refused, and the page shows the pending one to copy or revoke. An organization
+    holds at most 20 pending invitations.
+  - **Every member sees the members' names and roles; only the owner sees their emails and the
+    invitations.**
+  - **Leaving an organization on one's own** is not in v0.5; deleting the account is.
+  - **In production, with sign-up off, only an existing account can accept,** and the invitation's
+    page says so. The sign-up switch does not change.
