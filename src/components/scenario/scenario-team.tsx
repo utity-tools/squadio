@@ -25,8 +25,11 @@ export type ScenarioTeamProps = {
   span: ProjectSpan | null;
   /** The categories without a rate, marked on their nodes. Only with rate access (ADR 0005). */
   withoutRate?: ReadonlySet<string>;
-  /** A chosen scenario's team is locked; with rate access, its costs and rates are frozen. */
-  locked?: "frozen" | "chosen";
+  /**
+   * A chosen scenario's team is locked; with rate access, its costs and rates are frozen. A
+   * viewer's is locked too (ADR 0015).
+   */
+  locked?: "frozen" | "chosen" | "viewer";
   /** The project's: what falls outside it is flagged on the team, never refused. */
   plannedPeriod?: PlannedPeriod | null;
   /** The over-allocated weeks of each assignment, flagged on the team, never refused (rule c). */

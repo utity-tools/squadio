@@ -6,7 +6,7 @@ import { TeamEditingProvider } from "@/components/team-editing/team-editing";
 import { teamOverAllocation } from "@/lib/load/over-allocation";
 import { categoriesWithoutRate } from "@/lib/team-tree/cards";
 
-import { useScenarioStore, useScenarioView } from "./scenario-editor";
+import { useScenarioReadOnly, useScenarioStore, useScenarioView } from "./scenario-editor";
 import { ScenarioCrumbs, ScenarioHeader } from "./scenario-header";
 import { ScenarioSummary } from "./scenario-summary";
 import { ScenarioTeam } from "./scenario-team";
@@ -29,6 +29,7 @@ export function LiveScenarioTeam() {
   // Only a chosen scenario costed with its frozen rows says so; one without them, or a page
   // without rate access, says only that it is chosen (docs/domain.md, "Loading a scenario").
   const store = useScenarioStore();
+  const readOnly = useScenarioReadOnly();
   const frozen = useStore(
     store,
     ({ basis }) => basis.engine.rateAccess && basis.engine.frozen === true,
@@ -51,7 +52,16 @@ export function LiveScenarioTeam() {
         span={scenario.span}
         // Which categories lack a rate is restricted: without rate access, no node is marked.
         withoutRate={categoriesWithoutRate(scenario)}
-        locked={scenario.scenario.chosen ? (frozen ? "frozen" : "chosen") : undefined}
+        // A viewer's page says why the team is locked first, chosen or not (ADR 0015).
+        locked={
+          readOnly
+            ? "viewer"
+            : scenario.scenario.chosen
+              ? frozen
+                ? "frozen"
+                : "chosen"
+              : undefined
+        }
         plannedPeriod={scenario.project.plannedPeriod}
         overAllocated={overAllocated}
       />

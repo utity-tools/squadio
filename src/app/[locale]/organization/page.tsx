@@ -77,7 +77,8 @@ async function OrganizationContent() {
       <>
         <OrganizationOverview {...overview} />
         <DangerZone
-          organizationName={overview.name}
+          // Only the owner deletes the organization (ADR 0015); anyone deletes their account.
+          organizationName={member.capabilities.manage ? overview.name : null}
           deleteOrganization={deleteOrganization}
           deleteAccount={deleteOwnAccount}
         />

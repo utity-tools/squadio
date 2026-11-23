@@ -24,11 +24,16 @@ beforeEach(() => {
 
 const never = () => new Promise<SaveOutcome>(() => {});
 
-function renderPage(basis: ScenarioBasis) {
+function renderPage(basis: ScenarioBasis, { readOnly = false } = {}) {
   const stores: ScenarioStore[] = [];
   const view = renderWithIntl(
     <ScenarioStoreProvider>
-      <ScenarioEditor scenarioId={seatId(99)} editing={{ basis, team, version: 1 }} save={never}>
+      <ScenarioEditor
+        scenarioId={seatId(99)}
+        editing={{ basis, team, version: 1 }}
+        save={never}
+        readOnly={readOnly}
+      >
         <LiveScenarioHeader />
         <LiveScenarioTeam />
         <LiveScenarioSummary />
@@ -99,6 +104,33 @@ describe("the live scenario regions", () => {
     ])("say only that it is chosen %s", (_, basis) => {
       renderPage(chosen(basis));
       expect(screen.getByText("Equipo bloqueado · escenario elegido")).toBeVisible();
+    });
+  });
+
+  // ADR 0015: a viewer reads the team and edits nothing, even on a wide screen.
+  describe("for a viewer", () => {
+    beforeEach(() => {
+      stubScreen({ wide: true });
+    });
+
+    it("lets an editor add to the team on a wide screen", () => {
+      renderPage(hoursBasis);
+      expect(screen.getByRole("button", { name: "Añadir al equipo…" })).toBeVisible();
+    });
+
+    it("lock the team, say why, and offer nothing to change it", () => {
+      renderPage(hoursBasis, { readOnly: true });
+      expect(screen.getByText("Solo lectura · tu rol es de lector")).toBeVisible();
+      expect(screen.queryByRole("button", { name: "Añadir al equipo…" })).not.toBeInTheDocument();
+      expect(screen.getByRole("region", { name: "Equipo y horas" })).toBeInTheDocument();
+    });
+
+    it("say it is read only on a chosen scenario too", () => {
+      renderPage(
+        { ...hoursBasis, scenario: { ...hoursBasis.scenario, chosen: true } },
+        { readOnly: true },
+      );
+      expect(screen.getByText("Solo lectura · tu rol es de lector")).toBeVisible();
     });
   });
 });

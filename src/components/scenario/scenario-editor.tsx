@@ -25,6 +25,7 @@ import { type StoreRegistry, createStoreRegistry } from "@/lib/scenarios/store-r
 const RegistryContext = createContext<StoreRegistry | null>(null);
 const StoreContext = createContext<ScenarioStore | null>(null);
 const ViewContext = createContext<LoadedScenario | null>(null);
+const ReadOnlyContext = createContext(false);
 
 /**
  * The choice a page sent and has not yet shown as made: whether the scenario ends up chosen, or
@@ -62,6 +63,8 @@ export type ScenarioEditorProps = {
   editing: { basis: ScenarioBasis; team: Member[]; version: number };
   /** The Server Action that saves the store's changes. */
   save: ScenarioStoreInit["save"];
+  /** A viewer's page (ADR 0015): the team is shown, never edited. */
+  readOnly?: boolean;
   children: ReactNode;
 };
 
@@ -69,7 +72,13 @@ export type ScenarioEditorProps = {
  * Gives the page's views the scenario's store and what they show, recalculated once per change
  * with the same `scenarioView` the loader ran on the server, so the first render matches it.
  */
-export function ScenarioEditor({ scenarioId, editing, save, children }: ScenarioEditorProps) {
+export function ScenarioEditor({
+  scenarioId,
+  editing,
+  save,
+  readOnly = false,
+  children,
+}: ScenarioEditorProps) {
   const registry = use(RegistryContext);
   if (!registry) throw new Error("ScenarioEditor needs a ScenarioStoreProvider above it");
   const store = registry.obtain({ scenarioId, ...editing, save });
@@ -90,7 +99,9 @@ export function ScenarioEditor({ scenarioId, editing, save, children }: Scenario
   return (
     <StoreContext value={store}>
       <ViewContext value={view}>
-        <TeamDragProvider>{children}</TeamDragProvider>
+        <ReadOnlyContext value={readOnly}>
+          <TeamDragProvider>{children}</TeamDragProvider>
+        </ReadOnlyContext>
       </ViewContext>
     </StoreContext>
   );
@@ -108,4 +119,9 @@ export function useScenarioView(): LoadedScenario {
   const view = use(ViewContext);
   if (!view) throw new Error("useScenarioView needs a ScenarioEditor above it");
   return view;
+}
+
+/** Whether the page is a viewer's, whose team is shown and never edited (ADR 0015). */
+export function useScenarioReadOnly(): boolean {
+  return use(ReadOnlyContext);
 }

@@ -38,7 +38,9 @@ const projectOfRequest = cache(async (id: string, access: string | undefined) =>
   await connection();
   return {
     context,
-    member: memberContext !== null,
+    // Who may change the project: a member of its organization who edits, never a viewer
+    // (ADR 0015), a visitor's copy or the demo.
+    member: memberContext !== null && memberContext.readOnly !== true,
     loaded: await loadProject(db, context, id, madridToday(new Date())),
   };
 });
