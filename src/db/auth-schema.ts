@@ -3,6 +3,7 @@
 // from them. Property names are the fields Better Auth expects (its core, the organization plugin
 // and the database rate limit); columns are snake_case like the rest of the database. Ids are uuids
 // the database generates, so an organization's id fits the tenant tables' organization_id.
+import { sql } from "drizzle-orm";
 import {
   bigint,
   boolean,
@@ -12,6 +13,7 @@ import {
   text,
   timestamp,
   unique,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 
@@ -115,6 +117,10 @@ export const member = authSchema.table(
     // One membership per account and organization; it also serves lookups by organization.
     unique("member_organization_id_user_id_unique").on(table.organizationId, table.userId),
     index("member_user_id_idx").on(table.userId),
+    // ADR 0015: one owner per organization, its creator; nobody becomes the owner after.
+    uniqueIndex("member_one_owner_per_organization")
+      .on(table.organizationId)
+      .where(sql`${table.role} = 'owner'`),
   ],
 );
 
