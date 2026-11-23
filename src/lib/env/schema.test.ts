@@ -54,6 +54,29 @@ describe("parseServerEnv", () => {
     expect(Object.isFrozen(parseServerEnv(valid))).toBe(true);
   });
 
+  it("reads the deploy's commit SHA, and none when it is missing or empty", () => {
+    const sha = "0123456789abcdef0123456789abcdef01234567";
+
+    expect(parseServerEnv({ ...valid, VERCEL_GIT_COMMIT_SHA: sha }).VERCEL_GIT_COMMIT_SHA).toBe(
+      sha,
+    );
+    expect(parseServerEnv(valid).VERCEL_GIT_COMMIT_SHA).toBeUndefined();
+    expect(parseServerEnv({ ...valid, VERCEL_GIT_COMMIT_SHA: "" }).VERCEL_GIT_COMMIT_SHA).toBe(
+      undefined,
+    );
+  });
+
+  it.each([
+    ["short", "0123456"],
+    ["uppercase", "0123456789ABCDEF0123456789ABCDEF01234567"],
+    ["not hex", "z123456789abcdef0123456789abcdef01234567"],
+  ])("rejects a %s VERCEL_GIT_COMMIT_SHA", (_case, value) => {
+    const error = errorFrom(() => parseServerEnv({ ...valid, VERCEL_GIT_COMMIT_SHA: value }));
+
+    expect(lineFor(error, "VERCEL_GIT_COMMIT_SHA")).toHaveLength(1);
+    expect(error.message).not.toContain(value);
+  });
+
   it("reports every failing variable at once, one per line", () => {
     const error = errorFrom(() => parseServerEnv({ NODE_ENV: "staging" }));
 
