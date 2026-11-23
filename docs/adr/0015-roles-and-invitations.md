@@ -117,3 +117,40 @@ Three roles, invitations by a link the owner copies, and sharing by an authentic
   - **Leaving an organization on one's own** is not in v0.5; deleting the account is.
   - **In production, with sign-up off, only an existing account can accept,** and the invitation's
     page says so. The sign-up switch does not change.
+- **2026-11-23, slice 4b (invitations):** how invitations and the members page landed.
+  - **Squadio writes invitations itself,** with Drizzle, as it writes memberships
+    (`src/db/invitations.ts`, `src/db/accept-invitation.ts`), never through the organization
+    plugin: its permissions are not `capabilitiesFor`'s, and it cannot run inside Squadio's
+    transactions, so neither the limit of 20 nor using an invitation once would hold. Every one
+    of the plugin's endpoints is disabled, read from the plugin so an upgrade's new one is too:
+    its reads (`get-full-organization`, `list-members`) would show any member the invitations and
+    the emails. Its `invitationLimit: 0` and `membershipLimit: 1` stay as a second guard, and a
+    database test checks every endpoint answers 404. The rules themselves are pure
+    (`src/lib/invitations/rules.ts`).
+  - **The database holds an invitation to its rules too** (migration 0014): its role is `member`
+    or `viewer` and always set, its status `pending`, `accepted` or `canceled` (expiring is a
+    matter of `expires_at`, not stored), its email trimmed and in lower case, and an organization
+    holds one pending invitation per email (`invitation_one_pending_per_email`). Inviting first
+    cancels the organization's expired pending invitations, so they neither block their email nor
+    count towards the limit.
+  - **Every write locks the organization first,** then checks the owner again (inviting,
+    revoking) or locks the invitation (accepting), in deleting's order, so none deadlocks: two
+    invitations at once take turns for the last place, and the second of two acceptances finds
+    the invitation used.
+  - **The members page is `/organization/members`,** linked from the organization page. For
+    anyone but the owner, emails and invitations are not even read.
+  - **Signed out, an invitation's page not found offers «Entrar»** while accounts are open, as
+    the account corner does, the same for every id, so a link opened first still leads in
+    without telling that it exists. Only `/invitations/<id>` has this page not found of its own:
+    the app's stays static, since one that reads the request loses the title its page sets. The
+    sign-in page comes back only to an invitation's page on this origin
+    (`src/lib/invitations/return-path.ts`), never to any other path it is given.
+  - **The sign-up notice sits by the link, for the owner:** only the invited account reaches the
+    invitation's page, and it exists already, so the members page says that, while sign-up is
+    off, only an existing account can accept. It replaces "the invitation's page says so" above.
+  - **The organization page lists the account's organizations** when it has several, beside the
+    top bar's switcher; accepting makes the new one the session's active organization.
+  - **The invited account cannot decline:** an invitation it does not accept expires.
+  - **Left open:** with sign-up off the sign-in page offers no provider, to existing accounts
+    either, so in production only an account already signed in can accept until signing in is
+    opened to existing accounts.
