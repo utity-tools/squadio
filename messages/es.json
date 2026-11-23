@@ -1090,6 +1090,57 @@
         "no-organization": "Ya no tienes una organización que borrar.",
         "failed": "No se ha podido borrar. Vuelve a intentarlo."
       }
+    },
+    "membersLink": "Ver los miembros"
+  },
+  "Members": {
+    "title": "Miembros",
+    "membersHeading": "Quién está en la organización",
+    "you": "tú",
+    "roles": {
+      "owner": "Propietario",
+      "member": "Miembro",
+      "viewer": "Lector"
+    },
+    "invite": {
+      "heading": "Invitar a alguien",
+      "intro": "Squadio no envía emails: crea un enlace que copias y mandas tú. Solo puede aceptarlo una cuenta con ese email, durante 7 días.",
+      "email": "Email",
+      "role": "Rol",
+      "roleHint": "Un miembro ve las tarifas, los costes y los márgenes, y edita. Un lector solo lee, sin dinero.",
+      "submit": "Crear la invitación",
+      "created": "Invitación creada. Copia su enlace en la lista de abajo."
+    },
+    "invitations": {
+      "heading": "Invitaciones pendientes",
+      "empty": "No hay invitaciones pendientes.",
+      "expires": "Caduca el {date}",
+      "copy": "Copiar el enlace",
+      "copyLabel": "Copiar el enlace de la invitación a {email}",
+      "copied": "Enlace copiado",
+      "revoke": "Revocar",
+      "revokeLabel": "Revocar la invitación a {email}",
+      "private": "No publiques el enlace: mándalo solo a quien invitas.",
+      "signUpOff": "El registro está cerrado: solo puede aceptar alguien que ya tenga cuenta en Squadio."
+    },
+    "errors": {
+      "blank": "Escribe un email.",
+      "invalid": "Escribe un email válido.",
+      "too-long": "Usa 254 caracteres o menos.",
+      "role": "Elige un rol.",
+      "signed-out": "Tu sesión ha terminado. Vuelve a iniciar sesión.",
+      "not-owner": "Solo el propietario puede invitar.",
+      "member": "Esa persona ya es miembro de la organización.",
+      "pending": "Ya hay una invitación pendiente para ese email.",
+      "pendingLink": "Ver la invitación",
+      "limit": "Hay 20 invitaciones pendientes, el máximo. Revoca alguna antes de invitar.",
+      "failed": "No pudimos crear la invitación. Inténtalo de nuevo."
+    },
+    "revokeErrors": {
+      "signed-out": "Tu sesión ha terminado. Vuelve a iniciar sesión.",
+      "not-owner": "Solo el propietario puede revocar invitaciones.",
+      "not-found": "Esa invitación ya no está pendiente.",
+      "failed": "No pudimos revocar la invitación. Inténtalo de nuevo."
     }
   },
   "Field": {

@@ -21,6 +21,12 @@ export function OrganizationOverview({ name, example, projects }: OrganizationOv
   return (
     <div className="flex w-full max-w-2xl flex-col gap-6 text-left">
       <h1 className="text-2xl font-semibold tracking-tight">{name}</h1>
+      <Link
+        href="/organization/members"
+        className="self-start text-sm underline underline-offset-4"
+      >
+        {t("membersLink")}
+      </Link>
       {example && (
         <p className="rounded-lg border border-amber-500/60 bg-amber-500/10 px-4 py-3 text-sm text-foreground">
           {t("exampleBanner")}
