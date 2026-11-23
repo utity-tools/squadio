@@ -6,12 +6,14 @@ import { z } from "zod";
 import { currentSession } from "@/auth/session";
 import { db } from "@/db/client";
 import { inviteToOrganization, revokeInvitation } from "@/db/invitations";
+import { changeMemberRole, removeMember } from "@/db/memberships";
 import { invitableRoleSchema, invitedEmailSchema } from "@/lib/invitations/rules";
 
 // ADR 0015, "Invitations", and its amendment of 2026-11-23 (slice 4b): the Server Actions behind
-// the members page. Who acts comes from the session, read on the server, and so does the
-// organization; the forms send an email and a role, or an invitation's id. Whether the account is
-// the owner is checked by the database code, again inside its transaction.
+// the members page, and changing a role or removing a member (slice 4c). Who acts comes from the
+// session, read on the server, and so does the organization; the forms send an email and a role,
+// an invitation's id, or a membership's id and its new role. Whether the account is the owner is
+// checked by the database code, again inside its transaction.
 
 /** Why inviting did not happen; the form says so. */
 export type InviteError =
@@ -98,6 +100,53 @@ export async function revokeMemberInvitation(
     if (!result.ok) return { error: result.reason };
   } catch (error) {
     console.error(`revokeInvitation failed: ${describe(error)}`);
+    return { error: "failed" };
+  }
+  refresh();
+  return { error: null };
+}
+
+/** Why changing a role or removing a member did not happen; the row or the window says so. */
+export type ManageError = "signed-out" | "not-owner" | "not-found" | "failed";
+
+export type ManageState = { error: ManageError | null };
+
+const roleChangeSchema = z.object({ memberId: z.uuid(), role: invitableRoleSchema });
+
+/** Gives the form's member the form's role, a member's or a viewer's, in the session's organization. */
+export async function changeRole(_previous: ManageState, form: FormData): Promise<ManageState> {
+  const change = roleChangeSchema.safeParse({
+    memberId: form.get("memberId"),
+    role: form.get("role"),
+  });
+  if (!change.success) return { error: "not-found" };
+  const session = await currentSession();
+  if (!session) return { error: "signed-out" };
+  try {
+    const result = await changeMemberRole(db, session, change.data);
+    if (!result.ok) return { error: result.reason };
+  } catch (error) {
+    console.error(`changeMemberRole failed: ${describe(error)}`);
+    return { error: "failed" };
+  }
+  refresh();
+  return { error: null };
+}
+
+/** Removes the form's member from the organization the session owns. */
+export async function removeFromOrganization(
+  _previous: ManageState,
+  form: FormData,
+): Promise<ManageState> {
+  const memberId = z.uuid().safeParse(form.get("memberId"));
+  if (!memberId.success) return { error: "not-found" };
+  const session = await currentSession();
+  if (!session) return { error: "signed-out" };
+  try {
+    const result = await removeMember(db, session, memberId.data);
+    if (!result.ok) return { error: result.reason };
+  } catch (error) {
+    console.error(`removeMember failed: ${describe(error)}`);
     return { error: "failed" };
   }
   refresh();
