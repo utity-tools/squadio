@@ -10,6 +10,7 @@ import type { TenantTransaction } from "@/db/tenant";
 import { ownerPool } from "./support";
 import {
   GLOBAL_TABLES,
+  IMMUTABLE_TABLES,
   NUMERIC_ALLOWLIST,
   OWNER_ONLY_TABLES,
   POLICY_EXCEPTIONS,
@@ -305,6 +306,32 @@ describe("tenancy guard", () => {
     expect(rows.length).toBeGreaterThan(0);
     // 'a' is no action: deleting an organization with rows fails.
     expect(rows.filter((row) => row.reference !== "a")).toEqual([]);
+  });
+
+  it("grants the app role no UPDATE on the immutable tables, and keeps its other privileges", async () => {
+    // ADR 0013: a revision is never updated. Deleting an organization still deletes its rows
+    // (ADR 0012), so DELETE stays; a column-level UPDATE would be a way around the table's.
+    const tables = sql.join(
+      IMMUTABLE_TABLES.map((table) => sql`${table}`),
+      sql`, `,
+    );
+    const { rows } = await owner.execute<Record<string, string | boolean>>(sql`
+      select t as table,
+             has_table_privilege('squadio_app', t, 'SELECT') as select,
+             has_table_privilege('squadio_app', t, 'INSERT') as insert,
+             has_table_privilege('squadio_app', t, 'DELETE') as delete,
+             has_any_column_privilege('squadio_app', t, 'UPDATE') as update
+        from unnest(array[${tables}]::text[]) as t`);
+
+    expect(rows).toEqual(
+      IMMUTABLE_TABLES.map((table) => ({
+        table,
+        select: true,
+        insert: true,
+        delete: true,
+        update: false,
+      })),
+    );
   });
 
   it("reports each way a relation can break tenancy, and leaves a correct one alone", async () => {

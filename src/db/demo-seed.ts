@@ -14,6 +14,7 @@ import {
 } from "./schema";
 import { DEMO_ORGANIZATION_ID, demoAccessContext } from "./access";
 import { freezeScenario } from "./choose-scenario";
+import { writeRevision } from "./save-revision";
 import { ensureDemoOrganization } from "./organizations";
 import { type TenantTransaction, withOrganization } from "./tenant";
 import { NATIONAL_HOLIDAYS } from "@/lib/calendar/calendar";
@@ -62,6 +63,8 @@ export const DEMO_IDS = {
   /** Chosen scenarios of two projects under way, so the bench shows how busy people are. */
   deliveryScenario: demoId(205),
   upkeepScenario: demoId(206),
+  /** Revision 1 of the delivery plan, made when it was chosen (docs/domain.md, "In the demo"). */
+  deliveryRevision: demoId(500),
 } as const;
 
 /** A category without a rate or people: a scenario that uses it has a partial result (rule k). */
@@ -78,7 +81,7 @@ async function clear(tx: TenantTransaction) {
   await tx.delete(config);
 }
 
-async function insert(tx: TenantTransaction, spans: OngoingSpans) {
+async function insert(tx: TenantTransaction, spans: OngoingSpans, today: string) {
   const organizationId = DEMO_ORGANIZATION_ID;
   await tx.insert(config).values({ organizationId, ...CONSULTANCY_CONFIG });
   await tx.insert(costConfig).values({ organizationId, ...CONSULTANCY_COST_CONFIG });
@@ -198,7 +201,7 @@ async function insert(tx: TenantTransaction, spans: OngoingSpans) {
   ]);
 
   await insertWarningScenarios(tx);
-  await insertOngoingProjects(tx, spans);
+  await insertOngoingProjects(tx, spans, today);
 }
 
 /** One scenario per summary warning, in projects of their own so Plan A's figures stay put. */
@@ -301,7 +304,7 @@ async function insertWarningScenarios(tx: TenantTransaction) {
  * dates"): the bench's occupancy (domain, "How busy a person is") then reads 40% to 130%, Senior
  * Developer 4 being over-allocated. Their rates and settings are frozen as choosing does.
  */
-async function insertOngoingProjects(tx: TenantTransaction, spans: OngoingSpans) {
+async function insertOngoingProjects(tx: TenantTransaction, spans: OngoingSpans, today: string) {
   const organizationId = DEMO_ORGANIZATION_ID;
   const mobile = demoId(103);
   const upkeep = demoId(104);
@@ -430,6 +433,21 @@ async function insertOngoingProjects(tx: TenantTransaction, spans: OngoingSpans)
       throw new Error(`The seed's chosen scenario ${scenarioId} has a category without a rate`);
     }
   }
+  // One revision of a chosen scenario, to show it (docs/domain.md, "In the demo"), made by nobody
+  // signed in and outside a deploy. Its team's load is observed on the seed's day.
+  await writeRevision(
+    tx,
+    DEMO_IDS.deliveryScenario,
+    {
+      authorId: null,
+      commitSha: null,
+      today,
+      reason: "chosen",
+      // Noon of the seed's day, so a reseed on the same day leaves the same row.
+      madeAt: new Date(`${today}T12:00:00Z`),
+    },
+    DEMO_IDS.deliveryRevision,
+  );
 }
 
 /**
@@ -445,6 +463,6 @@ export async function seedDemo(db: NodePgDatabase, today: string): Promise<void>
     // The rows below reference it (ADR 0012); a fresh database has it from migration 0009 already.
     await ensureDemoOrganization(tx);
     await clear(tx);
-    await insert(tx, spans);
+    await insert(tx, spans, today);
   });
 }

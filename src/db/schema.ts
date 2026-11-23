@@ -12,6 +12,7 @@ import {
   foreignKey,
   index,
   integer,
+  jsonb,
   primaryKey,
   pgEnum,
   pgPolicy,
@@ -23,6 +24,8 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 
+import type { OpenPart, RestrictedPart } from "@/lib/revisions/snapshot";
+
 import {
   MAX_WEEKLY_HOURS,
   basisPoints,
@@ -31,7 +34,7 @@ import {
   weeklyHours,
   yearHours,
 } from "./columns";
-import { organization } from "./auth-schema";
+import { organization, user } from "./auth-schema";
 
 /** The tenant column: an organization's id, never deleted from under its rows (ADR 0012). */
 const organizationId = () =>
@@ -455,6 +458,75 @@ export const extraCosts = pgTable(
     ),
     notNegative("extra_costs", "amount"),
     notNegative("extra_costs", "percentage"),
+  ],
+).enableRLS();
+
+// ADR 0013: a revision of a scenario, one moment of it that never changes, in two rows: the open
+// part everyone reads and the restricted part only rate access reads (ADR 0005). Each part is a
+// JSON snapshot validated by its Zod schema (src/lib/revisions); the app role has no UPDATE on
+// either table (migration 0012). A revision is deleted only with its scenario, its project or its
+// organization (docs/domain.md, "Retention").
+
+/** Why a revision was made: on request, or before its scenario was shared or chosen. */
+export const revisionReason = pgEnum("revision_reason", ["saved", "shared", "chosen"]);
+
+/** A revision's open part, with who made it, when and why. */
+export const scenarioRevisions = pgTable(
+  "scenario_revision",
+  {
+    id: id(),
+    organizationId: organizationId(),
+    scenarioId: uuid("scenario_id").notNull(),
+    /** 1, 2, 3… within its scenario. */
+    number: integer("number").notNull(),
+    madeAt: timestamp("made_at", { withTimezone: true }).notNull().defaultNow(),
+    /** Null once the account is deleted: shown as «antiguo miembro». */
+    authorId: uuid("author_id").references(() => user.id, { onDelete: "set null" }),
+    reason: revisionReason("reason").notNull(),
+    /** The open part's own rules version, so the two can never disagree. */
+    rulesVersion: integer("rules_version")
+      .notNull()
+      .generatedAlwaysAs(sql`((open_part ->> 'rulesVersion')::integer)`),
+    /** The commit of the build that made it, for traceability only; null outside a deploy. */
+    commitSha: text("commit_sha"),
+    openPart: jsonb("open_part").$type<OpenPart>().notNull(),
+  },
+  (t) => [
+    tenantIsolation(),
+    unique("scenario_revision_organization_id_id_key").on(t.organizationId, t.id),
+    unique("scenario_revision_number_key").on(t.organizationId, t.scenarioId, t.number),
+    foreignKey({
+      name: "scenario_revision_scenario_fkey",
+      columns: [t.organizationId, t.scenarioId],
+      foreignColumns: [scenarios.organizationId, scenarios.id],
+    }).onDelete("cascade"),
+    check("scenario_revision_number_check", sql`number > 0`),
+    check("scenario_revision_rules_version_check", sql`rules_version > 0`),
+    check("scenario_revision_commit_sha_check", sql`commit_sha ~ '^[0-9a-f]{40}$'`),
+    check("scenario_revision_open_part_check", sql`jsonb_typeof(open_part) = 'object'`),
+  ],
+).enableRLS();
+
+/** A revision's restricted part: rates, settings, price, period, extra costs and result. */
+export const scenarioRevisionMoney = pgTable(
+  "scenario_revision_money",
+  {
+    organizationId: organizationId(),
+    revisionId: uuid("revision_id").notNull(),
+    restrictedPart: jsonb("restricted_part").$type<RestrictedPart>().notNull(),
+  },
+  (t) => [
+    rateAccess(),
+    primaryKey({ name: "scenario_revision_money_pkey", columns: [t.organizationId, t.revisionId] }),
+    foreignKey({
+      name: "scenario_revision_money_revision_fkey",
+      columns: [t.organizationId, t.revisionId],
+      foreignColumns: [scenarioRevisions.organizationId, scenarioRevisions.id],
+    }).onDelete("cascade"),
+    check(
+      "scenario_revision_money_restricted_part_check",
+      sql`jsonb_typeof(restricted_part) = 'object'`,
+    ),
   ],
 ).enableRLS();
 

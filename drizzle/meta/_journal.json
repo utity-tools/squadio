@@ -85,6 +85,13 @@
       "when": 1794842810779,
       "tag": "0011_project_period",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1795428774480,
+      "tag": "0012_scenario_revisions",
+      "breakpoints": true
     }
   ]
 }

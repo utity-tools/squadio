@@ -105,3 +105,7 @@ enabled **and forced**, and its policies in the same migration, all keyed on one
   lifts FORCE ROW LEVEL SECURITY for its own backfill and restores it in the same transaction
   ([ADR 0012, amendments](0012-sign-in-and-membership.md#amendments)). The decision itself is
   unchanged.
+- **2026-11-23:** A revision's two tables are immutable ([ADR 0013](0013-scenario-revisions.md)):
+  migration 0012 revokes the app role's UPDATE on them and keeps SELECT, INSERT and DELETE, which
+  deleting an organization needs. The guard test lists them and fails if the app role can update
+  either, a single column included. The default privileges are unchanged.

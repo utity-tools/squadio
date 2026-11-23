@@ -140,13 +140,13 @@ async function mark(tx: TenantTransaction, scenarioId: string, chosen: boolean) 
 }
 
 /**
- * The checks choosing and unchoosing share: the context's organization, rate access, and the
- * scenario locked at the version the page shows, and its project before it when `lockProject`.
- * Returns the locked scenario or the refusal.
+ * The checks choosing, unchoosing and saving a revision share: the context's organization, rate
+ * access, and the scenario locked at the version the page shows, and its project before it when
+ * `lockProject`. Returns the locked scenario or the refusal.
  */
-async function lockScenario(
+export async function lockScenario(
   tx: TenantTransaction,
-  { scenarioId, baseVersion }: z.output<typeof choiceInputSchema>,
+  { scenarioId, baseVersion }: { scenarioId: string; baseVersion: number },
   { lockProject = false }: { lockProject?: boolean } = {},
 ) {
   const { rows } = await tx.execute<{ organization: string | null; rates: boolean }>(

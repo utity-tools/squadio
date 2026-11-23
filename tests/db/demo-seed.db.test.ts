@@ -17,11 +17,15 @@ import {
   people,
   projectPricing,
   projects,
+  scenarioRevisionMoney,
+  scenarioRevisions,
   scenarios,
 } from "@/db/schema";
 import { type AccessContext, withOrganization } from "@/db/tenant";
 import { NATIONAL_HOLIDAYS, calendarWorkingHours } from "@/lib/calendar/calendar";
 import { ongoingSpans } from "@/lib/demo/ongoing-spans";
+import { recalculate, storedResult } from "@/lib/revisions/build-revision";
+import { RULES_VERSION } from "@/lib/revisions/rules-version";
 
 import { SOME_DAY, appPool, newOrganization } from "./support";
 
@@ -44,6 +48,8 @@ const TABLES: [string, PgTable][] = [
   ["scenarios", scenarios],
   ["assignments", assignments],
   ["extra_costs", extraCosts],
+  ["scenario_revision", scenarioRevisions],
+  ["scenario_revision_money", scenarioRevisionMoney],
 ];
 
 const countsIn = (context: AccessContext) =>
@@ -84,6 +90,8 @@ describe("seedDemo", () => {
       scenarios: 7,
       assignments: 18,
       extra_costs: 2,
+      scenario_revision: 1,
+      scenario_revision_money: 1,
     });
   });
 
@@ -118,6 +126,41 @@ describe("seedDemo", () => {
       [DEMO_IDS.deliveryScenario, DEMO_IDS.upkeepScenario].toSorted(),
     );
     expect(new Set(chosen.map((scenario) => scenario.projectId)).size).toBe(2);
+  });
+
+  it("makes revision 1 of a chosen scenario when it was chosen, which recalculates to itself", async () => {
+    await seedDemo(app, SOME_DAY);
+
+    const revisions = await withOrganization(app, demo, (tx) =>
+      tx
+        .select()
+        .from(scenarioRevisions)
+        .innerJoin(
+          scenarioRevisionMoney,
+          eq(scenarioRevisionMoney.revisionId, scenarioRevisions.id),
+        ),
+    );
+
+    expect(revisions).toHaveLength(1);
+    const [{ scenario_revision: revision, scenario_revision_money: money }] = revisions as [
+      (typeof revisions)[number],
+    ];
+    expect(revision).toMatchObject({
+      id: DEMO_IDS.deliveryRevision,
+      scenarioId: DEMO_IDS.deliveryScenario,
+      number: 1,
+      reason: "chosen",
+      authorId: null,
+      commitSha: null,
+      rulesVersion: RULES_VERSION,
+      madeAt: new Date(`${SOME_DAY}T12:00:00Z`),
+    });
+    const snapshot = { open: revision.openPart, restricted: money.restrictedPart };
+    expect(recalculate(snapshot)).toEqual(storedResult(snapshot));
+    // The page shows the chosen scenario with the same figures, frozen at the same values.
+    const loaded = await loadScenario(app, demo, DEMO_IDS.deliveryScenario, SOME_DAY);
+    if (!loaded?.rateAccess) throw new Error("expected the delivery plan with rate access");
+    expect(storedResult(snapshot).totalCostCents).toBe(loaded.result.totalCostCents);
   });
 
   it("anchors the ongoing scenarios to the day it runs, and the guide case to 2027", async () => {
