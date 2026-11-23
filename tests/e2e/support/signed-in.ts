@@ -44,11 +44,14 @@ export type Role = "owner" | "member" | "viewer";
 
 type TestFixtures = {
   /**
-   * Signs a browser context in as a new account with `role` in an organization of its own: the
-   * test's, or `options.in`, so a test can act as two accounts at once (an owner and the account
-   * they invite, ADR 0015).
+   * Signs a browser context in as a new account with `role` in an organization of its own, or in
+   * `options.into`, another member's: the test's context, or `options.in`, so a test can act as
+   * two accounts at once (an owner and the account they invite or remove, ADR 0015).
    */
-  signInAs: (role: Role, options?: { in?: BrowserContext }) => Promise<SyntheticMember>;
+  signInAs: (
+    role: Role,
+    options?: { in?: BrowserContext; into?: SyntheticMember },
+  ) => Promise<SyntheticMember>;
 };
 type WorkerFixtures = { database: Pool };
 
@@ -69,7 +72,7 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
     if (!baseURL) throw new Error("Signed-in E2E tests need the config's baseURL.");
     const started: SyntheticMember[] = [];
     await provide(async (role, options = {}) => {
-      const member = await startSyntheticMember(database, { secret, role });
+      const member = await startSyntheticMember(database, { secret, role, into: options.into });
       started.push(member);
       await (options.in ?? context).addCookies([
         {

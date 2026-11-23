@@ -101,4 +101,30 @@ describe("a synthetic member's session", () => {
     );
     expect(left.rows[0]).toEqual({ users: 0, organizations: 0, demo: 1 });
   });
+
+  it("joins another member's organization, and ending it leaves that organization", async () => {
+    const owner = await start(OWNER_ROLE);
+    const joined = await startSyntheticMember(pool, {
+      secret: BETTER_AUTH_SECRET,
+      role: VIEWER_ROLE,
+      into: owner,
+    });
+
+    expect((await sessionFor(joined))?.session.activeOrganizationId).toBe(owner.organizationId);
+    await expect(
+      memberOf(app, { userId: joined.userId, activeOrganizationId: owner.organizationId }),
+    ).resolves.toEqual({
+      userId: joined.userId,
+      organizationId: owner.organizationId,
+      capabilities: capabilitiesFor(VIEWER_ROLE),
+    });
+
+    await endSyntheticMember(pool, joined);
+    const left = await pool.query<{ users: number; organizations: number }>(
+      `select (select count(*)::int from auth."user" where id = $1) as users,
+              (select count(*)::int from auth.organization where id = $2) as organizations`,
+      [joined.userId, owner.organizationId],
+    );
+    expect(left.rows[0]).toEqual({ users: 0, organizations: 1 });
+  });
 });
