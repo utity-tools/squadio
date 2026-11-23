@@ -28,6 +28,8 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 export type SyntheticMember = {
   userId: string;
   organizationId: string;
+  /** Whether the organization is the member's own, made for it, or one it joined. */
+  ownsOrganization: boolean;
   email: string;
   /** The session cookie's value, signed. */
   cookie: string;
@@ -39,24 +41,27 @@ export const signSessionToken = (token: string, secret: string) =>
 
 /**
  * Writes an account with a membership of `role` in a new organization that holds a copy of the
- * demo's rows, and a session that works in it. Returns what a test needs to act as it.
+ * demo's rows, or in `into`, another member's, and a session that works in it. Returns what a
+ * test needs to act as it.
  */
 export async function startSyntheticMember(
   pool: Pool,
-  { secret, role }: { secret: string; role: string },
+  { secret, role, into }: { secret: string; role: string; into?: SyntheticMember | undefined },
 ): Promise<SyntheticMember> {
-  const organizationId = randomUUID();
+  const organizationId = into?.organizationId ?? randomUUID();
   const userId = randomUUID();
   const email = `${role}-${randomUUID()}@squadio.example`;
   const token = randomBytes(24).toString("base64url");
 
   // One transaction, so a start that fails halfway leaves nothing behind.
   await drizzle(pool).transaction(async (tx) => {
-    await tx.execute(
-      sql`insert into auth.organization (id, name, slug)
-          values (${organizationId}, ${SYNTHETIC_ORGANIZATION}, ${`organization-${organizationId}`})`,
-    );
-    await copyOrganization(tx, DEMO_ORGANIZATION_ID, organizationId);
+    if (!into) {
+      await tx.execute(
+        sql`insert into auth.organization (id, name, slug)
+            values (${organizationId}, ${SYNTHETIC_ORGANIZATION}, ${`organization-${organizationId}`})`,
+      );
+      await copyOrganization(tx, DEMO_ORGANIZATION_ID, organizationId);
+    }
     await tx.execute(
       sql`insert into auth."user" (id, name, email, email_verified)
           values (${userId}, ${`Synthetic ${role}`}, ${email}, true)`,
@@ -70,13 +75,26 @@ export async function startSyntheticMember(
           values (${token}, ${userId}, ${new Date(Date.now() + DAY_MS)}, ${organizationId})`,
     );
   });
-  return { userId, organizationId, email, cookie: signSessionToken(token, secret) };
+  return {
+    userId,
+    organizationId,
+    ownsOrganization: !into,
+    email,
+    cookie: signSessionToken(token, secret),
+  };
 }
 
-/** Deletes the member's organization with its rows, then the account with its sessions. */
+/**
+ * Deletes the member's organization with its rows, if it is its own, then the account with its
+ * sessions. One it joined is its owner's to delete.
+ */
 export async function endSyntheticMember(pool: Pool, member: SyntheticMember): Promise<void> {
   try {
-    await drizzle(pool).transaction((tx) => deleteOrganizationWithRows(tx, member.organizationId));
+    if (member.ownsOrganization) {
+      await drizzle(pool).transaction((tx) =>
+        deleteOrganizationWithRows(tx, member.organizationId),
+      );
+    }
   } finally {
     await pool.query(`delete from auth."user" where id = $1`, [member.userId]);
   }
