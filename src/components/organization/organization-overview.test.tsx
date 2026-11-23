@@ -45,6 +45,17 @@ describe("OrganizationOverview", () => {
     expect(within(list).getByText("Todavía no hay escenarios.")).toBeInTheDocument();
   });
 
+  it("leads to the organization's members", () => {
+    renderWithIntl(
+      <OrganizationOverview name="Synthetic Consulting" example={false} projects={[]} />,
+    );
+
+    expect(screen.getByRole("link", { name: "Ver los miembros" })).toHaveAttribute(
+      "href",
+      "/organization/members",
+    );
+  });
+
   it("says when the organization holds the demo's example, and only then", () => {
     const { unmount } = renderWithIntl(
       <OrganizationOverview name="Ejemplo de Squadio" example projects={projects} />,

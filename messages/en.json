@@ -1090,6 +1090,57 @@
         "no-organization": "You no longer have an organization to delete.",
         "failed": "Could not delete. Try again."
       }
+    },
+    "membersLink": "See the members"
+  },
+  "Members": {
+    "title": "Members",
+    "membersHeading": "Who is in the organization",
+    "you": "you",
+    "roles": {
+      "owner": "Owner",
+      "member": "Member",
+      "viewer": "Viewer"
+    },
+    "invite": {
+      "heading": "Invite someone",
+      "intro": "Squadio sends no email: it makes a link that you copy and send yourself. Only an account with that email can accept it, for 7 days.",
+      "email": "Email",
+      "role": "Role",
+      "roleHint": "A member sees rates, costs and margins, and edits. A viewer only reads, without money.",
+      "submit": "Create the invitation",
+      "created": "Invitation created. Copy its link in the list below."
+    },
+    "invitations": {
+      "heading": "Pending invitations",
+      "empty": "No invitations are pending.",
+      "expires": "Expires on {date}",
+      "copy": "Copy the link",
+      "copyLabel": "Copy the link of the invitation to {email}",
+      "copied": "Link copied",
+      "revoke": "Revoke",
+      "revokeLabel": "Revoke the invitation to {email}",
+      "private": "Don't post the link: send it only to the person you invite.",
+      "signUpOff": "Sign-up is closed: only someone who already has a Squadio account can accept."
+    },
+    "errors": {
+      "blank": "Write an email.",
+      "invalid": "Write a valid email.",
+      "too-long": "Use 254 characters or fewer.",
+      "role": "Choose a role.",
+      "signed-out": "Your session has ended. Sign in again.",
+      "not-owner": "Only the owner can invite.",
+      "member": "That person is already a member of the organization.",
+      "pending": "There is already a pending invitation for that email.",
+      "pendingLink": "See the invitation",
+      "limit": "20 invitations are pending, the most there can be. Revoke one before inviting.",
+      "failed": "We couldn't create the invitation. Try again."
+    },
+    "revokeErrors": {
+      "signed-out": "Your session has ended. Sign in again.",
+      "not-owner": "Only the owner can revoke invitations.",
+      "not-found": "That invitation is no longer pending.",
+      "failed": "We couldn't revoke the invitation. Try again."
     }
   },
   "Field": {
