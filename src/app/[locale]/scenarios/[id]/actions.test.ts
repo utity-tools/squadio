@@ -11,22 +11,27 @@ const mocks = vi.hoisted(() => ({
   saveScenarioFor: vi.fn(),
   setChoiceFor: vi.fn(),
   duplicateScenarioFor: vi.fn(),
+  saveRevisionFor: vi.fn(),
+  env: { VERCEL_GIT_COMMIT_SHA: "0123456789abcdef0123456789abcdef01234567" as string | undefined },
   refresh: vi.fn(),
   revalidatePath: vi.fn(),
 }));
 vi.mock("next/headers", () => ({ cookies: async () => mocks.cookies }));
 vi.mock("@/db/client", () => ({ db: { client: "app" } }));
+vi.mock("@/env", () => ({ env: mocks.env }));
 vi.mock("next/cache", () => ({ refresh: mocks.refresh, revalidatePath: mocks.revalidatePath }));
 vi.mock("@/db/request-access", () => ({ currentMember: async () => mocks.member }));
 vi.mock("@/db/scenario-writes", () => ({
   saveScenarioFor: mocks.saveScenarioFor,
   setChoiceFor: mocks.setChoiceFor,
   duplicateScenarioFor: mocks.duplicateScenarioFor,
+  saveRevisionFor: mocks.saveRevisionFor,
 }));
 
 const writer = { member: mocks.member, jar: mocks.cookies };
 
-const { duplicateScenario, saveScenario, setScenarioChoice } = await import("./actions");
+const { duplicateScenario, saveRevision, saveScenario, setScenarioChoice } =
+  await import("./actions");
 
 const valid = {
   scenarioId: "6d656d6f-0000-4000-8000-000000000200",
@@ -39,6 +44,7 @@ beforeEach(() => {
     mocks.saveScenarioFor,
     mocks.setChoiceFor,
     mocks.duplicateScenarioFor,
+    mocks.saveRevisionFor,
     mocks.refresh,
     mocks.revalidatePath,
   ]) {
@@ -190,5 +196,78 @@ describe("duplicateScenario", () => {
     });
     expect(log).toHaveBeenCalledWith("duplicateScenario failed: Error 23505");
     log.mockRestore();
+  });
+});
+
+describe("saveRevision", () => {
+  const request = { scenarioId: valid.scenarioId, baseVersion: 3 };
+  const saved = {
+    ok: true,
+    version: 3,
+    scenarioId: valid.scenarioId,
+    revision: { id: "6d656d6f-0000-4000-8000-000000000901", number: 2 },
+    reused: false,
+  };
+
+  it("saves for the request, with rate access, the deploy's commit and Madrid's day, and refreshes the page", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    // 23:30 in UTC is already the next day in Madrid.
+    vi.setSystemTime(new Date("2026-11-23T23:30:00Z"));
+    mocks.saveRevisionFor.mockResolvedValue(saved);
+    try {
+      expect(await saveRevision(request)).toEqual(saved);
+    } finally {
+      vi.useRealTimers();
+    }
+    expect(mocks.saveRevisionFor).toHaveBeenCalledWith({ client: "app" }, writer, request, {
+      rateAccess: true,
+      commitSha: "0123456789abcdef0123456789abcdef01234567",
+      today: "2026-11-24",
+    });
+    expect(mocks.refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it("names no commit outside a deploy", async () => {
+    mocks.env.VERCEL_GIT_COMMIT_SHA = undefined;
+    mocks.saveRevisionFor.mockResolvedValue(saved);
+    try {
+      await saveRevision(request);
+    } finally {
+      mocks.env.VERCEL_GIT_COMMIT_SHA = "0123456789abcdef0123456789abcdef01234567";
+    }
+    expect(mocks.saveRevisionFor.mock.calls[0]?.[3]).toMatchObject({ commitSha: null });
+  });
+
+  it("acts without rate access for a page on ?access=none, and refreshes nothing it refused", async () => {
+    mocks.saveRevisionFor.mockResolvedValue({ ok: false, reason: "no-rate-access" });
+    expect(await saveRevision({ ...request, access: "none" })).toEqual({
+      ok: false,
+      reason: "no-rate-access",
+    });
+    expect(mocks.saveRevisionFor.mock.calls[0]?.[2]).toEqual(request);
+    expect(mocks.saveRevisionFor.mock.calls[0]?.[3]).toMatchObject({ rateAccess: false });
+    expect(mocks.refresh).not.toHaveBeenCalled();
+  });
+
+  it("refuses input that is not a valid request, without touching the database", async () => {
+    for (const input of [
+      undefined,
+      { scenarioId: valid.scenarioId },
+      { ...request, baseVersion: 0 },
+      { ...request, scenarioId: "delivery" },
+      { ...request, access: "all" },
+      { ...request, authorId: valid.scenarioId },
+      { ...request, commitSha: "0123456789abcdef0123456789abcdef01234567" },
+    ]) {
+      expect(await saveRevision(input)).toEqual({ ok: false, reason: "invalid" });
+    }
+    expect(mocks.saveRevisionFor).not.toHaveBeenCalled();
+  });
+
+  it("answers failed for an unexpected error, logging no values", async () => {
+    mocks.saveRevisionFor.mockRejectedValue(Object.assign(new Error("secret"), { code: "40001" }));
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(await saveRevision(request)).toEqual({ ok: false, reason: "failed" });
+    expect(log).toHaveBeenCalledWith("saveRevision failed: Error 40001");
   });
 });

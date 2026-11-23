@@ -10,17 +10,26 @@ import { choiceInputSchema } from "@/db/choose-scenario";
 import { db } from "@/db/client";
 import { duplicateInputSchema } from "@/db/duplicate-scenario";
 import { currentMember } from "@/db/request-access";
+import { revisionInputSchema } from "@/db/save-revision";
 import { saveInputSchema } from "@/db/save-scenario";
-import { duplicateScenarioFor, saveScenarioFor, setChoiceFor } from "@/db/scenario-writes";
+import {
+  duplicateScenarioFor,
+  saveRevisionFor,
+  saveScenarioFor,
+  setChoiceFor,
+} from "@/db/scenario-writes";
 import type { VisitorChoiceResult } from "@/db/visitor-choose";
 import type { VisitorDuplicateResult } from "@/db/visitor-duplicate";
+import type { VisitorRevisionResult } from "@/db/visitor-revision";
+import { env } from "@/env";
 import { routing } from "@/i18n/routing";
 import type { VisitorSaveResult } from "@/db/visitor-save";
+import { madridToday } from "@/lib/bench/occupancy";
 
-// ADR 0011, "Saving", and docs/domain.md, "Choosing a scenario": the Server Actions that save a
-// scenario's changes and choose or unchoose it. The request can be sent without the page, so the
-// input is checked here; who it acts for comes from the session's member or the cookie, resolved
-// on the server (ADR 0012), never from the input.
+// ADR 0011, "Saving", docs/domain.md, "Choosing a scenario", and ADR 0013: the Server Actions that
+// save a scenario's changes, choose or unchoose it, duplicate it and save a revision of it. The
+// request can be sent without the page, so the input is checked here; who it acts for comes from
+// the session's member or the cookie, resolved on the server (ADR 0012), never from the input.
 
 /** Something unexpected went wrong; nothing was written, and the page says so (ADR 0011). */
 type Failed = { ok: false; reason: "failed" };
@@ -31,6 +40,9 @@ export type ScenarioChoiceResult = VisitorChoiceResult | { ok: false; reason: "i
 
 export type DuplicateScenarioResult =
   VisitorDuplicateResult | { ok: false; reason: "invalid" } | Failed;
+
+export type RevisionActionResult =
+  VisitorRevisionResult | { ok: false; reason: "invalid" } | Failed;
 
 /** What may be logged about an unexpected error: its kind and Postgres code, never its values. */
 function describe(error: unknown): string {
@@ -113,6 +125,38 @@ export async function duplicateScenario(input: unknown): Promise<DuplicateScenar
     return result;
   } catch (error) {
     console.error(`duplicateScenario failed: ${describe(error)}`);
+    return { ok: false, reason: "failed" };
+  }
+}
+
+const revisionActionSchema = z.strictObject({
+  ...revisionInputSchema.shape,
+  /** The page's `?access=none`: it can only take rate access away, as for a choice. */
+  access: z.literal("none").optional(),
+});
+
+/**
+ * Saves a revision of the scenario as the page shows it (docs/domain.md, "When one is made"), or
+ * names its latest one when nothing changed since. Who made it and from which commit are set
+ * here, never by the page.
+ */
+export async function saveRevision(input: unknown): Promise<RevisionActionResult> {
+  const parsed = revisionActionSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, reason: "invalid" };
+  const { access, ...request } = parsed.data;
+  try {
+    const writer = { member: await currentMember(), jar: await cookies() };
+    const result = await saveRevisionFor(db, writer, request, {
+      rateAccess: keepsRateAccess({ access }),
+      commitSha: env.VERCEL_GIT_COMMIT_SHA ?? null,
+      // The team's load is observed on Madrid's day, as on the page (docs/domain.md).
+      today: madridToday(new Date()),
+    });
+    // The page loads again with the revision in its list.
+    if (result.ok) refresh();
+    return result;
+  } catch (error) {
+    console.error(`saveRevision failed: ${describe(error)}`);
     return { ok: false, reason: "failed" };
   }
 }
