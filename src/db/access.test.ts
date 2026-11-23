@@ -21,6 +21,7 @@ describe("keepsRateAccess", () => {
 
 describe("memberAccessContext and memberEditContext", () => {
   const owner: Member = {
+    userId: "0b5e0c1e-0000-4000-8000-0000000000aa",
     organizationId: "0b5e0c1e-0000-4000-8000-000000000001",
     capabilities: { rateAccess: true, edit: true, choose: true },
   };
