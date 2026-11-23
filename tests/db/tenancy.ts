@@ -38,6 +38,17 @@ export const RESTRICTED_TABLES: readonly string[] = [
   // docs/domain.md, "What choosing freezes": a chosen scenario's rates and cost settings.
   "public.frozen_rates",
   "public.frozen_cost_config",
+  // ADR 0013: a revision's restricted part, a JSON snapshot in cents and basis points (ADR 0010).
+  "public.scenario_revision_money",
+];
+
+/**
+ * Tenant tables whose rows never change once written (ADR 0013), schema-qualified as
+ * `schema.table`: the app role may read, insert and delete them, but has no UPDATE.
+ */
+export const IMMUTABLE_TABLES: readonly string[] = [
+  "public.scenario_revision",
+  "public.scenario_revision_money",
 ];
 
 /**
@@ -60,4 +71,5 @@ export const STRUCTURAL_TABLES: readonly string[] = [
   "public.projects",
   "public.scenarios",
   "public.assignments",
+  "public.scenario_revision",
 ];

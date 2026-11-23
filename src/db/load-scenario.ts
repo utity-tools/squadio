@@ -251,13 +251,16 @@ export async function scenarioIn(
   context: AccessContext,
   scenarioId: string,
   day: string,
+  /** The organization's current values even for a chosen scenario, as a revision takes them. */
+  { currentValues = false }: { currentValues?: boolean } = {},
 ): Promise<EditableScenario | null> {
   const structure = await readStructure(tx, scenarioId, day);
   if (!structure) return null;
   const { projectId, pricingModel, config: settings, team } = structure;
   // The engine's inputs without a team: `scenarioView` adds it, and its year's calendar.
   const money = context.rateAccess ? await readMoney(tx, scenarioId, projectId) : null;
-  const frozen = money && structure.chosen ? await readFrozen(tx, scenarioId) : undefined;
+  const frozen =
+    money && structure.chosen && !currentValues ? await readFrozen(tx, scenarioId) : undefined;
   const plannedPeriod = plannedPeriodOf(structure);
   const engine = engineBasis(
     { pricingModel, config: settings, plannedPeriod },

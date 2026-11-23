@@ -1,6 +1,7 @@
 import { count } from "drizzle-orm";
 import type { PgTable } from "drizzle-orm/pg-core";
 
+import { renameOpenPartIds, renameRestrictedPartIds } from "@/lib/revisions/rename-ids";
 import { copyId } from "@/lib/visitors/copy-id";
 
 import {
@@ -15,6 +16,8 @@ import {
   people,
   projectPricing,
   projects,
+  scenarioRevisionMoney,
+  scenarioRevisions,
   scenarios,
 } from "./schema";
 import { type TenantTransaction, setAccessContext } from "./tenant";
@@ -24,7 +27,14 @@ import { type TenantTransaction, setAccessContext } from "./tenant";
 // switches the context to the new organization and inserts them. RLS checks every statement
 // against the context in force, so no new privilege is needed.
 
-type Copied = { table: PgTable; ids: readonly string[] };
+type Copied = {
+  table: PgTable;
+  ids: readonly string[];
+  /** JSON columns that name rows by id inside, with how to rename them. */
+  json?: Readonly<Record<string, (value: unknown, rename: (id: string) => string) => unknown>>;
+  /** Columns the copy leaves empty: who made a template's revision is not the visitor's. */
+  cleared?: readonly string[];
+};
 
 /**
  * Every tenant table, parents before children, with the columns that hold an id of the
@@ -45,6 +55,18 @@ const COPIES: readonly Copied[] = [
   // A chosen scenario stays costed as it was chosen in the copy too.
   { table: frozenRates, ids: ["scenarioId", "categoryId"] },
   { table: frozenCostConfig, ids: ["scenarioId"] },
+  // ADR 0013: a revision's parts name the template's rows, so their ids follow the copy's.
+  {
+    table: scenarioRevisions,
+    ids: ["id", "scenarioId"],
+    json: { openPart: renameOpenPartIds },
+    cleared: ["authorId"],
+  },
+  {
+    table: scenarioRevisionMoney,
+    ids: ["revisionId"],
+    json: { restrictedPart: renameRestrictedPartIds },
+  },
 ];
 
 export const COPIED_TABLES: readonly PgTable[] = COPIES.map(({ table }) => table);
@@ -53,8 +75,8 @@ export const COPIED_TABLES: readonly PgTable[] = COPIES.map(({ table }) => table
  * Copies every tenant row of organization `from` into organization `to`, with ids derived by
  * `copyId`, inside the caller's transaction. It leaves the transaction in `to`'s context without
  * rate access, so nothing after it sees money unless the caller grants it again. Throws if `to` is
- * `from` or already has rows. Returns every id of `from`'s rows it renamed, so a save that names
- * them can be translated (translateSave).
+ * `from` or already has rows. Returns every id it renamed, those inside a revision's parts
+ * included, so a save that names them can be translated (translateSave).
  */
 export async function copyOrganization(
   tx: TenantTransaction,
@@ -78,7 +100,11 @@ export async function copyOrganization(
   if (existing?.rows) throw new Error("The target organization already has rows");
 
   const renamed = new Set<string>();
-  for (const [index, { table, ids }] of COPIES.entries()) {
+  const rename = (id: string) => {
+    renamed.add(id);
+    return copyId(id, to);
+  };
+  for (const [index, { table, ids, json = {}, cleared = [] }] of COPIES.entries()) {
     const source = rows[index] ?? [];
     if (source.length === 0) continue;
     const copied = source.map((row) => {
@@ -86,9 +112,12 @@ export async function copyOrganization(
       for (const key of ids) {
         const value = row[key];
         if (typeof value !== "string") continue;
-        next[key] = copyId(value, to);
-        renamed.add(value);
+        next[key] = rename(value);
       }
+      for (const [key, renameInside] of Object.entries(json)) {
+        next[key] = renameInside(row[key], rename);
+      }
+      for (const key of cleared) next[key] = null;
       return next;
     });
     await tx.insert(table).values(copied);

@@ -14,12 +14,17 @@ import {
   frozenRates,
   projectPricing,
   projects,
+  scenarioRevisionMoney,
+  scenarioRevisions,
   scenarios,
 } from "@/db/schema";
 import { type AccessContext, type TenantTransaction, withOrganization } from "@/db/tenant";
+import { PLAN_A } from "@/lib/comparison/comparison.fixtures";
+import { buildRevision } from "@/lib/revisions/build-revision";
+import { planSource } from "@/lib/revisions/revision.fixtures";
 
 import { appPool, newOrganization } from "./support";
-import { RESTRICTED_TABLES } from "./tenancy";
+import { IMMUTABLE_TABLES, RESTRICTED_TABLES } from "./tenancy";
 
 // ADR 0005: every restricted table returns no rows and rejects writes without rate access, also
 // on a pooled connection reused after a transaction that had it. Synthetic data only.
@@ -35,7 +40,10 @@ const organizationId = randomUUID();
 const withRates: AccessContext = { organizationId, rateAccess: true };
 const withoutRates: AccessContext = { organizationId, rateAccess: false };
 
-type Ids = { categoryId: string; projectId: string; scenarioId: string };
+type Ids = { categoryId: string; projectId: string; scenarioId: string; revisionId: string };
+
+/** Plan A's revision, from the revision examples: the open part needs no rate access. */
+const planA = buildRevision(planSource("Plan A", PLAN_A));
 let ids: Ids;
 
 beforeAll(async () => {
@@ -53,7 +61,22 @@ beforeAll(async () => {
       .insert(scenarios)
       .values({ organizationId, projectId: project!.id, name: "Plan A" })
       .returning();
-    return { categoryId: category!.id, projectId: project!.id, scenarioId: scenario!.id };
+    const [revision] = await tx
+      .insert(scenarioRevisions)
+      .values({
+        organizationId,
+        scenarioId: scenario!.id,
+        number: 1,
+        reason: "saved",
+        openPart: planA.open,
+      })
+      .returning();
+    return {
+      categoryId: category!.id,
+      projectId: project!.id,
+      scenarioId: scenario!.id,
+      revisionId: revision!.id,
+    };
   });
 });
 
@@ -109,6 +132,10 @@ const restricted: Record<string, { table: PgTable; row: () => Record<string, unk
       amount: 100_000,
     }),
   },
+  "public.scenario_revision_money": {
+    table: scenarioRevisionMoney,
+    row: () => ({ organizationId, revisionId: ids.revisionId, restrictedPart: planA.restricted }),
+  },
 };
 
 const rowsIn = async (tx: TenantTransaction, table: PgTable) =>
@@ -142,7 +169,10 @@ describe("restricted tables", () => {
 
     it("changes and deletes nothing without rate access", async () => {
       await withOrganization(app, withoutRates, async (tx) => {
-        expect((await tx.update(table).set({ organizationId }).returning()).length).toBe(0);
+        // An immutable table rejects any UPDATE, with or without rate access (revisions.db.test).
+        if (!IMMUTABLE_TABLES.includes(name)) {
+          expect((await tx.update(table).set({ organizationId }).returning()).length).toBe(0);
+        }
         expect((await tx.delete(table).returning()).length).toBe(0);
       });
 

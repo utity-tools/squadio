@@ -1,13 +1,15 @@
 import { randomUUID } from "node:crypto";
 
-import { count, getTableName, sql } from "drizzle-orm";
+import { count, eq, getTableName, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { COPIED_TABLES, copyOrganization } from "@/db/copy-organization";
 import { DEMO_IDS, DEMO_ORGANIZATION_ID, seedDemo } from "@/db/demo-seed";
 import { loadScenario } from "@/db/load-scenario";
+import { scenarioRevisionMoney, scenarioRevisions } from "@/db/schema";
 import { type AccessContext, withOrganization } from "@/db/tenant";
+import { renameOpenPartIds, renameRestrictedPartIds } from "@/lib/revisions/rename-ids";
 import { copyId } from "@/lib/visitors/copy-id";
 
 import { SOME_DAY, appPool, newOrganization, ownerPool } from "./support";
@@ -139,6 +141,54 @@ describe("copyOrganization", () => {
       );
       expect(normalize(copied, back)).toEqual(normalize(original, new Map()));
     }
+  });
+
+  it("copies the template's revisions with the copy's ids inside both parts", async () => {
+    const revisionOf = (context: AccessContext) =>
+      withOrganization(app, context, async (tx) => {
+        const [row] = await tx
+          .select()
+          .from(scenarioRevisions)
+          .innerJoin(
+            scenarioRevisionMoney,
+            eq(scenarioRevisionMoney.revisionId, scenarioRevisions.id),
+          );
+        if (!row) throw new Error("expected a revision");
+        return row;
+      });
+    const original = await revisionOf(template);
+    const copied = await revisionOf(copy);
+
+    const rename = (id: string) => copyId(id, copyOrg);
+    expect(copied.scenario_revision).toEqual({
+      ...original.scenario_revision,
+      id: rename(original.scenario_revision.id),
+      organizationId: copyOrg,
+      scenarioId: rename(original.scenario_revision.scenarioId),
+      authorId: null,
+      openPart: renameOpenPartIds(original.scenario_revision.openPart, rename),
+    });
+    expect(copied.scenario_revision_money).toEqual({
+      organizationId: copyOrg,
+      revisionId: rename(original.scenario_revision.id),
+      restrictedPart: renameRestrictedPartIds(
+        original.scenario_revision_money.restrictedPart,
+        rename,
+      ),
+    });
+    // No id of the template is left inside the copy's parts.
+    const inside = new Set<string>();
+    collectIds(
+      [copied.scenario_revision.openPart, copied.scenario_revision_money.restrictedPart],
+      inside,
+    );
+    const templateInside = new Set<string>();
+    collectIds(
+      [original.scenario_revision.openPart, original.scenario_revision_money.restrictedPart],
+      templateInside,
+    );
+    expect(templateInside.size).toBeGreaterThan(0);
+    expect([...inside].filter((id) => templateInside.has(id))).toEqual([]);
   });
 
   it("leaves the template untouched and the copy invisible to other organizations", async () => {
