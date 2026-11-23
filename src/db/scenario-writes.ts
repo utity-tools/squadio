@@ -15,11 +15,18 @@ import {
   duplicateInputSchema,
   duplicateScenario,
 } from "./duplicate-scenario";
+import {
+  type RevisionInput,
+  type RevisionMaker,
+  revisionInputSchema,
+  saveRevision,
+} from "./save-revision";
 import { type SaveInput, saveInputSchema, saveScenarioChanges } from "./save-scenario";
 import { scenarios } from "./schema";
 import { type AccessContext, withOrganization } from "./tenant";
 import { type VisitorChoiceResult, chooseForVisitor, unchooseForVisitor } from "./visitor-choose";
 import { type VisitorDuplicateResult, duplicateForVisitor } from "./visitor-duplicate";
+import { type VisitorRevisionResult, saveRevisionForVisitor } from "./visitor-revision";
 import { type VisitorSaveResult, saveForVisitor } from "./visitor-save";
 import type { CookieJar } from "./visitor-write";
 
@@ -129,4 +136,31 @@ export async function duplicateScenarioFor(
   if (!member.capabilities.edit) return { ok: false, reason: "not-found" };
   if (!withRates.rateAccess) return { ok: false, reason: "no-rate-access" };
   return duplicateScenario(db, withRates, request, suffix);
+}
+
+/**
+ * Saves a revision of a scenario (docs/domain.md, "When one is made"): in the member's
+ * organization when it holds the scenario, by the member, with their rate access unless the page
+ * took it away, or else as a visitor, by nobody. A revision holds the scenario's money, so it
+ * needs rate access. Throws a ZodError on input that is not a valid request.
+ */
+export async function saveRevisionFor(
+  db: NodePgDatabase,
+  { member, jar }: Writer,
+  input: RevisionInput,
+  {
+    rateAccess,
+    ...maker
+  }: { rateAccess: boolean } & Omit<RevisionMaker, "authorId" | "reason" | "madeAt">,
+): Promise<VisitorRevisionResult> {
+  const request = revisionInputSchema.parse(input);
+  const context = await memberWriteContext(db, member, request.scenarioId);
+  if (!context || !member) return saveRevisionForVisitor(db, jar, request, rateAccess, maker);
+  const withRates = { ...context, rateAccess: context.rateAccess && rateAccess };
+  if (!member.capabilities.edit) return { ok: false, reason: "not-found" };
+  if (!withRates.rateAccess) return { ok: false, reason: "no-rate-access" };
+  const result = await saveRevision(db, withRates, request, { ...maker, authorId: member.userId });
+  return result.ok
+    ? { ...result, version: request.baseVersion, scenarioId: request.scenarioId }
+    : result;
 }
