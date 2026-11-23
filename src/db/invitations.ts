@@ -3,51 +3,16 @@ import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { z } from "zod";
 
 import { type InvitableRole, invitationExpiry, inviteRefusal } from "@/lib/invitations/rules";
-import { OWNER_ROLE } from "@/lib/membership/capabilities";
 
-import { type SignedIn, memberOf } from "./access";
-import { invitation, member, organization, user } from "./auth-schema";
+import type { SignedIn } from "./access";
+import { invitation, member, user } from "./auth-schema";
+import { NotOwner, lockAsOwner, ownedOrganization } from "./owner";
 
 // ADR 0015, "Invitations", and its amendment of 2026-11-23 (slice 4b): the owner's invitations,
 // written by Squadio, never by the organization plugin. The organization is the one the session
-// acts in (memberOf), never one the browser names, and the owner is checked again inside the
-// transaction, under the organization's lock, which also makes two invitations at once take turns
-// for the last place below the limit.
-
-type Transaction = Parameters<Parameters<NodePgDatabase["transaction"]>[0]>[0];
-
-/** Thrown inside a transaction to roll it back when the account is no longer the owner. */
-class NotOwner extends Error {}
-
-/**
- * Locks the organization, then checks that the account still owns it. The organization is locked
- * before the membership, in deleting's order, so the two never deadlock.
- */
-async function lockAsOwner(tx: Transaction, organizationId: string, userId: string) {
-  await tx
-    .select({ id: organization.id })
-    .from(organization)
-    .where(eq(organization.id, organizationId))
-    .for("update");
-  const [owner] = await tx
-    .select({ id: member.id })
-    .from(member)
-    .where(
-      and(
-        eq(member.organizationId, organizationId),
-        eq(member.userId, userId),
-        eq(member.role, OWNER_ROLE),
-      ),
-    )
-    .for("update");
-  if (!owner) throw new NotOwner();
-}
-
-/** The organization the session's account owns, or null when it acts in none as its owner. */
-async function ownedOrganization(db: NodePgDatabase, signedIn: SignedIn) {
-  const found = await memberOf(db, signedIn);
-  return found?.capabilities.manage ? found.organizationId : null;
-}
+// acts in, and the owner is checked again inside the transaction, under the organization's lock
+// (owner.ts), which also makes two invitations at once take turns for the last place below the
+// limit.
 
 /** What the owner invites: an email trimmed and in lower case (invitedEmailSchema), and a role. */
 export type Invitee = { email: string; role: InvitableRole };
