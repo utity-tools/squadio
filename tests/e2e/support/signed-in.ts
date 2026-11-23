@@ -1,5 +1,5 @@
 import { loadEnvConfig } from "@next/env";
-import { test as base } from "@playwright/test";
+import { type BrowserContext, test as base } from "@playwright/test";
 import { Pool } from "pg";
 
 import {
@@ -43,8 +43,12 @@ function localDatabaseUrl(): string {
 export type Role = "owner" | "member" | "viewer";
 
 type TestFixtures = {
-  /** Signs the test's browser context in as a new account with `role` in an organization of its own. */
-  signInAs: (role: Role) => Promise<SyntheticMember>;
+  /**
+   * Signs a browser context in as a new account with `role` in an organization of its own: the
+   * test's, or `options.in`, so a test can act as two accounts at once (an owner and the account
+   * they invite, ADR 0015).
+   */
+  signInAs: (role: Role, options?: { in?: BrowserContext }) => Promise<SyntheticMember>;
 };
 type WorkerFixtures = { database: Pool };
 
@@ -64,10 +68,10 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
     const secret = required("BETTER_AUTH_SECRET");
     if (!baseURL) throw new Error("Signed-in E2E tests need the config's baseURL.");
     const started: SyntheticMember[] = [];
-    await provide(async (role) => {
+    await provide(async (role, options = {}) => {
       const member = await startSyntheticMember(database, { secret, role });
       started.push(member);
-      await context.addCookies([
+      await (options.in ?? context).addCookies([
         {
           name: SESSION_COOKIE,
           value: member.cookie,
