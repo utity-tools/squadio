@@ -111,6 +111,11 @@ export default async function ScenarioPage({
               <RevisionList
                 revisions={revisions}
                 anonymous={memberContext ? "formerMember" : "visitor"}
+                query={
+                  typeof query.access === "string"
+                    ? `?access=${encodeURIComponent(query.access)}`
+                    : ""
+                }
               />
             </div>
           }

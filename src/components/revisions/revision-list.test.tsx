@@ -1,11 +1,19 @@
 import { screen, within } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import type { RevisionLine } from "@/db/load-revisions";
 import { expectNoAxeViolations } from "@/test/axe";
 import { renderWithIntl } from "@/test/render";
 
 import { RevisionList } from "./revision-list";
+
+vi.mock("@/i18n/navigation", () => ({
+  Link: ({ href, children, ...props }: { href: string; children: React.ReactNode }) => (
+    <a href={href} {...props}>
+      {children}
+    </a>
+  ),
+}));
 
 // docs/domain.md, "Revisions": the summary rail lists a scenario's revisions, newest first, with
 // who made them, when and why. Synthetic data only.
@@ -42,6 +50,17 @@ describe("RevisionList", () => {
     ]);
     expect(items[0]?.querySelector("time")?.getAttribute("dateTime")).toBe(
       "2026-11-23T23:30:00.000Z",
+    );
+  });
+
+  it("links each revision to its page, keeping the query", () => {
+    renderWithIntl(<RevisionList revisions={lines} anonymous="visitor" query="?access=none" />);
+
+    expect(screen.getByRole("link", { name: "Revisión 2" }).getAttribute("href")).toBe(
+      "/revisions/6d656d6f-0000-4000-8000-000000000502?access=none",
+    );
+    expect(screen.getByRole("link", { name: "Revisión 1" }).getAttribute("href")).toBe(
+      "/revisions/6d656d6f-0000-4000-8000-000000000501?access=none",
     );
   });
 
