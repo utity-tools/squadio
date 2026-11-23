@@ -94,3 +94,8 @@ custom Drizzle column type that never uses floats.
   repeats the fully loaded annual cost and the calendar working hours in SQL, with the calendar as
   it was on that date. A DB test checks its rows against `freezeScenario`, which uses the
   TypeScript functions.
+- **2026-11-23:** A revision's restricted part ([ADR 0013](0013-scenario-revisions.md)) is a JSON
+  snapshot in `scenario_revision_money`, not `numeric` columns: its amounts are integer cents and
+  its percentages basis points, as in TypeScript, validated by its Zod schema as safe integers.
+  The guard test cannot see money inside JSON, so money lives only in that restricted table, and
+  the open part's strict schema has no money field. Every other money column stays `numeric(12,2)`.

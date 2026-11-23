@@ -90,7 +90,8 @@ and times focus differently from macOS. It takes the same arguments as `playwrig
   [`docs/domain.md`](docs/domain.md). Change the formulas there first, then the code.
 - Money is integer cents in TypeScript and euros in `numeric(12,2)` in Postgres, declared with the
   `moneyCents` column type (percentages: `basisPoints`), never plain `numeric` or floats
-  ([ADR 0010](docs/adr/0010-money-in-postgres.md)). Round once, at the end of each result line.
+  ([ADR 0010](docs/adr/0010-money-in-postgres.md)). The one exception is a revision's restricted
+  JSON snapshot, in integer cents and basis points (ADR 0010, 2026-11-23). Round once, at the end of each result line.
   Margin % is always over revenue.
 - Costs are per category, never per person: the app never stores individual salaries.
 

@@ -59,8 +59,9 @@ membership in the organization and builds the access context from it before any 
   what the context does not allow.
 - **One role in v0.3: owner.** v0.3 has no invitations, so every organization has one member, its
   creator, with rate access, editing and choosing. Roles without rate access are planned with
-  invitations (v0.5; still proposed in the [plan](../plan.md#accepted-and-proposed)), and would map
-  to ADR 0005's rate access in the same place the context is built.
+  invitations (v0.5; accepted in the [plan](../plan.md#accepted-and-proposed)), and would map
+  to ADR 0005's rate access in the same place the context is built. v0.5 has three roles, owner,
+  member and viewer ([ADR 0015](0015-roles-and-invitations.md); see the 2026-11-23 amendment).
 - **Members write with their own context.** ADR 0011's saves run without rate access because a
   visitor only edits teams. A member also writes categories' costs (slice 3), which are restricted,
   so a member's edit context carries the member's rate access.
@@ -245,3 +246,12 @@ Decided when the code lands, as amendments here (settled on 2026-11-03, see
     for its name typed first, and neither starts on the delete button.
   - **There is no privacy page yet.** What Neon's history and backups keep after a delete is still
     part of the owner's processing review, before v0.3.0 (see "Deleting").
+- **2026-11-23, v0.5 (roles and invitations):** [ADR 0015](0015-roles-and-invitations.md) replaces
+  "one role in v0.3: owner" with three roles: the owner; a member, with rate access, who edits,
+  shares and chooses; and a viewer, without rate access, who only reads. `capabilitiesFor` maps
+  the three, and still gives a role it does not know no context. The `invitation` table, empty
+  until now, holds the owner's invitations: a link the owner copies, which expires in 7 days and
+  only an account with the invited email can accept. An account in several organizations picks its
+  active one on the organization page. The browser still cannot change memberships, and deleting
+  an organization or an account deletes as before, revisions included
+  ([ADR 0013](0013-scenario-revisions.md)); an account's revisions stay, without an author.
