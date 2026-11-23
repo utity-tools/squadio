@@ -36,6 +36,8 @@ describe("AccountStatusView", () => {
 
     const avatar = screen.getByRole("button", { name: "Cuenta: Ada Synthetic" });
     expect(avatar).toHaveTextContent("AS");
+    // An aria-label would have to include the initials, which are not words (WCAG 2.5.3).
+    expect(avatar).not.toHaveAttribute("aria-label");
     await userEvent.click(avatar);
 
     expect(avatar).toHaveAttribute("title", "Cuenta: Ada Synthetic");
