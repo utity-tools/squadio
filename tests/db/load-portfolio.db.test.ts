@@ -305,7 +305,12 @@ describe("loadProject", () => {
 });
 
 describe("memberProjectContext", () => {
-  const member = () => ({ organizationId: copy, capabilities: owner });
+  // The account is never read here: only the membership's organization and capabilities.
+  const member = () => ({
+    userId: "0b5e0c1e-0000-4000-8000-0000000000aa",
+    organizationId: copy,
+    capabilities: owner,
+  });
 
   it("gives a member their own context for a project their organization holds", async () => {
     const id = copyId(DEMO_IDS.project, copy);

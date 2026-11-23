@@ -61,6 +61,7 @@ afterAll(async () => {
 describe("memberOf", () => {
   it("resolves a signed-in owner to their organization, with rate access, editing and choosing", async () => {
     expect(await memberOf(app, await sessionOf(ada))).toEqual({
+      userId: ada.userId,
       organizationId: ada.organizationId,
       capabilities: { rateAccess: true, edit: true, choose: true },
     });

@@ -140,6 +140,7 @@ describe("createEmptyOrganization", () => {
       activeOrganizationId: session?.session.activeOrganizationId,
     });
     expect(member).toEqual({
+      userId: starter.userId,
       organizationId: result.organizationId,
       capabilities: { rateAccess: true, edit: true, choose: true },
     });

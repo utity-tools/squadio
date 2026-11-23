@@ -78,8 +78,14 @@ export type SignedIn = {
   activeOrganizationId?: string | null | undefined;
 };
 
-/** A signed-in account's membership: the organization it acts in and what it may do there. */
-export type Member = { organizationId: string; capabilities: Capabilities };
+/**
+ * A signed-in account's membership: the account, the organization it acts in and what it may do
+ * there.
+ */
+export type Member = { userId: string; organizationId: string; capabilities: Capabilities };
+
+/** What a context is built from: the membership without its account. */
+type Membership = Pick<Member, "organizationId" | "capabilities">;
 
 const isUuid = (value: unknown): value is string => z.uuid().safeParse(value).success;
 
@@ -106,12 +112,12 @@ export async function memberOf(db: NodePgDatabase, signedIn: SignedIn): Promise<
     .orderBy(asc(member.createdAt), asc(member.id))
     .limit(1);
   const capabilities = row && capabilitiesFor(row.role);
-  return row && capabilities ? { organizationId: row.organizationId, capabilities } : null;
+  return row && capabilities ? { userId, organizationId: row.organizationId, capabilities } : null;
 }
 
 /** The context a member's pages read with: the member's rate access, unless `?access=none`. */
 export function memberAccessContext(
-  { organizationId, capabilities }: Member,
+  { organizationId, capabilities }: Membership,
   searchParams: AccessSearchParams = {},
 ): AccessContext {
   return { organizationId, rateAccess: capabilities.rateAccess && keepsRateAccess(searchParams) };
@@ -121,6 +127,6 @@ export function memberAccessContext(
  * The context a member writes with. Unlike a visitor's save, it carries the member's rate access:
  * members also write the categories' costs (ADR 0012, "Members write with their own context").
  */
-export function memberEditContext({ organizationId, capabilities }: Member): AccessContext {
+export function memberEditContext({ organizationId, capabilities }: Membership): AccessContext {
   return { organizationId, rateAccess: capabilities.rateAccess };
 }
