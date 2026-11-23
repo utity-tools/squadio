@@ -136,3 +136,15 @@ Roles and invitations, which sharing needs, are [ADR 0015](0015-roles-and-invita
   at one ([ADR 0011](0011-saving-edits-and-the-visitor-copy.md)).
 - Weekly load, Inicio and the comparison read a chosen scenario's chosen revision from slice 6, not
   its saved team and current values.
+
+## Amendments
+
+- **2026-11-23:** Visitors open revisions too. A revision's page opens for the demo template's and a
+  visitor's copy's revisions with the visitor's context, found through their cookie, as their
+  scenarios do ([ADR 0011](0011-saving-edits-and-the-visitor-copy.md)); a template revision's link
+  leads a visitor who has a copy to their copy of it. Slice 2 already lets a visitor save a
+  revision of their copy, and its list would otherwise lead nowhere. This shares nothing: nobody
+  else reaches a visitor's copy, and visitors still cannot share. Signed-in members keep the
+  decision as written: only their organization's revisions, no public links. Until slice 6 the
+  page says nothing about choosing, since a choice still points at the scenario
+  ([revisions](../domain.md#sharing-a-revision)).

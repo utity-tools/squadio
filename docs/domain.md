@@ -948,8 +948,9 @@ A revision is of the scenario as saved: the page saves what is left to save firs
 it would differ from the scenario's latest revision (team, names, hours, rates, settings, price,
 period, extra costs and rules version alike), no new one is made and the latest is used again. The
 load observed is not compared: it comes from other projects' chosen scenarios, so the reused
-revision keeps the load known when it was made (rule c). A revision of an empty team may be saved and shared; it cannot be chosen. Visitors cannot share: a
-revision's link opens only for signed-in members.
+revision keeps the load known when it was made (rule c). A revision of an empty team may be saved and shared; it cannot be chosen. Visitors cannot share,
+since nobody else can open their copy; they open the revisions of the demo and of their copy
+([Sharing a revision](#sharing-a-revision)).
 
 **On a chosen scenario,** sharing gives its chosen revision. «Guardar revisión» makes a revision of
 the team as saved, with the current values, and leaves the choice where it was; choosing that new
@@ -964,15 +965,21 @@ show both. A visitor's copy copies them with new ids, like the rest of the templ
 A revision's link is `/revisions/<id>`. It opens only for signed-in members of its organization; for
 anyone else it does not exist, as another organization's scenario does not. There are no public
 links and no exported document in v0.5 ([ADR 0015](adr/0015-roles-and-invitations.md)). The page is
-read only. It says which revision it is, who made it and when, whether it is the chosen one, and,
-when the scenario has a newer revision, says so and links to the latest, without saying what
-changed. With rate access it shows the small category warning (rule j) against today's headcount,
-as wherever a rate is read.
+read only. It says which revision it is, who made it and when, from slice 6 whether it is the
+chosen one, and, when the scenario has a newer revision, says so and links to the latest, without
+saying what changed. It links to its scenario, and compares nothing with it: what changed since is
+the [change check](#choosing-a-revision), when an older revision is chosen. With rate access it
+shows the small category warning (rule j) against today's headcount, as wherever a rate is read.
 
 **Without rate access** it shows the open part: the team, the dates, the hours and the load. The
 database returns no restricted part, so no rate, cost, price, extra cost, margin or margin status.
 Effective hours come from the open part, so everyone reads the same hours for a revision, whatever
 Config says today.
+
+**Visitors** open the revisions of the demo template and of their own copy, as they open its
+scenarios ([ADR 0011](adr/0011-saving-edits-and-the-visitor-copy.md)): a template revision's link,
+followed by a visitor who has a copy, leads to their copy of it. Nobody else reaches a copy, so
+this shares nothing.
 
 ### Choosing a revision
 
