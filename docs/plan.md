@@ -98,21 +98,23 @@ decisions below are the owner's, not evidence of use.
 
 ### v0.5 slices
 
-v0.5 ships in eight pull requests, tests first, in this order, planned on 2026-11-23. Revisions come
+v0.5 ships in ten pull requests, tests first, in this order, planned on 2026-11-23. Revisions come
 before sharing and choosing them, and choosing is last, since it changes what chosen scenarios
 already in production read ([revisions](domain.md#revisions),
 [ADR 0013](adr/0013-scenario-revisions.md), [ADR 0015](adr/0015-roles-and-invitations.md)).
 
-| #   | Slice                 | Done when                                                                                                                                                                                                    |
-| --- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 0   | Rules                 | ADR 0013 accepted, ADR 0015 on roles and invitations, the domain's revisions with worked examples, and the glossary. Docs only                                                                               |
-| 1   | Revision snapshot     | `src/lib/revisions` builds a revision's open and restricted parts from a scenario, with their Zod schema and the rules version; a property test checks that recalculating a revision gives its stored result |
-| 2   | Saving a revision     | The two tables with RLS, the money one restricted, and no update for the app role; «Guardar revisión» and the list of a scenario's revisions on its page                                                     |
-| 3   | Revision page         | `/revisions/<id>`, read only, for signed-in members and visitors: the banner when a newer revision exists, and the view without rate access                                                                  |
-| 4   | Roles and invitations | The invitation link, the members page, changing a role, and rate access and read-only transactions by role                                                                                                   |
-| 5   | Derived alternative   | «Proponer alternativa» on a revision makes a draft scenario of the same project, with where it came from and who made it                                                                                     |
-| 6   | Choosing a revision   | Choosing points at a revision, with the change check for an older one; existing chosen scenarios get a revision from their frozen rows, and FrozenRate and FrozenCostConfig are retired                      |
-| 7   | v0.5 release          | Handoff, README with new screenshots, tag `v0.5.0`                                                                                                                                                           |
+| #   | Slice               | Done when                                                                                                                                                                                                                        |
+| --- | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0   | Rules               | ADR 0013 accepted, ADR 0015 on roles and invitations, the domain's revisions with worked examples, and the glossary. Docs only                                                                                                   |
+| 1   | Revision snapshot   | `src/lib/revisions` builds a revision's open and restricted parts from a scenario, with their Zod schema and the rules version; a property test checks that recalculating a revision gives its stored result                     |
+| 2   | Saving a revision   | The two tables with RLS, the money one restricted, and no update for the app role; «Guardar revisión» and the list of a scenario's revisions on its page                                                                         |
+| 3   | Revision page       | `/revisions/<id>`, read only, for signed-in members and visitors: the banner when a newer revision exists, and the view without rate access                                                                                      |
+| 4a  | Roles and read only | `capabilitiesFor` maps owner, member and viewer; a viewer's context opens read-only transactions, every Server Action refuses a viewer, the pages offer them nothing to edit, and the database allows one owner per organization |
+| 4b  | Invitations         | The members page; the owner invites by email and role, copies the link and can revoke it; the invited account accepts it, once, within 7 days, with a verified matching email                                                    |
+| 4c  | Roles and removal   | The owner changes a member's role between member and viewer, and removes a member, both checked again inside the transaction                                                                                                     |
+| 5   | Derived alternative | «Proponer alternativa» on a revision makes a draft scenario of the same project, with where it came from and who made it                                                                                                         |
+| 6   | Choosing a revision | Choosing points at a revision, with the change check for an older one; existing chosen scenarios get a revision from their frozen rows, and FrozenRate and FrozenCostConfig are retired                                          |
+| 7   | v0.5 release        | Handoff, README with new screenshots, tag `v0.5.0`                                                                                                                                                                               |
 
 ### v0.4 slices
 
