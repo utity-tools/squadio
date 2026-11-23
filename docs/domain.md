@@ -946,8 +946,9 @@ rules version, so a result that moves without the version moving fails.
 
 A revision is of the scenario as saved: the page saves what is left to save first. When nothing in
 it would differ from the scenario's latest revision (team, names, hours, rates, settings, price,
-period, extra costs and rules version alike), no new one is made and the latest is used again. A
-revision of an empty team may be saved and shared; it cannot be chosen. Visitors cannot share: a
+period, extra costs and rules version alike), no new one is made and the latest is used again. The
+load observed is not compared: it comes from other projects' chosen scenarios, so the reused
+revision keeps the load known when it was made (rule c). A revision of an empty team may be saved and shared; it cannot be chosen. Visitors cannot share: a
 revision's link opens only for signed-in members.
 
 **On a chosen scenario,** sharing gives its chosen revision. «Guardar revisión» makes a revision of
