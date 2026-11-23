@@ -13,7 +13,7 @@ import type { ComparedScenario } from "./compare";
 // docs/domain.md, "Comparison examples": Plans A, B and C of the guide case's project, costed with
 // the guide case's settings (1,984 calendar working hours). Synthetic, like every fixture.
 
-const RATES: CategoryRate[] = [
+export const RATES: CategoryRate[] = [
   {
     categoryId: "senior",
     sellRateCents: 6500,
@@ -37,14 +37,14 @@ const RATES: CategoryRate[] = [
   { categoryId: "pm", sellRateCents: 7000, cost: { kind: "annual", fullyLoadedCents: 7505000 } },
 ];
 
-const SETTINGS: CostSettings = {
+export const SETTINGS: CostSettings = {
   overheadBasisPoints: 1500,
   bufferBasisPoints: 1000,
   netAnnualHours: 1550,
   calendarWorkingHours: 1984,
 };
 
-const TARGET_MARGIN = 2500;
+export const TARGET_MARGIN = 2500;
 
 export const CATEGORY_NAMES: Record<string, string> = {
   pm: "Project Manager",
@@ -101,7 +101,12 @@ type PlanOptions = {
   smallCategories?: SmallCategory[];
 };
 
-const CLOUD = { id: "cloud", kind: "recurring", amountCents: 100000, label: "Cloud" } as const;
+export const CLOUD = {
+  id: "cloud",
+  kind: "recurring",
+  amountCents: 100000,
+  label: "Cloud",
+} as const;
 
 /** A plan as the scenario page loads it with rate access. */
 export function planView(
