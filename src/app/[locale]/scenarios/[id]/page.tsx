@@ -14,6 +14,7 @@ import { ScenarioAnnouncer } from "@/components/scenario/scenario-announcer";
 import { ScenarioDuplicate } from "@/components/scenario/duplicate-scenario";
 import { ScenarioChoice } from "@/components/scenario/scenario-choice";
 import { ScenarioEditor } from "@/components/scenario/scenario-editor";
+import { ScenarioRevision } from "@/components/scenario/save-revision";
 import {
   LiveScenarioCrumbs,
   LiveScenarioHeader,
@@ -34,7 +35,7 @@ import { assertLocale, currentLocale } from "@/i18n/locale";
 import { redirect } from "@/i18n/navigation";
 import { madridToday } from "@/lib/bench/occupancy";
 
-import { duplicateScenario, saveScenario, setScenarioChoice } from "./actions";
+import { duplicateScenario, saveRevision, saveScenario, setScenarioChoice } from "./actions";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("ScenarioPage");
@@ -97,6 +98,7 @@ export default async function ScenarioPage({
               <SaveStatus />
               <HistoryControls />
               <ScenarioDuplicate send={duplicateScenario} />
+              <ScenarioRevision send={saveRevision} />
               <ScenarioChoice scenarioId={id} send={setScenarioChoice} />
             </>
           }
