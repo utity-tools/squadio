@@ -20,6 +20,7 @@ import { createHistory, record, redo, undo } from "./history";
 import type { ScenarioBasis } from "./scenario-view";
 import {
   type ChoiceRequest,
+  type RevisionRequest,
   SAVE_DELAY_MS,
   type SaveOutcome,
   type SaveRequest,
@@ -602,5 +603,248 @@ describe("choosing", () => {
     expect(await store.getState().setChoice(true, slow)).toEqual({ ok: false, reason: "unsaved" });
     answer({ ok: true, version: 4, scenarioId: seatId(99) });
     expect(await first).toEqual({ ok: true });
+  });
+});
+
+describe("saving a revision", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  /** A fake Server Action whose answers the test gives, one call at a time. */
+  function fake<Request>() {
+    const calls: { request: Request; answer: (outcome: unknown) => void }[] = [];
+    const send = (request: Request) =>
+      new Promise<unknown>((resolve) => {
+        calls.push({ request, answer: resolve });
+      });
+    return { calls, send };
+  }
+
+  /** Answers a call and lets the store handle it. */
+  async function answer(
+    call: { answer: (outcome: unknown) => void } | undefined,
+    outcome: unknown,
+  ) {
+    if (!call) throw new Error("expected a call");
+    call.answer(outcome);
+    await vi.advanceTimersByTimeAsync(0);
+  }
+
+  const revision = (number: number, reused = false) => ({
+    ok: true,
+    version: 3,
+    scenarioId: seatId(99),
+    revision: { id: seatId(900 + number), number },
+    reused,
+  });
+
+  it("sends the version the page shows and says which revision it was, moving no version on", async () => {
+    const store = create();
+    const send = vi.fn(async () => revision(2));
+    expect(await store.getState().saveRevision(send)).toEqual({
+      ok: true,
+      number: 2,
+      reused: false,
+    });
+    expect(send).toHaveBeenCalledWith({ scenarioId: seatId(99), baseVersion: 3 });
+    expect(store.getState()).toMatchObject({ version: 3, saveStatus: "saved" });
+    expect(await store.getState().saveRevision(async () => revision(2, true))).toEqual({
+      ok: true,
+      number: 2,
+      reused: true,
+    });
+  });
+
+  it("keeps the last answer for the page to say, telling two equal answers apart", async () => {
+    const store = create();
+    expect(store.getState().revisionNote).toBeNull();
+    await store.getState().saveRevision(async () => revision(1));
+    expect(store.getState().revisionNote).toEqual({
+      answer: { ok: true, number: 1, reused: false },
+      seq: 1,
+    });
+    await store.getState().saveRevision(async () => ({ ok: false, reason: "limit" }));
+    await store.getState().saveRevision(async () => ({ ok: false, reason: "limit" }));
+    expect(store.getState().revisionNote).toEqual({
+      answer: { ok: false, reason: "limit" },
+      seq: 3,
+    });
+    // A step that worked makes it about an older team.
+    store.getState().dispatch(halfDeveloper);
+    expect(store.getState().revisionNote).toBeNull();
+  });
+
+  it("saves the changes left first, at once, and sends the revision on the version they made", async () => {
+    const saves = fake<SaveRequest>();
+    const revisions = fake<RevisionRequest>();
+    const store = create(saves.send as (request: SaveRequest) => Promise<SaveOutcome>);
+    store.getState().dispatch(halfDeveloper);
+
+    const answered = store.getState().saveRevision(revisions.send);
+    await vi.advanceTimersByTimeAsync(0);
+    // No waiting for the autosave's delay, and no revision before the changes are saved.
+    expect(saves.calls.map((call) => call.request)).toEqual([
+      { scenarioId: seatId(99), baseVersion: 3, changes: [halfDeveloper] },
+    ]);
+    expect(revisions.calls).toHaveLength(0);
+
+    await answer(saves.calls[0], { ok: true, version: 4, scenarioId: seatId(99) });
+    expect(revisions.calls.map((call) => call.request)).toEqual([
+      { scenarioId: seatId(99), baseVersion: 4 },
+    ]);
+    await answer(revisions.calls[0], { ...revision(3), version: 4 });
+    expect(await answered).toEqual({ ok: true, number: 3, reused: false });
+    // The autosave's timer was cancelled: nothing is saved twice.
+    await vi.advanceTimersByTimeAsync(SAVE_DELAY_MS);
+    expect(saves.calls).toHaveLength(1);
+  });
+
+  it("waits for a save on its way, then saves what was changed meanwhile", async () => {
+    const saves = fake<SaveRequest>();
+    const revisions = fake<RevisionRequest>();
+    const store = create(saves.send as (request: SaveRequest) => Promise<SaveOutcome>);
+    store.getState().dispatch(halfDeveloper);
+    await vi.advanceTimersByTimeAsync(SAVE_DELAY_MS);
+    const later: Change = { type: "edit", id: developer.id, set: { allocation: 60 } };
+    store.getState().dispatch(later);
+
+    const answered = store.getState().saveRevision(revisions.send);
+    await answer(saves.calls[0], { ok: true, version: 4, scenarioId: seatId(99) });
+    expect(saves.calls[1]?.request).toEqual({
+      scenarioId: seatId(99),
+      baseVersion: 4,
+      changes: [later],
+    });
+    expect(revisions.calls).toHaveLength(0);
+    await answer(saves.calls[1], { ok: true, version: 5, scenarioId: seatId(99) });
+    expect(revisions.calls[0]?.request).toEqual({ scenarioId: seatId(99), baseVersion: 5 });
+    await answer(revisions.calls[0], { ...revision(1), version: 5 });
+    expect(await answered).toMatchObject({ ok: true, number: 1 });
+  });
+
+  it("sends no revision when the changes cannot be saved", async () => {
+    for (const [outcome, status] of [
+      [{ ok: false, reason: "failed" }, "failed"],
+      [{ ok: false, reason: "conflict", version: 7 }, "conflict"],
+      [{ ok: false, reason: "limit" }, "limit"],
+    ] as const) {
+      const store = create(async () => outcome);
+      store.getState().dispatch(halfDeveloper);
+      const send = vi.fn();
+      expect(await store.getState().saveRevision(send)).toEqual({ ok: false, reason: "unsaved" });
+      expect(send).not.toHaveBeenCalled();
+      expect(store.getState().saveStatus).toBe(status);
+    }
+  });
+
+  it("sends no revision once saving has stopped", async () => {
+    const store = create();
+    store.setState({ saveStatus: "gone" });
+    const send = vi.fn();
+    expect(await store.getState().saveRevision(send)).toEqual({ ok: false, reason: "unsaved" });
+    expect(send).not.toHaveBeenCalled();
+  });
+
+  it("holds the autosave while a revision is on its way, then saves", async () => {
+    const saves = fake<SaveRequest>();
+    const revisions = fake<RevisionRequest>();
+    const store = create(saves.send as (request: SaveRequest) => Promise<SaveOutcome>);
+    const answered = store.getState().saveRevision(revisions.send);
+    await vi.advanceTimersByTimeAsync(0);
+    // Steps are still taken; their save waits for the revision's answer.
+    expect(store.getState().dispatch(halfDeveloper)).toBe(true);
+    await vi.advanceTimersByTimeAsync(SAVE_DELAY_MS);
+    expect(saves.calls).toHaveLength(0);
+
+    await answer(revisions.calls[0], revision(1));
+    expect(await answered).toMatchObject({ ok: true, number: 1 });
+    await vi.advanceTimersByTimeAsync(SAVE_DELAY_MS);
+    expect(saves.calls[0]?.request).toEqual({
+      scenarioId: seatId(99),
+      baseVersion: 3,
+      changes: [halfDeveloper],
+    });
+  });
+
+  it("moves to the copy that a first revision made", async () => {
+    const store = create();
+    const copyOf = (id: string) => id.replace("-8000-", "-9000-");
+    const renamed = Object.fromEntries(
+      [...team.map((member) => member.id), SENIOR, PM].map((id) => [id, copyOf(id)]),
+    );
+    const send = async () => ({ ...revision(2), scenarioId: copyOf(seatId(99)), renamed });
+    expect(await store.getState().saveRevision(send)).toMatchObject({ ok: true, number: 2 });
+    const state = store.getState();
+    expect(state).toMatchObject({ scenarioId: copyOf(seatId(99)), version: 3 });
+    expect(state.renamed[developer.id]).toBe(copyOf(developer.id));
+    expect(state.history.team.map((member) => member.id)).toEqual(
+      team.map((member) => copyOf(member.id)),
+    );
+  });
+
+  it("says why a revision is refused, and stops saving when the scenario changed elsewhere or the copy is gone", async () => {
+    for (const [outcome, status] of [
+      [{ ok: false, reason: "no-rate-access" }, "saved"],
+      [{ ok: false, reason: "limit" }, "saved"],
+      [{ ok: false, reason: "conflict", version: 7 }, "conflict"],
+      [{ ok: false, reason: "not-found" }, "gone"],
+    ] as const) {
+      const store = create();
+      expect(await store.getState().saveRevision(async () => outcome)).toEqual({
+        ok: false,
+        reason: outcome.reason,
+      });
+      expect(store.getState()).toMatchObject({ version: 3, saveStatus: status });
+    }
+  });
+
+  it("takes an error or an answer of another shape for a failed revision", async () => {
+    for (const send of [
+      async () => {
+        throw new Error("offline");
+      },
+      async () => undefined,
+      async () => ({ ok: true, version: 3, scenarioId: seatId(99) }),
+    ]) {
+      const store = create();
+      expect(await store.getState().saveRevision(send)).toEqual({ ok: false, reason: "failed" });
+      expect(store.getState()).toMatchObject({ version: 3, saveStatus: "saved" });
+    }
+  });
+
+  it("refuses a second revision while the first one's changes are being saved", async () => {
+    const saves = fake<SaveRequest>();
+    const store = create(saves.send as (request: SaveRequest) => Promise<SaveOutcome>);
+    store.getState().dispatch(halfDeveloper);
+    const send = vi.fn(async () => ({ ...revision(1), version: 4 }));
+    const first = store.getState().saveRevision(send);
+    expect(await store.getState().saveRevision(send)).toEqual({ ok: false, reason: "busy" });
+    await answer(saves.calls[0], { ok: true, version: 4, scenarioId: seatId(99) });
+    expect(await first).toMatchObject({ ok: true, number: 1 });
+    expect(send).toHaveBeenCalledTimes(1);
+  });
+
+  it("refuses a second revision or a choice while one is on its way", async () => {
+    const store = create();
+    const revisions = fake<RevisionRequest>();
+    const first = store.getState().saveRevision(revisions.send);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(await store.getState().saveRevision(revisions.send)).toEqual({
+      ok: false,
+      reason: "busy",
+    });
+    const choose = vi.fn();
+    expect(await store.getState().setChoice(true, choose)).toEqual({
+      ok: false,
+      reason: "unsaved",
+    });
+    expect(choose).not.toHaveBeenCalled();
+    await answer(revisions.calls[0], revision(1));
+    expect(await first).toMatchObject({ ok: true });
   });
 });
