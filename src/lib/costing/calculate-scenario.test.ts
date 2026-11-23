@@ -11,6 +11,7 @@ import {
   type ExtraCost,
   type Scenario,
   calculateScenario,
+  marginStatusOf,
 } from "./calculate-scenario";
 
 // The Consultancy template and the guide case of docs/domain.md. Synthetic, indicative values.
@@ -605,6 +606,26 @@ describe("calculateScenario: margin", () => {
     expect(result.netMarginCents).toBe(-2001);
     expect(result.netMarginBasisPoints).toBe(-1001);
     expect(result.marginStatus).toBe("red");
+  });
+});
+
+describe("marginStatusOf", () => {
+  const undetermined = { undetermined: [{ code: "missingPrice" as const }] };
+
+  it("judges the rounded net margin % against the target", () => {
+    expect(marginStatusOf(60_000, 2500, 2500)).toBe("green");
+    expect(marginStatusOf(60_000, 2499, 2500)).toBe("amber");
+    expect(marginStatusOf(-1, -1, 2500)).toBe("red");
+  });
+
+  it("is red without revenue only with a negative net margin", () => {
+    expect(marginStatusOf(-100, null, 2500)).toBe("red");
+    expect(marginStatusOf(0, null, 2500)).toBeNull();
+  });
+
+  it("is null with an undetermined net margin", () => {
+    expect(marginStatusOf(undetermined, undetermined, 2500)).toBeNull();
+    expect(marginStatusOf(100, undetermined, 2500)).toBeNull();
   });
 });
 
