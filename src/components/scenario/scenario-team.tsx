@@ -102,7 +102,7 @@ function EmptyTeam() {
   );
 }
 
-function UndrawableTeam({ error, cards }: { error: LayoutError; cards: AssignmentCard[] }) {
+export function UndrawableTeam({ error, cards }: { error: LayoutError; cards: AssignmentCard[] }) {
   const t = useTranslations("TeamTree");
   const format = useFormatter();
   const name = (id: string) => {
