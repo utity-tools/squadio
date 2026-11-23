@@ -9,11 +9,14 @@ export type TenantTransaction = Parameters<Parameters<NodePgDatabase["transactio
 const accessContextSchema = z.strictObject({
   organizationId: z.uuid(),
   rateAccess: z.boolean(),
+  // ADR 0015: a viewer's context. Optional, so the contexts that write need not say so.
+  readOnly: z.boolean().optional(),
 });
 
 /**
- * The access context a transaction acts with: the organization whose rows it sees (ADR 0004) and
- * whether it sees the restricted tables that hold money (ADR 0005).
+ * The access context a transaction acts with: the organization whose rows it sees (ADR 0004),
+ * whether it sees the restricted tables that hold money (ADR 0005), and whether it may write at
+ * all: a read-only context's transactions are READ ONLY (ADR 0015).
  */
 export type AccessContext = z.infer<typeof accessContextSchema>;
 
@@ -21,6 +24,7 @@ export type AccessContext = z.infer<typeof accessContextSchema>;
 const FIELD_ERRORS: Record<keyof AccessContext, string> = {
   organizationId: "organizationId must be a UUID",
   rateAccess: "rateAccess must be a boolean",
+  readOnly: "readOnly must be a boolean",
 };
 
 const isField = (key: PropertyKey | undefined): key is keyof AccessContext =>
@@ -42,15 +46,17 @@ function parseContext(context: AccessContext, caller: string): AccessContext {
 
 /**
  * Sets the Row Level Security context of a transaction that is already open. Both settings are
- * transaction-local. Only code that must act for two organizations in one transaction calls it
- * directly, such as the copy of the demo (ADR 0011); everything else goes through
- * `withOrganization`.
+ * transaction-local. A read-only context first makes the transaction READ ONLY, and Postgres
+ * refuses to make a transaction read-write again after its first query. Only code that must act
+ * for two organizations in one transaction calls it directly, such as the copy of the demo
+ * (ADR 0011); everything else goes through `withOrganization`.
  */
 export async function setAccessContext(
   tx: TenantTransaction,
   context: AccessContext,
 ): Promise<void> {
-  const { organizationId, rateAccess } = parseContext(context, "setAccessContext");
+  const { organizationId, rateAccess, readOnly } = parseContext(context, "setAccessContext");
+  if (readOnly) await tx.execute(sql`set transaction read only`);
   // Anything but exactly 'on' is no rate access in app.has_rate_access().
   await tx.execute(sql`
     select set_config('app.organization_id', ${organizationId}, true),

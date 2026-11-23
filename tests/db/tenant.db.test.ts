@@ -4,7 +4,12 @@ import { sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
-import { withOrganization, type AccessContext, type TenantTransaction } from "@/db/tenant";
+import {
+  setAccessContext,
+  withOrganization,
+  type AccessContext,
+  type TenantTransaction,
+} from "@/db/tenant";
 
 import { appPool, ownerPool } from "./support";
 
@@ -196,4 +201,100 @@ describe("withOrganization", () => {
     expect(transaction).not.toHaveBeenCalled();
     expect(fn).not.toHaveBeenCalled();
   });
+});
+
+// ADR 0015, amendment of 2026-11-23: a viewer's context opens its transactions read only, so the
+// database refuses a write the server forgot to refuse.
+describe("a read-only context", () => {
+  const readOnlyInA: AccessContext = { ...inA, readOnly: true };
+
+  /** The Postgres error a write in a read-only transaction raises. */
+  const READ_ONLY_SQL_TRANSACTION = "25006";
+
+  const codeOf = (error: unknown) => {
+    const cause = error instanceof Error && error.cause instanceof Error ? error.cause : error;
+    return cause && typeof cause === "object" && "code" in cause ? cause.code : undefined;
+  };
+
+  it("reads its own organization's rows", async () => {
+    expect(await withOrganization(app, readOnlyInA, rows)).toEqual([
+      { organization_id: orgA, label: "a-1" },
+      { organization_id: orgA, label: "a-2" },
+    ]);
+  });
+
+  it("opens the transaction read only", async () => {
+    const { rows: modes } = await withOrganization(app, readOnlyInA, (tx) =>
+      tx.execute<{ mode: string }>(sql`select current_setting('transaction_read_only') as mode`),
+    );
+    expect(modes).toEqual([{ mode: "on" }]);
+  });
+
+  it.each([
+    ["an insert", (tx: TenantTransaction) => insert(tx, orgA, "a-3")],
+    ["an update", (tx: TenantTransaction) => tx.execute(sql`update ${table} set label = 'a-x'`)],
+    ["a delete", (tx: TenantTransaction) => tx.execute(sql`delete from ${table}`)],
+  ])("refuses %s", async (_label, write) => {
+    const error = await withOrganization(app, readOnlyInA, write).catch((e: unknown) => e);
+
+    expect(codeOf(error)).toBe(READ_ONLY_SQL_TRANSACTION);
+    expect(await withOrganization(app, inA, rows)).toHaveLength(2);
+  });
+
+  it.each([
+    ["SET TRANSACTION", sql`set transaction read write`],
+    ["set_config", sql`select set_config('transaction_read_only', 'off', true)`],
+  ])("cannot be made read-write later with %s", async (_label, statement) => {
+    const error = await withOrganization(app, readOnlyInA, async (tx) => {
+      await tx.execute(statement);
+      return insert(tx, orgA, "a-3");
+    }).catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(Error);
+    expect(await withOrganization(app, inA, rows)).toHaveLength(2);
+  });
+
+  it("makes a transaction already open read only too", async () => {
+    const error = await app
+      .transaction(async (tx) => {
+        await setAccessContext(tx, readOnlyInA);
+        return insert(tx, orgA, "a-3");
+      })
+      .catch((e: unknown) => e);
+
+    expect(codeOf(error)).toBe(READ_ONLY_SQL_TRANSACTION);
+  });
+
+  it("does not leak to the next transaction on the same connection", async () => {
+    await withOrganization(app, readOnlyInA, rows);
+
+    const { rows: modes } = await withOrganization(app, inA, (tx) =>
+      tx.execute<{ mode: string }>(sql`select current_setting('transaction_read_only') as mode`),
+    );
+    expect(modes).toEqual([{ mode: "off" }]);
+  });
+
+  it("leaves a context without it, or with it false, read-write", async () => {
+    for (const context of [inA, { ...inA, readOnly: false }]) {
+      const { rows: modes } = await withOrganization(app, context, (tx) =>
+        tx.execute<{ mode: string }>(sql`select current_setting('transaction_read_only') as mode`),
+      );
+      expect(modes).toEqual([{ mode: "off" }]);
+    }
+  });
+
+  it.each([null, "on", "true", 1, 0])(
+    "rejects readOnly %j before any query, without echoing it",
+    async (readOnly) => {
+      const transaction = vi.spyOn(app, "transaction");
+      const fn = vi.fn();
+      const context = { ...inA, readOnly } as unknown as AccessContext;
+
+      await expect(withOrganization(app, context, fn)).rejects.toThrow(
+        new TypeError("withOrganization: readOnly must be a boolean"),
+      );
+      expect(transaction).not.toHaveBeenCalled();
+      expect(fn).not.toHaveBeenCalled();
+    },
+  );
 });
