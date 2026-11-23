@@ -356,6 +356,7 @@
         "errors": {
           "signed-out": "Your session has ended. Sign in again to create the project.",
           "no-organization": "Your account no longer belongs to an organization.",
+          "read-only": "You are a viewer: you can read the organization's data, but not change it.",
           "no-rate-access": "Creating projects needs rate access.",
           "failed": "The project could not be created. Try again."
         }
@@ -369,6 +370,7 @@
         "errors": {
           "signed-out": "Your session has ended. Sign in again to save the project.",
           "no-organization": "Your account no longer belongs to an organization.",
+          "read-only": "You are a viewer: you can read the organization's data, but not change it.",
           "no-rate-access": "Editing projects needs rate access.",
           "not-found": "This project no longer exists in your organization.",
           "failed": "The project could not be saved. Try again."
@@ -462,6 +464,7 @@
           "payments": "Choose 12 or 14 payments.",
           "signed-out": "Your session has ended. Sign in again to save the category.",
           "no-organization": "Your account no longer belongs to any organization.",
+          "read-only": "You are a viewer: you can read the organization's data, but not change it.",
           "no-rate-access": "Saving costs needs rate access.",
           "not-found": "This category no longer exists.",
           "failed": "The category could not be saved. Try again."
@@ -477,6 +480,7 @@
       "errors": {
         "signed-out": "Your session has ended. Sign in again to create the scenario.",
         "no-organization": "Your account no longer belongs to any organization.",
+        "read-only": "You are a viewer: you can read the organization's data, but not change it.",
         "not-found": "This project no longer exists.",
         "failed": "The scenario could not be created. Try again.",
         "no-categories": "Create a category first: the team is built from them."
@@ -537,6 +541,7 @@
         "hours": "Type a week's hours: above 0 and up to 168, with at most two decimals.",
         "signed-out": "Your session has ended. Sign in again to save the person.",
         "no-organization": "Your account no longer belongs to an organization.",
+        "read-only": "You are a viewer: you can read the organization's data, but not change it.",
         "no-rate-access": "Saving people needs rate access.",
         "not-found": "This person no longer exists.",
         "failed": "The person could not be saved. Try again."

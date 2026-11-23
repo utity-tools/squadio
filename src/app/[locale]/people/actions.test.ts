@@ -71,6 +71,19 @@ beforeEach(() => {
 });
 
 describe("savePerson", () => {
+  // ADR 0015: a viewer edits nothing; the server refuses before any write.
+  it("refuses a viewer, for a new person and an edit, without writing", async () => {
+    mocks.member = {
+      organizationId,
+      capabilities: { rateAccess: false, edit: false, choose: false, manage: false },
+    };
+    expect((await savePerson(initial, form(pablo))).error).toBe("read-only");
+    expect((await savePerson(initial, form({ ...pablo, personId }))).error).toBe("read-only");
+    expect(mocks.createPerson).not.toHaveBeenCalled();
+    expect(mocks.updatePerson).not.toHaveBeenCalled();
+    expect(mocks.refresh).not.toHaveBeenCalled();
+  });
+
   it("creates a person in the member's organization and refreshes the page", async () => {
     mocks.createPerson.mockResolvedValue({ ok: true, personId });
     const state = await savePerson(initial, form(pablo));

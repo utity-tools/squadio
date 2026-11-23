@@ -356,6 +356,7 @@
         "errors": {
           "signed-out": "Tu sesión ha terminado. Entra de nuevo para crear el proyecto.",
           "no-organization": "Tu cuenta ya no pertenece a ninguna organización.",
+          "read-only": "Tu rol es de lector: puedes ver los datos de la organización, pero no cambiarlos.",
           "no-rate-access": "Crear proyectos necesita acceso a tarifas.",
           "failed": "No se ha podido crear el proyecto. Inténtalo de nuevo."
         }
@@ -369,6 +370,7 @@
         "errors": {
           "signed-out": "Tu sesión ha terminado. Entra de nuevo para guardar el proyecto.",
           "no-organization": "Tu cuenta ya no pertenece a ninguna organización.",
+          "read-only": "Tu rol es de lector: puedes ver los datos de la organización, pero no cambiarlos.",
           "no-rate-access": "Editar proyectos necesita acceso a tarifas.",
           "not-found": "Este proyecto ya no existe en tu organización.",
           "failed": "No se ha podido guardar el proyecto. Inténtalo de nuevo."
@@ -462,6 +464,7 @@
           "payments": "Elige 12 o 14 pagas.",
           "signed-out": "Tu sesión ha terminado. Entra de nuevo para guardar la categoría.",
           "no-organization": "Tu cuenta ya no pertenece a ninguna organización.",
+          "read-only": "Tu rol es de lector: puedes ver los datos de la organización, pero no cambiarlos.",
           "no-rate-access": "Guardar costes necesita acceso a tarifas.",
           "not-found": "Esta categoría ya no existe.",
           "failed": "No se ha podido guardar la categoría. Inténtalo de nuevo."
@@ -477,6 +480,7 @@
       "errors": {
         "signed-out": "Tu sesión ha terminado. Entra de nuevo para crear el escenario.",
         "no-organization": "Tu cuenta ya no pertenece a ninguna organización.",
+        "read-only": "Tu rol es de lector: puedes ver los datos de la organización, pero no cambiarlos.",
         "not-found": "Este proyecto ya no existe.",
         "failed": "No se ha podido crear el escenario. Inténtalo de nuevo.",
         "no-categories": "Crea antes una categoría: el equipo se monta con ellas."
@@ -537,6 +541,7 @@
         "hours": "Escribe las horas de una semana: más de 0 y hasta 168, con dos decimales como mucho.",
         "signed-out": "Tu sesión ha terminado. Entra de nuevo para guardar la persona.",
         "no-organization": "Tu cuenta ya no pertenece a ninguna organización.",
+        "read-only": "Tu rol es de lector: puedes ver los datos de la organización, pero no cambiarlos.",
         "no-rate-access": "Guardar personas necesita acceso a tarifas.",
         "not-found": "Esta persona ya no existe.",
         "failed": "No se ha podido guardar la persona. Inténtalo de nuevo."

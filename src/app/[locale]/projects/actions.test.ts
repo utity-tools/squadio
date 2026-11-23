@@ -55,6 +55,17 @@ beforeEach(() => {
 });
 
 describe("createNewProject", () => {
+  // ADR 0015: a viewer edits nothing; the server refuses before any write.
+  it("refuses a viewer without writing", async () => {
+    mocks.member = {
+      organizationId,
+      capabilities: { rateAccess: false, edit: false, choose: false, manage: false },
+    };
+    expect((await createNewProject(initial, form(fixed))).error).toBe("read-only");
+    expect(mocks.createProject).not.toHaveBeenCalled();
+    expect(mocks.redirect).not.toHaveBeenCalled();
+  });
+
   it("creates it in the member's organization and leads to its page", async () => {
     mocks.createProject.mockResolvedValue({ ok: true, projectId: "p" });
     await createNewProject(initial, form(fixed));

@@ -82,6 +82,19 @@ beforeEach(() => {
 });
 
 describe("saveCategory", () => {
+  // ADR 0015: a viewer edits nothing; the server refuses before any write.
+  it("refuses a viewer, for a new category and an edit, without writing", async () => {
+    mocks.member = {
+      organizationId,
+      capabilities: { rateAccess: false, edit: false, choose: false, manage: false },
+    };
+    expect((await saveCategory(initial, form(devOps))).error).toBe("read-only");
+    expect((await saveCategory(initial, form({ ...devOps, categoryId }))).error).toBe("read-only");
+    expect(mocks.createCategory).not.toHaveBeenCalled();
+    expect(mocks.updateCategory).not.toHaveBeenCalled();
+    expect(mocks.refresh).not.toHaveBeenCalled();
+  });
+
   it("creates a category in the member's organization and refreshes the page", async () => {
     mocks.createCategory.mockResolvedValue({ ok: true, categoryId });
     const state = await saveCategory(initial, form(devOps));
@@ -172,6 +185,16 @@ describe("saveCategory", () => {
 const projectId = "0b5e0c1e-0000-4000-8000-000000000004";
 
 describe("createNewScenario", () => {
+  it("refuses a viewer without writing", async () => {
+    mocks.member = {
+      organizationId,
+      capabilities: { rateAccess: false, edit: false, choose: false, manage: false },
+    };
+    expect((await createNewScenario({ error: null }, form({ projectId }))).error).toBe("read-only");
+    expect(mocks.createScenario).not.toHaveBeenCalled();
+    expect(mocks.redirect).not.toHaveBeenCalled();
+  });
+
   it("creates the project's next scenario, named in the form's locale, and opens it", async () => {
     mocks.member = {
       organizationId,
@@ -235,6 +258,16 @@ describe("editProject", () => {
     description: "A portal.",
     locale: "en",
   };
+
+  it("refuses a viewer without writing", async () => {
+    mocks.member = {
+      organizationId,
+      capabilities: { rateAccess: false, edit: false, choose: false, manage: false },
+    };
+    expect((await editProject(unsaved, form(portal))).error).toBe("read-only");
+    expect(mocks.updateProject).not.toHaveBeenCalled();
+    expect(mocks.refresh).not.toHaveBeenCalled();
+  });
 
   it("saves the form over the project in the member's organization, then refreshes", async () => {
     mocks.updateProject.mockResolvedValue({ ok: true });
