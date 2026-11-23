@@ -198,20 +198,36 @@ describe("deleteAccount", () => {
     );
   });
 
-  it("keeps an organization that has another owner, without the account's membership", async () => {
-    const member = await owner("co-owner-leaves");
-    const other = await owner("co-owner-stays");
+  // ADR 0015: an organization has one owner, so a member's account leaves it, and the owner's
+  // takes it along, members included.
+  it("keeps an organization the account is only a member of, without its membership", async () => {
+    const leaving = await owner("member-leaves");
+    const stays = await owner("owner-stays");
     await pool.query(
-      `insert into auth.member (organization_id, user_id, role) values ($1, $2, 'owner')`,
-      [member.organizationId, other.userId],
+      `insert into auth.member (organization_id, user_id, role) values ($1, $2, 'member')`,
+      [stays.organizationId, leaving.userId],
     );
-    const rows = await tenantRowsOf(member.organizationId);
+    const rows = await tenantRowsOf(stays.organizationId);
 
-    await deleteAccount(app, member.userId);
+    await deleteAccount(app, leaving.userId);
 
-    expect(await organizationExists(member.organizationId)).toBe(true);
-    expect(await tenantRowsOf(member.organizationId)).toBe(rows);
-    expect(await membersOf(member.organizationId)).toBe(1);
+    expect(await organizationExists(stays.organizationId)).toBe(true);
+    expect(await tenantRowsOf(stays.organizationId)).toBe(rows);
+    expect(await membersOf(stays.organizationId)).toBe(1);
+  });
+
+  it("deletes the owner's organization even when it has other members", async () => {
+    const leaving = await owner("owner-leaves");
+    const viewer = await owner("viewer-stays");
+    await pool.query(
+      `insert into auth.member (organization_id, user_id, role) values ($1, $2, 'viewer')`,
+      [leaving.organizationId, viewer.userId],
+    );
+
+    await deleteAccount(app, leaving.userId);
+
+    expect(await organizationExists(leaving.organizationId)).toBe(false);
+    expect(await membersOf(viewer.organizationId)).toBe(1);
   });
 
   it("leaves other accounts and their organizations alone", async () => {
