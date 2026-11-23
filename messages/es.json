@@ -1228,6 +1228,14 @@
       "chosen": "elegida"
     }
   },
+  "RevisionPage": {
+    "title": "Revisión",
+    "heading": "{scenario} · Revisión {number}",
+    "openScenario": "Abrir el escenario",
+    "readOnly": "Solo lectura: una revisión nunca cambia.",
+    "newer": "Este escenario tiene una revisión más nueva.",
+    "latest": "Ver la revisión {number}"
+  },
   "SaveRevision": {
     "button": "Guardar revisión",
     "busy": "Guardando revisión…",

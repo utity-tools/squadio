@@ -1228,6 +1228,14 @@
       "chosen": "chosen"
     }
   },
+  "RevisionPage": {
+    "title": "Revision",
+    "heading": "{scenario} · Revision {number}",
+    "openScenario": "Open the scenario",
+    "readOnly": "Read only: a revision never changes.",
+    "newer": "This scenario has a newer revision.",
+    "latest": "See revision {number}"
+  },
   "SaveRevision": {
     "button": "Save revision",
     "busy": "Saving revision…",
