@@ -68,9 +68,16 @@ export default async function ScenarioPage({
     notFound();
   }
   const revisions = await loadRevisions(db, context, id);
+  // A viewer reads the team and edits nothing (ADR 0015): no controls, and the team is locked.
+  const readOnly = context.readOnly === true;
 
   return (
-    <ScenarioEditor scenarioId={id} editing={scenario.editing} save={saveScenario}>
+    <ScenarioEditor
+      scenarioId={id}
+      editing={scenario.editing}
+      save={saveScenario}
+      readOnly={readOnly}
+    >
       <AppShell
         scope="editor"
         current="inside-projects"
@@ -94,13 +101,15 @@ export default async function ScenarioPage({
         <ScenarioShell
           header={<LiveScenarioHeader />}
           actions={
-            <>
-              <SaveStatus />
-              <HistoryControls />
-              <ScenarioDuplicate send={duplicateScenario} />
-              <ScenarioRevision send={saveRevision} />
-              <ScenarioChoice scenarioId={id} send={setScenarioChoice} />
-            </>
+            readOnly ? null : (
+              <>
+                <SaveStatus />
+                <HistoryControls />
+                <ScenarioDuplicate send={duplicateScenario} />
+                <ScenarioRevision send={saveRevision} />
+                <ScenarioChoice scenarioId={id} send={setScenarioChoice} />
+              </>
+            )
           }
           bench={<Bench day={today} />}
           team={<LiveScenarioTeam />}

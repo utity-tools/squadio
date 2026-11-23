@@ -11,7 +11,11 @@ import {
   useState,
 } from "react";
 
-import { useScenarioStore, useScenarioView } from "@/components/scenario/scenario-editor";
+import {
+  useScenarioReadOnly,
+  useScenarioStore,
+  useScenarioView,
+} from "@/components/scenario/scenario-editor";
 import { useTeamDrag } from "@/components/team-drag/team-drag";
 import { madridToday } from "@/lib/bench/occupancy";
 import type { Change } from "@/lib/scenarios/change";
@@ -91,12 +95,14 @@ type Dialog =
 
 /**
  * Gives the team views their menus and dialogs, and turns each step of the store into a focus
- * request. A chosen scenario's team cannot be edited, so it gets no context at all.
+ * request. A chosen scenario's team cannot be edited, nor can a viewer's page (ADR 0015), so
+ * neither gets a context at all.
  */
 export function TeamEditingProvider({ children }: { children: ReactNode }) {
   const t = useTranslations("TeamEditing");
   const store = useScenarioStore();
   const view = useScenarioView();
+  const readOnly = useScenarioReadOnly();
   const [dialog, setDialog] = useState<Dialog | null>(null);
   const [region, setRegion] = useState<HTMLDivElement | null>(null);
   const [focusRequest, setFocusRequest] = useState<FocusRequest | null>(null);
@@ -136,9 +142,9 @@ export function TeamEditingProvider({ children }: { children: ReactNode }) {
   }
 
   // Drops take the same steps as the menus, with the defaults of "Add to team…" and no dialog
-  // (docs/domain.md, "Changes"). A chosen scenario takes none.
+  // (docs/domain.md, "Changes"). A chosen scenario takes none, and neither does a viewer's page.
   const { register } = useTeamDrag();
-  const chosen = view.scenario.chosen;
+  const locked = view.scenario.chosen || readOnly;
   const drop = useEffectEvent((dragged: Dragged, zone: DropZone) => {
     const { history, basis, roster } = store.getState();
     const change = dropChange(
@@ -157,7 +163,7 @@ export function TeamEditingProvider({ children }: { children: ReactNode }) {
     if (change) dispatchOwn(change);
   });
   useEffect(() => {
-    if (chosen) return;
+    if (locked) return;
     return register({
       accepts: (dragged, zone) => {
         const { history, roster } = store.getState();
@@ -165,9 +171,9 @@ export function TeamEditingProvider({ children }: { children: ReactNode }) {
       },
       drop: (dragged, zone) => drop(dragged, zone),
     });
-  }, [chosen, register, store]);
+  }, [locked, register, store]);
 
-  if (chosen) return children;
+  if (locked) return children;
 
   const members = new Map(view.team.map((member) => [member.id, member]));
   const nameOf = (id: string) => {

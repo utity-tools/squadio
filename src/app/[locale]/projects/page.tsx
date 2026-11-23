@@ -47,7 +47,8 @@ async function ProjectsContent({
   const portfolio = await loadPortfolio(db, access.context, madridToday(new Date()));
   // Creating a project writes its price, so only a member with rate access may (ADR 0005); a
   // visitor's copy and the demo never offer it.
-  const canCreate = access.member && access.context.rateAccess;
+  // A viewer edits nothing (ADR 0015).
+  const canCreate = access.member && access.context.rateAccess && access.context.readOnly !== true;
   if (portfolio.projects.length === 0) {
     return (
       <ProjectsEmpty

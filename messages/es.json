@@ -821,7 +821,8 @@
     "table": "Tabla",
     "locked": {
       "frozen": "Equipo bloqueado · costes y tarifas de venta congelados",
-      "chosen": "Equipo bloqueado · escenario elegido"
+      "chosen": "Equipo bloqueado · escenario elegido",
+      "viewer": "Solo lectura · tu rol es de lector"
     }
   },
   "PlannedPeriod": {

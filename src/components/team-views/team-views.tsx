@@ -35,7 +35,7 @@ export type TeamViewsProps = {
    * A chosen scenario's team is locked: the bar says so, and with rate access that its costs and
    * rates are frozen too.
    */
-  locked?: "frozen" | "chosen";
+  locked?: "frozen" | "chosen" | "viewer";
   /** How much of the planned period the team leaves uncovered, if any: flagged, never refused. */
   uncovered?: UncoveredPeriod | null;
 };

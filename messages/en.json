@@ -821,7 +821,8 @@
     "table": "Table",
     "locked": {
       "frozen": "Team locked · costs and sell rates frozen",
-      "chosen": "Team locked · scenario chosen"
+      "chosen": "Team locked · scenario chosen",
+      "viewer": "Read only · you are a viewer"
     }
   },
   "PlannedPeriod": {
