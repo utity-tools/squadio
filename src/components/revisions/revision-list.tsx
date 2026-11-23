@@ -1,23 +1,9 @@
-import { useFormatter, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { useId } from "react";
 
 import type { RevisionLine } from "@/db/load-revisions";
 
-/** A dot between a line's parts, which a screen reader hears as a pause. */
-function Separator() {
-  return (
-    <>
-      <span aria-hidden> · </span>
-      <span className="sr-only">, </span>
-    </>
-  );
-}
-
-/**
- * Who a revision without an author was made by: a visitor in the demo and its visitors' copies,
- * where nobody signs in, or else a member whose account is gone.
- */
-export type AnonymousAuthor = "visitor" | "formerMember";
+import { type AnonymousAuthor, RevisionMeta } from "./revision-meta";
 
 export type RevisionListProps = {
   /** Newest first, as loaded. */
@@ -31,7 +17,6 @@ export type RevisionListProps = {
  */
 export function RevisionList({ revisions, anonymous }: RevisionListProps) {
   const t = useTranslations("Revisions");
-  const format = useFormatter();
   const id = useId();
 
   return (
@@ -46,19 +31,11 @@ export function RevisionList({ revisions, anonymous }: RevisionListProps) {
           {revisions.map((revision) => (
             <li key={revision.id} className="flex flex-col text-sm">
               <span className="font-medium">{t("number", { number: revision.number })}</span>
-              <span className="text-xs text-muted-foreground">
-                <time dateTime={revision.madeAt.toISOString()}>
-                  {format.dateTime(revision.madeAt, {
-                    dateStyle: "medium",
-                    timeStyle: "short",
-                    timeZone: "Europe/Madrid",
-                  })}
-                </time>
-                <Separator />
-                {revision.author ?? t(`anonymous.${anonymous}`)}
-                <Separator />
-                {t(`reason.${revision.reason}`)}
-              </span>
+              <RevisionMeta
+                revision={revision}
+                anonymous={anonymous}
+                className="text-xs text-muted-foreground"
+              />
             </li>
           ))}
         </ol>
