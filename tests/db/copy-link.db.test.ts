@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { copyLink, copyProjectLink } from "@/db/copy-link";
+import { copyLink, copyProjectLink, copyRevisionLink } from "@/db/copy-link";
 import { copyOrganization } from "@/db/copy-organization";
 import { DEMO_IDS, DEMO_ORGANIZATION_ID, seedDemo } from "@/db/demo-seed";
 import { copyId } from "@/lib/visitors/copy-id";
@@ -54,5 +54,19 @@ describe("copyProjectLink", () => {
     const template = { organizationId: DEMO_ORGANIZATION_ID, rateAccess: true };
     expect(await copyProjectLink(app, template, DEMO_IDS.project, {})).toBeNull();
     expect(await copyProjectLink(app, visitor, randomUUID(), {})).toBeNull();
+  });
+});
+
+describe("copyRevisionLink", () => {
+  it("leads a template revision to the visitor's copy of it, with the query", async () => {
+    expect(
+      await copyRevisionLink(app, visitor, DEMO_IDS.deliveryRevision, { access: "none" }),
+    ).toBe(`/revisions/${copyId(DEMO_IDS.deliveryRevision, org)}?access=none`);
+  });
+
+  it("leads nowhere for the template itself, or for an id the copy does not hold", async () => {
+    const template = { organizationId: DEMO_ORGANIZATION_ID, rateAccess: true };
+    expect(await copyRevisionLink(app, template, DEMO_IDS.deliveryRevision, {})).toBeNull();
+    expect(await copyRevisionLink(app, visitor, randomUUID(), {})).toBeNull();
   });
 });
