@@ -1147,6 +1147,28 @@
       "not-owner": "Solo el propietario puede revocar invitaciones.",
       "not-found": "Esa invitación ya no está pendiente.",
       "failed": "No pudimos revocar la invitación. Inténtalo de nuevo."
+    },
+    "manage": {
+      "makeViewer": "Hacer lector",
+      "makeViewerLabel": "Hacer lector a {name}",
+      "makeMember": "Hacer miembro",
+      "makeMemberLabel": "Hacer miembro a {name}",
+      "changing": "Cambiando…",
+      "changed": "{name} ahora tiene el rol {role}.",
+      "remove": "Quitar…",
+      "removeLabel": "Quitar a {name} de la organización",
+      "removeTitle": "¿Quitar a {name}?",
+      "removeDescription": "Dejará de ver la organización en cuanto vuelva a usar Squadio. Su cuenta, sus otras organizaciones y la autoría de sus revisiones se quedan, y puedes volver a invitar a esa persona.",
+      "cancel": "Cancelar",
+      "confirmRemove": "Quitar",
+      "removing": "Quitando…",
+      "removed": "{name} ya no está en la organización."
+    },
+    "manageErrors": {
+      "signed-out": "Tu sesión ha terminado. Vuelve a iniciar sesión.",
+      "not-owner": "Solo el propietario puede cambiar roles y quitar miembros.",
+      "not-found": "Esa persona ya no está en la organización, o su rol no se puede cambiar.",
+      "failed": "No pudimos guardar el cambio. Inténtalo de nuevo."
     }
   },
   "Invitation": {

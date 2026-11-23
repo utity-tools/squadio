@@ -18,7 +18,12 @@ import { assertLocale, currentLocale } from "@/i18n/locale";
 import { redirect } from "@/i18n/navigation";
 import { invitationLink } from "@/lib/invitations/link";
 
-import { inviteMember, revokeMemberInvitation } from "./actions";
+import {
+  changeRole,
+  inviteMember,
+  removeFromOrganization,
+  revokeMemberInvitation,
+} from "./actions";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("Members");
@@ -26,7 +31,8 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 // ADR 0015, amendment of 2026-11-23 (slice 4b): the members of the organization the session acts
-// in. Every member sees names and roles; the owner also sees emails, invites and revokes.
+// in. Every member sees names and roles; the owner also sees emails, invites and revokes, changes
+// roles and removes members (slice 4c).
 export default async function MembersPage() {
   await assertLocale();
   const t = await getTranslations("Members");
@@ -78,7 +84,12 @@ async function MembersContent() {
   return (
     <>
       <h1 className="text-2xl font-semibold tracking-tight">{t("title")}</h1>
-      <MembersList members={page.members} />
+      <MembersList
+        members={page.members}
+        manage={
+          member.capabilities.manage ? { changeRole, remove: removeFromOrganization } : undefined
+        }
+      />
       {page.invitations && (
         <InvitationsPanel
           invitations={page.invitations.map((invitation) => ({

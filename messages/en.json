@@ -1147,6 +1147,28 @@
       "not-owner": "Only the owner can revoke invitations.",
       "not-found": "That invitation is no longer pending.",
       "failed": "We couldn't revoke the invitation. Try again."
+    },
+    "manage": {
+      "makeViewer": "Make viewer",
+      "makeViewerLabel": "Make {name} a viewer",
+      "makeMember": "Make member",
+      "makeMemberLabel": "Make {name} a member",
+      "changing": "Changing…",
+      "changed": "{name} now has the role {role}.",
+      "remove": "Remove…",
+      "removeLabel": "Remove {name} from the organization",
+      "removeTitle": "Remove {name}?",
+      "removeDescription": "They stop seeing the organization as soon as they use Squadio again. Their account, their other organizations and the authorship of their revisions stay, and you can invite them again.",
+      "cancel": "Cancel",
+      "confirmRemove": "Remove",
+      "removing": "Removing…",
+      "removed": "{name} is no longer in the organization."
+    },
+    "manageErrors": {
+      "signed-out": "Your session has ended. Sign in again.",
+      "not-owner": "Only the owner can change roles and remove members.",
+      "not-found": "That person is no longer in the organization, or their role can't be changed.",
+      "failed": "We couldn't save the change. Try again."
     }
   },
   "Invitation": {

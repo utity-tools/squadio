@@ -13,17 +13,24 @@ const mocks = vi.hoisted(() => ({
   },
   inviteToOrganization: vi.fn(),
   revokeInvitation: vi.fn(),
+  changeMemberRole: vi.fn(),
+  removeMember: vi.fn(),
   refresh: vi.fn(),
 }));
 vi.mock("next/cache", () => ({ refresh: mocks.refresh }));
 vi.mock("@/db/client", () => ({ db: { client: "app" } }));
 vi.mock("@/auth/session", () => ({ currentSession: async () => mocks.session }));
+vi.mock("@/db/memberships", () => ({
+  changeMemberRole: mocks.changeMemberRole,
+  removeMember: mocks.removeMember,
+}));
 vi.mock("@/db/invitations", () => ({
   inviteToOrganization: mocks.inviteToOrganization,
   revokeInvitation: mocks.revokeInvitation,
 }));
 
-const { inviteMember, revokeMemberInvitation } = await import("./actions");
+const { changeRole, inviteMember, removeFromOrganization, revokeMemberInvitation } =
+  await import("./actions");
 
 const session = {
   userId: "0b5e0c1e-0000-4000-8000-000000000001",
@@ -32,6 +39,7 @@ const session = {
 };
 const invitationId = "0b5e0c1e-0000-4000-8000-000000000300";
 const initial = { error: null, invitationId: null, values: null };
+const memberId = "0b5e0c1e-0000-4000-8000-000000000400";
 
 const form = (fields: Record<string, string>) => {
   const data = new FormData();
@@ -41,7 +49,13 @@ const form = (fields: Record<string, string>) => {
 
 beforeEach(() => {
   mocks.session = session;
-  for (const mock of [mocks.inviteToOrganization, mocks.revokeInvitation, mocks.refresh]) {
+  for (const mock of [
+    mocks.inviteToOrganization,
+    mocks.revokeInvitation,
+    mocks.changeMemberRole,
+    mocks.removeMember,
+    mocks.refresh,
+  ]) {
     mock.mockReset();
   }
 });
@@ -164,5 +178,109 @@ describe("revokeMemberInvitation", () => {
 
     expect(await revokeMemberInvitation({ error: null }, form({}))).toEqual({ error: "not-found" });
     expect(mocks.revokeInvitation).toHaveBeenCalledWith({ client: "app" }, session, "");
+  });
+});
+
+describe("changeRole", () => {
+  it("gives the form's member the form's role, for the session's account, and reloads", async () => {
+    mocks.changeMemberRole.mockResolvedValue({ ok: true });
+
+    expect(await changeRole({ error: null }, form({ memberId, role: "viewer" }))).toEqual({
+      error: null,
+    });
+    expect(mocks.changeMemberRole).toHaveBeenCalledWith({ client: "app" }, session, {
+      memberId,
+      role: "viewer",
+    });
+    expect(mocks.refresh).toHaveBeenCalledOnce();
+  });
+
+  it.each<Record<string, string>>([
+    { memberId, role: "owner" },
+    { memberId },
+    { memberId: "not-a-uuid", role: "member" },
+    { role: "member" },
+  ])("finds nothing for %j, without touching the database", async (fields) => {
+    expect(await changeRole({ error: null }, form(fields))).toEqual({ error: "not-found" });
+    expect(mocks.changeMemberRole).not.toHaveBeenCalled();
+  });
+
+  it("refuses when signed out", async () => {
+    mocks.session = null;
+
+    expect(await changeRole({ error: null }, form({ memberId, role: "viewer" }))).toEqual({
+      error: "signed-out",
+    });
+    expect(mocks.changeMemberRole).not.toHaveBeenCalled();
+  });
+
+  it.each(["not-owner", "not-found"])("says why the database refused: %s", async (reason) => {
+    mocks.changeMemberRole.mockResolvedValue({ ok: false, reason });
+
+    expect(await changeRole({ error: null }, form({ memberId, role: "viewer" }))).toEqual({
+      error: reason,
+    });
+    expect(mocks.refresh).not.toHaveBeenCalled();
+  });
+
+  it("fails without telling the error's values", async () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    mocks.changeMemberRole.mockRejectedValue(new Error(memberId));
+
+    expect(await changeRole({ error: null }, form({ memberId, role: "viewer" }))).toEqual({
+      error: "failed",
+    });
+    expect(log).toHaveBeenCalledWith("changeMemberRole failed: Error");
+    log.mockRestore();
+  });
+});
+
+describe("removeFromOrganization", () => {
+  it("removes the form's member for the session's account, and reloads", async () => {
+    mocks.removeMember.mockResolvedValue({ ok: true });
+
+    expect(await removeFromOrganization({ error: null }, form({ memberId }))).toEqual({
+      error: null,
+    });
+    expect(mocks.removeMember).toHaveBeenCalledWith({ client: "app" }, session, memberId);
+    expect(mocks.refresh).toHaveBeenCalledOnce();
+  });
+
+  it.each<Record<string, string>>([{}, { memberId: "not-a-uuid" }])(
+    "finds nothing for %j, without touching the database",
+    async (fields) => {
+      expect(await removeFromOrganization({ error: null }, form(fields))).toEqual({
+        error: "not-found",
+      });
+      expect(mocks.removeMember).not.toHaveBeenCalled();
+    },
+  );
+
+  it("refuses when signed out", async () => {
+    mocks.session = null;
+
+    expect(await removeFromOrganization({ error: null }, form({ memberId }))).toEqual({
+      error: "signed-out",
+    });
+  });
+
+  it.each(["not-owner", "not-found"])("says why the database refused: %s", async (reason) => {
+    mocks.removeMember.mockResolvedValue({ ok: false, reason });
+
+    expect(await removeFromOrganization({ error: null }, form({ memberId }))).toEqual({
+      error: reason,
+    });
+    expect(mocks.refresh).not.toHaveBeenCalled();
+  });
+
+  it("fails without telling the error's values", async () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    mocks.removeMember.mockRejectedValue(new Error(memberId));
+
+    expect(await removeFromOrganization({ error: null }, form({ memberId }))).toEqual({
+      error: "failed",
+    });
+    expect(log).toHaveBeenCalledWith("removeMember failed: Error");
+    log.mockRestore();
   });
 });
