@@ -1,8 +1,7 @@
 import { expect, test } from "@playwright/test";
 
-// ADR 0012: the organization page is for signed-in accounts. E2E runs with sign-up off and never
-// reaches GitHub or Google, so it checks the signed-out side; database and unit tests cover the
-// signed-in one.
+// ADR 0012: the organization page is for signed-in accounts. These tests check the signed-out side;
+// roles.spec.ts signs accounts in, without GitHub or Google (amendment of 2026-11-23).
 
 test("sends a visitor without an account to the sign-in page", async ({ page }) => {
   await page.goto("/organization");
