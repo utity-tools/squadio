@@ -17,14 +17,9 @@ AWS Frankfurt. Only GitHub Actions deploys, and only from `main` after CI passed
 4. `pnpm db:check-target owner` fails unless `DATABASE_OWNER_URL` leads to `squadio_owner` on
    `squadio`: a string pointing elsewhere would still migrate, and go green
    ([post-mortem](../incidents/2026-10-23-migrations-in-neondb.md)). Then `pnpm db:migrate`
-   applies pending migrations, and `pnpm db:backfill-revisions` gives every scenario chosen before
-   v0.5's slice 6 a revision to point at (migration 0016). It runs one organization at a time,
-   commits each, and changes nothing when run again, so a deploy that stops halfway resumes. It
-   prints counts only; a scenario it cannot cost (a date outside the calendar) is unchosen and
-   named by id in a warning. `--dry-run` counts without writing. Until the new deployment is live,
-   the previous one can neither choose nor unchoose: migration 0016's check refuses a chosen
-   scenario without a revision, and one with a revision that is not chosen, so those requests fail
-   for the minute or two the deploy takes, and so does a visitor's first copy of the demo.
+   applies pending migrations. Migration 0016 (v0.5's slice 6) made a chosen scenario point at a
+   revision, and a one-off script gave every scenario chosen before it one; that script ran in
+   production's deploys and is retired, since no row can need it.
 5. `pnpm db:check-target app` checks the `DATABASE_URL` that `vercel pull` wrote leads to
    `squadio_app` on `squadio`, and `pnpm db:seed` replaces the synthetic demo organization with
    it. The seed runs in one transaction with fixed ids, so the running deployment never sees a

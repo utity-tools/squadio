@@ -23,7 +23,6 @@
     "db:seed": "tsx scripts/seed-demo.mts",
     "db:check-target": "tsx scripts/check-database-target.mts",
     "db:clean-up": "tsx scripts/clean-up-visitor-copies.mts",
-    "db:backfill-revisions": "tsx scripts/backfill-chosen-revisions.mts",
     "prepare": "husky"
   },
   "dependencies": {

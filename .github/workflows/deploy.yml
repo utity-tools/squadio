@@ -119,13 +119,6 @@ jobs:
         env:
           DATABASE_OWNER_URL: ${{ secrets.DATABASE_OWNER_URL }}
         run: pnpm db:migrate
-      # Slice 6 (migration 0016): every scenario chosen before it gets a revision and points at it,
-      # so the new deployment reads it. Right after the migrations: until it runs, the previous
-      # deployment cannot write a chosen scenario that has none. Running it again changes nothing.
-      - name: Give chosen scenarios their revision
-        env:
-          DATABASE_OWNER_URL: ${{ secrets.DATABASE_OWNER_URL }}
-        run: pnpm db:backfill-revisions
       # The synthetic demo organization, as in previews (ADR 0009), as squadio_app, with the
       # DATABASE_URL that `vercel pull` wrote above. clean-up.yml reseeds it daily the same way.
       - name: Seed the demo organization

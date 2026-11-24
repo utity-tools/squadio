@@ -50,7 +50,6 @@ See [ADR 0001](docs/adr/0001-stack-and-workflow.md) for why.
 | Seed the demo organization             | `pnpm db:seed`                      |
 | Check a URL leads to production's role | `pnpm db:check-target <owner\|app>` |
 | Delete visitor copies idle for 30 days | `pnpm db:clean-up`                  |
-| Give pre-slice-6 choices a revision    | `pnpm db:backfill-revisions`        |
 
 Keep this table in sync with `package.json` when adding scripts. Database tests and migrations need
 Postgres: start it with `docker compose up -d --wait`. E2E tests also need the demo organization:

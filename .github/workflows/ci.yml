@@ -88,8 +88,6 @@ jobs:
       - run: docker compose up -d --wait
       # The CLI path production will use; the tests then run on top of the migrated database.
       - run: pnpm db:migrate
-      # The path production takes after migrating (deploy.yml).
-      - run: pnpm db:backfill-revisions
       - run: pnpm test:db
 
   e2e:
@@ -123,7 +121,6 @@ jobs:
       - run: pnpm exec playwright install chromium
       - run: docker compose up -d --wait
       - run: pnpm db:migrate
-      - run: pnpm db:backfill-revisions
       - run: pnpm db:seed
       # Built without the auth variables, as production's build is: they are read at run time only.
       - run: pnpm build

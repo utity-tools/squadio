@@ -362,7 +362,7 @@ export function marginStatusOf(
 
 /**
  * Cost, revenue and margin of a scenario, as docs/domain.md specifies. Pure: the same inputs give
- * the same result, whether they are current values or a chosen scenario's frozen ones.
+ * the same result, whether they are current values or a chosen revision's.
  */
 export function calculateScenario(
   scenarioInput: Scenario,

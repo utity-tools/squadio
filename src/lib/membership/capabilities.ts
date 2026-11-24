@@ -15,7 +15,7 @@ export type Capabilities = {
   rateAccess: boolean;
   /** Writes the organization's data at all: without it, every transaction is read only. */
   edit: boolean;
-  /** Chooses and unchooses scenarios, which writes frozen money (rule b). */
+  /** Chooses and unchooses scenarios, which points a scenario at a revision (rule b). */
   choose: boolean;
   /** Invites, changes roles, removes members and deletes the organization: the owner only. */
   manage: boolean;
