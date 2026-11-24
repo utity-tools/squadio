@@ -21,9 +21,6 @@ import { OWNER_ONLY_TABLES } from "./tenancy";
 const app = drizzle(appPool(1));
 const owner = drizzle(ownerPool());
 
-// Retired in v0.5's slice 6: nothing writes or reads them, and slice 6c drops them. Never copied.
-const RETIRED_TABLES = ["frozen_rates", "frozen_cost_config"];
-
 const template: AccessContext = { organizationId: DEMO_ORGANIZATION_ID, rateAccess: true };
 const copyOrg = randomUUID();
 const copy: AccessContext = { organizationId: copyOrg, rateAccess: true };
@@ -87,10 +84,7 @@ describe("copyOrganization", () => {
         join pg_namespace n on n.oid = c.relnamespace
         join pg_attribute a on a.attrelid = c.oid and a.attname = 'organization_id'
        where c.relkind = 'r' and n.nspname = 'public'`);
-    const ownerOnly = [
-      ...OWNER_ONLY_TABLES.map((table) => table.replace("public.", "")),
-      ...RETIRED_TABLES,
-    ];
+    const ownerOnly = OWNER_ONLY_TABLES.map((table) => table.replace("public.", ""));
     expect(COPIED_TABLES.map((table) => getTableName(table)).toSorted()).toEqual(
       rows
         .map((row) => row.table)
