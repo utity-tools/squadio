@@ -213,8 +213,8 @@ export async function scenarioIn(
     money,
     structure.roster,
   );
-  // A chosen scenario shows its revision, and the editor holds its team, locked. One chosen before
-  // the backfill gave it a revision has none yet, and shows the saved team until it has.
+  // A chosen scenario shows its revision, and the editor holds its team, locked. A legacy row chosen
+  // before slice 6 with no revision shows the saved team (slice 6c validates the check against it).
   const row = structure.chosen && !currentValues ? structure.chosenRevision : undefined;
   const chosenRevision =
     row &&

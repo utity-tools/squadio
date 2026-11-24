@@ -217,7 +217,7 @@ export const scenarios = pgTable(
     index("scenarios_derived_from_revision_idx").on(t.organizationId, t.derivedFromRevisionId),
     // A chosen scenario points at one of its own revisions. DEFERRABLE INITIALLY DEFERRED is added
     // by hand in migration 0016, as for the alternative's key, and the check below is NOT VALID
-    // there until the backfill has run in production (slice 6c validates it).
+    // there, since the backfill that gave earlier rows a revision has run (slice 6c validates it).
     foreignKey({
       name: "scenarios_chosen_revision_fkey",
       columns: [t.organizationId, t.id, t.chosenRevisionId],
@@ -512,7 +512,7 @@ export const extraCosts = pgTable(
 
 /**
  * Why a revision was made: on request, or before its scenario was shared or chosen; `migrated` for
- * the backfill that gave scenarios chosen before slice 6 their revision.
+ * the one-off backfill that gave scenarios chosen before slice 6 their revision.
  */
 export const revisionReason = pgEnum("revision_reason", ["saved", "shared", "chosen", "migrated"]);
 

@@ -228,8 +228,8 @@ async function portfolioIn(
     scenario: (typeof structure.scenarios)[number],
   ): PortfolioScenario => {
     if (!structure.config) throw new Error("The organization has no config");
-    // A chosen scenario shows its revision, team included; one chosen before the backfill gave it
-    // a revision shows its saved team until it has.
+    // A chosen scenario shows its revision, team included; a legacy row chosen before slice 6
+    // with no revision shows its saved team (slice 6c validates the check against it).
     const revision = scenario.chosen ? chosen.get(scenario.id) : undefined;
     const saved: Member[] = structure.team
       .filter((member) => member.scenarioId === scenario.id)

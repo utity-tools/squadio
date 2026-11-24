@@ -71,7 +71,7 @@ describe("loadComparison", () => {
     ]);
   });
 
-  it("puts the chosen scenario first, costed with its frozen values (rule b)", async () => {
+  it("puts the chosen scenario first, costed with its chosen revision (rule b)", async () => {
     const organizationId = await newOrganization(app);
     const copy: AccessContext = { organizationId, rateAccess: true };
     await app.transaction((tx) => copyOrganization(tx, DEMO_ORGANIZATION_ID, organizationId));

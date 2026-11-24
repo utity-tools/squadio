@@ -418,7 +418,7 @@ describe("loadScenario", () => {
         .insert(scenarios)
         .values({ organizationId, projectId: project!.id, name: "Plan A" })
         .returning();
-      // Only the backfill gives an empty team a revision; choosing refuses it.
+      // Only the retired backfill gave an empty team a revision; choosing refuses it.
       await markChosen(tx, scenario!.id);
       return { project: project!.id, scenario: scenario!.id };
     });
@@ -539,7 +539,7 @@ describe("loadScenario", () => {
     const guide = copyId(DEMO_IDS.guideScenario, copyOrg);
     await chooseAsNobody(app, copy, { scenarioId: guide, baseVersion: 1 });
     const chosen = await loadScenario(app, copy, guide, SOME_DAY);
-    // The saved team changes under the revision, as the backfill or an older revision leaves it.
+    // The saved team changes under the revision, as an older revision leaves it.
     await withOrganization(app, copy, (tx) =>
       tx.delete(assignments).where(eq(assignments.id, copyId(DEMO_IDS.guide.devops, copyOrg))),
     );
