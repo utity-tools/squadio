@@ -51,6 +51,16 @@ describe("RevisionHeader", () => {
     expect(screen.getByText("Solo lectura: una revisión nunca cambia.")).toBeTruthy();
   });
 
+  it("offers the actions it is given next to the link, and none otherwise", () => {
+    const { unmount } = renderWithIntl(
+      <RevisionHeader {...props()} actions={<button type="button">Proponer alternativa</button>} />,
+    );
+    expect(screen.getByRole("button", { name: "Proponer alternativa" })).toBeTruthy();
+    unmount();
+    renderWithIntl(<RevisionHeader {...props()} />);
+    expect(screen.queryByRole("button")).toBeNull();
+  });
+
   it("links to its scenario, keeping the query", () => {
     renderWithIntl(<RevisionHeader {...props()} query="?access=none" />);
 

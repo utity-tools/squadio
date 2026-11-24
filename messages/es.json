@@ -1369,5 +1369,20 @@
     "from": "Alternativa de la <link>revisión {number} de {scenario}</link>",
     "deleted": "Alternativa de una revisión eliminada",
     "by": "propuesta por {author}"
+  },
+  "ProposeAlternative": {
+    "suffix": " (alternativa)",
+    "numberedSuffix": " (alternativa {n})",
+    "button": "Proponer alternativa",
+    "proposing": "Proponiendo…",
+    "hint": "Crea un borrador nuevo del proyecto con el equipo y los costes de esta revisión, que no cambia.",
+    "errors": {
+      "not-found": "Esta revisión ya no existe. Recarga la página.",
+      "too-many": "Este proyecto ya tiene 20 escenarios, el máximo.",
+      "no-rate-access": "Proponer una alternativa copia costes, y necesita acceso a tarifas.",
+      "template": "La demo no se puede cambiar. Recarga la página.",
+      "limit": "Hoy no se pueden crear más copias de la demo. Vuelve a intentarlo mañana.",
+      "failed": "No se ha podido proponer la alternativa. Inténtalo de nuevo."
+    }
   }
 }

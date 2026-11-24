@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import { z } from "zod";
 
 import { CurrentAccount } from "@/components/account/current-account";
+import { ProposeAlternative } from "@/components/revisions/propose-alternative";
 import { RevisionHeader } from "@/components/revisions/revision-header";
 import { RevisionSummary } from "@/components/revisions/revision-summary";
 import { RevisionTeam } from "@/components/revisions/revision-team";
@@ -22,6 +23,8 @@ import { currentAccessContext, currentMember } from "@/db/request-access";
 import { assertLocale, currentLocale } from "@/i18n/locale";
 import { redirect } from "@/i18n/navigation";
 import { revisionView } from "@/lib/revisions/revision-view";
+
+import { proposeAlternative } from "./actions";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("RevisionPage");
@@ -62,6 +65,9 @@ export default async function RevisionPage({
   const revisions = await getTranslations("Revisions");
   const suffix = access === undefined ? "" : `?access=${encodeURIComponent(access)}`;
   const { scenario } = revision;
+  // «Proponer alternativa» copies the revision's money, so it needs rate access, and it writes a
+  // team: a viewer, or a page with `?access=none`, is not offered it (ADR 0005, ADR 0015).
+  const canPropose = context.rateAccess && context.readOnly !== true;
 
   return (
     <AppShell
@@ -101,6 +107,11 @@ export default async function RevisionPage({
             // Nobody signs in to the demo or a visitor's copy, so its revisions are visitors'.
             anonymous={asMember ? "formerMember" : "visitor"}
             query={suffix}
+            actions={
+              canPropose ? (
+                <ProposeAlternative revisionId={revision.id} send={proposeAlternative} />
+              ) : null
+            }
           />
         }
         team={<RevisionTeam {...view} />}
