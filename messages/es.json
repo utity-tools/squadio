@@ -635,6 +635,7 @@
     },
     "refused": {
       "missing-rate": "No se puede elegir: a una categoría del equipo le falta el coste.",
+      "outside-calendar": "No se puede elegir: hay fechas del equipo fuera de los años del calendario.",
       "limit": "Hoy no se pueden crear más copias de la demo. Vuelve a intentarlo mañana.",
       "conflict": "El escenario ha cambiado en otra pestaña. Recarga la página.",
       "not-found": "Tu copia ya no existe. Recarga la página.",

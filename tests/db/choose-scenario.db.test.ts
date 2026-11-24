@@ -208,6 +208,23 @@ describe("chooseScenario", () => {
     expect(await state(guide)).toMatchObject({ chosen: false, version: 1, revisions: [] });
   });
 
+  it("refuses a team with dates outside the calendar, which the engine cannot cost (rule h)", async () => {
+    const guide = id(DEMO_IDS.guideScenario);
+    const lean = id(DEMO_IDS.leanScenario);
+    await choose(lean);
+    await withOrganization(app, withRates, (tx) =>
+      tx
+        .update(assignments)
+        .set({ startDate: "2099-01-05", endDate: "2099-02-27" })
+        .where(eq(assignments.scenarioId, guide)),
+    );
+
+    expect(await choose(guide)).toEqual({ ok: false, reason: "outside-calendar" });
+    expect(await state(guide)).toMatchObject({ chosen: false, version: 1, revisions: [] });
+    // The project's chosen scenario stays chosen: nothing was written.
+    expect(await state(lean)).toMatchObject({ chosen: true, version: 2 });
+  });
+
   it("refuses without rate access, and writes nothing", async () => {
     const guide = id(DEMO_IDS.guideScenario);
 

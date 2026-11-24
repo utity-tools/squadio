@@ -437,8 +437,14 @@ async function insertOngoingProjects(tx: TenantTransaction, spans: OngoingSpans,
   // rows (docs/domain.md, "In the demo"). The delivery plan last, so its revision observes the run
   // plan's load (rule c), as the demo shows.
   const maker = { authorId: null, commitSha: null, today, madeAt: new Date(`${today}T12:00:00Z`) };
-  await pointAtLatestRevision(tx, DEMO_IDS.upkeepScenario, maker, DEMO_IDS.upkeepRevision);
-  await pointAtLatestRevision(tx, DEMO_IDS.deliveryScenario, maker, DEMO_IDS.deliveryRevision);
+  for (const [scenarioId, revisionId] of [
+    [DEMO_IDS.upkeepScenario, DEMO_IDS.upkeepRevision],
+    [DEMO_IDS.deliveryScenario, DEMO_IDS.deliveryRevision],
+  ] as const) {
+    if ((await pointAtLatestRevision(tx, scenarioId, maker, revisionId)) === "outside-calendar") {
+      throw new Error(`The seed's chosen scenario ${scenarioId} has dates outside the calendar`);
+    }
+  }
   // And one alternative derived from it, by nobody, as the revision was made, in the demo's
   // language. Fixed ids, so a reseed on the same day leaves the same rows.
   let next = ALTERNATIVE_ROWS;

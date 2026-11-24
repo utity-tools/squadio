@@ -108,6 +108,22 @@ export async function writeRevision(
   /** A fixed id, for the demo seed's revision; otherwise the database makes one. */
   id?: string,
 ): Promise<{ revision: SavedRevision; reused: boolean } | undefined> {
+  const snapshot = await snapshotOf(tx, scenarioId, today);
+  if (!snapshot) return undefined;
+  return storeRevision(tx, scenarioId, snapshot, { authorId, commitSha, reason, madeAt }, id);
+}
+
+/**
+ * The revision a scenario of the transaction's organization would get now: of its saved team with
+ * the current values, its load observed on `today`. Writes nothing. Undefined when the scenario is
+ * not in the organization; throws a ZodError when the engine cannot cost it (a date outside the
+ * calendar, rule h).
+ */
+export async function snapshotOf(
+  tx: TenantTransaction,
+  scenarioId: string,
+  today: string,
+): Promise<RevisionSnapshot | undefined> {
   const { rows } = await tx.execute<{ organization: string | null; rates: boolean }>(
     sql`select app.current_organization_id() as organization, app.has_rate_access() as rates`,
   );
@@ -118,8 +134,7 @@ export async function writeRevision(
   const context: AccessContext = { organizationId: current.organization, rateAccess: true };
   const scenario = await scenarioIn(tx, context, scenarioId, today, { currentValues: true });
   if (!scenario) return undefined;
-  const snapshot = buildRevision(revisionSourceOf(scenario.editing.basis, scenario.editing.team));
-  return storeRevision(tx, scenarioId, snapshot, { authorId, commitSha, reason, madeAt }, id);
+  return buildRevision(revisionSourceOf(scenario.editing.basis, scenario.editing.team));
 }
 
 /**

@@ -1,10 +1,10 @@
 import { and, eq, inArray, sql } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
-import { z } from "zod";
+import { ZodError, z } from "zod";
 
 import { DEMO_ORGANIZATION_ID, type Member } from "./access";
 import { capabilitiesNow } from "./capabilities-now";
-import { type RevisionMaker, type SavedRevision, writeRevision } from "./save-revision";
+import { type RevisionMaker, type SavedRevision, snapshotOf, storeRevision } from "./save-revision";
 import { lockScenario } from "./lock-scenario";
 import { assignments, categoryRates, scenarios } from "./schema";
 import { type AccessContext, type TenantTransaction, withOrganization } from "./tenant";
@@ -44,6 +44,8 @@ export type ChooseResult =
         | "missing-rate"
         /** An empty team commits to nothing. */
         | "empty-team"
+        /** A date outside the calendar's years: the engine cannot cost it (rule h). */
+        | "outside-calendar"
         | "no-rate-access"
         /** The demo template, which only its visitors' copies change (ADR 0011). */
         | "template";
@@ -85,21 +87,31 @@ async function point(tx: TenantTransaction, scenarioId: string, revisionId: stri
 /**
  * Marks a scenario of the transaction's organization chosen, pointing at a revision of it as saved
  * (made now, or its latest used again), after unchoosing the project's other chosen scenario
- * (rule i). It checks nothing: chooseScenarioIn locks and refuses first, and the demo seed calls it
- * for the scenarios it shows as chosen. Returns the revision and the scenario's new version.
+ * (rule i). The revision is built before anything is written, so a team the engine cannot cost
+ * (rule h) leaves the project as it was and answers "outside-calendar". It checks nothing else:
+ * chooseScenarioIn locks and refuses first, and the demo seed calls it for the scenarios it shows
+ * as chosen. Returns the revision and the scenario's new version.
  */
 export async function pointAtLatestRevision(
   tx: TenantTransaction,
   scenarioId: string,
-  maker: ChoiceMaker,
+  { today, ...maker }: ChoiceMaker,
   /** A fixed id for the revision, should one be made: the demo seed's. */
   revisionId?: string,
-) {
+): Promise<{ revision: SavedRevision; version: number } | "outside-calendar"> {
   const [scenario] = await tx
     .select({ projectId: scenarios.projectId })
     .from(scenarios)
     .where(eq(scenarios.id, scenarioId));
   if (!scenario) throw new Error(`Scenario ${scenarioId} is not in the organization`);
+  let snapshot;
+  try {
+    snapshot = await snapshotOf(tx, scenarioId, today);
+  } catch (error) {
+    if (error instanceof ZodError) return "outside-calendar";
+    throw error;
+  }
+  if (!snapshot) throw new Error(`Scenario ${scenarioId} went away while it was chosen`);
   const previous = await tx
     .select({ id: scenarios.id })
     .from(scenarios)
@@ -108,9 +120,14 @@ export async function pointAtLatestRevision(
   for (const { id } of previous) {
     if (id !== scenarioId) await point(tx, id, null);
   }
-  const written = await writeRevision(tx, scenarioId, { ...maker, reason: "chosen" }, revisionId);
-  if (!written) throw new Error(`Scenario ${scenarioId} went away while it was chosen`);
-  return { revision: written.revision, version: await point(tx, scenarioId, written.revision.id) };
+  const { revision } = await storeRevision(
+    tx,
+    scenarioId,
+    snapshot,
+    { ...maker, reason: "chosen" },
+    revisionId,
+  );
+  return { revision, version: await point(tx, scenarioId, revision.id) };
 }
 
 /** Chooses a scenario inside an open transaction, for the organization of its RLS context. */
@@ -128,7 +145,9 @@ export async function chooseScenarioIn(
   // Checked before anything is written, so a refusal leaves the project as it was.
   const refusal = await teamRefusal(tx, request.scenarioId);
   if (refusal) return { ok: false, reason: refusal };
-  return { ok: true, ...(await pointAtLatestRevision(tx, request.scenarioId, maker)) };
+  const chosen = await pointAtLatestRevision(tx, request.scenarioId, maker);
+  if (chosen === "outside-calendar") return { ok: false, reason: chosen };
+  return { ok: true, ...chosen };
 }
 
 /** Unchooses a scenario inside an open transaction: its pointer goes, its revisions stay. */

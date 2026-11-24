@@ -23,7 +23,14 @@ import { ledger } from "@/lib/summary/summary";
 import { usePendingChoice, useScenarioStore, useScenarioView } from "./scenario-editor";
 
 /** The refusals the dialog names; anything else is a choice that failed. */
-const REFUSALS = ["missing-rate", "limit", "conflict", "not-found", "unsaved"] as const;
+const REFUSALS = [
+  "missing-rate",
+  "outside-calendar",
+  "limit",
+  "conflict",
+  "not-found",
+  "unsaved",
+] as const;
 
 type Refusal = (typeof REFUSALS)[number] | "failed";
 
