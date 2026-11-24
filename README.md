@@ -9,7 +9,8 @@ margin follow every change; when data is missing, the estimate shows every line 
 says what each other line is waiting for. Duplicate a scenario to try a variant, compare two or
 three side by side, and see each person's load week by week, with the people the team over-allocates
 flagged. Save a revision of a scenario, which never changes, and share its link: a reviewer opens
-it, with no money unless they have rate access, and proposes an alternative derived from it. Choosing
+it, with no money unless they have rate access, and a member with rate access proposes an
+alternative derived from it. Choosing
 a scenario now points at one of its revisions. Your edits go to your own copy of the demo, kept for
 30 days after your last save. Signing in with GitHub or Google to work with your own organization,
 with its owner, members and viewers and invitations by link, is built but closed in production for
