@@ -635,6 +635,7 @@
     },
     "refused": {
       "missing-rate": "It cannot be chosen: a category of the team is missing its cost.",
+      "outside-calendar": "It cannot be chosen: some of the team's dates fall outside the calendar's years.",
       "limit": "No more copies of the demo can be made today. Try again tomorrow.",
       "conflict": "The scenario changed in another tab. Reload the page.",
       "not-found": "Your copy no longer exists. Reload the page.",

@@ -269,6 +269,10 @@ describe("ScenarioChoice", () => {
 
   it.each([
     ["missing-rate", "No se puede elegir: a una categoría del equipo le falta el coste."],
+    [
+      "outside-calendar",
+      "No se puede elegir: hay fechas del equipo fuera de los años del calendario.",
+    ],
     ["limit", "Hoy no se pueden crear más copias de la demo. Vuelve a intentarlo mañana."],
     ["conflict", "El escenario ha cambiado en otra pestaña. Recarga la página."],
     ["failed", "No se ha podido guardar la elección. Vuelve a intentarlo."],
