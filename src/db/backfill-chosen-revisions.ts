@@ -1,4 +1,4 @@
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { ZodError } from "zod";
 
@@ -96,7 +96,16 @@ async function backfillOrganization(
   tx: TenantTransaction,
   organizationId: string,
   { today, commitSha, dryRun = false }: BackfillOptions,
+  /** Whether migration 0016 has run; a dry run before it counts every chosen scenario. */
+  migrated: boolean,
 ): Promise<BackfillCounts> {
+  if (!migrated) {
+    const chosen = await tx
+      .select({ id: scenarios.id })
+      .from(scenarios)
+      .where(eq(scenarios.chosen, true));
+    return { pending: chosen.length, written: 0, reused: 0, failed: [] };
+  }
   const pending = await tx
     .select({ id: scenarios.id })
     .from(scenarios)
@@ -145,10 +154,23 @@ export async function backfillChosenRevisions(
   const organizations = options.organizations
     ? options.organizations.map((id) => ({ id }))
     : await owner.select({ id: organization.id }).from(organization).orderBy(organization.id);
+  // A dry run may come before the migration, to size the backfill: then no chosen scenario has a
+  // revision yet. A real run needs it.
+  const { rows } = await owner.execute<{ migrated: boolean }>(
+    sql`select exists (
+          select from information_schema.columns
+          where table_schema = 'public' and table_name = 'scenarios'
+            and column_name = 'chosen_revision_id'
+        ) as migrated`,
+  );
+  const migrated = rows[0]?.migrated === true;
+  if (!migrated && !options.dryRun) {
+    throw new Error("Migration 0016 has not run: apply the migrations first");
+  }
   const total: BackfillCounts = { pending: 0, written: 0, reused: 0, failed: [] };
   for (const { id } of organizations) {
     const counts = await withOrganization(owner, { organizationId: id, rateAccess: true }, (tx) =>
-      backfillOrganization(tx, id, options),
+      backfillOrganization(tx, id, options, migrated),
     );
     total.pending += counts.pending;
     total.written += counts.written;
