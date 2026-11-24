@@ -9,6 +9,7 @@ import {
   chooseScenario,
   unchooseScenario,
 } from "./choose-scenario";
+import { type DeriveInput, deriveAlternative, deriveInputSchema } from "./derive-alternative";
 import {
   type CopySuffix,
   type DuplicateInput,
@@ -22,9 +23,10 @@ import {
   saveRevision,
 } from "./save-revision";
 import { type SaveInput, saveInputSchema, saveScenarioChanges } from "./save-scenario";
-import { scenarios } from "./schema";
+import { scenarioRevisions, scenarios } from "./schema";
 import { type AccessContext, withOrganization } from "./tenant";
 import { type VisitorChoiceResult, chooseForVisitor, unchooseForVisitor } from "./visitor-choose";
+import { type VisitorDeriveResult, deriveForVisitor } from "./visitor-derive";
 import { type VisitorDuplicateResult, duplicateForVisitor } from "./visitor-duplicate";
 import { type VisitorRevisionResult, saveRevisionForVisitor } from "./visitor-revision";
 import { type VisitorSaveResult, saveForVisitor } from "./visitor-save";
@@ -163,4 +165,39 @@ export async function saveRevisionFor(
   return result.ok
     ? { ...result, version: request.baseVersion, scenarioId: request.scenarioId }
     : result;
+}
+
+/** Whether the context's organization holds the revision. */
+async function holdsRevision(db: NodePgDatabase, context: AccessContext, revisionId: string) {
+  return withOrganization(db, context, async (tx) => {
+    const [row] = await tx
+      .select({ id: scenarioRevisions.id })
+      .from(scenarioRevisions)
+      .where(eq(scenarioRevisions.id, revisionId));
+    return row !== undefined;
+  });
+}
+
+/**
+ * Derives an alternative of a revision (docs/domain.md, "Derived alternative"): in the member's
+ * organization when it holds the revision, by the member, with their rate access unless the page
+ * took it away, or else as a visitor, by nobody. Extra costs are restricted money, so it needs
+ * rate access; the member's role is checked again inside the transaction (deriveAlternative).
+ * Throws a ZodError on input that is not a valid request.
+ */
+export async function deriveAlternativeFor(
+  db: NodePgDatabase,
+  { member, jar }: Writer,
+  input: DeriveInput,
+  { rateAccess, suffix }: { rateAccess: boolean; suffix: CopySuffix },
+): Promise<VisitorDeriveResult> {
+  const request = deriveInputSchema.parse(input);
+  const context = member && memberEditContext(member);
+  if (!member || !context || !(await holdsRevision(db, context, request.revisionId))) {
+    return deriveForVisitor(db, jar, request, rateAccess, suffix);
+  }
+  if (!member.capabilities.edit) return { ok: false, reason: "not-found" };
+  const withRates = { ...context, rateAccess: context.rateAccess && rateAccess };
+  if (!withRates.rateAccess) return { ok: false, reason: "no-rate-access" };
+  return deriveAlternative(db, withRates, request, suffix, member);
 }
