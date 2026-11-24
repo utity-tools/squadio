@@ -113,7 +113,7 @@ already in production read ([revisions](domain.md#revisions),
 | 4b  | Invitations         | The members page; the owner invites by email and role, copies the link and can revoke it; the invited account accepts it, once, within 7 days, with a verified matching email                                                    |
 | 4c  | Roles and removal   | The owner changes a member's role between member and viewer, and removes a member, both checked again inside the transaction                                                                                                     |
 | 5   | Derived alternative | «Proponer alternativa» on a revision makes a draft scenario of the same project, with where it came from and who made it                                                                                                         |
-| 6   | Choosing a revision | Choosing points at a revision, with the change check for an older one; existing chosen scenarios get a revision from their frozen rows, and FrozenRate and FrozenCostConfig are retired                                          |
+| 6   | Choosing a revision | Choosing points at a revision, with the change check for an older one; existing chosen scenarios get a revision from their frozen rows, and FrozenRate and FrozenCostConfig are retired, then dropped in 6c                      |
 | 7   | v0.5 release        | Handoff, README with new screenshots, tag `v0.5.0`                                                                                                                                                                               |
 
 ### v0.4 slices
