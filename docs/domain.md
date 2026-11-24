@@ -1015,12 +1015,23 @@ From slice 6 choosing points at a revision; FrozenRate and FrozenCostConfig are 
 revision's team and extra costs, as duplicating does from a scenario
 ([Duplicating a scenario](#duplicating-a-scenario)): new ids, the same team tree, people as they
 are, costed with the current values, at most 20 scenarios per project, and rate access needed. It
-records the revision it came from and who made it, and opens in the editor. Its name is the
-scenario's followed by « (alternativa)» (« (alternative)» in English), numbered like a copy's. The
-revision and its scenario never change: an alternative is a proposal next to them, which can be
-compared, shared and chosen like any scenario. A person deactivated or moved to another category
-since the revision stays on the alternative, as on a copy; a category without a rate today leaves
-its line undetermined (rule k), since the alternative is costed with the current values.
+records the revision it came from, who made it and when, and opens in the editor. Its name is the
+scenario's name as the revision stored it, which is what its reader saw, followed by
+« (alternativa)» (« (alternative)» in English), numbered like a copy's. The revision and its
+scenario never change: an alternative is a proposal next to them, which can be compared, shared
+and chosen like any scenario. A person deactivated or moved to another category since the
+revision stays on the alternative, as on a copy; a category without a rate today leaves its line
+undetermined (rule k), since the alternative is costed with the current values.
+
+- **Who is offered it:** whoever reads the revision with rate access and may edit, a member or the
+  owner. A viewer and a page with `?access=none` read the revision only, and the server refuses
+  them too; the member's role is read again inside the transaction, so one made a viewer a moment
+  before is refused.
+- **Visitors** propose in their copy, as they duplicate: a visitor without a copy gets one in the
+  same transaction, and the alternative is of their copy's revision, by nobody.
+- **The alternative's page says where it came from:** «Alternativa de la revisión 2 de Plan A»,
+  linking to it, then who proposed it and when. Who and when are open data, read the same with or
+  without rate access.
 
 ### Retention
 
