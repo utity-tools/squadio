@@ -148,3 +148,19 @@ Roles and invitations, which sharing needs, are [ADR 0015](0015-roles-and-invita
   decision as written: only their organization's revisions, no public links. Until slice 6 the
   page says nothing about choosing, since a choice still points at the scenario
   ([revisions](../domain.md#sharing-a-revision)).
+- **2026-11-24, slice 5 (derived alternative):** how the derived alternative landed.
+  - **Provenance lives on the scenario:** `derived_from_revision_id`, `derived_by` and
+    `derived_at` (migration 0015). The revision's key is composite, `ON DELETE SET NULL` on its own
+    column, and deferred to the commit, since a visitor's copy inserts its scenarios before the
+    revisions they name. `derived_at` stays when the revision or the author goes, so the
+    alternative still says it came from a deleted revision, or that a former member proposed it.
+  - **Its rows come from the revision, not from the scenario** (`src/lib/revisions/alternative.ts`):
+    the team from the open part, the extra costs from the restricted part. A property test checks
+    that the rows, costed with the revision's own values, give its stored result.
+  - **The role is checked again inside the transaction,** under a share lock on the organization,
+    which changing a role and removing a member lock for update first. So a viewer since is
+    refused, without making either wait on anything but this transaction.
+  - **The name is the revision's,** the scenario's name as the reviewer read it, with the copy's
+    numbering and a suffix of its own.
+  - **The demo seed** derives its alternative from the delivery plan's revision, by nobody, with
+    fixed ids; a visitor's copy copies it, its revision renamed and no author.
