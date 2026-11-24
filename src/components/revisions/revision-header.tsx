@@ -1,5 +1,6 @@
 import { HistoryIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
+import type { ReactNode } from "react";
 
 import type { LoadedRevision } from "@/db/load-revision";
 import { Link } from "@/i18n/navigation";
@@ -16,6 +17,8 @@ export type RevisionHeaderProps = {
   anonymous: AnonymousAuthor;
   /** The page's query, `?access=none` or empty, kept on the link to the scenario. */
   query: string;
+  /** What can be done from it, «Proponer alternativa», when the reader may. */
+  actions?: ReactNode;
 };
 
 /**
@@ -24,7 +27,13 @@ export type RevisionHeaderProps = {
  * revision it says so and links to the latest, never what changed. Open data: it shows with or
  * without rate access.
  */
-export function RevisionHeader({ revision, scenarioName, anonymous, query }: RevisionHeaderProps) {
+export function RevisionHeader({
+  revision,
+  scenarioName,
+  anonymous,
+  query,
+  actions,
+}: RevisionHeaderProps) {
   const t = useTranslations("RevisionPage");
   const newer = revision.latest.id !== revision.id;
 
@@ -34,12 +43,15 @@ export function RevisionHeader({ revision, scenarioName, anonymous, query }: Rev
         <h1 className="text-lg font-semibold">
           {t("heading", { scenario: scenarioName, number: revision.number })}
         </h1>
-        <Link
-          href={`/scenarios/${revision.scenarioId}${query}`}
-          className="text-sm font-medium underline underline-offset-4"
-        >
-          {t("openScenario")}
-        </Link>
+        <div className="flex flex-wrap items-start gap-x-4 gap-y-2">
+          <Link
+            href={`/scenarios/${revision.scenarioId}${query}`}
+            className="text-sm font-medium underline underline-offset-4"
+          >
+            {t("openScenario")}
+          </Link>
+          {actions}
+        </div>
       </div>
       <RevisionMeta
         data-testid="revision-meta"

@@ -1369,5 +1369,20 @@
     "from": "Alternative to <link>revision {number} of {scenario}</link>",
     "deleted": "Alternative to a deleted revision",
     "by": "proposed by {author}"
+  },
+  "ProposeAlternative": {
+    "suffix": " (alternative)",
+    "numberedSuffix": " (alternative {n})",
+    "button": "Propose an alternative",
+    "proposing": "Proposing…",
+    "hint": "Makes a new draft of the project with this revision's team and costs, which stays as it is.",
+    "errors": {
+      "not-found": "This revision no longer exists. Reload the page.",
+      "too-many": "This project already has 20 scenarios, the most it can hold.",
+      "no-rate-access": "Proposing an alternative copies costs, so it needs rate access.",
+      "template": "The demo cannot be changed. Reload the page.",
+      "limit": "No more copies of the demo can be made today. Try again tomorrow.",
+      "failed": "The alternative could not be proposed. Try again."
+    }
   }
 }
