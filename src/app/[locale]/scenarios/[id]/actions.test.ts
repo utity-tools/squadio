@@ -94,11 +94,15 @@ describe("setScenarioChoice", () => {
     expect(mocks.setChoiceFor).toHaveBeenCalledWith({ client: "app" }, writer, choice, {
       chosen: true,
       rateAccess: true,
+      commitSha: "0123456789abcdef0123456789abcdef01234567",
+      today: "2026-11-24",
     });
     expect(await setScenarioChoice({ ...choice, chosen: false })).toMatchObject({ version: 3 });
     expect(mocks.setChoiceFor).toHaveBeenLastCalledWith({ client: "app" }, writer, choice, {
       chosen: false,
       rateAccess: true,
+      commitSha: "0123456789abcdef0123456789abcdef01234567",
+      today: "2026-11-24",
     });
     expect(mocks.refresh).toHaveBeenCalledTimes(2);
   });
@@ -112,6 +116,8 @@ describe("setScenarioChoice", () => {
     expect(mocks.setChoiceFor).toHaveBeenCalledWith({ client: "app" }, writer, choice, {
       chosen: true,
       rateAccess: false,
+      commitSha: "0123456789abcdef0123456789abcdef01234567",
+      today: "2026-11-24",
     });
     expect(mocks.refresh).not.toHaveBeenCalled();
   });

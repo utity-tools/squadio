@@ -1,10 +1,10 @@
-import { eq } from "drizzle-orm";
+import { and, eq, isNotNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { type Member, memberOf } from "@/db/access";
 import { DEMO_IDS, DEMO_ORGANIZATION_ID, seedDemo } from "@/db/demo-seed";
-import { assignments, frozenCostConfig, scenarioRevisions, scenarios } from "@/db/schema";
+import { assignments, scenarioRevisions, scenarios } from "@/db/schema";
 import {
   duplicateScenarioFor,
   memberPageContext,
@@ -194,13 +194,17 @@ describe("saveScenarioFor", () => {
   });
 });
 
+/** Who chooses besides the member, and when, as the page's action sets it. */
+const MAKER = { commitSha: null, today: SOME_DAY };
+
 describe("setChoiceFor", () => {
-  const frozenIn = (organizationId: string, scenarioId: string) =>
+  /** The revision the scenario points at as chosen, as a list of none or one. */
+  const chosenRevisionIn = (organizationId: string, scenarioId: string) =>
     withOrganization(app, { organizationId, rateAccess: true }, (tx) =>
       tx
-        .select({ id: frozenCostConfig.scenarioId })
-        .from(frozenCostConfig)
-        .where(eq(frozenCostConfig.scenarioId, scenarioId)),
+        .select({ id: scenarios.chosenRevisionId })
+        .from(scenarios)
+        .where(and(eq(scenarios.id, scenarioId), isNotNull(scenarios.chosenRevisionId))),
     );
 
   it("chooses and unchooses a member's scenario with the member's rate access", async () => {
@@ -212,19 +216,19 @@ describe("setChoiceFor", () => {
       app,
       writer,
       { scenarioId, baseVersion },
-      { chosen: true, rateAccess: true },
+      { chosen: true, rateAccess: true, ...MAKER },
     );
     expect(chosen).toEqual({ ok: true, version: baseVersion + 1, scenarioId });
-    expect(await frozenIn(ada.organizationId, scenarioId)).toHaveLength(1);
+    expect(await chosenRevisionIn(ada.organizationId, scenarioId)).toHaveLength(1);
 
     const unchosen = await setChoiceFor(
       app,
       writer,
       { scenarioId, baseVersion: baseVersion + 1 },
-      { chosen: false, rateAccess: true },
+      { chosen: false, rateAccess: true, ...MAKER },
     );
     expect(unchosen).toEqual({ ok: true, version: baseVersion + 2, scenarioId });
-    expect(await frozenIn(ada.organizationId, scenarioId)).toEqual([]);
+    expect(await chosenRevisionIn(ada.organizationId, scenarioId)).toEqual([]);
     expect(await claims()).toEqual([]);
   });
 
@@ -237,7 +241,7 @@ describe("setChoiceFor", () => {
         app,
         { member: adaMember, jar: jar().cookies },
         { scenarioId, baseVersion },
-        { chosen: true, rateAccess: false },
+        { chosen: true, rateAccess: false, ...MAKER },
       ),
     ).toEqual({ ok: false, reason: "no-rate-access" });
     expect(await versionOf(ada.organizationId, scenarioId)).toBe(baseVersion);
@@ -254,7 +258,7 @@ describe("setChoiceFor", () => {
         app,
         { member: withoutRates, jar: jar().cookies },
         { scenarioId, baseVersion: 1 },
-        { chosen: true, rateAccess: true },
+        { chosen: true, rateAccess: true, ...MAKER },
       ),
     ).toEqual({ ok: false, reason: "no-rate-access" });
   });
@@ -269,11 +273,11 @@ describe("setChoiceFor", () => {
         app,
         { member: adaMember, jar: cookies },
         { scenarioId, baseVersion: before ?? 1 },
-        { chosen: true, rateAccess: true },
+        { chosen: true, rateAccess: true, ...MAKER },
       ),
     ).toEqual({ ok: false, reason: "not-found" });
     expect(await versionOf(bob.organizationId, scenarioId)).toBe(before);
-    expect(await frozenIn(bob.organizationId, scenarioId)).toEqual([]);
+    expect(await chosenRevisionIn(bob.organizationId, scenarioId)).toEqual([]);
     expect(sets).toEqual([]);
     expect(await claims()).toEqual([]);
   });
@@ -362,7 +366,7 @@ describe("saveRevisionFor", () => {
     );
 
   it("saves a member's revision in their organization, by them, then reuses it while nothing changes", async () => {
-    const scenarioId = copyId(DEMO_IDS.leanScenario, ada.organizationId);
+    const scenarioId = copyId(DEMO_IDS.overBudgetScenario, ada.organizationId);
     const baseVersion = (await versionOf(ada.organizationId, scenarioId)) ?? 0;
     const before = await revisionsIn(ada.organizationId, scenarioId);
     const { cookies, sets } = jar();

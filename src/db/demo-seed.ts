@@ -13,9 +13,8 @@ import {
   scenarios,
 } from "./schema";
 import { DEMO_ORGANIZATION_ID, demoAccessContext } from "./access";
-import { freezeScenario } from "./choose-scenario";
+import { pointAtLatestRevision } from "./choose-scenario";
 import { writeAlternative } from "./derive-alternative";
-import { writeRevision } from "./save-revision";
 import { ensureDemoOrganization } from "./organizations";
 import { type TenantTransaction, withOrganization } from "./tenant";
 import { NATIONAL_HOLIDAYS } from "@/lib/calendar/calendar";
@@ -66,6 +65,8 @@ export const DEMO_IDS = {
   upkeepScenario: demoId(206),
   /** Revision 1 of the delivery plan, made when it was chosen (docs/domain.md, "In the demo"). */
   deliveryRevision: demoId(500),
+  /** Revision 1 of the run plan, which it points at as chosen. */
+  upkeepRevision: demoId(501),
   /** An alternative derived from that revision (docs/domain.md, "In the demo"). */
   deliveryAlternative: demoId(207),
 } as const;
@@ -308,7 +309,7 @@ async function insertWarningScenarios(tx: TenantTransaction) {
 /**
  * Two projects under way, each with a chosen scenario covering the seed's day (domain, "The demo's
  * dates"): the bench's occupancy (domain, "How busy a person is") then reads 40% to 130%, Senior
- * Developer 4 being over-allocated. Their rates and settings are frozen as choosing does.
+ * Developer 4 being over-allocated. Both are chosen as choosing does, each pointing at a revision.
  */
 async function insertOngoingProjects(tx: TenantTransaction, spans: OngoingSpans, today: string) {
   const organizationId = DEMO_ORGANIZATION_ID;
@@ -336,14 +337,12 @@ async function insertOngoingProjects(tx: TenantTransaction, spans: OngoingSpans,
       organizationId,
       projectId: mobile,
       name: "Delivery plan",
-      chosen: true,
     },
     {
       id: DEMO_IDS.upkeepScenario,
       organizationId,
       projectId: upkeep,
       name: "Run plan",
-      chosen: true,
     },
   ]);
 
@@ -433,27 +432,13 @@ async function insertOngoingProjects(tx: TenantTransaction, spans: OngoingSpans,
       allocation: 40,
     },
   ]);
-  // Chosen, so frozen at today's rates and settings (rule b).
-  for (const scenarioId of [DEMO_IDS.deliveryScenario, DEMO_IDS.upkeepScenario]) {
-    if ((await freezeScenario(tx, scenarioId)) !== "frozen") {
-      throw new Error(`The seed's chosen scenario ${scenarioId} has a category without a rate`);
-    }
-  }
-  // One revision of a chosen scenario, to show it (docs/domain.md, "In the demo"), made by nobody
-  // signed in and outside a deploy. Its team's load is observed on the seed's day.
-  await writeRevision(
-    tx,
-    DEMO_IDS.deliveryScenario,
-    {
-      authorId: null,
-      commitSha: null,
-      today,
-      reason: "chosen",
-      // Noon of the seed's day, so a reseed on the same day leaves the same row.
-      madeAt: new Date(`${today}T12:00:00Z`),
-    },
-    DEMO_IDS.deliveryRevision,
-  );
+  // Chosen, as choosing does: each points at a revision made with today's values, by nobody signed
+  // in and outside a deploy, at noon of the seed's day, so a reseed on the same day leaves the same
+  // rows (docs/domain.md, "In the demo"). The delivery plan last, so its revision observes the run
+  // plan's load (rule c), as the demo shows.
+  const maker = { authorId: null, commitSha: null, today, madeAt: new Date(`${today}T12:00:00Z`) };
+  await pointAtLatestRevision(tx, DEMO_IDS.upkeepScenario, maker, DEMO_IDS.upkeepRevision);
+  await pointAtLatestRevision(tx, DEMO_IDS.deliveryScenario, maker, DEMO_IDS.deliveryRevision);
   // And one alternative derived from it, by nobody, as the revision was made, in the demo's
   // language. Fixed ids, so a reseed on the same day leaves the same rows.
   let next = ALTERNATIVE_ROWS;

@@ -60,12 +60,16 @@ describe("revisionSourceOf", () => {
     expect(() => revisionSourceOf(hoursBasis, team)).toThrow(/rate access/);
   });
 
-  it("refuses a chosen scenario's frozen values: a revision takes the current ones", () => {
-    const frozen = {
+  it("refuses a chosen scenario's revision: a revision takes the saved team and current values", () => {
+    const chosen = {
       ...ratesBasis,
-      engine: { ...ratesBasis.engine, frozen: true },
-    } as typeof ratesBasis;
+      chosenRevision: {
+        id: "r",
+        number: 1,
+        view: { open: buildRevision(revisionSourceOf(ratesBasis, team)).open, restricted: null },
+      },
+    };
 
-    expect(() => revisionSourceOf(frozen, team)).toThrow(/current values/);
+    expect(() => revisionSourceOf(chosen, team)).toThrow(/current values/);
   });
 });

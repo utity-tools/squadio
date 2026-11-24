@@ -180,6 +180,11 @@ export const scenarios = pgTable(
     projectId: uuid("project_id").notNull(),
     name: text("name").notNull(),
     chosen: boolean("chosen").notNull().default(false),
+    /**
+     * The revision a chosen scenario points at (docs/domain.md, "Choosing a revision"): one of its
+     * own, set exactly when it is chosen. Null for a draft.
+     */
+    chosenRevisionId: uuid("chosen_revision_id"),
     version: integer("version").notNull().default(1),
     // docs/domain.md, "Derived alternative": where an alternative came from and who made it. A
     // scenario is one when derived_at is set; the revision is cleared when it is deleted with its
@@ -210,6 +215,19 @@ export const scenarios = pgTable(
       foreignColumns: [scenarioRevisions.organizationId, scenarioRevisions.id],
     }),
     index("scenarios_derived_from_revision_idx").on(t.organizationId, t.derivedFromRevisionId),
+    // A chosen scenario points at one of its own revisions. DEFERRABLE INITIALLY DEFERRED is added
+    // by hand in migration 0016, as for the alternative's key, and the check below is NOT VALID
+    // there until the backfill has run in production (slice 6c validates it).
+    foreignKey({
+      name: "scenarios_chosen_revision_fkey",
+      columns: [t.organizationId, t.id, t.chosenRevisionId],
+      foreignColumns: [
+        scenarioRevisions.organizationId,
+        scenarioRevisions.scenarioId,
+        scenarioRevisions.id,
+      ],
+    }),
+    check("scenarios_chosen_revision_check", sql`chosen = (chosen_revision_id is not null)`),
     check(
       "scenarios_derived_check",
       sql`derived_at is not null or (derived_from_revision_id is null and derived_by is null)`,
@@ -492,8 +510,11 @@ export const extraCosts = pgTable(
 // either table (migration 0012). A revision is deleted only with its scenario, its project or its
 // organization (docs/domain.md, "Retention").
 
-/** Why a revision was made: on request, or before its scenario was shared or chosen. */
-export const revisionReason = pgEnum("revision_reason", ["saved", "shared", "chosen"]);
+/**
+ * Why a revision was made: on request, or before its scenario was shared or chosen; `migrated` for
+ * the backfill that gave scenarios chosen before slice 6 their revision.
+ */
+export const revisionReason = pgEnum("revision_reason", ["saved", "shared", "chosen", "migrated"]);
 
 /** A revision's open part, with who made it, when and why. */
 export const scenarioRevisions = pgTable(
@@ -520,6 +541,8 @@ export const scenarioRevisions = pgTable(
     tenantIsolation(),
     unique("scenario_revision_organization_id_id_key").on(t.organizationId, t.id),
     unique("scenario_revision_number_key").on(t.organizationId, t.scenarioId, t.number),
+    // What a chosen scenario's key names: a revision of that scenario (scenarios_chosen_revision_fkey).
+    unique("scenario_revision_scenario_id_key").on(t.organizationId, t.scenarioId, t.id),
     foreignKey({
       name: "scenario_revision_scenario_fkey",
       columns: [t.organizationId, t.scenarioId],

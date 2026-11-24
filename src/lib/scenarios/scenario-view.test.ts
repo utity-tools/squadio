@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import { calendarWorkingHours } from "@/lib/calendar/calendar";
+import { PLAN_A } from "@/lib/comparison/comparison.fixtures";
+import { buildRevision } from "@/lib/revisions/build-revision";
+import { planSource } from "@/lib/revisions/revision.fixtures";
+import { revisionView } from "@/lib/revisions/revision-view";
 
 import { PM, SENIOR, lead, manager, personId, seat } from "./change.fixtures";
 import { type ScenarioBasis, engineInputFor, rosterOf, scenarioView } from "./scenario-view";
@@ -122,27 +126,64 @@ describe("engineInputFor", () => {
     expect(input.costSettings.calendarWorkingHours).toBe(calendarWorkingHours(2028, 40));
     expect(input.rates).toBe(withRates.engine.input.rates);
   });
+});
 
-  it("keeps a chosen scenario's frozen calendar working hours", () => {
-    const { engine } = withRates;
-    if (!engine.rateAccess) throw new Error("expected a basis with rate access");
-    const frozen: ScenarioBasis = {
+describe("scenarioView of a chosen scenario", () => {
+  // docs/domain.md, "Choosing a revision": its page shows the revision it points at, as stored,
+  // whatever the basis's current values and the team passed say.
+  const revision = buildRevision(planSource("Plan A", PLAN_A));
+  const chosen = { ...open.scenario, chosen: true };
+
+  it("shows the revision's team and stored result, with today's target", () => {
+    const basis: ScenarioBasis = {
       ...withRates,
-      engine: {
-        ...engine,
-        frozen: true,
-        input: {
-          ...engine.input,
-          costSettings: { ...engine.input.costSettings, calendarWorkingHours: 2000 },
-        },
+      scenario: chosen,
+      chosenRevision: {
+        id: "revision-1",
+        number: 1,
+        view: { ...revision, targetMarginBasisPoints: 2_000, smallCategories: [] },
+      },
+    };
+    const stored = revisionView({
+      ...revision,
+      targetMarginBasisPoints: 2_000,
+      smallCategories: [],
+    });
+
+    const view = scenarioView(basis, team);
+
+    if (!view.rateAccess || !stored.summary.rateAccess) throw new Error("expected rate access");
+    expect(view.team).toEqual(stored.team);
+    expect(view.span).toEqual(stored.span);
+    expect(view.result).toEqual(stored.summary.result);
+    expect(view.settings).toEqual(stored.summary.settings);
+    expect(view.extraCosts).toEqual(stored.summary.extraCosts);
+    expect(view.scenario).toEqual(chosen);
+  });
+
+  it("shows the revision's stored hours without rate access, and no money", () => {
+    const basis: ScenarioBasis = {
+      ...hoursOnly,
+      scenario: chosen,
+      chosenRevision: {
+        id: "revision-1",
+        number: 1,
+        view: { open: revision.open, restricted: null },
       },
     };
 
-    const input = engineInputFor(frozen, [
-      seat(7, { startDate: "2028-02-01", endDate: "2028-03-31" }),
-    ]);
+    const view = scenarioView(basis, team);
 
-    expect(input.costSettings.calendarWorkingHours).toBe(2000);
+    if (view.rateAccess) throw new Error("expected no rate access");
+    expect(view.hours).toEqual(revision.open.hours);
+    expect(view.assignments).toEqual(
+      revision.open.team.map(({ id, nominalHours, effectiveHours }) => ({
+        id,
+        nominalHours,
+        effectiveHours,
+      })),
+    );
+    expect(Object.keys(view)).not.toContain("result");
   });
 });
 

@@ -613,10 +613,10 @@
       "busy": "Eligiendo…",
       "title": "¿Elegir «{name}» para {project}?",
       "blockedTitle": "No se puede elegir «{name}»",
-      "replaces": "«{name}» dejará de ser el escenario elegido del proyecto: se descartan sus valores congelados y su equipo se podrá editar de nuevo.",
-      "missingRate": "{count, plural, one {Falta el coste de {categories}} other {Faltan los costes de {categories}}}, así que no hay nada que congelar.",
+      "replaces": "«{name}» dejará de ser el escenario elegido del proyecto: su revisión se conserva y su equipo se podrá editar de nuevo.",
+      "missingRate": "{count, plural, one {Falta el coste de {categories}} other {Faltan los costes de {categories}}}, así que su coste de personal no se puede calcular.",
       "intro": "Es el equipo con el que te comprometes. Al elegirlo:",
-      "freezes": "Se congelan el coste y la tarifa de venta de {count, plural, one {su categoría} other {sus # categorías}}, el overhead, el buffer y la disponibilidad de hoy: si los cambias después, esos valores ya no mueven «{name}». El precio, los costes extra, el calendario y el margen objetivo no se congelan.",
+      "freezes": "Se guarda una revisión de «{name}», o se usa de nuevo la última si nada ha cambiado, con el coste y la tarifa de venta de hoy de {count, plural, one {su categoría} other {sus # categorías}}, el overhead, el buffer, la disponibilidad, el precio, el periodo y los costes extra: si cambian después, ya no mueven «{name}». Solo el margen objetivo sigue juzgando su color.",
       "locks": "El equipo queda bloqueado: para cambiarlo, quita la elección.",
       "occupies": "{count, plural, =0 {Su equipo son solo vacantes: no ocupa a nadie.} one {Su persona pasa a contar como ocupada en este proyecto.} other {Sus # personas pasan a contar como ocupadas en este proyecto.}}",
       "emptyTeam": "Se podrá elegir cuando haya alguien en el equipo."
@@ -625,7 +625,7 @@
       "button": "Quitar la elección",
       "busy": "Quitando la elección…",
       "title": "¿Quitar la elección de «{name}»?",
-      "description": "Se descartan sus costes, sus tarifas de venta y su configuración de costes congelados: el escenario vuelve a calcularse con los valores actuales y su equipo se puede editar de nuevo."
+      "description": "Su revisión se conserva: el escenario vuelve a mostrar su equipo guardado, con los valores actuales, y se puede editar de nuevo."
     },
     "waiting": {
       "unsaved": "Los cambios aún no se han guardado: podrás continuar en cuanto se guarden.",
@@ -821,7 +821,7 @@
     "tree": "Árbol",
     "table": "Tabla",
     "locked": {
-      "frozen": "Equipo bloqueado · costes y tarifas de venta congelados",
+      "revision": "Equipo bloqueado · muestra la revisión elegida",
       "chosen": "Equipo bloqueado · escenario elegido",
       "viewer": "Solo lectura · tu rol es de lector"
     }
@@ -1249,8 +1249,8 @@
     "heading": "Comparar escenarios de {project}",
     "intro": "Las diferencias son respecto a la referencia, {baseline}. Esta vista solo lee: para cambiar un equipo, abre su escenario.",
     "baseline": "Referencia",
-    "frozen": "Valores congelados",
-    "frozenNote": "{name} está elegido: se calcula con las tarifas y porcentajes que congeló al elegirlo. Parte de una diferencia puede venir de tarifas cambiadas después.",
+    "chosenRevision": "Revisión {number}",
+    "chosenRevisionNote": "{name} está elegido: muestra su revisión {number} tal como se guardó. Parte de una diferencia puede venir de valores cambiados después.",
     "team": "<nowrap>{people, plural, one {# persona} other {# personas}}</nowrap>{openRoles, plural, =0 {} one { · <nowrap># vacante</nowrap>} other { · <nowrap># vacantes</nowrap>}}",
     "noTeam": "Sin equipo",
     "line": "Línea",
@@ -1338,7 +1338,8 @@
     "reason": {
       "saved": "guardada",
       "shared": "compartida",
-      "chosen": "elegida"
+      "chosen": "elegida",
+      "migrated": "migrada"
     }
   },
   "RevisionPage": {

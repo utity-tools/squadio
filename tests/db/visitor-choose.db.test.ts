@@ -4,7 +4,7 @@ import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { ZodError } from "zod";
 
 import { DEMO_IDS, DEMO_ORGANIZATION_ID, seedDemo } from "@/db/demo-seed";
-import { frozenCostConfig, scenarios } from "@/db/schema";
+import { scenarios } from "@/db/schema";
 import { withOrganization } from "@/db/tenant";
 import { chooseForVisitor, unchooseForVisitor } from "@/db/visitor-choose";
 import type { CookieJar } from "@/db/visitor-write";
@@ -48,45 +48,52 @@ const copies = async () =>
     )
   ).rows;
 
-/** A scenario's chosen flag and whether it has a frozen cost config, read with rate access. */
+/** A scenario's chosen flag and version, and whether it points at a revision. */
 const stateOf = (organizationId: string, scenarioId: string) =>
   withOrganization(app, { organizationId, rateAccess: true }, async (tx) => {
     const [scenario] = await tx
-      .select({ chosen: scenarios.chosen, version: scenarios.version })
+      .select({
+        chosen: scenarios.chosen,
+        version: scenarios.version,
+        chosenRevisionId: scenarios.chosenRevisionId,
+      })
       .from(scenarios)
       .where(eq(scenarios.id, scenarioId));
-    const frozen = await tx
-      .select({ id: frozenCostConfig.scenarioId })
-      .from(frozenCostConfig)
-      .where(eq(frozenCostConfig.scenarioId, scenarioId));
-    return { ...scenario, frozen: frozen.length > 0 };
+    const { chosenRevisionId, ...rest } = scenario ?? { chosenRevisionId: null };
+    return { ...rest, pointsAtRevision: chosenRevisionId !== null };
   });
 
 const guide = { scenarioId: DEMO_IDS.guideScenario, baseVersion: 1 };
+/** When the visitor chooses, as the page's action sets it. */
+const MAKER = { commitSha: null, today: SOME_DAY };
 
 describe("chooseForVisitor: the first choice", () => {
   it("copies the demo, chooses the copy's scenario and sets the cookie", async () => {
     const { cookies, sets } = jar();
-    const result = await chooseForVisitor(app, cookies, guide, true);
+    const result = await chooseForVisitor(app, cookies, guide, true, MAKER);
 
     const [copy] = await copies();
     if (!copy || !result.ok) throw new Error("expected a copy and a chosen result");
     const org = copy.organization_id;
     const scenarioId = copyId(DEMO_IDS.guideScenario, org);
     expect(result).toMatchObject({ ok: true, version: 2, scenarioId });
-    expect(await stateOf(org, scenarioId)).toEqual({ chosen: true, version: 2, frozen: true });
+    expect(await stateOf(org, scenarioId)).toEqual({
+      chosen: true,
+      version: 2,
+      pointsAtRevision: true,
+    });
     // The template is never chosen.
     expect(await stateOf(DEMO_ORGANIZATION_ID, DEMO_IDS.guideScenario)).toEqual({
       chosen: false,
       version: 1,
-      frozen: false,
+      pointsAtRevision: false,
     });
     expect(sets.map(({ name }) => name)).toEqual([VISITOR_COOKIE]);
   });
 
   it("tells the page the copy's ids for what it shows", async () => {
     const { cookies } = jar();
-    const result = await chooseForVisitor(app, cookies, guide, true);
+    const result = await chooseForVisitor(app, cookies, guide, true, MAKER);
     if (!result.ok) throw new Error("expected a chosen result");
     const org = (await copies())[0]?.organization_id ?? "";
     expect(result.renamed?.[DEMO_IDS.guide.senior]).toBe(copyId(DEMO_IDS.guide.senior, org));
@@ -96,22 +103,26 @@ describe("chooseForVisitor: the first choice", () => {
   it("leaves no copy and no cookie when the choice is refused", async () => {
     const { cookies, sets } = jar();
     const scenarioId = DEMO_IDS.missingRateScenario;
-    expect(await chooseForVisitor(app, cookies, { scenarioId, baseVersion: 1 }, true)).toEqual({
+    expect(
+      await chooseForVisitor(app, cookies, { scenarioId, baseVersion: 1 }, true, MAKER),
+    ).toEqual({
       ok: false,
       reason: "missing-rate",
     });
-    expect(await chooseForVisitor(app, cookies, { ...guide, baseVersion: 7 }, true)).toEqual({
-      ok: false,
-      reason: "conflict",
-      version: 1,
-    });
+    expect(await chooseForVisitor(app, cookies, { ...guide, baseVersion: 7 }, true, MAKER)).toEqual(
+      {
+        ok: false,
+        reason: "conflict",
+        version: 1,
+      },
+    );
     expect(await copies()).toEqual([]);
     expect(sets).toEqual([]);
   });
 
   it("refuses without rate access, making no copy", async () => {
     const { cookies, sets } = jar();
-    expect(await chooseForVisitor(app, cookies, guide, false)).toEqual({
+    expect(await chooseForVisitor(app, cookies, guide, false, MAKER)).toEqual({
       ok: false,
       reason: "no-rate-access",
     });
@@ -122,7 +133,7 @@ describe("chooseForVisitor: the first choice", () => {
   it("stops at the day's limit, choosing nothing", async () => {
     await owner.query(claimCopies(200));
     const { cookies, sets } = jar();
-    expect(await chooseForVisitor(app, cookies, guide, true)).toEqual({
+    expect(await chooseForVisitor(app, cookies, guide, true, MAKER)).toEqual({
       ok: false,
       reason: "limit",
     });
@@ -132,18 +143,19 @@ describe("chooseForVisitor: the first choice", () => {
 
   it("unchooses a scenario the template has chosen, in a new copy", async () => {
     const { cookies, sets } = jar();
-    const delivery = { scenarioId: DEMO_IDS.deliveryScenario, baseVersion: 1 };
+    // The seed chose it as choosing does, which moved its version on.
+    const delivery = { scenarioId: DEMO_IDS.deliveryScenario, baseVersion: 2 };
     const result = await unchooseForVisitor(app, cookies, delivery, true);
     if (!result.ok) throw new Error("expected an unchosen result");
     const org = (await copies())[0]?.organization_id ?? "";
     expect(await stateOf(org, result.scenarioId)).toEqual({
       chosen: false,
-      version: 2,
-      frozen: false,
+      version: 3,
+      pointsAtRevision: false,
     });
     expect(await stateOf(DEMO_ORGANIZATION_ID, DEMO_IDS.deliveryScenario)).toMatchObject({
       chosen: true,
-      frozen: true,
+      pointsAtRevision: true,
     });
     expect(sets).toHaveLength(1);
   });
@@ -151,7 +163,7 @@ describe("chooseForVisitor: the first choice", () => {
   it("refuses input that is not a valid choice", async () => {
     const { cookies } = jar();
     await expect(
-      chooseForVisitor(app, cookies, { scenarioId: "nope", baseVersion: 1 }, true),
+      chooseForVisitor(app, cookies, { scenarioId: "nope", baseVersion: 1 }, true, MAKER),
     ).rejects.toBeInstanceOf(ZodError);
   });
 });
@@ -159,7 +171,7 @@ describe("chooseForVisitor: the first choice", () => {
 describe("chooseForVisitor: with a copy", () => {
   const firstChoice = async () => {
     const { cookies, sets } = jar();
-    const result = await chooseForVisitor(app, cookies, guide, true);
+    const result = await chooseForVisitor(app, cookies, guide, true, MAKER);
     if (!result.ok) throw new Error("expected the first choice to work");
     // With two visitors, their copy is the one the scenario's id was derived for.
     const org =
@@ -180,8 +192,14 @@ describe("chooseForVisitor: with a copy", () => {
       version: 3,
       scenarioId,
     });
-    expect(await stateOf(org, scenarioId)).toEqual({ chosen: false, version: 3, frozen: false });
-    expect(await chooseForVisitor(app, cookies, { scenarioId, baseVersion: 3 }, true)).toEqual({
+    expect(await stateOf(org, scenarioId)).toEqual({
+      chosen: false,
+      version: 3,
+      pointsAtRevision: false,
+    });
+    expect(
+      await chooseForVisitor(app, cookies, { scenarioId, baseVersion: 3 }, true, MAKER),
+    ).toEqual({
       ok: true,
       version: 4,
       scenarioId,
@@ -201,7 +219,11 @@ describe("chooseForVisitor: with a copy", () => {
       reason: "conflict",
       version: 2,
     });
-    expect(await stateOf(org, scenarioId)).toEqual({ chosen: true, version: 2, frozen: true });
+    expect(await stateOf(org, scenarioId)).toEqual({
+      chosen: true,
+      version: 2,
+      pointsAtRevision: true,
+    });
   });
 
   it("refuses without rate access, whatever the copy", async () => {

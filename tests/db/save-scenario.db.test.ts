@@ -14,6 +14,7 @@ import type { Change, Member } from "@/lib/scenarios/change";
 import { copyId } from "@/lib/visitors/copy-id";
 
 import { SOME_DAY, appPool, newOrganization } from "./support";
+import { markChosen } from "./choose";
 
 // ADR 0011, "Saving": changes saved against a version, re-checked on the stored team.
 
@@ -139,9 +140,7 @@ describe("saveScenarioChanges", () => {
 
   it("refuses a chosen scenario", async () => {
     const owner: AccessContext = { organizationId: copyOrg, rateAccess: true };
-    await withOrganization(app, owner, (tx) =>
-      tx.update(scenarios).set({ chosen: true }).where(eq(scenarios.id, scenarioId)),
-    );
+    await withOrganization(app, owner, (tx) => markChosen(tx, scenarioId));
     expect(await save([{ type: "remove", id: seat(DEMO_IDS.guide.devops) }])).toEqual({
       ok: false,
       reason: "chosen",

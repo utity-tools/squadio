@@ -5,6 +5,7 @@ import { z } from "zod";
 import { type Member, memberAccessContext, memberEditContext } from "./access";
 import {
   type ChoiceInput,
+  type ChoiceMaker,
   choiceInputSchema,
   chooseScenario,
   unchooseScenario,
@@ -101,22 +102,29 @@ export async function setChoiceFor(
   db: NodePgDatabase,
   { member, jar }: Writer,
   input: ChoiceInput,
-  { chosen, rateAccess }: { chosen: boolean; rateAccess: boolean },
+  {
+    chosen,
+    rateAccess,
+    ...maker
+  }: { chosen: boolean; rateAccess: boolean } & Omit<ChoiceMaker, "authorId">,
 ): Promise<VisitorChoiceResult> {
   const request = choiceInputSchema.parse(input);
   const context = await memberWriteContext(db, member, request.scenarioId);
   if (!context || !member) {
-    const step = chosen ? chooseForVisitor : unchooseForVisitor;
-    return step(db, jar, request, rateAccess);
+    return chosen
+      ? chooseForVisitor(db, jar, request, rateAccess, maker)
+      : unchooseForVisitor(db, jar, request, rateAccess);
   }
-  // Choosing writes frozen money (rule b): it needs the member's rate access and the request's.
+  // Choosing writes a revision, money included (rule b): it needs the member's rate access and the
+  // request's. Their role is checked again inside the transaction.
   const withRates = { ...context, rateAccess: context.rateAccess && rateAccess };
   if (!member.capabilities.choose || !withRates.rateAccess) {
     return { ok: false, reason: "no-rate-access" };
   }
-  const step = chosen ? chooseScenario : unchooseScenario;
-  const result = await step(db, withRates, request);
-  return result.ok ? { ...result, scenarioId: request.scenarioId } : result;
+  const result = chosen
+    ? await chooseScenario(db, withRates, request, { ...maker, authorId: member.userId })
+    : await unchooseScenario(db, withRates, request, member);
+  return result.ok ? { ok: true, version: result.version, scenarioId: request.scenarioId } : result;
 }
 
 /**

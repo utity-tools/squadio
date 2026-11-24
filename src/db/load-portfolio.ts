@@ -4,12 +4,13 @@ import { z } from "zod";
 
 import { categoryOccupancy } from "@/lib/bench/category-occupancy";
 import { occupancy } from "@/lib/bench/occupancy";
+import { bookedBy, membersOf } from "@/lib/revisions/chosen-revision";
 import type { Portfolio, PortfolioProject, PortfolioScenario } from "@/lib/portfolio/portfolio";
 import type { Member } from "@/lib/scenarios/change";
-import type { FrozenValues } from "@/lib/scenarios/engine-input";
 import { type ScenarioBasis, scenarioView } from "@/lib/scenarios/scenario-view";
 
-import { type MoneyRows, engineBasis, frozenValues, plannedPeriodOf } from "./scenario-basis";
+import { chosenRevisionOf, readChosenMoney, readChosenRevisions } from "./chosen-revisions";
+import { type MoneyRows, engineBasis, plannedPeriodOf } from "./scenario-basis";
 import {
   assignments,
   categories,
@@ -17,8 +18,6 @@ import {
   config,
   costConfig,
   extraCosts,
-  frozenCostConfig,
-  frozenRates,
   people,
   projectPricing,
   projects,
@@ -139,43 +138,25 @@ async function readMoney(tx: TenantTransaction) {
         sellRateCents: categoryRates.sellRate,
       })
       .from(categoryRates),
-    frozenSettings: await tx.select().from(frozenCostConfig),
-    frozenRates: await tx
-      .select()
-      .from(frozenRates)
-      .orderBy(asc(frozenRates.scenarioId), asc(frozenRates.categoryId)),
   };
 }
 
 type Money = Awaited<ReturnType<typeof readMoney>>;
 
-/** One scenario's money rows and frozen values, out of the organization's. */
-function moneyOf(
-  money: Money,
-  projectId: string,
-  scenarioId: string,
-): { rows: MoneyRows; frozen: FrozenValues | undefined } {
+/** One scenario's money rows, out of the organization's. */
+function moneyOf(money: Money, projectId: string, scenarioId: string): MoneyRows {
   const pricing = money.pricing.find((row) => row.projectId === projectId);
-  const settings = money.frozenSettings.find((row) => row.scenarioId === scenarioId);
   return {
-    rows: {
-      costConfig: money.costConfig,
-      ...(pricing && { pricing }),
-      extraCosts: money.extraCosts.filter((row) => row.scenarioId === scenarioId),
-      rates: money.rates,
-    },
-    frozen:
-      settings &&
-      frozenValues(
-        settings,
-        money.frozenRates.filter((row) => row.scenarioId === scenarioId),
-      ),
+    costConfig: money.costConfig,
+    ...(pricing && { pricing }),
+    extraCosts: money.extraCosts.filter((row) => row.scenarioId === scenarioId),
+    rates: money.rates,
   };
 }
 
 /**
- * The organization's projects and their scenarios, costed with its current values or a chosen
- * scenario's frozen ones (rule b), with each category's occupancy on `today` (`YYYY-MM-DD`, the
+ * The organization's projects and their scenarios, costed with its current values, or shown as
+ * a chosen scenario's revision stored them (docs/domain.md, "Choosing a revision"), with each category's occupancy on `today` (`YYYY-MM-DD`, the
  * page passes Madrid's). Without rate access, no price and no scenario's money.
  */
 export async function loadPortfolio(
@@ -221,11 +202,20 @@ async function portfolioIn(
 ): Promise<Portfolio> {
   const structure = await readStructure(tx);
   const money = context.rateAccess ? await readMoney(tx) : null;
+  const chosen = new Map(
+    (await readChosenRevisions(tx)).map((row) => [row.scenarioId, row] as const),
+  );
+  const chosenMoney = money
+    ? await readChosenMoney(
+        tx,
+        [...chosen.values()].map((row) => row.revisionId),
+      )
+    : null;
 
-  // Occupancy holds no money, so everyone reads it (domain, "How busy a person is").
-  const chosen = new Set(structure.scenarios.filter((s) => s.chosen).map((s) => s.id));
+  // Occupancy holds no money, so everyone reads it (domain, "How busy a person is"): the teams of
+  // the chosen scenarios' revisions.
   const busy = occupancy(
-    structure.team.filter((member) => chosen.has(member.scenarioId)),
+    [...chosen.values()].flatMap((row) => bookedBy(row.open)),
     day,
   );
   const roster = structure.people.map((person) => ({
@@ -238,7 +228,10 @@ async function portfolioIn(
     scenario: (typeof structure.scenarios)[number],
   ): PortfolioScenario => {
     if (!structure.config) throw new Error("The organization has no config");
-    const team: Member[] = structure.team
+    // A chosen scenario shows its revision, team included; one chosen before the backfill gave it
+    // a revision shows its saved team until it has.
+    const revision = scenario.chosen ? chosen.get(scenario.id) : undefined;
+    const saved: Member[] = structure.team
       .filter((member) => member.scenarioId === scenario.id)
       .map((member) => ({
         id: member.id,
@@ -251,8 +244,14 @@ async function portfolioIn(
         startDate: member.startDate,
         endDate: member.endDate,
       }));
+    const team = revision ? membersOf(revision.open) : saved;
     const own = money && moneyOf(money, project.id, scenario.id);
     const plannedPeriod = plannedPeriodOf(project);
+    const engine = engineBasis(
+      { pricingModel: project.pricingModel, config: structure.config, plannedPeriod },
+      own,
+      roster,
+    );
     const basis: ScenarioBasis = {
       project: {
         id: project.id,
@@ -268,12 +267,19 @@ async function portfolioIn(
       defaultWeeklyHours: structure.config.defaultWeeklyHours,
       // The portfolio costs scenarios; it shows no weekly load.
       commitments: [],
-      engine: engineBasis(
-        { pricingModel: project.pricingModel, config: structure.config, plannedPeriod },
-        own?.rows ?? null,
-        scenario.chosen ? own?.frozen : undefined,
-        roster,
-      ),
+      engine,
+      ...(revision && {
+        chosenRevision: chosenRevisionOf(
+          revision,
+          chosenMoney,
+          engine.rateAccess && money?.costConfig
+            ? {
+                targetMarginBasisPoints: money.costConfig.targetMargin,
+                smallCategories: engine.smallCategories,
+              }
+            : null,
+        ),
+      }),
     };
     const view = scenarioView(basis, team);
     const people = team.filter((member) => member.personId !== null).length;
@@ -296,7 +302,9 @@ async function portfolioIn(
         netMarginBasisPoints: result.netMarginBasisPoints,
         marginStatus: result.marginStatus,
         warnings: result.warnings,
-        undatedRecurringCosts: (own?.rows.extraCosts ?? [])
+        // A new planned period moves them, but not a chosen scenario's: its revision keeps the
+        // period it was made with (docs/domain.md, "Planned period").
+        undatedRecurringCosts: (revision ? [] : (own?.extraCosts ?? []))
           .filter((extra) => extra.kind === "recurring" && extra.startDate === null)
           .map(({ id, label }) => ({ id, label })),
       },

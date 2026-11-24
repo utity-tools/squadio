@@ -18,6 +18,7 @@ import { teamOverAllocation } from "@/lib/load/over-allocation";
 import { scenarioWeeks, weeklyLoad } from "@/lib/load/weekly-load";
 
 import { SOME_DAY, appPool, newOrganization } from "./support";
+import { markChosen } from "./choose";
 
 // docs/plan.md, v0.4 slice 3: the weekly load measured with realistic data. A synthetic
 // consultancy of 150 people in 6 categories, with 30 other projects whose chosen scenarios hold 50
@@ -124,7 +125,7 @@ beforeAll(async () => {
         .returning();
       const [chosen] = await tx
         .insert(scenarios)
-        .values({ organizationId, projectId: project!.id, name: "Chosen", chosen: true })
+        .values({ organizationId, projectId: project!.id, name: "Chosen" })
         .returning();
       await tx
         .insert(assignments)
@@ -133,6 +134,7 @@ beforeAll(async () => {
             assignment(chosen!.id, index, slot, "2026-01-01", 900),
           ),
         );
+      await markChosen(tx, chosen!.id);
     }
     const [page] = await tx
       .insert(projects)

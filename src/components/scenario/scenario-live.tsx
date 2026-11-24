@@ -26,14 +26,11 @@ export function LiveScenarioHeader() {
 
 export function LiveScenarioTeam() {
   const scenario = useScenarioView();
-  // Only a chosen scenario costed with its frozen rows says so; one without them, or a page
-  // without rate access, says only that it is chosen (docs/domain.md, "Loading a scenario").
+  // A chosen scenario shows its revision's team, and says so; one chosen before the backfill gave
+  // it a revision says only that it is chosen (docs/domain.md, "Choosing a revision").
   const store = useScenarioStore();
   const readOnly = useScenarioReadOnly();
-  const frozen = useStore(
-    store,
-    ({ basis }) => basis.engine.rateAccess && basis.engine.frozen === true,
-  );
+  const fromRevision = useStore(store, ({ basis }) => basis.chosenRevision !== undefined);
   const team = useStore(store, (state) => state.history.team);
   const basis = useStore(store, (state) => state.basis);
   // Rule c on every change, from the store's team: no money, so everyone sees it.
@@ -57,8 +54,8 @@ export function LiveScenarioTeam() {
           readOnly
             ? "viewer"
             : scenario.scenario.chosen
-              ? frozen
-                ? "frozen"
+              ? fromRevision
+                ? "revision"
                 : "chosen"
               : undefined
         }

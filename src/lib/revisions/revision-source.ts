@@ -10,12 +10,16 @@ import type { RevisionSource } from "./build-revision";
 
 /**
  * What `buildRevision` takes, from the basis and team the scenario's page loads. Throws on a basis
- * without rate access, or one costed with a chosen scenario's frozen values.
+ * without rate access, or a chosen scenario's that shows its revision.
  */
 export function revisionSourceOf(basis: ScenarioBasis, team: readonly Member[]): RevisionSource {
   const { engine } = basis;
   if (!engine.rateAccess) throw new Error("A revision needs rate access");
-  if (engine.frozen) throw new Error("A revision is made with the current values, not frozen ones");
+  if (basis.chosenRevision) {
+    throw new Error(
+      "A revision is made of the saved team with the current values, not of a chosen one",
+    );
+  }
   return {
     scenarioName: basis.scenario.name,
     team: scenarioView(basis, team).team,

@@ -214,7 +214,9 @@ function ColumnHead({
         <span className="flex flex-wrap justify-end gap-1">
           {baseline && <Chip tone="demo">{t("baseline")}</Chip>}
           {column.chosen && <ChosenChip />}
-          {column.frozen && <Chip>{t("frozen")}</Chip>}
+          {column.revision !== null && (
+            <Chip>{t("chosenRevision", { number: column.revision })}</Chip>
+          )}
         </span>
         <span className="text-xs font-normal">{team}</span>
       </span>
@@ -307,7 +309,9 @@ export function ComparisonView({ comparison, access = "" }: ComparisonViewProps)
   const format = useFormatter();
   const { columns } = comparison;
   const names = columns.map(({ name }) => name);
-  const frozen = columns.find((column) => column.frozen);
+  const fromRevision = columns.find(
+    (column): column is ComparisonColumn & { revision: number } => column.revision !== null,
+  );
   const list = (items: string[]) => format.list(items);
 
   const moneyRow = (row: MoneyRow) => {
@@ -364,9 +368,12 @@ export function ComparisonView({ comparison, access = "" }: ComparisonViewProps)
 
   return (
     <div className="flex flex-col gap-4">
-      {frozen && (
+      {fromRevision && (
         <p className="text-[13px] text-muted-foreground">
-          {t("frozenNote", { name: frozen.name })}
+          {t("chosenRevisionNote", {
+            name: fromRevision.name,
+            number: fromRevision.revision,
+          })}
         </p>
       )}
 

@@ -4,7 +4,6 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { ZodError } from "zod";
 
-import { chooseScenario } from "@/db/choose-scenario";
 import { copyOrganization } from "@/db/copy-organization";
 import { DEMO_IDS, DEMO_ORGANIZATION_ID, seedDemo } from "@/db/demo-seed";
 import { loadComparison } from "@/db/load-comparison";
@@ -15,6 +14,7 @@ import type { Comparison } from "@/lib/comparison/compare";
 import { copyId } from "@/lib/visitors/copy-id";
 
 import { SOME_DAY, appPool, newOrganization } from "./support";
+import { chooseAsNobody } from "./choose";
 
 // docs/domain.md, "Comparing scenarios", on the demo organization's seed: its project holds Plan A
 // (the guide case) and Plan B.
@@ -46,9 +46,9 @@ describe("loadComparison", () => {
     if (!a?.rateAccess || !b?.rateAccess) throw new Error("expected rate access");
 
     // Neither is chosen in the seed: the first picked is the baseline.
-    expect(comparison?.columns.map(({ id, frozen }) => ({ id, frozen }))).toEqual([
-      { id: planB, frozen: false },
-      { id: planA, frozen: false },
+    expect(comparison?.columns.map(({ id, revision }) => ({ id, revision }))).toEqual([
+      { id: planB, revision: null },
+      { id: planA, revision: null },
     ]);
     const [baseline, other] = netMargin(comparison) ?? [];
     expect(baseline?.figure).toBe(b.result.netMarginCents);
@@ -80,7 +80,7 @@ describe("loadComparison", () => {
       copyId(planB, organizationId),
       copyId(project, organizationId),
     ];
-    expect(await chooseScenario(app, copy, { scenarioId: copyA, baseVersion: 1 })).toMatchObject({
+    expect(await chooseAsNobody(app, copy, { scenarioId: copyA, baseVersion: 1 })).toMatchObject({
       ok: true,
     });
     const before = netMargin(
@@ -92,9 +92,9 @@ describe("loadComparison", () => {
     );
     const comparison = await loadComparison(app, copy, copyProject, [copyB, copyA], SOME_DAY);
 
-    expect(comparison?.columns.map(({ id, frozen }) => ({ id, frozen }))).toEqual([
-      { id: copyA, frozen: true },
-      { id: copyB, frozen: false },
+    expect(comparison?.columns.map(({ id, revision }) => ({ id, revision }))).toEqual([
+      { id: copyA, revision: 1 },
+      { id: copyB, revision: null },
     ]);
     // The chosen column keeps its cost; the draft moves with the new rates.
     const after = netMargin(comparison);

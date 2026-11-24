@@ -2,7 +2,15 @@ import { count, eq, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { afterAll, describe, expect, it } from "vitest";
 
-import { assignments, categories, config, people, projects, scenarios } from "@/db/schema";
+import {
+  assignments,
+  categories,
+  config,
+  people,
+  projects,
+  scenarioRevisions,
+  scenarios,
+} from "@/db/schema";
 import { type AccessContext, type TenantTransaction, withOrganization } from "@/db/tenant";
 
 import { appPool, newOrganization, ownerPool } from "./support";
@@ -173,19 +181,42 @@ describe("structural tables", () => {
   it("allow at most one chosen scenario per project (rule i)", async () => {
     const a = await contextFor();
     const { project, scenario } = await inOrganization(a, (tx) => seedTeam(tx, a.organizationId));
-    await inOrganization(a, (tx) =>
-      tx.update(scenarios).set({ chosen: true }).where(eq(scenarios.id, scenario.id)),
+    // A chosen scenario points at one of its revisions; this one's open part holds only what the
+    // table needs, since the rule is the database's.
+    const revisionOf = async (tx: TenantTransaction, scenarioId: string) => {
+      const [revision] = await tx
+        .insert(scenarioRevisions)
+        .values({
+          organizationId: a.organizationId,
+          scenarioId,
+          number: 1,
+          reason: "chosen",
+          openPart: sql`'{"rulesVersion": 1}'::jsonb`,
+        })
+        .returning({ id: scenarioRevisions.id });
+      return revision!.id;
+    };
+    await inOrganization(a, async (tx) =>
+      tx
+        .update(scenarios)
+        .set({ chosen: true, chosenRevisionId: await revisionOf(tx, scenario.id) })
+        .where(eq(scenarios.id, scenario.id)),
     );
 
     await expect(
-      inOrganization(a, (tx) =>
-        tx.insert(scenarios).values({
+      inOrganization(a, async (tx) => {
+        const id = crypto.randomUUID();
+        await tx.insert(scenarios).values({
+          id,
           organizationId: a.organizationId,
           projectId: project.id,
           name: "Plan B",
-          chosen: true,
-        }),
-      ),
+        });
+        await tx
+          .update(scenarios)
+          .set({ chosen: true, chosenRevisionId: await revisionOf(tx, id) })
+          .where(eq(scenarios.id, id));
+      }),
     ).rejects.toMatchObject({ cause: { code: "23505" } });
     // Unchosen scenarios are not limited.
     await inOrganization(a, (tx) =>

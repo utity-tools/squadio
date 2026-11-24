@@ -613,10 +613,10 @@
       "busy": "Choosing…",
       "title": "Choose “{name}” for {project}?",
       "blockedTitle": "“{name}” cannot be chosen",
-      "replaces": "“{name}” will no longer be the project's chosen scenario: its frozen values are discarded and its team can be edited again.",
-      "missingRate": "{count, plural, one {Missing the cost of {categories}} other {Missing the costs of {categories}}}, so there is nothing to freeze.",
+      "replaces": "“{name}” will no longer be the project's chosen scenario: its revision is kept and its team can be edited again.",
+      "missingRate": "{count, plural, one {Missing the cost of {categories}} other {Missing the costs of {categories}}}, so its staff cost cannot be worked out.",
       "intro": "It is the team you commit to. Choosing it:",
-      "freezes": "Freezes today's cost and sell rate of {count, plural, one {its category} other {its # categories}}, overhead, buffer and availability: if you change them later, those values no longer move “{name}”. The price, extra costs, calendar and target margin are not frozen.",
+      "freezes": "Saves a revision of “{name}”, or uses the latest again if nothing changed, with today's cost and sell rate of {count, plural, one {its category} other {its # categories}}, overhead, buffer, availability, price, period and extra costs: if they change later, they no longer move “{name}”. Only the target margin still judges its colour.",
       "locks": "Locks the team: to change it, unchoose the scenario.",
       "occupies": "{count, plural, =0 {Its team is only open roles: it takes no one.} one {Its person counts as busy on this project.} other {Its # people count as busy on this project.}}",
       "emptyTeam": "It can be chosen once someone is on the team."
@@ -625,7 +625,7 @@
       "button": "Unchoose",
       "busy": "Unchoosing…",
       "title": "Unchoose “{name}”?",
-      "description": "Its frozen costs, sell rates and cost config are discarded: the scenario is costed with the current values again, and its team can be edited."
+      "description": "Its revision is kept: the scenario shows its saved team again, with the current values, and can be edited."
     },
     "waiting": {
       "unsaved": "The changes are not saved yet: you can go on as soon as they are.",
@@ -821,7 +821,7 @@
     "tree": "Tree",
     "table": "Table",
     "locked": {
-      "frozen": "Team locked · costs and sell rates frozen",
+      "revision": "Team locked · shows the chosen revision",
       "chosen": "Team locked · scenario chosen",
       "viewer": "Read only · you are a viewer"
     }
@@ -1249,8 +1249,8 @@
     "heading": "Compare scenarios of {project}",
     "intro": "Differences are from the baseline, {baseline}. This view is read-only: to change a team, open its scenario.",
     "baseline": "Baseline",
-    "frozen": "Frozen values",
-    "frozenNote": "{name} is chosen: it is costed with the rates and percentages it froze when chosen. Part of a difference may come from rates changed since.",
+    "chosenRevision": "Revision {number}",
+    "chosenRevisionNote": "{name} is chosen: it shows its revision {number} as it was saved. Part of a difference may come from values changed since.",
     "team": "<nowrap>{people, plural, one {# person} other {# people}}</nowrap>{openRoles, plural, =0 {} one { · <nowrap># open role</nowrap>} other { · <nowrap># open roles</nowrap>}}",
     "noTeam": "No team",
     "line": "Line",
@@ -1338,7 +1338,8 @@
     "reason": {
       "saved": "saved",
       "shared": "shared",
-      "chosen": "chosen"
+      "chosen": "chosen",
+      "migrated": "migrated"
     }
   },
   "RevisionPage": {

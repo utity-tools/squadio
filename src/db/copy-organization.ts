@@ -48,17 +48,17 @@ const COPIES: readonly Copied[] = [
   { table: people, ids: ["id", "categoryId"] },
   { table: projects, ids: ["id"] },
   { table: projectPricing, ids: ["projectId"] },
-  // An alternative names its revision, copied below: the key is checked when the copy commits.
-  // Who derived a template's alternative is not the visitor's either.
+  // An alternative and a chosen scenario name a revision, copied below: both keys are checked
+  // when the copy commits. Who derived a template's alternative is not the visitor's either.
   {
     table: scenarios,
-    ids: ["id", "projectId", "derivedFromRevisionId"],
+    ids: ["id", "projectId", "derivedFromRevisionId", "chosenRevisionId"],
     cleared: ["derivedBy"],
   },
   // One statement per table: reports_to is checked once all of its rows are in.
   { table: assignments, ids: ["id", "scenarioId", "categoryId", "personId", "reportsTo"] },
   { table: extraCosts, ids: ["id", "scenarioId"] },
-  // A chosen scenario stays costed as it was chosen in the copy too.
+  // Retired in slice 6: nothing writes them, and slice 6c drops them.
   { table: frozenRates, ids: ["scenarioId", "categoryId"] },
   { table: frozenCostConfig, ids: ["scenarioId"] },
   // ADR 0013: a revision's parts name the template's rows, so their ids follow the copy's.

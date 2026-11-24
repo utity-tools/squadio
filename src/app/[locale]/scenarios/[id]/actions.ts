@@ -84,8 +84,10 @@ export async function setScenarioChoice(input: unknown): Promise<ScenarioChoiceR
     const result = await setChoiceFor(db, writer, choice, {
       chosen,
       rateAccess: keepsRateAccess({ access }),
+      commitSha: env.VERCEL_GIT_COMMIT_SHA ?? null,
+      today: madridToday(new Date()),
     });
-    // The page loads again with the scenario's frozen values, or its current ones.
+    // The page loads again with the chosen revision's team and result, or the saved team.
     if (result.ok) refresh();
     return result;
   } catch (error) {
