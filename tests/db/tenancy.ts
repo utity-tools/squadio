@@ -35,9 +35,6 @@ export const RESTRICTED_TABLES: readonly string[] = [
   "public.category_rates",
   "public.project_pricing",
   "public.extra_costs",
-  // docs/domain.md, "What choosing freezes": a chosen scenario's rates and cost settings.
-  "public.frozen_rates",
-  "public.frozen_cost_config",
   // ADR 0013: a revision's restricted part, a JSON snapshot in cents and basis points (ADR 0010).
   "public.scenario_revision_money",
 ];

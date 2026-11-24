@@ -7,13 +7,7 @@ import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { chooseScenario, chooseScenarioIn, unchooseScenario } from "@/db/choose-scenario";
 import { copyOrganization } from "@/db/copy-organization";
 import { DEMO_IDS, DEMO_ORGANIZATION_ID, seedDemo } from "@/db/demo-seed";
-import {
-  assignments,
-  frozenCostConfig,
-  frozenRates,
-  scenarioRevisions,
-  scenarios,
-} from "@/db/schema";
+import { assignments, scenarioRevisions, scenarios } from "@/db/schema";
 import { type AccessContext, withOrganization } from "@/db/tenant";
 import { copyId } from "@/lib/visitors/copy-id";
 
@@ -102,20 +96,6 @@ describe("chooseScenario", () => {
     const revision = after.revisions[0]!;
     expect(result).toEqual({ ok: true, version: 2, revision: { id: revision.id, number: 1 } });
     expect(after).toMatchObject({ chosen: true, chosenRevisionId: revision.id, version: 2 });
-  });
-
-  it("writes no frozen rows", async () => {
-    const guide = id(DEMO_IDS.guideScenario);
-    await choose(guide);
-
-    const frozen = await withOrganization(app, withRates, async (tx) => ({
-      rates: await tx.select().from(frozenRates).where(eq(frozenRates.scenarioId, guide)),
-      settings: await tx
-        .select()
-        .from(frozenCostConfig)
-        .where(eq(frozenCostConfig.scenarioId, guide)),
-    }));
-    expect(frozen).toEqual({ rates: [], settings: [] });
   });
 
   it("uses the latest revision again when nothing changed since", async () => {
