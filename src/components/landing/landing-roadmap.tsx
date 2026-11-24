@@ -7,8 +7,8 @@ import { Eyebrow, SectionTitle } from "./landing-section";
 
 type Status = "available" | "inProgress" | "later";
 
-// The versions as docs/plan.md orders them: v0.2 Simular, v0.3 Preparar and v0.4 Comparar shipped,
-// and v0.5 Compartir comes next. Preparar counts as shipped although sign-up stays closed in
+// The versions as docs/plan.md orders them: v0.2 Simular, v0.3 Preparar, v0.4 Comparar and v0.5
+// Compartir shipped. Preparar and Compartir count as shipped although sign-up stays closed in
 // production (owner, 2026-11-19).
 const VERSIONS: readonly {
   key: "simulate" | "prepare" | "compare" | "share";
@@ -17,7 +17,7 @@ const VERSIONS: readonly {
   { key: "simulate", status: "available" },
   { key: "prepare", status: "available" },
   { key: "compare", status: "available" },
-  { key: "share", status: "inProgress" },
+  { key: "share", status: "available" },
 ];
 
 const TONE = { available: "ok", inProgress: "warn", later: "muted" } as const satisfies Record<
