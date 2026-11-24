@@ -957,9 +957,9 @@ alternative, to show both. A visitor's copy copies them with new ids, like the r
 A revision's link is `/revisions/<id>`. It opens only for signed-in members of its organization; for
 anyone else it does not exist, as another organization's scenario does not. There are no public
 links and no exported document in v0.5 ([ADR 0015](adr/0015-roles-and-invitations.md)). The page is
-read only. It says which revision it is, who made it and when, from slice 6 whether it is the
-chosen one, and, when the scenario has a newer revision, says so and links to the latest, without
-saying what changed. It links to its scenario, and compares nothing with it: what changed since is
+read only but for «Elegir esta revisión» ([Choosing a revision](#choosing-a-revision)). It says
+which revision it is, who made it and when, from slice 6 whether it is the chosen one, and, when
+the scenario has a newer revision, says so and links to the latest, without saying what changed. It links to its scenario, and compares nothing with it: what changed since is
 the [change check](#choosing-a-revision), when an older revision is chosen. With rate access it
 shows the small category warning (rule j) against today's headcount, as wherever a rate is read.
 
@@ -978,19 +978,32 @@ this shares nothing.
 From slice 6 choosing points at a revision; FrozenRate and FrozenCostConfig are retired.
 
 - **Choosing a scenario** chooses its latest revision, made first if none matches it (see above).
-- **Choosing another revision** of a scenario, chosen or not, moves the choice to it. When it is
-  not the scenario's latest, or was not made just now, it first lists what changed since it was
-  made, and asks to confirm:
-  - **The team:** the scenario has been saved since with a different team; that team is kept, and
-    is what the editor shows again if the revision is unchosen.
-  - **Load:** people who are over-allocated now in the revision's weeks but were not then, or the
-    other way round (rule c), against today's chosen scenarios of other projects.
-  - **Rates:** each category of the team whose cost or sell rate now differs, then and now.
-  - **The project's conditions:** price, planned period, pricing model and the overrides of overhead
-    and buffer.
+- **Choosing another revision** of a scenario, chosen or not, moves the choice to it, from the
+  revision's page («Elegir esta revisión»). It always asks to confirm first, since it may replace
+  the project's chosen scenario (rule i), and lists what changed since the revision was made, or
+  says nothing did. This is the **change check**: it compares the revision with what would be saved
+  today.
+  - **The team:** the scenario has been saved since with a different team: how many assignments
+    were added, removed or changed (category, person or open role, project role, who it reports
+    to, weekly hours, allocation or dates; a name changed elsewhere does not count). That team is
+    kept, and is what the editor shows again if the revision is unchosen.
+  - **The extra costs:** the scenario's have been saved since and differ.
+  - **Load:** each person, by the name the revision stored, who is over-allocated now in some of
+    the revision's weeks but was in none then, or the other way round (rule c), with how many
+    weeks. Now is the revision's own team against today's chosen scenarios of other projects; then
+    is the load it stored.
+  - **Rates:** each category of the revision's team whose cost or sell rate now differs, then and
+    now, or that has no rate now.
+  - **The project's conditions:** price (or budget cap), planned period, pricing model, overhead %
+    and buffer % in effect, and both terms of the availability factor (net annual hours and the
+    calendar's working hours), since they move a result as a rate does.
   - **The rules version,** when the revision's is older than the current one.
 
-  Nothing in the list blocks choosing: the revision keeps the values it was made with.
+  Nothing in the list blocks choosing: the revision keeps the values it was made with. The money
+  items (extra costs, rates, price, overhead and buffer) need rate access, which choosing needs
+  anyway. **Choosing a scenario from its page shows no check:** the revision it reuses holds the
+  same team, rates and conditions by definition, and the editor already shows that team's load
+  today.
 
 - **What reads the chosen revision:** the scenario page, Inicio, the comparison, occupancy and the
   weekly load of other projects all read a chosen scenario's chosen revision, its result and its
@@ -1004,10 +1017,16 @@ From slice 6 choosing points at a revision; FrozenRate and FrozenCostConfig are 
   calendar) was unchosen instead. Until the backfill reaches it, a scenario chosen before slice 6
   shows its saved team and counts in no occupancy or weekly load: this lasts only while a deploy
   runs (docs/operations/deploy.md).
-- **Rules that block choosing are today's:** rate access, no undetermined staff cost (a category
-  without a rate, rule k), and a team that is not empty
-  ([Choosing a scenario](#choosing-a-scenario)). Choosing the revision already chosen is refused as
-  changing nothing.
+- **Rules that block choosing are today's,** applied to the revision: rate access, no undetermined
+  staff cost in its stored result (a category without a rate then, rule k), and a team that is not
+  empty ([Choosing a scenario](#choosing-a-scenario)). A stored revision was costed, so its dates
+  are never outside the calendar. Choosing the revision already chosen is refused as changing
+  nothing, and one asked for on a page showing an older version of the scenario is a conflict. A
+  viewer is not offered it and the server refuses them, reading the role again inside the
+  transaction; visitors choose in their copy, a template revision's link leading to their copy's.
+- **Where it shows:** the revision's page says «Revisión elegida» when it is the chosen one, and
+  names and links the chosen revision when it is another of the scenario's; the scenario's list of
+  revisions marks the chosen one.
 
 ### Derived alternative
 
