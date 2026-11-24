@@ -51,6 +51,9 @@ export type ChooseResult =
         | "template";
     };
 
+/** The refusals that come before a step of choosing runs: the template, or no rate access. */
+export type ChooseRefusal = { ok: false; reason: "template" | "no-rate-access" };
+
 /** Why the scenario's team cannot be chosen, or null when it can. */
 async function teamRefusal(tx: TenantTransaction, scenarioId: string) {
   const team = await tx
@@ -112,14 +115,7 @@ export async function pointAtLatestRevision(
     throw error;
   }
   if (!snapshot) throw new Error(`Scenario ${scenarioId} went away while it was chosen`);
-  const previous = await tx
-    .select({ id: scenarios.id })
-    .from(scenarios)
-    .where(and(eq(scenarios.projectId, scenario.projectId), eq(scenarios.chosen, true)))
-    .for("update");
-  for (const { id } of previous) {
-    if (id !== scenarioId) await point(tx, id, null);
-  }
+  await unchooseOthers(tx, scenario.projectId, scenarioId);
   const { revision } = await storeRevision(
     tx,
     scenarioId,
@@ -128,6 +124,32 @@ export async function pointAtLatestRevision(
     revisionId,
   );
   return { revision, version: await point(tx, scenarioId, revision.id) };
+}
+
+/** Unchooses the project's chosen scenario, unless it is this one (rule i). */
+async function unchooseOthers(tx: TenantTransaction, projectId: string, scenarioId: string) {
+  const previous = await tx
+    .select({ id: scenarios.id })
+    .from(scenarios)
+    .where(and(eq(scenarios.projectId, projectId), eq(scenarios.chosen, true)))
+    .for("update");
+  for (const { id } of previous) {
+    if (id !== scenarioId) await point(tx, id, null);
+  }
+}
+
+/**
+ * Points a scenario at one of its revisions, after unchoosing the project's other chosen scenario
+ * (rule i), and returns its new version. It checks nothing: chooseRevisionIn locks and refuses
+ * first.
+ */
+export async function pointAtRevision(
+  tx: TenantTransaction,
+  { scenarioId, projectId }: { scenarioId: string; projectId: string },
+  revisionId: string,
+): Promise<number> {
+  await unchooseOthers(tx, projectId, scenarioId);
+  return point(tx, scenarioId, revisionId);
 }
 
 /** Chooses a scenario inside an open transaction, for the organization of its RLS context. */
@@ -176,18 +198,35 @@ async function asMember(
 ): Promise<ChooseResult> {
   // Checked before a transaction opens; the step checks again for its other callers.
   choiceInputSchema.parse(input);
-  if (context.organizationId === DEMO_ORGANIZATION_ID) return { ok: false, reason: "template" };
+  return asChooser(db, context, chooser, (tx) => step(tx, input));
+}
+
+/**
+ * Runs a step of choosing in the member's context, in one transaction, once their role, read again
+ * inside it, still chooses with rate access (ADR 0015); refused as without rate access otherwise.
+ */
+export async function asChooser<T>(
+  db: NodePgDatabase,
+  context: AccessContext,
+  chooser: Pick<Member, "userId">,
+  step: (tx: TenantTransaction) => Promise<T | ChooseRefusal>,
+): Promise<T | ChooseRefusal> {
+  if (context.organizationId === DEMO_ORGANIZATION_ID) {
+    return { ok: false, reason: "template" } as const;
+  }
   // A read-only context, a viewer's, cannot lock anything, and has nothing to write.
-  if (context.readOnly || !context.rateAccess) return { ok: false, reason: "no-rate-access" };
+  if (context.readOnly || !context.rateAccess) {
+    return { ok: false, reason: "no-rate-access" } as const;
+  }
   return withOrganization(db, context, async (tx) => {
     const capabilities = await capabilitiesNow(tx, {
       userId: chooser.userId,
       organizationId: context.organizationId,
     });
     if (!capabilities?.choose || !capabilities.rateAccess) {
-      return { ok: false, reason: "no-rate-access" };
+      return { ok: false, reason: "no-rate-access" } as const;
     }
-    return step(tx, input);
+    return step(tx);
   });
 }
 

@@ -6,7 +6,11 @@ import { ZodError } from "zod";
 import { DEMO_IDS, DEMO_ORGANIZATION_ID, seedDemo } from "@/db/demo-seed";
 import { scenarios } from "@/db/schema";
 import { withOrganization } from "@/db/tenant";
-import { chooseForVisitor, unchooseForVisitor } from "@/db/visitor-choose";
+import {
+  chooseForVisitor,
+  chooseRevisionForVisitor,
+  unchooseForVisitor,
+} from "@/db/visitor-choose";
 import type { CookieJar } from "@/db/visitor-write";
 import { copyId } from "@/lib/visitors/copy-id";
 import { VISITOR_COOKIE } from "@/lib/visitors/token";
@@ -244,5 +248,63 @@ describe("chooseForVisitor: with a copy", () => {
       await unchooseForVisitor(app, cookies, { scenarioId: b.scenarioId, baseVersion: 2 }, true),
     ).toEqual({ ok: false, reason: "not-found" });
     expect(await stateOf(b.org, b.scenarioId)).toMatchObject({ chosen: true });
+  });
+});
+
+describe("chooseRevisionForVisitor", () => {
+  const delivery = DEMO_IDS.deliveryScenario;
+  /** The template's delivery plan was chosen by the seed, which moved its version on. */
+  const deliveryVersion = async () => (await stateOf(DEMO_ORGANIZATION_ID, delivery)).version ?? 0;
+
+  it("refuses the template's chosen revision as changing nothing, leaving no copy", async () => {
+    const { cookies, sets } = jar();
+    const request = { revisionId: DEMO_IDS.deliveryRevision, baseVersion: await deliveryVersion() };
+
+    expect(await chooseRevisionForVisitor(app, cookies, request, true)).toEqual({
+      ok: false,
+      reason: "no-change",
+    });
+    expect(await copies()).toEqual([]);
+    expect(sets).toEqual([]);
+  });
+
+  it("chooses a revision of their copy, whose page names the copy's id", async () => {
+    const first = jar();
+    const unchosen = await unchooseForVisitor(
+      app,
+      first.cookies,
+      { scenarioId: delivery, baseVersion: await deliveryVersion() },
+      true,
+    );
+    if (!unchosen.ok) throw new Error("expected the first unchoice to work");
+    const org =
+      (await copies()).find(
+        ({ organization_id }) => copyId(delivery, organization_id) === unchosen.scenarioId,
+      )?.organization_id ?? "";
+    const { cookies } = jar(first.sets[0]?.value);
+
+    const revisionId = copyId(DEMO_IDS.deliveryRevision, org);
+    const request = { revisionId, baseVersion: unchosen.version };
+    expect(await chooseRevisionForVisitor(app, cookies, request, true)).toEqual({
+      ok: true,
+      version: unchosen.version + 1,
+      scenarioId: unchosen.scenarioId,
+    });
+    expect(await stateOf(org, unchosen.scenarioId)).toEqual({
+      chosen: true,
+      version: unchosen.version + 1,
+      pointsAtRevision: true,
+    });
+  });
+
+  it("refuses without rate access, making no copy", async () => {
+    const { cookies } = jar();
+    const request = { revisionId: DEMO_IDS.deliveryRevision, baseVersion: 1 };
+
+    expect(await chooseRevisionForVisitor(app, cookies, request, false)).toEqual({
+      ok: false,
+      reason: "no-rate-access",
+    });
+    expect(await copies()).toEqual([]);
   });
 });
