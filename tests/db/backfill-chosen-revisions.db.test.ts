@@ -182,11 +182,12 @@ describe("backfillChosenRevisions", () => {
   });
 
   it("counts what it does, and changes nothing when run again", async () => {
-    // The run plan, the delivery plan and the data platform.
+    // The run plan and the data platform get one; the delivery plan, unchanged since the seed's
+    // revision the copy holds, uses it again, whatever order the copy reads its team in.
     expect(await backfillChosenRevisions(owner, options())).toEqual({
       pending: 3,
-      written: 3,
-      reused: 0,
+      written: 2,
+      reused: 1,
       failed: [],
     });
     expect(await backfillChosenRevisions(owner, options())).toEqual({
