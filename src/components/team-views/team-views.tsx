@@ -32,10 +32,9 @@ export type TeamViewsProps = {
   nodes: LayoutNode[];
   cards: AssignmentCard[];
   /**
-   * A chosen scenario's team is locked: the bar says so, and with rate access that its costs and
-   * rates are frozen too.
+   * A chosen scenario's team is locked: the bar says so, and that it shows the chosen revision's.
    */
-  locked?: "frozen" | "chosen" | "viewer";
+  locked?: "revision" | "chosen" | "viewer";
   /** How much of the planned period the team leaves uncovered, if any: flagged, never refused. */
   uncovered?: UncoveredPeriod | null;
 };

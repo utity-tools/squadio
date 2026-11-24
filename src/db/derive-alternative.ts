@@ -1,16 +1,15 @@
 import { randomUUID } from "node:crypto";
 
-import { and, eq, sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { z } from "zod";
 
-import { capabilitiesFor } from "@/lib/membership/capabilities";
 import { alternativeRows } from "@/lib/revisions/alternative";
 import { openPartSchema, restrictedPartSchema } from "@/lib/revisions/snapshot";
 import { MAX_SCENARIOS_PER_PROJECT, copyName } from "@/lib/scenarios/duplicate";
 
 import { DEMO_ORGANIZATION_ID, type Member } from "./access";
-import { member, organization } from "./auth-schema";
+import { capabilitiesNow } from "./capabilities-now";
 import type { CopySuffix } from "./duplicate-scenario";
 import {
   assignments,
@@ -150,25 +149,6 @@ export async function deriveAlternativeIn(
   if (context.organization === DEMO_ORGANIZATION_ID) return { ok: false, reason: "template" };
   if (!context.rates) return { ok: false, reason: "no-rate-access" };
   return writeAlternative(tx, revisionId, suffix, derivation);
-}
-
-/**
- * The member's role as it is now, read under a share lock on their organization: changing a role
- * or removing a member locks it for update first (owner.ts), so neither happens until this
- * transaction ends, and one that happened before it is seen. Null when they are no longer a member
- * or their role grants nothing.
- */
-async function capabilitiesNow(tx: TenantTransaction, { userId, organizationId }: Member) {
-  await tx
-    .select({ id: organization.id })
-    .from(organization)
-    .where(eq(organization.id, organizationId))
-    .for("share");
-  const [row] = await tx
-    .select({ role: member.role })
-    .from(member)
-    .where(and(eq(member.userId, userId), eq(member.organizationId, organizationId)));
-  return row ? capabilitiesFor(row.role) : null;
 }
 
 /**

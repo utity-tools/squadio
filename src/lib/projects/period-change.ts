@@ -1,8 +1,10 @@
 import type { PlannedPeriod } from "./project-details";
 
 // docs/domain.md, "Planned period": undated recurring costs span the planned period, or else the
-// project span (rule d), in every scenario of the project, chosen ones included: the period is not
-// frozen. So changing it moves them, and the project form names them before it is saved. Their
+// project span (rule d), in every scenario of the project but the chosen one, whose revision keeps
+// the period it was made with (the portfolio lists none for it; one chosen before the backfill gave
+// it a revision still moves). So changing it moves them, and the project form names them before it
+// is saved. Their
 // labels are restricted (ADR 0005): only a form shown with rate access gets them.
 
 /** An extra cost as the form names it; its amount stays in the summary. */

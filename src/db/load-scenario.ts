@@ -1,4 +1,4 @@
-import { and, eq, gt, gte, isNotNull, lte, ne } from "drizzle-orm";
+import { and, eq, ne } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { z } from "zod";
 
@@ -9,23 +9,22 @@ import {
   config,
   costConfig,
   extraCosts,
-  frozenCostConfig,
-  frozenRates,
   people,
   projectPricing,
   projects,
   scenarios,
 } from "./schema";
 import { occupancy } from "@/lib/bench/occupancy";
+import { bookedBy, commitmentsOf, membersOf } from "@/lib/revisions/chosen-revision";
 import type { Member } from "@/lib/scenarios/change";
-import type { FrozenValues } from "@/lib/scenarios/engine-input";
 import {
   type LoadedScenario,
   type ScenarioBasis,
   scenarioView,
 } from "@/lib/scenarios/scenario-view";
 
-import { engineBasis, frozenValues, plannedPeriodOf } from "./scenario-basis";
+import { chosenRevisionOf, readChosenMoney, readChosenRevisions } from "./chosen-revisions";
+import { engineBasis, plannedPeriodOf } from "./scenario-basis";
 import { type AccessContext, type TenantTransaction, withOrganization } from "./tenant";
 
 // docs/domain.md, "Loading a scenario". The view comes from `scenarioView`, the function the page
@@ -87,49 +86,18 @@ async function readStructure(tx: TenantTransaction, scenarioId: string, today: s
     })
     .from(people)
     .orderBy(people.name, people.id);
-  // Occupancy holds no money, so everyone reads it (domain, "How busy a person is").
-  const chosen = await tx
-    .select({
-      personId: assignments.personId,
-      allocation: assignments.allocation,
-      startDate: assignments.startDate,
-      endDate: assignments.endDate,
-    })
-    .from(assignments)
-    .innerJoin(scenarios, eq(scenarios.id, assignments.scenarioId))
-    .where(
-      and(
-        eq(scenarios.chosen, true),
-        isNotNull(assignments.personId),
-        lte(assignments.startDate, today),
-        gte(assignments.endDate, today),
-      ),
-    );
-  const busy = occupancy(chosen, today);
-  // The weekly load's commitments hold no money either (domain, "Weekly load"): the people of the
-  // other projects' chosen scenarios, inactive ones too, since a chosen scenario still commits them.
-  const commitments = await tx
-    .select({
-      id: assignments.id,
-      personId: assignments.personId,
-      projectId: projects.id,
-      projectName: projects.name,
-      allocation: assignments.allocation,
-      startDate: assignments.startDate,
-      endDate: assignments.endDate,
-    })
-    .from(assignments)
-    .innerJoin(scenarios, eq(scenarios.id, assignments.scenarioId))
-    .innerJoin(projects, eq(projects.id, scenarios.projectId))
-    .where(
-      and(
-        eq(scenarios.chosen, true),
-        ne(scenarios.projectId, scenario.projectId),
-        isNotNull(assignments.personId),
-        gt(assignments.allocation, 0),
-      ),
-    )
-    .orderBy(assignments.startDate, assignments.id);
+  // Occupancy and the weekly load's commitments hold no money, so everyone reads them (domain,
+  // "How busy a person is", "Weekly load"): the teams of the chosen scenarios' revisions, inactive
+  // people too, since a chosen scenario still commits them; for commitments, other projects' only.
+  const chosen = await readChosenRevisions(tx);
+  const busy = occupancy(
+    chosen.flatMap((row) => bookedBy(row.open)),
+    today,
+  );
+  const commitments = chosen
+    .filter((row) => row.project.id !== scenario.projectId)
+    .flatMap((row) => commitmentsOf(row.open, row.project))
+    .toSorted((a, b) => a.startDate.localeCompare(b.startDate) || a.id.localeCompare(b.id));
   const categoryNames = await tx
     .select({ id: categories.id, name: categories.name })
     .from(categories)
@@ -152,32 +120,9 @@ async function readStructure(tx: TenantTransaction, scenarioId: string, today: s
     team,
     roster: roster.map((person) => ({ ...person, occupancy: busy.get(person.id) ?? 0 })),
     categories: categoryNames,
-    // The query keeps assignments with a person only.
-    commitments: commitments.flatMap(({ personId, ...rest }) =>
-      personId === null ? [] : [{ personId, ...rest }],
-    ),
+    commitments,
+    chosenRevision: chosen.find((row) => row.scenarioId === scenarioId),
   };
-}
-
-/**
- * A chosen scenario's frozen values (rule b), read with rate access; undefined when it has none,
- * so it is costed with the current values until they are written.
- */
-async function readFrozen(
-  tx: TenantTransaction,
-  scenarioId: string,
-): Promise<FrozenValues | undefined> {
-  const [settings] = await tx
-    .select()
-    .from(frozenCostConfig)
-    .where(eq(frozenCostConfig.scenarioId, scenarioId));
-  if (!settings) return undefined;
-  const rates = await tx
-    .select()
-    .from(frozenRates)
-    .where(eq(frozenRates.scenarioId, scenarioId))
-    .orderBy(frozenRates.categoryId);
-  return frozenValues(settings, rates);
 }
 
 /** The restricted rows: none without rate access (ADR 0005). */
@@ -225,8 +170,8 @@ async function readMoney(tx: TenantTransaction, scenarioId: string, projectId: s
 }
 
 /**
- * A scenario's view with the organization's current values, or a chosen scenario's frozen ones
- * (rule b), and what the page needs to edit it, or null when the scenario is not in the
+ * A scenario's view with the organization's current values, or a chosen scenario's revision as
+ * stored (docs/domain.md, "Choosing a revision"), and what the page needs to edit it, or null when the scenario is not in the
  * organization. Without rate access the open part and its hours only: never a money figure, in the
  * view or the basis.
  */
@@ -251,23 +196,39 @@ export async function scenarioIn(
   context: AccessContext,
   scenarioId: string,
   day: string,
-  /** The organization's current values even for a chosen scenario, as a revision takes them. */
+  /**
+   * The saved team with the organization's current values even for a chosen scenario, as a new
+   * revision takes them ("On a chosen scenario").
+   */
   { currentValues = false }: { currentValues?: boolean } = {},
 ): Promise<EditableScenario | null> {
   const structure = await readStructure(tx, scenarioId, day);
   if (!structure) return null;
-  const { projectId, pricingModel, config: settings, team } = structure;
+  const { projectId, pricingModel, config: settings } = structure;
   // The engine's inputs without a team: `scenarioView` adds it, and its year's calendar.
   const money = context.rateAccess ? await readMoney(tx, scenarioId, projectId) : null;
-  const frozen =
-    money && structure.chosen && !currentValues ? await readFrozen(tx, scenarioId) : undefined;
   const plannedPeriod = plannedPeriodOf(structure);
   const engine = engineBasis(
     { pricingModel, config: settings, plannedPeriod },
     money,
-    frozen,
     structure.roster,
   );
+  // A chosen scenario shows its revision, and the editor holds its team, locked. One chosen before
+  // the backfill gave it a revision has none yet, and shows the saved team until it has.
+  const row = structure.chosen && !currentValues ? structure.chosenRevision : undefined;
+  const chosenRevision =
+    row &&
+    chosenRevisionOf(
+      row,
+      engine.rateAccess ? await readChosenMoney(tx, [row.revisionId]) : null,
+      engine.rateAccess && money?.costConfig
+        ? {
+            targetMarginBasisPoints: money.costConfig.targetMargin,
+            smallCategories: engine.smallCategories,
+          }
+        : null,
+    );
+  const team = row ? membersOf(row.open) : structure.team;
   const basis: ScenarioBasis = {
     project: {
       id: projectId,
@@ -286,6 +247,7 @@ export async function scenarioIn(
     people: structure.roster,
     defaultWeeklyHours: settings.defaultWeeklyHours,
     commitments: structure.commitments,
+    ...(chosenRevision && { chosenRevision }),
     engine,
   };
   return {

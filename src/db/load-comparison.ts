@@ -37,9 +37,9 @@ export async function loadComparison(
     for (const id of scenarioIds) {
       const loaded = await scenarioIn(tx, context, id, day);
       if (!loaded || loaded.project.id !== projectId) return null;
-      const { engine } = loaded.editing.basis;
       // The comparison reads the view only, never the editing basis, and returns none of it.
-      compared.push({ id, frozen: engine.rateAccess && engine.frozen === true, view: loaded });
+      const revision = loaded.editing.basis.chosenRevision?.number ?? null;
+      compared.push({ id, revision, view: loaded });
     }
     return compareScenarios(compared);
   });

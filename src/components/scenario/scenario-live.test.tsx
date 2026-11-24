@@ -1,6 +1,8 @@
 import { act, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { buildRevision } from "@/lib/revisions/build-revision";
+import { revisionSourceOf } from "@/lib/revisions/revision-source";
 import { hoursBasis, ratesBasis } from "@/lib/scenarios/basis.fixtures";
 import { developer, seatId, team } from "@/lib/scenarios/change.fixtures";
 import type { ScenarioBasis } from "@/lib/scenarios/scenario-view";
@@ -80,29 +82,29 @@ describe("the live scenario regions", () => {
       scenario: { ...basis.scenario, chosen: true },
     });
 
-    it("say its team is locked and its costs frozen when it is costed with frozen values", () => {
-      const engine = ratesBasis.engine.rateAccess
-        ? {
-            ...ratesBasis.engine,
-            // Frozen values keep the calendar hours they were chosen with.
-            input: {
-              ...ratesBasis.engine.input,
-              costSettings: { ...ratesBasis.engine.input.costSettings, calendarWorkingHours: 1760 },
-            },
-            frozen: true as const,
-          }
-        : ratesBasis.engine;
-      renderPage(chosen({ ...ratesBasis, engine }));
-      expect(
-        screen.getByText("Equipo bloqueado · costes y tarifas de venta congelados"),
-      ).toBeVisible();
+    // docs/domain.md, "Choosing a revision": its page shows the revision it points at.
+    const revision = buildRevision(revisionSourceOf(ratesBasis, team));
+    const withRevision = (basis: ScenarioBasis): ScenarioBasis => ({
+      ...chosen(basis),
+      chosenRevision: {
+        id: "revision-1",
+        number: 1,
+        view: basis.engine.rateAccess
+          ? { ...revision, targetMarginBasisPoints: 2_500, smallCategories: [] }
+          : { open: revision.open, restricted: null },
+      },
     });
 
     it.each([
-      ["without frozen rows", ratesBasis],
+      ["with rate access", ratesBasis],
       ["without rate access", hoursBasis],
-    ])("say only that it is chosen %s", (_, basis) => {
-      renderPage(chosen(basis));
+    ])("say its team is locked and shows the chosen revision %s", (_, basis) => {
+      renderPage(withRevision(basis));
+      expect(screen.getByText("Equipo bloqueado · muestra la revisión elegida")).toBeVisible();
+    });
+
+    it("say only that it is chosen before it has a revision", () => {
+      renderPage(chosen(ratesBasis));
       expect(screen.getByText("Equipo bloqueado · escenario elegido")).toBeVisible();
     });
   });

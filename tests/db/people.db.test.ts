@@ -10,6 +10,7 @@ import {
   categories,
   categoryRates,
   config,
+  costConfig,
   people,
   projects,
   scenarios,
@@ -18,6 +19,7 @@ import { withOrganization } from "@/db/tenant";
 import type { PersonForm } from "@/lib/people/person-form";
 
 import { SOME_DAY, appPool, newOrganization } from "./support";
+import { markChosen } from "./choose";
 
 // A person is structural (ADR 0005): everyone in the organization reads them. Writing one moves
 // rule j's count, which only users with rate access see, so the app asks for rate access to write.
@@ -43,6 +45,10 @@ beforeAll(async () => {
     await tx
       .insert(config)
       .values({ organizationId, netAnnualHours: 1550, defaultWeeklyHours: 37.5 });
+    // Choosing a scenario below makes a revision, which costs it.
+    await tx
+      .insert(costConfig)
+      .values({ organizationId, overhead: 1500, buffer: 1000, targetMargin: 2500 });
     await tx.insert(categories).values([
       { id: devOps, organizationId, name: "DevOps Engineer" },
       { id: pm, organizationId, name: "Project Manager" },
@@ -179,9 +185,7 @@ describe("loadPeople", () => {
       await tx
         .insert(projects)
         .values({ id: projectId, organizationId, name: "P", client: "C", pricingModel: "fixed" });
-      await tx
-        .insert(scenarios)
-        .values({ id: scenarioId, organizationId, projectId, name: "S", chosen: true });
+      await tx.insert(scenarios).values({ id: scenarioId, organizationId, projectId, name: "S" });
       await tx.insert(assignments).values({
         organizationId,
         scenarioId,
@@ -194,6 +198,8 @@ describe("loadPeople", () => {
         endDate: SOME_DAY,
       });
     });
+    // Chosen as choosing does, which needs rate access: a revision holds the money too.
+    await withOrganization(app, withRates(), (tx) => markChosen(tx, scenarioId));
 
     const loaded = await loadPeople(app, withoutRates(), SOME_DAY);
     expect(loaded.defaultWeeklyHours).toBe(37.5);

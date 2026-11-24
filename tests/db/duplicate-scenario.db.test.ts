@@ -5,21 +5,13 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { ZodError } from "zod";
 
-import { chooseScenario } from "@/db/choose-scenario";
 import { copyOrganization } from "@/db/copy-organization";
 import { deleteOrganizationWithRows } from "@/db/delete-organization";
 import { DEMO_IDS, DEMO_ORGANIZATION_ID, seedDemo } from "@/db/demo-seed";
 import { duplicateScenario } from "@/db/duplicate-scenario";
 import { loadScenario } from "@/db/load-scenario";
 import { saveScenarioChanges } from "@/db/save-scenario";
-import {
-  assignments,
-  extraCosts,
-  frozenCostConfig,
-  frozenRates,
-  projects,
-  scenarios,
-} from "@/db/schema";
+import { assignments, extraCosts, projects, scenarios } from "@/db/schema";
 import { type AccessContext, withOrganization } from "@/db/tenant";
 import { duplicateForVisitor } from "@/db/visitor-duplicate";
 import type { CookieJar } from "@/db/visitor-write";
@@ -28,6 +20,7 @@ import { copyId } from "@/lib/visitors/copy-id";
 import { VISITOR_COOKIE } from "@/lib/visitors/token";
 
 import { SOME_DAY, appPool, newOrganization, ownerPool } from "./support";
+import { chooseAsNobody } from "./choose";
 
 // docs/domain.md, "Duplicating a scenario": a new draft of the same project with a copy of the
 // scenario's assignments and extra costs, in one transaction, with rate access only. Each test
@@ -203,20 +196,28 @@ describe("duplicateScenario", () => {
     expect((await scenarioRow(third.scenarioId))?.name).toBe(`${name} (copia 3)`);
   });
 
-  it("copies a chosen scenario as a draft, without its frozen rows", async () => {
+  it("copies a chosen scenario's revision as a draft: the team and extra costs its page shows", async () => {
     const chosen = ours(DEMO_IDS.deliveryScenario);
     expect((await scenarioRow(chosen))?.chosen).toBe(true);
+    // The saved team moves on under the revision, as an older revision chosen would leave it.
+    const shown = await loadScenario(app, withRates(), chosen, SOME_DAY);
+    await withOrganization(app, withRates(), (tx) =>
+      tx.delete(assignments).where(eq(assignments.id, shown!.editing.team.at(-1)!.id)),
+    );
+
     const result = await duplicateScenario(app, withRates(), { scenarioId: chosen }, suffix);
     if (!result.ok) throw new Error("expected a copy");
-    expect(await scenarioRow(result.scenarioId)).toMatchObject({ chosen: false, version: 1 });
-    const frozen = await withOrganization(app, withRates(), async (tx) => [
-      ...(await tx.select().from(frozenRates).where(eq(frozenRates.scenarioId, result.scenarioId))),
-      ...(await tx
-        .select()
-        .from(frozenCostConfig)
-        .where(eq(frozenCostConfig.scenarioId, result.scenarioId))),
-    ]);
-    expect(frozen).toEqual([]);
+
+    expect(await scenarioRow(result.scenarioId)).toMatchObject({
+      chosen: false,
+      chosenRevisionId: null,
+      version: 1,
+    });
+    const copy = await loadScenario(app, withRates(), result.scenarioId, SOME_DAY);
+    const roles = (loaded: typeof shown) =>
+      loaded?.team.map(({ projectRole, person }) => [projectRole, person?.id]).toSorted();
+    expect(roles(copy)).toEqual(roles(shown));
+    expect(copy?.editing.team.map(({ id }) => id)).not.toContain(shown?.editing.team[0]?.id);
     // The original stays chosen (rule i).
     expect((await scenarioRow(chosen))?.chosen).toBe(true);
   });
@@ -298,7 +299,7 @@ describe("duplicateScenario", () => {
 
     const duplicate = duplicateScenario(app, withRates(), { scenarioId: draft }, suffix);
     await waitForLockWaiters(1);
-    const choice = chooseScenario(app, withRates(), { scenarioId: draft, baseVersion: version });
+    const choice = chooseAsNobody(app, withRates(), { scenarioId: draft, baseVersion: version });
     await waitForLockWaiters(2);
     release();
     await blocker;

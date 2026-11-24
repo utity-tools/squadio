@@ -16,7 +16,7 @@ import { ScenarioChoice } from "./scenario-choice";
 import { ScenarioEditor, ScenarioStoreProvider } from "./scenario-editor";
 
 // docs/domain.md, "Choosing a scenario": the header's choice, with rate access only, confirmed in
-// a dialog that says what choosing freezes and replaces.
+// a dialog that says what its revision keeps and what it replaces.
 
 const never = () => new Promise<SaveOutcome>(() => {});
 
@@ -90,7 +90,7 @@ describe("ScenarioChoice", () => {
     // Two categories, three people and two open roles (change.fixtures.ts).
     expect(dialog).toHaveAccessibleDescription(
       "Es el equipo con el que te comprometes. Al elegirlo: " +
-        "Se congelan el coste y la tarifa de venta de sus 2 categorías, el overhead, el buffer y la disponibilidad de hoy: si los cambias después, esos valores ya no mueven «Plan A». El precio, los costes extra, el calendario y el margen objetivo no se congelan. " +
+        "Se guarda una revisión de «Plan A», o se usa de nuevo la última si nada ha cambiado, con el coste y la tarifa de venta de hoy de sus 2 categorías, el overhead, el buffer, la disponibilidad, el precio, el periodo y los costes extra: si cambian después, ya no mueven «Plan A». Solo el margen objetivo sigue juzgando su color. " +
         "El equipo queda bloqueado: para cambiarlo, quita la elección. " +
         "Sus 3 personas pasan a contar como ocupadas en este proyecto.",
     );
@@ -186,7 +186,7 @@ describe("ScenarioChoice", () => {
     });
     await user.click(chooseButton());
     expect(screen.getByRole("dialog")).toHaveTextContent(
-      "«Plan B» dejará de ser el escenario elegido del proyecto: se descartan sus valores congelados y su equipo se podrá editar de nuevo.",
+      "«Plan B» dejará de ser el escenario elegido del proyecto: su revisión se conserva y su equipo se podrá editar de nuevo.",
     );
   });
 
@@ -218,7 +218,7 @@ describe("ScenarioChoice", () => {
     // The title asks nothing, since there is nothing to confirm.
     const dialog = screen.getByRole("dialog", { name: "No se puede elegir «Plan A»" });
     expect(dialog).toHaveAccessibleDescription(
-      "Falta el coste de Project Manager, así que no hay nada que congelar.",
+      "Falta el coste de Project Manager, así que su coste de personal no se puede calcular.",
     );
     expect(within(dialog).queryByRole("button", { name: "Elegir escenario" })).toBeNull();
     expect(send).not.toHaveBeenCalled();
@@ -228,7 +228,7 @@ describe("ScenarioChoice", () => {
     const { user } = renderChoice({ basis: withoutRates([PM, SENIOR]) });
     await user.click(chooseButton());
     expect(screen.getByRole("dialog")).toHaveAccessibleDescription(
-      "Faltan los costes de Senior Developer y Project Manager, así que no hay nada que congelar.",
+      "Faltan los costes de Senior Developer y Project Manager, así que su coste de personal no se puede calcular.",
     );
   });
 

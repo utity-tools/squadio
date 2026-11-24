@@ -218,16 +218,17 @@ export const PLAN_C: readonly Seat[] = PLAN_A.filter((seat) => seat.category !==
   (seat) => ({ ...seat, id: seat.id.replace("a-", "c-") }),
 );
 
-export const compared = (id: string, view: LoadedScenario, frozen = false): ComparedScenario => ({
-  id,
-  frozen,
-  view,
-});
+export const compared = (
+  id: string,
+  view: LoadedScenario,
+  /** The chosen revision's number it shows, if any. */
+  revision: number | null = null,
+): ComparedScenario => ({ id, revision, view });
 
 /** Plans A (chosen), B and C, picked in that order. */
 export function guidePlans(options: { unrated?: readonly string[] } = {}): ComparedScenario[] {
   return [
-    compared("A", planView("Plan A", PLAN_A, { chosen: true, ...options }), true),
+    compared("A", planView("Plan A", PLAN_A, { chosen: true, ...options }), 1),
     compared("B", planView("Plan B", PLAN_B, options)),
     compared("C", planView("Plan C", PLAN_C, options)),
   ];

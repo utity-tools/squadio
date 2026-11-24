@@ -11,7 +11,7 @@ import {
   restrictedPartSchema,
 } from "@/lib/revisions/snapshot";
 
-import { lockScenario } from "./choose-scenario";
+import { lockScenario } from "./lock-scenario";
 import { scenarioIn } from "./load-scenario";
 import { revisionReason, scenarioRevisionMoney, scenarioRevisions } from "./schema";
 import { type AccessContext, type TenantTransaction, withOrganization } from "./tenant";

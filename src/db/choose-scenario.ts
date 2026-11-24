@@ -2,28 +2,18 @@ import { and, eq, inArray, sql } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { z } from "zod";
 
-import { calendarWorkingHours } from "@/lib/calendar/calendar";
-import { toEngineRate } from "@/lib/rates/engine-rate";
-import { referenceYear } from "@/lib/scenarios/engine-input";
-
-import { DEMO_ORGANIZATION_ID } from "./access";
-import {
-  assignments,
-  categoryRates,
-  config,
-  costConfig,
-  frozenCostConfig,
-  frozenRates,
-  projectPricing,
-  projects,
-  scenarios,
-} from "./schema";
+import { DEMO_ORGANIZATION_ID, type Member } from "./access";
+import { capabilitiesNow } from "./capabilities-now";
+import { type RevisionMaker, type SavedRevision, writeRevision } from "./save-revision";
+import { lockScenario } from "./lock-scenario";
+import { assignments, categoryRates, scenarios } from "./schema";
 import { type AccessContext, type TenantTransaction, withOrganization } from "./tenant";
 
-// docs/domain.md, "Choosing a scenario" and "What choosing freezes": choosing marks a scenario
-// chosen, unchooses the project's other one (rule i) and copies the current values its cost
-// depends on (rule b), in one transaction and with rate access only (ADR 0005). Like a save, it
-// moves the scenario's version on, so a page holding an older version cannot overwrite it.
+// docs/domain.md, "Choosing a scenario" and "Choosing a revision": choosing unchooses the
+// project's other scenario (rule i), makes a revision of the scenario as saved with the current
+// values, or uses its latest again, and points at it, in one transaction and with rate access only
+// (ADR 0005). Unchoosing removes the pointer; the revision stays. Like a save, both move the
+// scenario's version on, so a page holding an older version cannot overwrite them.
 
 /** What choosing and unchoosing take: the scenario, and the version the page shows. */
 export const choiceInputSchema = z.strictObject({
@@ -34,8 +24,15 @@ export const choiceInputSchema = z.strictObject({
 
 export type ChoiceInput = z.input<typeof choiceInputSchema>;
 
+/** Who chooses and when; set on the server, never by the page. A revision may be made with it. */
+export type ChoiceMaker = Omit<RevisionMaker, "reason">;
+
 export type ChooseResult =
-  | { ok: true; version: number }
+  | {
+      ok: true;
+      version: number;
+      /** The revision now chosen; none after unchoosing. */ revision?: SavedRevision;
+    }
   | { ok: false; reason: "conflict"; version: number }
   | {
       ok: false;
@@ -43,96 +40,42 @@ export type ChooseResult =
         | "not-found"
         /** Choosing what is already chosen, or unchoosing what is not. */
         | "no-change"
-        /** A category of the team has no rate, so there is nothing to freeze (rule k). */
+        /** A category of the team has no rate, so its staff cost is undetermined (rule k). */
         | "missing-rate"
+        /** An empty team commits to nothing. */
+        | "empty-team"
         | "no-rate-access"
         /** The demo template, which only its visitors' copies change (ADR 0011). */
         | "template";
     };
 
-/**
- * Writes a scenario's frozen rows from the organization's current values, inside a transaction
- * with rate access: one frozen rate per category its team uses, and its frozen cost config.
- * Returns "missing-rate", writing nothing, when a category of the team has no rate. The demo seed
- * calls it for the scenarios it inserts as chosen.
- */
-export async function freezeScenario(
-  tx: TenantTransaction,
-  scenarioId: string,
-): Promise<"frozen" | "missing-rate"> {
-  const [scenario] = await tx
-    .select({ projectId: scenarios.projectId })
-    .from(scenarios)
-    .where(eq(scenarios.id, scenarioId));
-  if (!scenario) throw new Error(`Scenario ${scenarioId} is not in the organization`);
+/** Why the scenario's team cannot be chosen, or null when it can. */
+async function teamRefusal(tx: TenantTransaction, scenarioId: string) {
   const team = await tx
-    .select({ categoryId: assignments.categoryId, startDate: assignments.startDate })
+    .select({ categoryId: assignments.categoryId })
     .from(assignments)
     .where(eq(assignments.scenarioId, scenarioId));
+  if (team.length === 0) return "empty-team" as const;
   const used = [...new Set(team.map((member) => member.categoryId))];
-  const rates =
-    used.length === 0
-      ? []
-      : await tx.select().from(categoryRates).where(inArray(categoryRates.categoryId, used));
-  if (rates.length !== used.length) return "missing-rate";
-
-  const [settings] = await tx.select().from(config);
-  const [organizationCosts] = await tx.select().from(costConfig);
-  if (!settings || !organizationCosts) {
-    throw new Error("The organization has no config or cost config");
-  }
-  const [pricing] = await tx
-    .select({ overhead: projectPricing.overhead, buffer: projectPricing.buffer })
-    .from(projectPricing)
-    .where(eq(projectPricing.projectId, scenario.projectId));
-
-  const organizationId = sql`app.current_organization_id()`;
-  if (rates.length > 0) {
-    await tx.insert(frozenRates).values(
-      rates.map((rate) => {
-        // The cost as the engine takes it: rounded once to the cent, never again.
-        const { cost } = toEngineRate({
-          categoryId: rate.categoryId,
-          grossAnnualSalaryCents: rate.grossAnnualSalary,
-          socialSecurityBasisPoints: rate.socialSecurity,
-          otherYearlyCostsCents: rate.otherYearlyCosts,
-          manualCostPerHourCents: rate.manualCostPerHour,
-          sellRateCents: rate.sellRate,
-        });
-        return {
-          organizationId,
-          scenarioId,
-          categoryId: rate.categoryId,
-          fullyLoadedAnnualCost: cost.kind === "annual" ? cost.fullyLoadedCents : null,
-          manualCostPerHour: cost.kind === "manual" ? cost.costPerHourCents : null,
-          sellRate: rate.sellRate,
-        };
-      }),
-    );
-  }
-  await tx.insert(frozenCostConfig).values({
-    organizationId,
-    scenarioId,
-    overhead: pricing?.overhead ?? organizationCosts.overhead,
-    buffer: pricing?.buffer ?? organizationCosts.buffer,
-    netAnnualHours: settings.netAnnualHours,
-    // The same calendar the engine costs the team with: the year of its earliest start.
-    calendarWorkingHours: calendarWorkingHours(referenceYear(team), settings.defaultWeeklyHours),
-  });
-  return "frozen";
+  const rated = await tx
+    .select({ categoryId: categoryRates.categoryId })
+    .from(categoryRates)
+    .where(inArray(categoryRates.categoryId, used));
+  return rated.length === used.length ? null : ("missing-rate" as const);
 }
 
-/** Deletes a scenario's frozen rows. */
-async function thaw(tx: TenantTransaction, scenarioId: string) {
-  await tx.delete(frozenRates).where(eq(frozenRates.scenarioId, scenarioId));
-  await tx.delete(frozenCostConfig).where(eq(frozenCostConfig.scenarioId, scenarioId));
-}
-
-/** Moves a scenario's version on and sets whether it is chosen; returns the new version. */
-async function mark(tx: TenantTransaction, scenarioId: string, chosen: boolean) {
+/**
+ * Points a scenario at a revision, chosen, or at none, unchosen, and moves its version on;
+ * returns the new version. The caller has locked it and its project.
+ */
+async function point(tx: TenantTransaction, scenarioId: string, revisionId: string | null) {
   const [updated] = await tx
     .update(scenarios)
-    .set({ chosen, version: sql`${scenarios.version} + 1` })
+    .set({
+      chosen: revisionId !== null,
+      chosenRevisionId: revisionId,
+      version: sql`${scenarios.version} + 1`,
+    })
     .where(eq(scenarios.id, scenarioId))
     .returning({ version: scenarios.version });
   if (!updated) throw new Error(`Scenario ${scenarioId} went away while it was locked`);
@@ -140,88 +83,55 @@ async function mark(tx: TenantTransaction, scenarioId: string, chosen: boolean) 
 }
 
 /**
- * The checks choosing, unchoosing and saving a revision share: the context's organization, rate
- * access, and the scenario locked at the version the page shows, and its project before it when
- * `lockProject`. Returns the locked scenario or the refusal.
+ * Marks a scenario of the transaction's organization chosen, pointing at a revision of it as saved
+ * (made now, or its latest used again), after unchoosing the project's other chosen scenario
+ * (rule i). It checks nothing: chooseScenarioIn locks and refuses first, and the demo seed calls it
+ * for the scenarios it shows as chosen. Returns the revision and the scenario's new version.
  */
-export async function lockScenario(
+export async function pointAtLatestRevision(
   tx: TenantTransaction,
-  { scenarioId, baseVersion }: { scenarioId: string; baseVersion: number },
-  { lockProject = false }: { lockProject?: boolean } = {},
+  scenarioId: string,
+  maker: ChoiceMaker,
+  /** A fixed id for the revision, should one be made: the demo seed's. */
+  revisionId?: string,
 ) {
-  const { rows } = await tx.execute<{ organization: string | null; rates: boolean }>(
-    sql`select app.current_organization_id() as organization, app.has_rate_access() as rates`,
-  );
-  const context = rows[0];
-  if (!context?.organization) return { refused: { ok: false, reason: "not-found" } as const };
-  if (context.organization === DEMO_ORGANIZATION_ID) {
-    return { refused: { ok: false, reason: "template" } as const };
-  }
-  if (!context.rates) return { refused: { ok: false, reason: "no-rate-access" } as const };
-  if (lockProject) {
-    // The project first, as duplicating takes it (duplicate-scenario.ts): writers that lock a
-    // project and its scenarios take them in one order, so they never deadlock.
-    await tx
-      .select({ id: projects.id })
-      .from(projects)
-      .where(
-        eq(
-          projects.id,
-          tx
-            .select({ id: scenarios.projectId })
-            .from(scenarios)
-            .where(eq(scenarios.id, scenarioId)),
-        ),
-      )
-      .for("update");
-  }
-  // The lock makes a concurrent save or choice of the same scenario wait for this one.
   const [scenario] = await tx
-    .select({
-      projectId: scenarios.projectId,
-      chosen: scenarios.chosen,
-      version: scenarios.version,
-    })
+    .select({ projectId: scenarios.projectId })
     .from(scenarios)
-    .where(eq(scenarios.id, scenarioId))
+    .where(eq(scenarios.id, scenarioId));
+  if (!scenario) throw new Error(`Scenario ${scenarioId} is not in the organization`);
+  const previous = await tx
+    .select({ id: scenarios.id })
+    .from(scenarios)
+    .where(and(eq(scenarios.projectId, scenario.projectId), eq(scenarios.chosen, true)))
     .for("update");
-  if (!scenario) return { refused: { ok: false, reason: "not-found" } as const };
-  if (scenario.version !== baseVersion) {
-    return { refused: { ok: false, reason: "conflict", version: scenario.version } as const };
+  for (const { id } of previous) {
+    if (id !== scenarioId) await point(tx, id, null);
   }
-  return { scenario };
+  const written = await writeRevision(tx, scenarioId, { ...maker, reason: "chosen" }, revisionId);
+  if (!written) throw new Error(`Scenario ${scenarioId} went away while it was chosen`);
+  return { revision: written.revision, version: await point(tx, scenarioId, written.revision.id) };
 }
 
 /** Chooses a scenario inside an open transaction, for the organization of its RLS context. */
 export async function chooseScenarioIn(
   tx: TenantTransaction,
   input: ChoiceInput,
+  maker: ChoiceMaker,
 ): Promise<ChooseResult> {
   const request = choiceInputSchema.parse(input);
   // Two choices in one project take turns on the project's row, so the second one sees the first
-  // as the project's chosen scenario below, instead of tripping the rule i index.
+  // as the project's chosen scenario, instead of tripping the rule i index.
   const locked = await lockScenario(tx, request, { lockProject: true });
   if (locked.refused) return locked.refused;
   if (locked.scenario.chosen) return { ok: false, reason: "no-change" };
-
-  // Checked before anything else is written, so a refusal leaves the project as it was.
-  if ((await freezeScenario(tx, request.scenarioId)) === "missing-rate") {
-    return { ok: false, reason: "missing-rate" };
-  }
-  // Rule i: the project's chosen scenario, if any, gives way, and its frozen rows go.
-  const previous = await tx
-    .select({ id: scenarios.id })
-    .from(scenarios)
-    .where(and(eq(scenarios.projectId, locked.scenario.projectId), eq(scenarios.chosen, true)))
-    .for("update");
-  for (const { id } of previous) {
-    await thaw(tx, id);
-    await mark(tx, id, false);
-  }
-  return { ok: true, version: await mark(tx, request.scenarioId, true) };
+  // Checked before anything is written, so a refusal leaves the project as it was.
+  const refusal = await teamRefusal(tx, request.scenarioId);
+  if (refusal) return { ok: false, reason: refusal };
+  return { ok: true, ...(await pointAtLatestRevision(tx, request.scenarioId, maker)) };
 }
 
-/** Unchooses a scenario inside an open transaction, deleting its frozen rows. */
+/** Unchooses a scenario inside an open transaction: its pointer goes, its revisions stay. */
 export async function unchooseScenarioIn(
   tx: TenantTransaction,
   input: ChoiceInput,
@@ -230,31 +140,56 @@ export async function unchooseScenarioIn(
   const locked = await lockScenario(tx, request);
   if (locked.refused) return locked.refused;
   if (!locked.scenario.chosen) return { ok: false, reason: "no-change" };
-  await thaw(tx, request.scenarioId);
-  return { ok: true, version: await mark(tx, request.scenarioId, false) };
+  return { ok: true, version: await point(tx, request.scenarioId, null) };
 }
 
-/** Runs `step` in the context's transaction. */
-function inTransaction(
+/**
+ * Runs a choice in the member's context, in one transaction, after checking their role again inside
+ * it (ADR 0015): one that no longer chooses, a viewer since, is refused as without rate access.
+ * Throws a ZodError on input that is not a valid choice; every other outcome is a result.
+ */
+async function asMember(
   db: NodePgDatabase,
   context: AccessContext,
+  chooser: Pick<Member, "userId">,
   input: ChoiceInput,
   step: (tx: TenantTransaction, input: ChoiceInput) => Promise<ChooseResult>,
 ): Promise<ChooseResult> {
   // Checked before a transaction opens; the step checks again for its other callers.
   choiceInputSchema.parse(input);
-  return withOrganization(db, context, (tx) => step(tx, input));
+  if (context.organizationId === DEMO_ORGANIZATION_ID) return { ok: false, reason: "template" };
+  // A read-only context, a viewer's, cannot lock anything, and has nothing to write.
+  if (context.readOnly || !context.rateAccess) return { ok: false, reason: "no-rate-access" };
+  return withOrganization(db, context, async (tx) => {
+    const capabilities = await capabilitiesNow(tx, {
+      userId: chooser.userId,
+      organizationId: context.organizationId,
+    });
+    if (!capabilities?.choose || !capabilities.rateAccess) {
+      return { ok: false, reason: "no-rate-access" };
+    }
+    return step(tx, input);
+  });
 }
 
-/**
- * Chooses a scenario of the context's organization, in one transaction. Throws a ZodError on input
- * that is not a valid choice; every other outcome is a result.
- */
-export function chooseScenario(db: NodePgDatabase, context: AccessContext, input: ChoiceInput) {
-  return inTransaction(db, context, input, chooseScenarioIn);
+/** Chooses a scenario of the context's organization for a member, in one transaction. */
+export function chooseScenario(
+  db: NodePgDatabase,
+  context: AccessContext,
+  input: ChoiceInput,
+  maker: ChoiceMaker & { authorId: string },
+) {
+  return asMember(db, context, { userId: maker.authorId }, input, (tx, request) =>
+    chooseScenarioIn(tx, request, maker),
+  );
 }
 
-/** Unchooses a scenario of the context's organization, in one transaction. */
-export function unchooseScenario(db: NodePgDatabase, context: AccessContext, input: ChoiceInput) {
-  return inTransaction(db, context, input, unchooseScenarioIn);
+/** Unchooses a scenario of the context's organization for a member, in one transaction. */
+export function unchooseScenario(
+  db: NodePgDatabase,
+  context: AccessContext,
+  input: ChoiceInput,
+  chooser: Pick<Member, "userId">,
+) {
+  return asMember(db, context, chooser, input, unchooseScenarioIn);
 }

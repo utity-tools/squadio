@@ -6,7 +6,7 @@ import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { ZodError } from "zod";
 
 import { user } from "@/db/auth-schema";
-import { chooseScenario } from "@/db/choose-scenario";
+
 import { copyOrganization } from "@/db/copy-organization";
 import { deleteOrganizationWithRows } from "@/db/delete-organization";
 import { DEMO_IDS, DEMO_ORGANIZATION_ID, seedDemo } from "@/db/demo-seed";
@@ -20,6 +20,7 @@ import { RULES_VERSION } from "@/lib/revisions/rules-version";
 import { copyId } from "@/lib/visitors/copy-id";
 
 import { SOME_DAY, appPool, newOrganization, ownerPool } from "./support";
+import { chooseAsNobody } from "./choose";
 
 // docs/domain.md, "When one is made", "Retention" and "Revision examples"; ADR 0013. Each test
 // works in a fresh copy of the demo organization. Synthetic data only.
@@ -164,9 +165,9 @@ describe("saveRevision", () => {
     expect(await versionOf(scenarioId)).toBe(before);
   });
 
-  it("takes a chosen scenario's team with the current values, not its frozen ones", async () => {
+  it("takes a chosen scenario's saved team with the current values, not its chosen revision", async () => {
     const scenarioId = ours(DEMO_IDS.leanScenario);
-    await chooseScenario(app, withRates(), {
+    await chooseAsNobody(app, withRates(), {
       scenarioId,
       baseVersion: await versionOf(scenarioId),
     });
@@ -176,9 +177,11 @@ describe("saveRevision", () => {
 
     await save(scenarioId);
 
-    const [revision] = await revisionsOf(scenarioId);
+    // Choosing made revision 1, which the page still shows; revision 2 costs the raised salaries.
+    const revisions = await revisionsOf(scenarioId);
+    expect(revisions).toHaveLength(2);
+    const revision = revisions.at(-1);
     if (!revision) throw new Error("expected the revision");
-    // The page still shows the frozen figures; the revision costs the raised salaries.
     expect(storedResult(revision).totalCostCents).toBeGreaterThan(
       shown.result.totalCostCents as number,
     );

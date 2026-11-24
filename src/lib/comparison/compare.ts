@@ -6,8 +6,8 @@ import { type Amount, type Ledger, type LedgerLine, ledger } from "@/lib/summary
 // view, not data: it reads the results the scenario page already gets and adds only differences
 // from the baseline, never a figure of its own. Money only with rate access (ADR 0005).
 
-/** A scenario as the comparison takes it: its id, whether it is costed with frozen values. */
-export type ComparedScenario = { id: string; frozen: boolean; view: LoadedScenario };
+/** A scenario as the comparison takes it: its id, and its chosen revision's number if it shows one. */
+export type ComparedScenario = { id: string; revision: number | null; view: LoadedScenario };
 
 /** A figure in a column: an amount, why it has none, or a category absent from the team. */
 export type Figure = Amount | { state: "absent" };
@@ -26,8 +26,11 @@ export type ComparisonColumn = {
   id: string;
   name: string;
   chosen: boolean;
-  /** Costed with the values frozen when it was chosen (rule b), with rate access only. */
-  frozen: boolean;
+  /**
+   * The number of the chosen revision it shows, as stored (docs/domain.md, "Choosing a revision");
+   * null for one costed with the current values.
+   */
+  revision: number | null;
   people: number;
   openRoles: number;
 };
@@ -260,13 +263,13 @@ export function compareScenarios(scenarios: readonly ComparedScenario[]): Compar
   const [first] = views;
   if (!first) throw new Error("A comparison takes two or three scenarios");
 
-  const columns = ordered.map(({ id, frozen, view }): ComparisonColumn => {
+  const columns = ordered.map(({ id, revision, view }): ComparisonColumn => {
     const people = new Set(view.team.flatMap(({ person }) => (person ? [person.id] : [])));
     return {
       id,
       name: view.scenario.name,
       chosen: view.scenario.chosen,
-      frozen: view.rateAccess && frozen,
+      revision,
       people: people.size,
       openRoles: view.team.filter(({ person }) => person === null).length,
     };

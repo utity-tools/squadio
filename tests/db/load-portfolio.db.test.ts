@@ -7,7 +7,7 @@ import { copyOrganization } from "@/db/copy-organization";
 import { DEMO_IDS, DEMO_ORGANIZATION_ID, seedDemo } from "@/db/demo-seed";
 import { loadPortfolio, loadProject } from "@/db/load-portfolio";
 import { memberProjectContext } from "@/db/project-context";
-import { assignments, projects } from "@/db/schema";
+import { assignments, categoryRates, projectPricing, projects } from "@/db/schema";
 import { loadScenario } from "@/db/load-scenario";
 import { type AccessContext, withOrganization } from "@/db/tenant";
 import { categoryOccupancy } from "@/lib/bench/category-occupancy";
@@ -16,6 +16,7 @@ import { corrections } from "@/lib/portfolio/corrections";
 import { copyId } from "@/lib/visitors/copy-id";
 
 import { SOME_DAY, appPool, newOrganization } from "./support";
+import { chooseAsNobody } from "./choose";
 
 // docs/domain.md, "The organization at a glance", on the demo organization's seed.
 
@@ -72,7 +73,7 @@ describe("loadPortfolio", () => {
     ]);
   });
 
-  it("costs every scenario as the scenario page does, frozen values included", async () => {
+  it("costs every scenario as the scenario page does, chosen revisions included", async () => {
     const portfolio = await loadPortfolio(app, withRates, SOME_DAY);
 
     for (const scenario of portfolio.projects.flatMap((project) => project.scenarios)) {
@@ -128,6 +129,35 @@ describe("loadPortfolio", () => {
     expect(planA?.money?.undatedRecurringCosts).toEqual([
       { id: DEMO_IDS.guide.cloud, label: "Cloud" },
     ]);
+  });
+
+  it("shows a chosen scenario's revision: its margin, hours and the occupancy its team books", async () => {
+    // docs/domain.md, "Choosing a revision": Inicio reads a chosen scenario's revision, not its
+    // saved team and current values; a new planned period no longer moves it.
+    const organizationId = await newOrganization(app);
+    await app.transaction((tx) => copyOrganization(tx, DEMO_ORGANIZATION_ID, organizationId));
+    const context: AccessContext = { organizationId, rateAccess: true };
+    const guide = copyId(DEMO_IDS.guideScenario, organizationId);
+    await chooseAsNobody(app, context, { scenarioId: guide, baseVersion: 1 });
+    const planA = async () =>
+      (await loadPortfolio(app, context, SOME_DAY)).projects
+        .flatMap((project) => project.scenarios)
+        .find((scenario) => scenario.id === guide);
+    const before = await planA();
+    const occupancyBefore = (await loadPortfolio(app, context, SOME_DAY)).occupancy;
+    expect(before?.money?.undatedRecurringCosts).toEqual([]);
+
+    await withOrganization(app, context, async (tx) => {
+      await tx.update(categoryRates).set({ grossAnnualSalary: 9_000_000 });
+      await tx.update(projectPricing).set({ price: 21_000_000 });
+      await tx.update(projects).set({ plannedStart: "2027-01-01", plannedEnd: "2027-12-31" });
+      // The saved team changes under the revision.
+      await tx.delete(assignments).where(eq(assignments.scenarioId, guide));
+    });
+    const portfolio = await loadPortfolio(app, context, SOME_DAY);
+
+    expect(await planA()).toEqual(before);
+    expect(portfolio.occupancy).toEqual(occupancyBefore);
   });
 
   it("gives each project its price or cap, and none to a fixed price still to agree", async () => {

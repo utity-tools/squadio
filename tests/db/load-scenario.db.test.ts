@@ -5,7 +5,6 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { ZodError } from "zod";
 
-import { chooseScenario } from "@/db/choose-scenario";
 import { copyOrganization } from "@/db/copy-organization";
 import { DEMO_IDS, DEMO_ORGANIZATION_ID, seedDemo } from "@/db/demo-seed";
 import {
@@ -23,11 +22,12 @@ import {
 import { type AccessContext, withOrganization } from "@/db/tenant";
 import { calendarWorkingHours } from "@/lib/calendar/calendar";
 import { calculateScenario } from "@/lib/costing/calculate-scenario";
-import { loadScenario } from "@/db/load-scenario";
-import { engineInputFor, scenarioView } from "@/lib/scenarios/scenario-view";
+import { loadScenario, scenarioIn } from "@/db/load-scenario";
+import { scenarioView } from "@/lib/scenarios/scenario-view";
 import { copyId } from "@/lib/visitors/copy-id";
 
 import { SOME_DAY, appPool, newOrganization } from "./support";
+import { chooseAsNobody, markChosen } from "./choose";
 
 // docs/domain.md, "Loading a scenario", on the demo organization's seed.
 
@@ -264,7 +264,7 @@ describe("loadScenario", () => {
       const scenario = async (projectId: string, chosen: boolean) => {
         const [row] = await tx
           .insert(scenarios)
-          .values({ organizationId, projectId, name: chosen ? "Chosen" : "Draft", chosen })
+          .values({ organizationId, projectId, name: chosen ? "Chosen" : "Draft" })
           .returning();
         return row!.id;
       };
@@ -284,12 +284,16 @@ describe("loadScenario", () => {
       const other = await project("Other");
       const pageDraft = await scenario(page, false);
       // The page's own chosen scenario: the page stands in for it.
-      await assign(await scenario(page, true), active!.id, 60);
+      const pageChosen = await scenario(page, true);
+      await assign(pageChosen, active!.id, 60);
       const otherChosen = await scenario(other, true);
       await assign(otherChosen, active!.id, 50);
       await assign(otherChosen, inactive!.id, 40);
       await assign(otherChosen, active!.id, 0);
       await assign(otherChosen, null, 100);
+      // Chosen as choosing does: their revisions' teams are what commits people.
+      await markChosen(tx, pageChosen);
+      await markChosen(tx, otherChosen);
       // A draft commits no one.
       await assign(await scenario(other, false), active!.id, 100);
       return { pageDraft, other, active: active!.id, inactive: inactive!.id };
@@ -395,6 +399,9 @@ describe("loadScenario", () => {
       await tx
         .insert(config)
         .values({ organizationId, netAnnualHours: 1550, defaultWeeklyHours: 40 });
+      await tx
+        .insert(costConfig)
+        .values({ organizationId, overhead: 1500, buffer: 1000, targetMargin: 2500 });
       const [project] = await tx
         .insert(projects)
         .values({
@@ -409,8 +416,10 @@ describe("loadScenario", () => {
         .returning();
       const [scenario] = await tx
         .insert(scenarios)
-        .values({ organizationId, projectId: project!.id, name: "Plan A", chosen: true })
+        .values({ organizationId, projectId: project!.id, name: "Plan A" })
         .returning();
+      // Only the backfill gives an empty team a revision; choosing refuses it.
+      await markChosen(tx, scenario!.id);
       return { project: project!.id, scenario: scenario!.id };
     });
 
@@ -428,7 +437,7 @@ describe("loadScenario", () => {
       editing: expect.objectContaining({
         basis: expect.objectContaining({ project }),
         team: [],
-        version: 1,
+        version: 2,
       }),
       project,
       scenario: { name: "Plan A", chosen: true, otherChosen: null },
@@ -454,7 +463,7 @@ describe("loadScenario", () => {
       chosen: false,
       otherChosen: null,
     });
-    expect(await chooseScenario(app, context, { scenarioId: planB, baseVersion: 1 })).toMatchObject(
+    expect(await chooseAsNobody(app, context, { scenarioId: planB, baseVersion: 1 })).toMatchObject(
       { ok: true },
     );
     for (const rateAccess of [true, false]) {
@@ -472,38 +481,48 @@ describe("loadScenario", () => {
     });
   });
 
-  it("costs a chosen scenario with its frozen values, whatever changes later (rule b)", async () => {
+  it("shows a chosen scenario's revision, whatever changes later (rule b)", async () => {
     const copyOrg = await newOrganization(app);
     const copy: AccessContext = { organizationId: copyOrg, rateAccess: true };
     await app.transaction((tx) => copyOrganization(tx, DEMO_ORGANIZATION_ID, copyOrg));
     const guide = copyId(DEMO_IDS.guideScenario, copyOrg);
-    expect(await chooseScenario(app, copy, { scenarioId: guide, baseVersion: 1 })).toMatchObject({
+    expect(await chooseAsNobody(app, copy, { scenarioId: guide, baseVersion: 1 })).toMatchObject({
       ok: true,
     });
     const before = await loadScenario(app, copy, guide, SOME_DAY);
     if (!before?.rateAccess) throw new Error("expected a result with rate access");
+    const hoursBefore = await loadScenario(app, { ...copy, rateAccess: false }, guide, SOME_DAY);
+    expect(before.editing.basis.chosenRevision).toMatchObject({ number: 1 });
 
-    // Everything rule b freezes moves: rates, overhead and buffer, and the availability factor.
+    // Everything a revision keeps moves: rates, overhead and buffer, the availability factor, the
+    // price, the planned period and the extra costs.
     await withOrganization(app, copy, async (tx) => {
       await tx.update(categoryRates).set({ grossAnnualSalary: 9_000_000, sellRate: 9_900 });
       await tx.update(costConfig).set({ overhead: 3000, buffer: 2000 });
-      await tx.update(projectPricing).set({ overhead: null, buffer: null });
+      await tx.update(projectPricing).set({ overhead: null, buffer: null, price: 21_000_000 });
       await tx.update(config).set({ netAnnualHours: 1400, defaultWeeklyHours: 37.5 });
+      await tx.update(projects).set({ plannedStart: "2027-04-01", plannedEnd: "2027-06-30" });
+      await tx.update(extraCosts).set({ amount: 999_999 });
     });
     const after = await loadScenario(app, copy, guide, SOME_DAY);
     if (!after?.rateAccess) throw new Error("expected a result with rate access");
 
     expect(after.result).toEqual(before.result);
-    expect(after.editing.basis.engine).toMatchObject({ frozen: true });
-    // The page recalculates the chosen team to the same result.
-    expect(scenarioView(after.editing.basis, after.editing.team)).toEqual(
-      scenarioView(before.editing.basis, before.editing.team),
-    );
-    expect(
-      engineInputFor(after.editing.basis, after.editing.team).costSettings.calendarWorkingHours,
-    ).toBe(calendarWorkingHours(2027, 40));
+    expect(after.team).toEqual(before.team);
+    // The page shows the same from its basis, but the project as it is now, and the same hours
+    // without rate access.
+    expect({
+      ...scenarioView(after.editing.basis, after.editing.team),
+      project: null,
+    }).toEqual({ ...scenarioView(before.editing.basis, before.editing.team), project: null });
+    const hoursAfter = await loadScenario(app, { ...copy, rateAccess: false }, guide, SOME_DAY);
+    if (hoursAfter?.rateAccess !== false || hoursBefore?.rateAccess !== false) {
+      throw new Error("expected hours without rate access");
+    }
+    expect(hoursAfter.hours).toEqual(hoursBefore.hours);
+    expect(hoursAfter.hours).toEqual(after.result.hours);
 
-    // The target margin is not frozen: it moves the status, never the cost.
+    // The target margin is not in it: it moves the status, never the cost.
     await withOrganization(app, copy, (tx) => tx.update(costConfig).set({ targetMargin: 9000 }));
     const judged = await loadScenario(app, copy, guide, SOME_DAY);
     if (!judged?.rateAccess) throw new Error("expected a result with rate access");
@@ -513,7 +532,29 @@ describe("loadScenario", () => {
     expect(judged.result.marginStatus).not.toBe(before.result.marginStatus);
   });
 
-  it("spans undated recurring costs over the planned period, chosen or not (rule d)", async () => {
+  it("shows a chosen scenario's revision team, not the saved one, and the saved one for a revision", async () => {
+    const copyOrg = await newOrganization(app);
+    const copy: AccessContext = { organizationId: copyOrg, rateAccess: true };
+    await app.transaction((tx) => copyOrganization(tx, DEMO_ORGANIZATION_ID, copyOrg));
+    const guide = copyId(DEMO_IDS.guideScenario, copyOrg);
+    await chooseAsNobody(app, copy, { scenarioId: guide, baseVersion: 1 });
+    const chosen = await loadScenario(app, copy, guide, SOME_DAY);
+    // The saved team changes under the revision, as the backfill or an older revision leaves it.
+    await withOrganization(app, copy, (tx) =>
+      tx.delete(assignments).where(eq(assignments.id, copyId(DEMO_IDS.guide.devops, copyOrg))),
+    );
+
+    const after = await loadScenario(app, copy, guide, SOME_DAY);
+    expect(after?.team).toEqual(chosen?.team);
+    expect(after?.editing.team).toEqual(chosen?.editing.team);
+    const saved = await withOrganization(app, copy, (tx) =>
+      scenarioIn(tx, copy, guide, SOME_DAY, { currentValues: true }),
+    );
+    expect(saved?.editing.team).toHaveLength((chosen?.editing.team.length ?? 0) - 1);
+    expect(saved?.editing.basis.chosenRevision).toBeUndefined();
+  });
+
+  it("spans undated recurring costs over the planned period, until chosen (rule d)", async () => {
     const organizationId = await newOrganization(app);
     const context: AccessContext = { organizationId, rateAccess: true };
     await app.transaction((tx) => copyOrganization(tx, DEMO_ORGANIZATION_ID, organizationId));
@@ -537,14 +578,15 @@ describe("loadScenario", () => {
     await plan("2027-04-01", "2027-12-31");
     expect(await cloudCost()).toBe(900_000);
 
-    // Not frozen: a chosen scenario's undated recurring cost follows a new period too.
-    expect(await chooseScenario(app, context, { scenarioId: guide, baseVersion: 1 })).toMatchObject(
+    // A chosen scenario's revision keeps the period it was made with (docs/domain.md, "Planned
+    // period"): a new one moves it no more.
+    expect(await chooseAsNobody(app, context, { scenarioId: guide, baseVersion: 1 })).toMatchObject(
       { ok: true },
     );
     await plan("2027-04-01", "2027-06-30");
-    expect(await cloudCost()).toBe(300_000);
+    expect(await cloudCost()).toBe(900_000);
     await plan(null, null);
-    expect(await cloudCost()).toBe(teamSpan);
+    expect(await cloudCost()).toBe(900_000);
   });
 
   it("leaves an undated recurring cost pending without a team or a planned period (rule d)", async () => {

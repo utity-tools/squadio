@@ -13,7 +13,6 @@ import {
   config,
   costConfig,
   extraCosts,
-  frozenCostConfig,
   people,
   projectPricing,
   projects,
@@ -90,8 +89,8 @@ describe("seedDemo", () => {
       scenarios: 8,
       assignments: 22,
       extra_costs: 2,
-      scenario_revision: 1,
-      scenario_revision_money: 1,
+      scenario_revision: 2,
+      scenario_revision_money: 2,
     });
   });
 
@@ -138,7 +137,8 @@ describe("seedDemo", () => {
         .innerJoin(
           scenarioRevisionMoney,
           eq(scenarioRevisionMoney.revisionId, scenarioRevisions.id),
-        ),
+        )
+        .where(eq(scenarioRevisions.scenarioId, DEMO_IDS.deliveryScenario)),
     );
 
     expect(revisions).toHaveLength(1);
@@ -229,21 +229,17 @@ describe("seedDemo", () => {
       { start: "2027-04-01", end: "2027-09-29" },
     ]);
 
-    // Frozen with the calendar of their earliest start, as choosing does.
-    const frozen = await withOrganization(app, demo, (tx) =>
+    // Chosen with the calendar of their earliest start, as choosing costs them.
+    const chosen = await withOrganization(app, demo, (tx) =>
       tx
-        .select({ hours: frozenCostConfig.calendarWorkingHours })
-        .from(frozenCostConfig)
-        .where(
-          inArray(frozenCostConfig.scenarioId, [
-            DEMO_IDS.deliveryScenario,
-            DEMO_IDS.upkeepScenario,
-          ]),
-        ),
+        .select({ part: scenarioRevisionMoney.restrictedPart })
+        .from(scenarioRevisionMoney)
+        .innerJoin(scenarios, eq(scenarios.chosenRevisionId, scenarioRevisionMoney.revisionId))
+        .where(inArray(scenarios.id, [DEMO_IDS.deliveryScenario, DEMO_IDS.upkeepScenario])),
     );
-    expect(frozen).toEqual([
-      { hours: calendarWorkingHours(2027, 40) },
-      { hours: calendarWorkingHours(2027, 40) },
+    expect(chosen.map(({ part }) => part.costSettings.calendarWorkingHours)).toEqual([
+      calendarWorkingHours(2027, 40),
+      calendarWorkingHours(2027, 40),
     ]);
 
     // The bench has people busy on that day.

@@ -2,12 +2,18 @@ import { randomUUID } from "node:crypto";
 
 import { count, eq, getTableName, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
+import type { PgTable } from "drizzle-orm/pg-core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { COPIED_TABLES, copyOrganization } from "@/db/copy-organization";
 import { DEMO_IDS, DEMO_ORGANIZATION_ID, seedDemo } from "@/db/demo-seed";
 import { loadScenario } from "@/db/load-scenario";
-import { scenarioRevisionMoney, scenarioRevisions } from "@/db/schema";
+import {
+  frozenCostConfig,
+  frozenRates,
+  scenarioRevisionMoney,
+  scenarioRevisions,
+} from "@/db/schema";
 import { type AccessContext, withOrganization } from "@/db/tenant";
 import { renameOpenPartIds, renameRestrictedPartIds } from "@/lib/revisions/rename-ids";
 import { copyId } from "@/lib/visitors/copy-id";
@@ -124,7 +130,11 @@ describe("copyOrganization", () => {
   it("gives the copy as many rows as the template, in every table", async () => {
     const counts = await rowCounts(copy);
     expect(counts).toEqual(await rowCounts(template));
-    expect(counts.every((rows) => (rows ?? 0) > 0)).toBe(true);
+    // Every table holds rows but the frozen ones, which nothing writes since slice 6.
+    const retired = new Set<PgTable>([frozenRates, frozenCostConfig]);
+    expect(
+      COPIED_TABLES.every((table, index) => retired.has(table) || (counts[index] ?? 0) > 0),
+    ).toBe(true);
   });
 
   it("loads each scenario of the copy exactly as the template's, under the derived ids", async () => {
@@ -144,7 +154,7 @@ describe("copyOrganization", () => {
   });
 
   it("copies the template's revisions with the copy's ids inside both parts", async () => {
-    const revisionOf = (context: AccessContext) =>
+    const revisionOf = (context: AccessContext, id: string) =>
       withOrganization(app, context, async (tx) => {
         const [row] = await tx
           .select()
@@ -152,12 +162,13 @@ describe("copyOrganization", () => {
           .innerJoin(
             scenarioRevisionMoney,
             eq(scenarioRevisionMoney.revisionId, scenarioRevisions.id),
-          );
+          )
+          .where(eq(scenarioRevisions.id, id));
         if (!row) throw new Error("expected a revision");
         return row;
       });
-    const original = await revisionOf(template);
-    const copied = await revisionOf(copy);
+    const original = await revisionOf(template, DEMO_IDS.deliveryRevision);
+    const copied = await revisionOf(copy, copyId(DEMO_IDS.deliveryRevision, copyOrg));
 
     const rename = (id: string) => copyId(id, copyOrg);
     expect(copied.scenario_revision).toEqual({

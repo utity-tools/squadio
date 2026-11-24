@@ -3,6 +3,8 @@ import { type ScenarioResult, calculateScenario } from "@/lib/costing/calculate-
 import type { Commitment } from "@/lib/load/weekly-load";
 import type { PlannedPeriod } from "@/lib/projects/project-details";
 import type { SmallCategory } from "@/lib/rates/small-categories";
+import type { ChosenRevision } from "@/lib/revisions/chosen-revision";
+import { revisionView } from "@/lib/revisions/revision-view";
 
 import type { Roster } from "./apply-change";
 import type { Member } from "./change";
@@ -109,8 +111,13 @@ export type ScenarioBasis = Omit<OpenScenario, "team" | "span"> & {
    */
   commitments: Commitment[];
   /**
+   * A chosen scenario's revision (docs/domain.md, "Choosing a revision"): its view shows it as
+   * stored, never recalculated, instead of costing a team with the engine's inputs below.
+   */
+  chosenRevision?: ChosenRevision;
+  /**
    * The engine's inputs with no assignments; `engineInputFor` adds the team's, and replaces the
-   * calendar working hours, which here are those of the calendar's first year, unless frozen.
+   * calendar working hours, which here are those of the calendar's first year.
    */
   engine:
     | {
@@ -119,8 +126,6 @@ export type ScenarioBasis = Omit<OpenScenario, "team" | "span"> & {
         /** Every small category of the organization; the view keeps the ones the team uses. */
         smallCategories: SmallCategory[];
         extraCosts: SummaryExtraCost[];
-        /** A chosen scenario costed with its frozen values: its calendar hours stay as frozen. */
-        frozen?: true;
       }
     | { rateAccess: false; input: EngineInput };
 };
@@ -144,10 +149,10 @@ export function engineInputFor(basis: ScenarioBasis, team: readonly Member[]): E
     scenario: { ...input.scenario, assignments },
     costSettings: {
       ...input.costSettings,
-      calendarWorkingHours:
-        basis.engine.rateAccess && basis.engine.frozen
-          ? input.costSettings.calendarWorkingHours
-          : calendarWorkingHours(referenceYear(assignments), basis.defaultWeeklyHours),
+      calendarWorkingHours: calendarWorkingHours(
+        referenceYear(assignments),
+        basis.defaultWeeklyHours,
+      ),
     },
   };
 }
@@ -165,8 +170,35 @@ function nameTeam(basis: ScenarioBasis, team: readonly Member[]): TeamAssignment
   });
 }
 
-/** What the page shows for a team. Without rate access, its hours only: never a money figure. */
+/** What a chosen scenario's page shows: its revision as stored (docs/domain.md). */
+function chosenView(basis: ScenarioBasis, chosen: ChosenRevision): LoadedScenario {
+  const stored = revisionView(chosen.view);
+  const open: OpenScenario = {
+    project: basis.project,
+    scenario: basis.scenario,
+    team: stored.team,
+    span: stored.span,
+  };
+  const { summary } = stored;
+  if (!summary.rateAccess) {
+    return { ...open, rateAccess: false, hours: summary.hours, assignments: stored.hours };
+  }
+  return {
+    ...open,
+    rateAccess: true,
+    result: summary.result,
+    smallCategories: summary.smallCategories,
+    settings: summary.settings,
+    extraCosts: summary.extraCosts,
+  };
+}
+
+/**
+ * What the page shows for a team. Without rate access, its hours only: never a money figure. A
+ * chosen scenario shows its revision, whose team is the one the page holds.
+ */
 export function scenarioView(basis: ScenarioBasis, team: readonly Member[]): LoadedScenario {
+  if (basis.chosenRevision) return chosenView(basis, basis.chosenRevision);
   const input = engineInputFor(basis, team);
   // The engine runs first, so a date outside the calendar fails there, on its field.
   const result = calculateScenario(

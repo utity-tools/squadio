@@ -54,7 +54,7 @@ export type ScenarioChoiceProps = {
 
 /**
  * "Choose scenario" in the header, or "Unchoose" on a chosen one (docs/domain.md, "Choosing a
- * scenario"): with rate access only, confirmed in a dialog that says what choosing freezes and
+ * scenario"): with rate access only, confirmed in a dialog that says what its revision keeps and
  * which scenario it replaces (rule i). A team with a category without a rate cannot be chosen
  * (rule k), so its dialog says why and offers no confirmation. The choice waits for the changes
  * to be saved, and a refusal is said in the dialog, which stays open. Once the page shows the
@@ -224,8 +224,9 @@ export function ScenarioChoice({ scenarioId, send }: ScenarioChoiceProps) {
 }
 
 /**
- * What choosing does (board "Elegir escenario"): it freezes the categories' cost and sell rate and
- * the cost settings, locks the team, and makes its people count as busy on the project.
+ * What choosing does (board "Elegir escenario"): it points at a revision that keeps the categories'
+ * cost and sell rate, the cost settings, price, period and extra costs, locks the team, and makes
+ * its people count as busy on the project.
  */
 function Consequences({ name }: { name: string }) {
   const t = useTranslations("ScenarioChoice.choose");

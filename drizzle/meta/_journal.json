@@ -113,6 +113,13 @@
       "when": 1795518226234,
       "tag": "0015_derived_alternatives",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1795522425250,
+      "tag": "0016_chosen_revisions",
+      "breakpoints": true
     }
   ]
 }

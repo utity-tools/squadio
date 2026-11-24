@@ -4,10 +4,19 @@ import { eq, sql } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { z } from "zod";
 
+import { alternativeRows } from "@/lib/revisions/alternative";
+import { openPartSchema, restrictedPartSchema } from "@/lib/revisions/snapshot";
 import { MAX_SCENARIOS_PER_PROJECT, copyName, duplicateRows } from "@/lib/scenarios/duplicate";
 
 import { DEMO_ORGANIZATION_ID } from "./access";
-import { assignments, extraCosts, projects, scenarios } from "./schema";
+import {
+  assignments,
+  extraCosts,
+  projects,
+  scenarioRevisionMoney,
+  scenarioRevisions,
+  scenarios,
+} from "./schema";
 import { type AccessContext, type TenantTransaction, withOrganization } from "./tenant";
 
 // docs/domain.md, "Duplicating a scenario": a new draft of the same project with a copy of the
@@ -37,6 +46,23 @@ export type DuplicateResult =
         | "too-many";
     };
 
+/** A chosen revision's two parts, as stored; read with rate access, which duplicating needs. */
+async function chosenSnapshot(tx: TenantTransaction, revisionId: string) {
+  const [row] = await tx
+    .select({
+      open: scenarioRevisions.openPart,
+      restricted: scenarioRevisionMoney.restrictedPart,
+    })
+    .from(scenarioRevisions)
+    .innerJoin(scenarioRevisionMoney, eq(scenarioRevisionMoney.revisionId, scenarioRevisions.id))
+    .where(eq(scenarioRevisions.id, revisionId));
+  if (!row) throw new Error(`Revision ${revisionId} has no restricted part`);
+  return {
+    open: openPartSchema.parse(row.open),
+    restricted: restrictedPartSchema.parse(row.restricted),
+  };
+}
+
 /**
  * Duplicates a scenario inside an open transaction, for the organization of its RLS context, and
  * returns the copy's id.
@@ -56,7 +82,11 @@ export async function duplicateScenarioIn(
   if (!context.rates) return { ok: false, reason: "no-rate-access" };
 
   const [original] = await tx
-    .select({ projectId: scenarios.projectId, name: scenarios.name })
+    .select({
+      projectId: scenarios.projectId,
+      name: scenarios.name,
+      chosenRevisionId: scenarios.chosenRevisionId,
+    })
     .from(scenarios)
     .where(eq(scenarios.id, scenarioId));
   if (!original) return { ok: false, reason: "not-found" };
@@ -81,17 +111,27 @@ export async function duplicateScenarioIn(
   if (siblings.length >= MAX_SCENARIOS_PER_PROJECT) return { ok: false, reason: "too-many" };
 
   const copyId = randomUUID();
-  const copied = duplicateRows(
-    {
-      assignments: await tx
-        .select()
-        .from(assignments)
-        .where(eq(assignments.scenarioId, scenarioId)),
-      extraCosts: await tx.select().from(extraCosts).where(eq(extraCosts.scenarioId, scenarioId)),
-    },
-    copyId,
-    randomUUID,
-  );
+  // A chosen scenario's page shows its revision, so its copy takes the revision's team and extra
+  // costs (docs/domain.md, "Duplicating a scenario"); a draft's, its saved ones.
+  const chosen = original.chosenRevisionId
+    ? await chosenSnapshot(tx, original.chosenRevisionId)
+    : null;
+  const copied = chosen
+    ? alternativeRows(chosen, copyId, randomUUID)
+    : duplicateRows(
+        {
+          assignments: await tx
+            .select()
+            .from(assignments)
+            .where(eq(assignments.scenarioId, scenarioId)),
+          extraCosts: await tx
+            .select()
+            .from(extraCosts)
+            .where(eq(extraCosts.scenarioId, scenarioId)),
+        },
+        copyId,
+        randomUUID,
+      );
   await tx.insert(scenarios).values({
     id: copyId,
     organizationId: context.organization,
@@ -103,8 +143,17 @@ export async function duplicateScenarioIn(
     ),
   });
   // One statement per table: reports_to is checked once all of its rows are in.
-  if (copied.assignments.length > 0) await tx.insert(assignments).values(copied.assignments);
-  if (copied.extraCosts.length > 0) await tx.insert(extraCosts).values(copied.extraCosts);
+  const organizationId = context.organization;
+  if (copied.assignments.length > 0) {
+    await tx
+      .insert(assignments)
+      .values(copied.assignments.map((row) => ({ ...row, organizationId })));
+  }
+  if (copied.extraCosts.length > 0) {
+    await tx
+      .insert(extraCosts)
+      .values(copied.extraCosts.map((row) => ({ ...row, organizationId })));
+  }
   return { ok: true, scenarioId: copyId, version: 1 };
 }
 

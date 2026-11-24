@@ -4,6 +4,7 @@ import { translateId } from "@/lib/visitors/translate";
 
 import {
   type ChoiceInput,
+  type ChoiceMaker,
   type ChooseResult,
   choiceInputSchema,
   chooseScenarioIn,
@@ -36,7 +37,7 @@ async function choiceForVisitor(
       ? translateId(request.scenarioId, copy.templateIds, copy.organizationId)
       : request.scenarioId;
     const result = await step(tx, { ...request, scenarioId });
-    return result.ok ? { ...result, scenarioId } : result;
+    return result.ok ? { ok: true as const, version: result.version, scenarioId } : result;
   });
 }
 
@@ -49,8 +50,12 @@ export function chooseForVisitor(
   jar: CookieJar,
   input: ChoiceInput,
   rateAccess: boolean,
+  /** Who chooses besides the visitor, who is nobody signed in, and when. */
+  maker: Omit<ChoiceMaker, "authorId">,
 ): Promise<VisitorChoiceResult> {
-  return choiceForVisitor(db, jar, input, rateAccess, chooseScenarioIn);
+  return choiceForVisitor(db, jar, input, rateAccess, (tx, request) =>
+    chooseScenarioIn(tx, request, { ...maker, authorId: null }),
+  );
 }
 
 /** Unchooses a scenario of the visitor's copy, making the copy when they have none. */

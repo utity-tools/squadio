@@ -54,11 +54,11 @@ describe("compareScenarios: the comparison examples", () => {
 
   it("puts the chosen Plan A first as the baseline", () => {
     expect(
-      comparison.columns.map(({ name, chosen, frozen }) => ({ name, chosen, frozen })),
+      comparison.columns.map(({ name, chosen, revision }) => ({ name, chosen, revision })),
     ).toEqual([
-      { name: "Plan A", chosen: true, frozen: true },
-      { name: "Plan B", chosen: false, frozen: false },
-      { name: "Plan C", chosen: false, frozen: false },
+      { name: "Plan A", chosen: true, revision: 1 },
+      { name: "Plan B", chosen: false, revision: null },
+      { name: "Plan C", chosen: false, revision: null },
     ]);
   });
 
@@ -156,14 +156,14 @@ describe("compareScenarios: the comparison examples", () => {
 
 describe("compareScenarios: without rate access", () => {
   const comparison = compareScenarios(
-    guidePlans().map(({ id, frozen, view }) => compared(id, withoutRateAccess(view), frozen)),
+    guidePlans().map(({ id, revision, view }) => compared(id, withoutRateAccess(view), revision)),
   );
 
-  it("shows teams and hours only: no money, and no column says it is frozen", () => {
+  it("shows teams and hours only, and the chosen revision's number, which holds no money", () => {
     expect(comparison.rateAccess).toBe(false);
     expect("money" in comparison).toBe(false);
     expect(JSON.stringify(comparison)).not.toMatch(/cents|Cents|status/);
-    expect(comparison.columns.every(({ frozen }) => !frozen)).toBe(true);
+    expect(comparison.columns.map(({ revision }) => revision)).toEqual([1, null, null]);
     expect(flat(comparison.hours.effective)[2]).toEqual({ figure: 2031.25, change: -406.25 });
     expect(comparison.people.find(({ person }) => person.id === "junior-1")?.changes[1]).toEqual({
       kind: "enters",

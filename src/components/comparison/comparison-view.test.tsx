@@ -64,7 +64,7 @@ describe("ComparisonView", () => {
     expect(rowOf("Resultado", "Tarifa efectiva")[2]).toBe("98,46 €/h+16,41 €/h");
   });
 
-  it("marks the baseline, the chosen scenario and its frozen values", () => {
+  it("marks the baseline, the chosen scenario and the revision it shows", () => {
     renderWithIntl(<ComparisonView comparison={compareScenarios(guidePlans())} />);
     const [head] = screen.getAllByRole("table");
     const planA = within(head!).getAllByRole("columnheader")[1]!;
@@ -73,7 +73,7 @@ describe("ComparisonView", () => {
       "href",
       "/scenarios/A",
     );
-    expect(plain(planA)).toMatch(/Referencia.*Elegido.*Valores congelados/);
+    expect(plain(planA)).toMatch(/Referencia.*Elegido.*Revisión 1/);
     expect(screen.getByText(/Plan A está elegido/)).toBeInTheDocument();
   });
 
@@ -115,14 +115,15 @@ describe("ComparisonView", () => {
   });
 
   it("shows who enters and leaves for everyone, and no money without rate access", async () => {
-    const plans = guidePlans().map(({ id, frozen, view }) =>
-      compared(id, withoutRateAccess(view), frozen),
+    const plans = guidePlans().map(({ id, revision, view }) =>
+      compared(id, withoutRateAccess(view), revision),
     );
     const { container } = renderWithIntl(<ComparisonView comparison={compareScenarios(plans)} />);
 
     expect(screen.queryByRole("table", { name: "Resultado" })).not.toBeInTheDocument();
     expect(container.textContent).not.toMatch(/€/);
-    expect(screen.queryByText(/Valores congelados/)).not.toBeInTheDocument();
+    // The chosen revision's number is open: everyone reads which revision the column shows.
+    expect(screen.getAllByText("Revisión 1").length).toBeGreaterThan(0);
     expect(rowOf("Personas", "Person junior-1")[1]).toMatch(/Entra$/);
     expect(rowOf("Personas", "Person frontend-1")[1]).toBe("No está en este equipoSale");
     expect(rowOf("Horas", "Horas efectivas")[2]).toBe("2031,25 h-406,25 h");

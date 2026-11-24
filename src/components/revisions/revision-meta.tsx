@@ -39,8 +39,13 @@ export function RevisionMeta({ revision, anonymous, ...props }: RevisionMetaProp
         })}
       </time>
       <Separator />
-      {revision.author ?? t(`anonymous.${anonymous}`)}
-      <Separator />
+      {/* Nobody made a migrated revision: its reason says so (docs/domain.md, "Choosing a revision"). */}
+      {revision.reason !== "migrated" && (
+        <>
+          {revision.author ?? t(`anonymous.${anonymous}`)}
+          <Separator />
+        </>
+      )}
       {t(`reason.${revision.reason}`)}
     </span>
   );
