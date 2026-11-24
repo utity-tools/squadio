@@ -19,7 +19,12 @@ AWS Frankfurt. Only GitHub Actions deploys, and only from `main` after CI passed
    ([post-mortem](../incidents/2026-10-23-migrations-in-neondb.md)). Then `pnpm db:migrate`
    applies pending migrations. Migration 0016 (v0.5's slice 6) made a chosen scenario point at a
    revision, and a one-off script gave every scenario chosen before it one; that script ran in
-   production's deploys and is retired, since no row can need it.
+   production's deploys and is retired. Migration 0017 validates the check that a scenario is
+   chosen exactly when it points at a revision, then drops the frozen tables. If a row still breaks
+   the check, the migration rolls back whole and this step fails: the deploy stops before
+   «Deploy», and production keeps its schema and code. Find the rows with
+   `select id from scenarios where chosen is distinct from (chosen_revision_id is not null)`,
+   fix them as the owner role, and run the deploy again.
 5. `pnpm db:check-target app` checks the `DATABASE_URL` that `vercel pull` wrote leads to
    `squadio_app` on `squadio`, and `pnpm db:seed` replaces the synthetic demo organization with
    it. The seed runs in one transaction with fixed ids, so the running deployment never sees a

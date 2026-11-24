@@ -206,3 +206,13 @@ Roles and invitations, which sharing needs, are [ADR 0015](0015-roles-and-invita
   - **Choosing a given revision reuses the pointer write** of choosing a scenario, with the same
     lock, role re-read and rule i, and refuses on the revision's own team and stored result (empty,
     or a staff cost it left undetermined), never on today's values.
+- **2026-11-24, slice 6c (the frozen tables retired):** how the old tables went.
+  - **Two pull requests, in that order, so no deploy runs old code on a new schema.** The first
+    stopped reading the tables (a visitor's copy) and retired the backfill; nothing changed in the
+    database. The second, migration 0017, validates `scenarios_chosen_revision_check` and drops
+    `frozen_rates` and `frozen_cost_config`, with their policies; no other table references them.
+  - **If a row still broke the check,** `VALIDATE` fails first and the migration rolls back whole:
+    the deploy stops before it ships and production keeps the schema and code it has. It did so
+    against local databases holding rows chosen before slice 6.
+  - **`chosen` stays a column,** not derived from the pointer: with the check validated the two
+    cannot disagree, and the partial index of rule i relies on it.

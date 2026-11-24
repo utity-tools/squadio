@@ -46,8 +46,8 @@ only in the entities marked **Restricted**, which users without rate access cann
 | Project          | id, name, client, pricing model (fixed or T&M), planned start?, planned end?, description?                                                                        | Its money lives in ProjectPricing. The planned period has both dates or neither (v0.3, [Planned period](#planned-period)); the description is 1 to 500 characters and not blank                                                                        |
 | ProjectPricing   | project, price, overhead %?, buffer %?                                                                                                                            | One per project. Restricted. Empty overrides fall back to CostConfig                                                                                                                                                                                   |
 | Scenario         | id, project, name, chosen, version                                                                                                                                | `version` provides optimistic locking; choosing and unchoosing move it on too. A chosen one points at one of its revisions (rule b). For a derived alternative, the revision it came from and its author                                               |
-| FrozenRate       | scenario, category, fully loaded annual cost or manual cost per hour, sell rate                                                                                   | Written when a scenario was chosen, before v0.5's slice 6; nothing writes or reads it since, and a later migration drops it. Restricted                                                                                                                |
-| FrozenCostConfig | scenario, overhead %, buffer %, net annual hours, calendar working hours                                                                                          | One per scenario chosen before v0.5's slice 6, written with its FrozenRates; retired like them. Restricted                                                                                                                                             |
+| FrozenRate       | scenario, category, fully loaded annual cost or manual cost per hour, sell rate                                                                                   | Written when a scenario was chosen, before v0.5's slice 6; dropped in slice 6c (migration 0017). Restricted                                                                                                                                            |
+| FrozenCostConfig | scenario, overhead %, buffer %, net annual hours, calendar working hours                                                                                          | One per scenario chosen before v0.5's slice 6, written with its FrozenRates; dropped with them in slice 6c. Restricted                                                                                                                                 |
 | Revision         | id, scenario, number, made at, author?, why, rules version, commit, open part                                                                                     | v0.5. Never updated. The open part is a JSON snapshot of the team and its hours, without money ([Revisions](#revisions))                                                                                                                               |
 | RevisionMoney    | revision, restricted part                                                                                                                                         | v0.5. One per revision, never updated. Restricted. A JSON snapshot of rates, settings, price, planned period, extra costs and result, in cents and basis points                                                                                        |
 | Assignment       | id, scenario, category, person?, project role, reports to?, weekly hours, allocation %, start date, end date                                                      | No person = open role. `reports to` builds the team tree; deleting an assignment clears `reports to` on those that pointed to it                                                                                                                       |
@@ -313,6 +313,8 @@ scenario and its rates, not the organization's headcount.
 
 ### What choosing freezes
 
+_Retired in slice 6c: this section is how choosing worked before slice 6, kept as history. A chosen scenario keeps all of this in its revision, and the frozen tables are gone._
+
 A chosen scenario is a commitment: its cost must not move because someone edits the organization's
 settings later. Its revision keeps, among the rest, everything its cost depends on that lives
 outside the scenario, which choosing copied into frozen rows before v0.5's slice 6:
@@ -337,7 +339,7 @@ result, so nothing but the margin status moves a chosen scenario. Unchoosing rem
 keeps the revision. Nothing writes or reads FrozenRate and FrozenCostConfig any more: a backfill
 made a revision for every chosen scenario from its existing frozen rows, never from current rates,
 and from the values it was costed with that day for the rest, so no chosen result moved; a later
-migration drops both tables. See [Choosing a revision](#choosing-a-revision).
+migration (0017, slice 6c) dropped both tables. See [Choosing a revision](#choosing-a-revision).
 
 **Target margin is not in it.** It is a goal, not a cost: changing it never changes a chosen
 scenario's cost or margin, only its green, amber or red status, which is always judged against the
@@ -975,7 +977,7 @@ this shares nothing.
 
 ### Choosing a revision
 
-From slice 6 choosing points at a revision; FrozenRate and FrozenCostConfig are retired.
+From slice 6 choosing points at a revision; FrozenRate and FrozenCostConfig are retired, and slice 6c's migration 0017 dropped them and validated the check that a scenario is chosen exactly when it points at a revision.
 
 - **Choosing a scenario** chooses its latest revision, made first if none matches it (see above).
 - **Choosing another revision** of a scenario, chosen or not, moves the choice to it, from the
