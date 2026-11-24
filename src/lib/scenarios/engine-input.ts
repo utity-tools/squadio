@@ -31,31 +31,17 @@ export type StoredExtraCost = {
   endDate: string | null;
 };
 
-/**
- * A chosen scenario's frozen values (docs/domain.md, "What choosing freezes"): its rates as the
- * engine takes them, and the settings that applied when it was chosen.
- */
-export type FrozenValues = {
-  rates: CategoryRate[];
-  overhead: number;
-  buffer: number;
-  netAnnualHours: number;
-  calendarWorkingHours: number;
-};
-
 /** What a scenario's cost depends on, as the tables store it. Restricted rows may be missing. */
 export type StoredScenario = {
   config: { netAnnualHours: number; defaultWeeklyHours: number };
   costConfig?: { overhead: number; buffer: number; targetMargin: number };
   pricingModel: "fixed" | "time_and_materials";
   pricing?: { price: number | null; overhead: number | null; buffer: number | null };
-  /** The project's, which undated recurring costs span (rule d). Never frozen: it holds no money. */
+  /** The project's, which undated recurring costs span (rule d). It holds no money. */
   plannedPeriod: PlannedPeriod | null;
   assignments: StoredAssignment[];
   extraCosts: StoredExtraCost[];
   rates: StoredCategoryRate[];
-  /** A chosen scenario's frozen values, which replace the current ones (rule b). */
-  frozen?: FrozenValues;
 };
 
 export type EngineInput = {
@@ -117,17 +103,9 @@ const availability = (stored: StoredScenario) => ({
 
 /** The full inputs, for a user with rate access. Throws without the organization's CostConfig. */
 export function toEngineInput(stored: StoredScenario): EngineInput {
-  const { costConfig, pricing, frozen } = stored;
+  const { costConfig, pricing } = stored;
   if (!costConfig) throw new Error("The organization has no cost config");
   const price = pricing?.price ?? undefined;
-  const current = {
-    rates: stored.rates.map(toEngineRate),
-    costSettings: {
-      overheadBasisPoints: pricing?.overhead ?? costConfig.overhead,
-      bufferBasisPoints: pricing?.buffer ?? costConfig.buffer,
-      ...availability(stored),
-    },
-  };
   return {
     scenario: {
       pricing:
@@ -138,18 +116,13 @@ export function toEngineInput(stored: StoredScenario): EngineInput {
       extraCosts: stored.extraCosts.map(toExtraCost),
       plannedPeriod: stored.plannedPeriod,
     },
-    ...(frozen
-      ? {
-          rates: frozen.rates,
-          costSettings: {
-            overheadBasisPoints: frozen.overhead,
-            bufferBasisPoints: frozen.buffer,
-            netAnnualHours: frozen.netAnnualHours,
-            calendarWorkingHours: frozen.calendarWorkingHours,
-          },
-        }
-      : current),
-    // Rule b: the target margin is a goal, never frozen.
+    rates: stored.rates.map(toEngineRate),
+    costSettings: {
+      overheadBasisPoints: pricing?.overhead ?? costConfig.overhead,
+      bufferBasisPoints: pricing?.buffer ?? costConfig.buffer,
+      ...availability(stored),
+    },
+    // Rule b: the target margin is a goal, whatever a chosen scenario's revision holds.
     targetMargin: costConfig.targetMargin,
   };
 }

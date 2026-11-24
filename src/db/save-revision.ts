@@ -140,7 +140,7 @@ export async function snapshotOf(
 /**
  * Stores a revision's snapshot as the scenario's next one, or names its latest one when that holds
  * the same (When one is made), inside a transaction with rate access. writeRevision builds the
- * snapshot from the scenario as saved; the slice 6 backfill, from a chosen scenario's frozen rows.
+ * snapshot from the scenario as saved.
  */
 export async function storeRevision(
   tx: TenantTransaction,

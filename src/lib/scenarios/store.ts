@@ -160,7 +160,7 @@ export type ScenarioState = {
    * save, so the choice is made on the team the page shows (docs/domain.md, "Choosing a
    * scenario"). No step is taken while it is on its way. Choosing locks the team at once;
    * unchoosing unlocks it only with the basis the page loads next, which has the current values
-   * instead of the frozen ones.
+   * instead of the chosen revision's.
    */
   setChoice: (
     chosen: boolean,
@@ -395,7 +395,7 @@ export function createScenarioStore({ scenarioId, basis, team, version, save }: 
           return { ok: false, reason: outcome.reason };
         }
         // Choosing locks the team now. Unchoosing waits for the page's next basis: until then the
-        // basis holds the frozen rates, which only cover the categories the team uses.
+        // basis holds the revision's rates, which only cover the categories the team uses.
         written(outcome, get().history, (next) =>
           chosen ? { ...next, scenario: { ...next.scenario, chosen } } : next,
         );
