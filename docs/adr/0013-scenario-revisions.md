@@ -188,3 +188,18 @@ Roles and invitations, which sharing needs, are [ADR 0015](0015-roles-and-invita
     other projects. Duplicating a chosen scenario copies its revision's team and extra costs.
   - **Until the new deployment is live** the previous one can neither choose nor unchoose: the
     check refuses both. That lasts the minute or two of a deploy (`docs/operations/deploy.md`).
+- **2026-11-24, slice 6b (choosing a revision):** how choosing a given revision and the change
+  check landed.
+  - **The check is one pure function** (`src/lib/revisions/change-check.ts`) over the revision's
+    two parts and what would be saved today: the saved team and extra costs, today's rates of the
+    revision's categories, the cost settings and project in effect, the current rules version, and
+    the revision's own team loaded against today's chosen scenarios of other projects. A revision
+    checked against itself lists nothing; a property test holds it. The availability factor is in
+    it, among the project's conditions, since it moves a result as a rate does.
+  - **It never blocks, and it is always shown from the revision's page,** with «nada ha cambiado»
+    when the list is empty: confirming is needed anyway, since choosing may replace the project's
+    chosen scenario (rule i). Choosing a scenario from its own page shows no check: the revision it
+    reuses holds the same team, rates and conditions by definition.
+  - **Choosing a given revision reuses the pointer write** of choosing a scenario, with the same
+    lock, role re-read and rule i, and refuses on the revision's own team and stored result (empty,
+    or a staff cost it left undetermined), never on today's values.
