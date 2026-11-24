@@ -95,7 +95,9 @@ test("marks the chosen scenario, and says what each other project misses", async
   await page.goto(`/projects/${MOBILE}`);
   await expect(
     scenarios(page)
-      .getByRole("row", { name: /^Delivery plan/ })
+      // The project also holds the demo's alternative of it, a draft, so its rows start with
+      // «Comparar».
+      .getByRole("row", { name: /Delivery plan Elegido/ })
       .getByText("Elegido"),
   ).toBeVisible();
 
