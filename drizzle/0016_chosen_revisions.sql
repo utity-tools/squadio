@@ -3,9 +3,10 @@
 -- by hand: the unique key before the foreign key that names it; the key DEFERRABLE INITIALLY
 -- DEFERRED, since a visitor's copy inserts its scenarios before their revisions; and the check
 -- NOT VALID. Rows chosen before this migration have no revision until the backfill
--- (pnpm db:backfill-revisions) gives them one, so the check holds every write from now on, while
--- code still deployed from before can no longer choose without a revision, and slice 6c validates
--- it once the backfill has run in production. 'migrated' is the backfill's reason.
+-- (pnpm db:backfill-revisions) gives them one, so the check holds every write from now on: code
+-- still deployed from before can neither choose nor unchoose, nor write a chosen scenario before
+-- the backfill reaches it, until the new deployment is live (docs/operations/deploy.md). Slice 6c
+-- validates it once the backfill has run in production. 'migrated' is the backfill's reason.
 ALTER TYPE "public"."revision_reason" ADD VALUE 'migrated';--> statement-breakpoint
 ALTER TABLE "scenarios" ADD COLUMN "chosen_revision_id" uuid;--> statement-breakpoint
 ALTER TABLE "scenario_revision" ADD CONSTRAINT "scenario_revision_scenario_id_key" UNIQUE("organization_id","scenario_id","id");--> statement-breakpoint

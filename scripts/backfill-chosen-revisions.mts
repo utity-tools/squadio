@@ -1,7 +1,7 @@
 // `pnpm db:backfill-revisions`: gives every scenario chosen before v0.5's slice 6 a revision and
 // points at it (docs/domain.md, "Choosing a revision"; migration 0016). Connects as the owner role,
-// like migrations, and sets each organization's context in turn. Run by deploy.yml after the
-// migrations and again after the deploy, and by ci.yml after the migrations; running it again
+// like migrations, and sets each organization's context in turn. Run by deploy.yml and ci.yml right
+// after the migrations; running it again
 // changes nothing. `--dry-run` counts what it would do and writes nothing. It prints counts only.
 import nextEnv from "@next/env";
 import { drizzle } from "drizzle-orm/node-postgres";
@@ -37,11 +37,11 @@ try {
       ? `${pending} chosen scenarios have no revision; nothing written (dry run).`
       : `${pending} chosen scenarios had no revision: ${written} got a new one, ${reused} their latest.`,
   );
-  // Scenario ids are random UUIDs, not personal data. They keep showing their saved team; a deploy
-  // goes on, and slice 6c's validation of the check finds them again.
+  // Scenario ids are random UUIDs, not personal data. They are unchosen: none can be costed, so
+  // none has a revision to point at; choosing one again once fixed makes it one.
   if (failed.length > 0) {
     console.warn(
-      `::warning::Could not cost ${failed.length}, left without one: ${failed.join(", ")}.`,
+      `::warning::Unchose ${failed.length} that could not be costed: ${failed.join(", ")}.`,
     );
   }
 } finally {

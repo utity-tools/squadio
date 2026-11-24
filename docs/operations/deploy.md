@@ -20,15 +20,16 @@ AWS Frankfurt. Only GitHub Actions deploys, and only from `main` after CI passed
    applies pending migrations, and `pnpm db:backfill-revisions` gives every scenario chosen before
    v0.5's slice 6 a revision to point at (migration 0016). It runs one organization at a time,
    commits each, and changes nothing when run again, so a deploy that stops halfway resumes. It
-   prints counts only; a scenario it cannot cost (a date outside the calendar) is named by id in a
-   warning and keeps showing its saved team. `--dry-run` counts without writing.
+   prints counts only; a scenario it cannot cost (a date outside the calendar) is unchosen and
+   named by id in a warning. `--dry-run` counts without writing. Until the new deployment is live,
+   the previous one can neither choose nor unchoose: migration 0016's check refuses a chosen
+   scenario without a revision, and one with a revision that is not chosen, so those requests fail
+   for the minute or two the deploy takes, and so does a visitor's first copy of the demo.
 5. `pnpm db:check-target app` checks the `DATABASE_URL` that `vercel pull` wrote leads to
    `squadio_app` on `squadio`, and `pnpm db:seed` replaces the synthetic demo organization with
    it. The seed runs in one transaction with fixed ids, so the running deployment never sees a
    half-written demo.
-6. `vercel deploy --prebuilt --prod` uploads the build and promotes it, and the backfill runs
-   again, finding nothing to do: migration 0016 refuses a choice without a revision, so the
-   previous deployment cannot make one meanwhile, it fails instead.
+6. `vercel deploy --prebuilt --prod` uploads the build and promotes it.
 7. A smoke test opens the guide scenario on the production domain and fails unless it answers 200
    and shows the scenario's name. A missing scenario also answers 200, because the page streams.
    The new deployment is live by then: if the smoke test fails, roll back (below).
