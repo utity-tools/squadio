@@ -2,18 +2,12 @@ import { randomUUID } from "node:crypto";
 
 import { count, eq, getTableName, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
-import type { PgTable } from "drizzle-orm/pg-core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { COPIED_TABLES, copyOrganization } from "@/db/copy-organization";
 import { DEMO_IDS, DEMO_ORGANIZATION_ID, seedDemo } from "@/db/demo-seed";
 import { loadScenario } from "@/db/load-scenario";
-import {
-  frozenCostConfig,
-  frozenRates,
-  scenarioRevisionMoney,
-  scenarioRevisions,
-} from "@/db/schema";
+import { scenarioRevisionMoney, scenarioRevisions } from "@/db/schema";
 import { type AccessContext, withOrganization } from "@/db/tenant";
 import { renameOpenPartIds, renameRestrictedPartIds } from "@/lib/revisions/rename-ids";
 import { copyId } from "@/lib/visitors/copy-id";
@@ -26,6 +20,9 @@ import { OWNER_ONLY_TABLES } from "./tenancy";
 
 const app = drizzle(appPool(1));
 const owner = drizzle(ownerPool());
+
+// Retired in v0.5's slice 6: nothing writes or reads them, and slice 6c drops them. Never copied.
+const RETIRED_TABLES = ["frozen_rates", "frozen_cost_config"];
 
 const template: AccessContext = { organizationId: DEMO_ORGANIZATION_ID, rateAccess: true };
 const copyOrg = randomUUID();
@@ -90,7 +87,10 @@ describe("copyOrganization", () => {
         join pg_namespace n on n.oid = c.relnamespace
         join pg_attribute a on a.attrelid = c.oid and a.attname = 'organization_id'
        where c.relkind = 'r' and n.nspname = 'public'`);
-    const ownerOnly = OWNER_ONLY_TABLES.map((table) => table.replace("public.", ""));
+    const ownerOnly = [
+      ...OWNER_ONLY_TABLES.map((table) => table.replace("public.", "")),
+      ...RETIRED_TABLES,
+    ];
     expect(COPIED_TABLES.map((table) => getTableName(table)).toSorted()).toEqual(
       rows
         .map((row) => row.table)
@@ -130,11 +130,7 @@ describe("copyOrganization", () => {
   it("gives the copy as many rows as the template, in every table", async () => {
     const counts = await rowCounts(copy);
     expect(counts).toEqual(await rowCounts(template));
-    // Every table holds rows but the frozen ones, which nothing writes since slice 6.
-    const retired = new Set<PgTable>([frozenRates, frozenCostConfig]);
-    expect(
-      COPIED_TABLES.every((table, index) => retired.has(table) || (counts[index] ?? 0) > 0),
-    ).toBe(true);
+    expect(COPIED_TABLES.every((_table, index) => (counts[index] ?? 0) > 0)).toBe(true);
   });
 
   it("loads each scenario of the copy exactly as the template's, under the derived ids", async () => {
