@@ -3,14 +3,17 @@
 Staffing simulator for consultancies: build a project team by dragging people or open roles
 into a scenario and see cost, margin and effective rate update live, before you commit.
 
-**v0.4 is live** at [squadio.utitytools.com](https://squadio.utitytools.com): a synthetic demo
+**v0.5 is live** at [squadio.utitytools.com](https://squadio.utitytools.com): a synthetic demo
 organization with its home page, projects, people and scenarios. Edit a scenario and watch cost and
 margin follow every change; when data is missing, the estimate shows every line it can compute and
 says what each other line is waiting for. Duplicate a scenario to try a variant, compare two or
 three side by side, and see each person's load week by week, with the people the team over-allocates
-flagged. Your edits go to your own copy of the demo, kept for 30 days after your last save. Signing
-in with GitHub or Google to work with your own organization is built but closed in production for
-now. Sharing a proposal comes in v0.5 (see the [roadmap](docs/plan.md#roadmap)).
+flagged. Save a revision of a scenario, which never changes, and share its link: a reviewer opens
+it, with no money unless they have rate access, and proposes an alternative derived from it. Choosing
+a scenario now points at one of its revisions. Your edits go to your own copy of the demo, kept for
+30 days after your last save. Signing in with GitHub or Google to work with your own organization,
+with its owner, members and viewers and invitations by link, is built but closed in production for
+now (see the [roadmap](docs/plan.md#roadmap)).
 
 ![The demo's Plan A in the editor: the bench of people with today's occupancy and their weekly load, the team as a tree with an over-allocated project manager, and the summary rail with net margin, key figures and result lines](docs/images/editor-light.png)
 
@@ -28,6 +31,7 @@ Every figure and name is synthetic.
 | [Missing rate](https://squadio.utitytools.com/en/scenarios/6d656d6f-0000-4000-8000-000000000203)                           | A category without a rate: no cost, never 0 €, and a marker on the node   |
 | [Missing price](https://squadio.utitytools.com/en/scenarios/6d656d6f-0000-4000-8000-000000000204)                          | A fixed-price project without a price: costs shown, margins pending       |
 | [Delivery plan](https://squadio.utitytools.com/en/scenarios/6d656d6f-0000-4000-8000-000000000205)                          | A chosen scenario: a locked team, an over-allocated lead                  |
+| [Its revision](https://squadio.utitytools.com/en/revisions/6d656d6f-0000-4000-8000-000000000500)                           | A revision that never changes: what a reviewer opens from a link          |
 
 To compare scenarios, tick two or three on a project's page, or open
 [Plan A and Plan B side by side](https://squadio.utitytools.com/en/projects/6d656d6f-0000-4000-8000-000000000100/compare?s=6d656d6f-0000-4000-8000-000000000200&s=6d656d6f-0000-4000-8000-000000000201).
@@ -36,6 +40,9 @@ Spanish is the default locale; drop `/en` from a link to see it in Spanish.
 <p>
   <img src="docs/images/compare-light.png" alt="Plan A and Plan B of Customer portal side by side: each result line of both, and Plan B's differences from Plan A, the baseline" width="49%">
   <img src="docs/images/over-allocation-dark.png" alt="The chosen Delivery plan in the dark theme: its tech lead flagged as over-allocated on the tree, and on the bench the same person's weeks above 100%" width="49%">
+</p>
+<p>
+  <img src="docs/images/revision-light.png" alt="A revision of the Delivery plan, read only: its team, hours and result as they were saved, and who made it" width="49%">
 </p>
 <p>
   <img src="docs/images/inicio-light.png" alt="Home: projects, scenarios with a chosen one, pending corrections and active people, with the list of corrections the data is waiting for" width="49%">
@@ -78,8 +85,9 @@ Spanish is the default locale; drop `/en` from a link to see it in Spanish.
   categories with their costs, people and projects, and the owner deleting the organization or
   their account. Membership is resolved on the server before any tenant query, and sign-up sits
   behind a switch that is off in production.
-- **Choosing a scenario freezes it:** its rates and cost settings are copied as they are that day,
-  and its team is locked until it is unchosen. The bench's occupancy comes from chosen scenarios.
+- **Choosing a scenario points it at a revision:** its team, price, period, rates and result stay
+  as that revision holds them, and its team is locked until it is unchosen. Choosing an older
+  revision lists what changed since first. The bench's occupancy comes from chosen scenarios.
 - **Duplicating and comparing scenarios** ([comparing scenarios](docs/domain.md#comparing-scenarios)):
   a copy is a new draft with the same team and extra costs. Two or three scenarios of a project sit
   side by side, against the chosen one or else the first picked: result lines and their differences
@@ -90,6 +98,15 @@ Spanish is the default locale; drop `/en` from a link to see it in Spanish.
   projects, and the team flags whoever goes above 100% with the weeks and the projects behind it.
   Load is what Squadio knows: an empty week means nothing is registered, not that the person is
   free.
+- **Revisions that never change** ([revisions](docs/domain.md#revisions),
+  [ADR 0013](docs/adr/0013-scenario-revisions.md)): a snapshot in an open part and a restricted one,
+  with the rules version it was costed with, in two tables the app cannot update. Its page is a link
+  for signed-in members and visitors, and without rate access it shows structure, hours and dates,
+  never money. «Propose an alternative» on a revision makes a new draft of the same project that
+  remembers where it came from.
+- **Roles and invitations** ([ADR 0015](docs/adr/0015-roles-and-invitations.md)): owner, member with
+  rate access and viewer without it. The owner invites by a link they copy, with no mail provider,
+  and changes roles or removes members; a viewer's transactions are read only in the database.
 
 The vocabulary is in the [glossary](docs/glossary.md) and every decision in [docs/adr](docs/adr).
 
