@@ -10,6 +10,7 @@ const PLAN_A = demoId(200);
 const PLAN_B = demoId(201);
 const MISSING_PRICE = demoId(204);
 const DELIVERY_PLAN = demoId(205);
+const DELIVERY_REVISION = demoId(500);
 
 type Shot = {
   file: string;
@@ -68,6 +69,12 @@ const shots: Shot[] = [
       }).toPass();
       await expect(people).toContainText(/weeks? above 100%/);
     },
+  },
+  {
+    file: "revision-light.png",
+    path: `/en/revisions/${DELIVERY_REVISION}`,
+    colorScheme: "light",
+    ready: async (page) => expect(heading(page)).toBeVisible(),
   },
   {
     file: "partial-result.png",
