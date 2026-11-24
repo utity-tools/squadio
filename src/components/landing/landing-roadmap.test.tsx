@@ -22,11 +22,11 @@ describe("LandingRoadmap", () => {
       "Disponible",
       "Disponible",
       "Disponible",
-      "En curso",
+      "Disponible",
     ]);
     expect(versions[0]).toHaveTextContent(/^DisponibleSimularArrastra personas y vacantes/);
     expect(versions[2]).toHaveTextContent(/^DisponibleCompararDos o tres escenarios/);
-    expect(versions[3]).toHaveTextContent(/^En cursoCompartir/);
+    expect(versions[3]).toHaveTextContent(/^DisponibleCompartir/);
     expect(
       screen.getAllByRole("heading", { level: 3 }).map((heading) => heading.textContent),
     ).toEqual(["Simular", "Preparar", "Comparar", "Compartir"]);
@@ -35,7 +35,7 @@ describe("LandingRoadmap", () => {
   it("marks each status with a dot as well as its word", () => {
     renderWithIntl(<LandingRoadmap />, { locale: "en" });
 
-    for (const chip of [...screen.getAllByText("Available"), screen.getByText("In progress")]) {
+    for (const chip of screen.getAllByText("Available")) {
       expect(chip.querySelector("[aria-hidden]")).not.toBeNull();
     }
   });
