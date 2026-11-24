@@ -7,6 +7,7 @@ import { z } from "zod";
 
 import { CurrentAccount } from "@/components/account/current-account";
 import { Bench } from "@/components/bench/bench";
+import { AlternativeOrigin } from "@/components/revisions/alternative-origin";
 import { RevisionList } from "@/components/revisions/revision-list";
 import { HistoryControls } from "@/components/scenario/history-controls";
 import { SaveStatus } from "@/components/scenario/save-status";
@@ -27,6 +28,7 @@ import { CurrentOrganization } from "@/components/shell/current-organization";
 import { OrganizationLink } from "@/components/shell/organization-link";
 import { db } from "@/db/client";
 import { copyLink } from "@/db/copy-link";
+import { loadAlternativeOrigin } from "@/db/load-alternative-origin";
 import { loadRevisions } from "@/db/load-revisions";
 import { loadScenario } from "@/db/load-scenario";
 import { currentAccessContext, currentMember } from "@/db/request-access";
@@ -68,6 +70,12 @@ export default async function ScenarioPage({
     notFound();
   }
   const revisions = await loadRevisions(db, context, id);
+  // Where an alternative came from (docs/domain.md, "Derived alternative"); open data.
+  const origin = await loadAlternativeOrigin(db, context, id);
+  // Nobody signs in to the demo or a visitor's copy, so its revisions are visitors'.
+  const anonymous = memberContext ? "formerMember" : "visitor";
+  const accessQuery =
+    typeof query.access === "string" ? `?access=${encodeURIComponent(query.access)}` : "";
   // A viewer reads the team and edits nothing (ADR 0015): no controls, and the team is locked.
   const readOnly = context.readOnly === true;
 
@@ -99,7 +107,16 @@ export default async function ScenarioPage({
         }
       >
         <ScenarioShell
-          header={<LiveScenarioHeader />}
+          header={
+            origin ? (
+              <div className="flex flex-col gap-1">
+                <LiveScenarioHeader />
+                <AlternativeOrigin origin={origin} anonymous={anonymous} query={accessQuery} />
+              </div>
+            ) : (
+              <LiveScenarioHeader />
+            )
+          }
           actions={
             readOnly ? null : (
               <>
@@ -116,16 +133,7 @@ export default async function ScenarioPage({
           summary={
             <div className="flex flex-col gap-8">
               <LiveScenarioSummary />
-              {/* Nobody signs in to the demo or a visitor's copy, so its revisions are visitors'. */}
-              <RevisionList
-                revisions={revisions}
-                anonymous={memberContext ? "formerMember" : "visitor"}
-                query={
-                  typeof query.access === "string"
-                    ? `?access=${encodeURIComponent(query.access)}`
-                    : ""
-                }
-              />
+              <RevisionList revisions={revisions} anonymous={anonymous} query={accessQuery} />
             </div>
           }
         />

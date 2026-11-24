@@ -1364,5 +1364,10 @@
       "busy": "Espera a que termine lo que está en curso.",
       "failed": "No se ha podido guardar la revisión. Inténtalo de nuevo."
     }
+  },
+  "AlternativeOrigin": {
+    "from": "Alternativa de la <link>revisión {number} de {scenario}</link>",
+    "deleted": "Alternativa de una revisión eliminada",
+    "by": "propuesta por {author}"
   }
 }

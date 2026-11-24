@@ -7,6 +7,7 @@ import { type Member, memberOf } from "@/db/access";
 import { deleteOrganizationWithRows } from "@/db/delete-organization";
 import { DEMO_IDS, DEMO_ORGANIZATION_ID, seedDemo } from "@/db/demo-seed";
 import { deriveAlternative } from "@/db/derive-alternative";
+import { loadAlternativeOrigin } from "@/db/load-alternative-origin";
 import { deriveAlternativeFor } from "@/db/scenario-writes";
 import {
   assignments,
@@ -58,6 +59,7 @@ beforeEach(async () => {
 });
 
 afterAll(async () => {
+  await owner.query("delete from visitor_copies");
   for (const id of copies) await app.transaction((tx) => deleteOrganizationWithRows(tx, id));
   await pool.query(`delete from auth."user" where email = any($1)`, [[ada.email, bob.email]]);
   await pool.end();
@@ -426,3 +428,68 @@ describe("deriveForVisitor", () => {
     expect(await claims()).toEqual([]);
   });
 });
+
+describe("loadAlternativeOrigin", () => {
+  const derive = async () => {
+    const result = await deriveAlternative(
+      app,
+      withRates(ada.organizationId),
+      { revisionId: adaRevision() },
+      suffix,
+      adaMember,
+    );
+    if (!result.ok) throw new Error(`expected an alternative, got ${result.reason}`);
+    return result.scenarioId;
+  };
+
+  it("names the revision, its scenario's name then and the author, with or without rate access", async () => {
+    const scenarioId = await derive();
+    const open = openPartSchema.parse((await revisionOf(ada.organizationId, adaRevision())).open);
+    for (const rateAccess of [true, false]) {
+      const origin = await loadAlternativeOrigin(
+        app,
+        { organizationId: ada.organizationId, rateAccess, readOnly: !rateAccess },
+        scenarioId,
+      );
+      expect(origin).toEqual({
+        revision: { id: adaRevision(), number: 1, scenarioName: open.scenarioName },
+        author: "Ada Synthetic",
+        derivedAt: expect.any(Date),
+      });
+    }
+  });
+
+  it("is null for a scenario that is not an alternative, and for another organization's", async () => {
+    const source = copyId(DEMO_IDS.deliveryScenario, ada.organizationId);
+    expect(await loadAlternativeOrigin(app, withRates(ada.organizationId), source)).toBeNull();
+    const scenarioId = await derive();
+    expect(await loadAlternativeOrigin(app, withRates(bob.organizationId), scenarioId)).toBeNull();
+  });
+
+  it("says it came from a revision that was deleted with its scenario", async () => {
+    const scenarioId = await deriveForVisitorCopy();
+    expect(
+      await loadAlternativeOrigin(app, withRates(scenarioId.organization), scenarioId.id),
+    ).toEqual({ revision: null, author: null, derivedAt: expect.any(Date) });
+  });
+});
+
+/** An alternative in a visitor's copy whose source scenario, and so its revision, is deleted. */
+async function deriveForVisitorCopy() {
+  const { cookies } = jar();
+  const result = await deriveForVisitor(
+    app,
+    cookies,
+    { revisionId: DEMO_IDS.deliveryRevision },
+    true,
+    suffix,
+  );
+  const [claim] = await claims();
+  if (!claim || !result.ok) throw new Error("expected a copy and an alternative");
+  copies.push(claim.organization_id);
+  const organization = claim.organization_id;
+  await withOrganization(app, withRates(organization), (tx) =>
+    tx.delete(scenarios).where(eq(scenarios.id, copyId(DEMO_IDS.deliveryScenario, organization))),
+  );
+  return { organization, id: result.scenarioId };
+}
