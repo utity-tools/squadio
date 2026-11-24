@@ -119,7 +119,26 @@ export async function writeRevision(
   const scenario = await scenarioIn(tx, context, scenarioId, today, { currentValues: true });
   if (!scenario) return undefined;
   const snapshot = buildRevision(revisionSourceOf(scenario.editing.basis, scenario.editing.team));
+  return storeRevision(tx, scenarioId, snapshot, { authorId, commitSha, reason, madeAt }, id);
+}
 
+/**
+ * Stores a revision's snapshot as the scenario's next one, or names its latest one when that holds
+ * the same (When one is made), inside a transaction with rate access. writeRevision builds the
+ * snapshot from the scenario as saved; the slice 6 backfill, from a chosen scenario's frozen rows.
+ */
+export async function storeRevision(
+  tx: TenantTransaction,
+  scenarioId: string,
+  snapshot: RevisionSnapshot,
+  { authorId, commitSha, reason = "saved", madeAt }: Omit<RevisionMaker, "today">,
+  id?: string,
+): Promise<{ revision: SavedRevision; reused: boolean }> {
+  const { rows } = await tx.execute<{ organization: string | null }>(
+    sql`select app.current_organization_id() as organization`,
+  );
+  const organizationId = rows[0]?.organization;
+  if (!organizationId) throw new Error("A revision is stored with an organization's context");
   const latest = await latestRevision(tx, scenarioId);
   const stored = latest && storedSnapshot(latest);
   if (latest && stored && sameAsRevision(snapshot, stored)) {
@@ -130,7 +149,7 @@ export async function writeRevision(
     .insert(scenarioRevisions)
     .values({
       ...(id ? { id } : {}),
-      organizationId: context.organizationId,
+      organizationId,
       scenarioId,
       number: await nextNumber(tx, scenarioId),
       authorId,
@@ -142,7 +161,7 @@ export async function writeRevision(
     .returning({ id: scenarioRevisions.id, number: scenarioRevisions.number });
   if (!revision) throw new Error("The revision was not written");
   await tx.insert(scenarioRevisionMoney).values({
-    organizationId: context.organizationId,
+    organizationId,
     revisionId: revision.id,
     restrictedPart: snapshot.restricted,
   });
