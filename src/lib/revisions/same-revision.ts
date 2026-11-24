@@ -5,7 +5,7 @@ import type { OpenPart, RestrictedPart, RevisionSnapshot } from "./snapshot";
 // version alike), no new one is made and the latest is used again.
 
 /** Equal as JSON values: arrays in order, objects whatever the order of their keys. */
-function equalJson(a: unknown, b: unknown): boolean {
+export function equalJson(a: unknown, b: unknown): boolean {
   if (Array.isArray(a) || Array.isArray(b)) {
     return (
       Array.isArray(a) &&
