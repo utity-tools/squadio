@@ -88,6 +88,36 @@ describe("sameAsRevision", () => {
     expect(sameAsRevision(changed(), plan())).toBe(false);
   });
 
+  it("finds nothing changed when the same rows are read in another order, as in a visitor's copy", () => {
+    const latest = plan();
+    const { open, restricted } = latest;
+    const reversed: RevisionSnapshot = {
+      open: { ...open, team: open.team.toReversed() },
+      restricted: {
+        ...restricted,
+        rates: restricted.rates.toReversed(),
+        extraCosts: [...restricted.extraCosts, { id: "licence", kind: "fixed", amountCents: 1 }],
+        result: {
+          ...restricted.result,
+          staffCostByCategory: restricted.result.staffCostByCategory.toReversed(),
+        },
+      },
+    };
+    const withLicence = {
+      ...latest,
+      restricted: {
+        ...restricted,
+        extraCosts: [
+          { id: "licence", kind: "fixed" as const, amountCents: 1 },
+          ...restricted.extraCosts,
+        ],
+      },
+    };
+    expect(sameAsRevision(reversed, latest)).toBe(false);
+    expect(sameAsRevision(reversed, withLicence)).toBe(true);
+    expect(sameAsRevision({ ...latest, open: reversed.open }, latest)).toBe(true);
+  });
+
   it("finds a change in the rules version, though nothing else moved", () => {
     const latest = plan();
     const older = {
