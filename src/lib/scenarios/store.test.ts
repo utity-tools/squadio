@@ -447,6 +447,70 @@ describe("saving", () => {
   });
 });
 
+describe("adopting the page's chosen revision", () => {
+  // docs/domain.md, "Choosing a revision": a chosen scenario's page shows its revision's team, and
+  // unchoosing shows the team saved since, which may be another.
+  const revision = (id: string) =>
+    ({ id, number: 1, view: {} }) as unknown as NonNullable<ScenarioBasis["chosenRevision"]>;
+  const chosenBasis = (id: string): ScenarioBasis => ({
+    ...basis,
+    scenario: { ...basis.scenario, chosen: true },
+    chosenRevision: revision(id),
+  });
+  const saved = team.filter((member) => member.id !== developer.id);
+
+  it("takes the page's team and version once the scenario is unchosen", () => {
+    const store = createScenarioStore({
+      scenarioId: seatId(99),
+      basis: chosenBasis("r1"),
+      team,
+      version: 3,
+      save: never,
+    });
+
+    store.getState().adopt(basis, { team: saved, version: 4 });
+
+    expect(store.getState().history).toEqual(createHistory(saved));
+    expect(store.getState().version).toBe(4);
+  });
+
+  it("takes the page's team when the choice moved to another revision elsewhere", () => {
+    const store = createScenarioStore({
+      scenarioId: seatId(99),
+      basis: chosenBasis("r1"),
+      team,
+      version: 3,
+      save: never,
+    });
+
+    store.getState().adopt(chosenBasis("r2"), { team: saved, version: 5 });
+
+    expect(store.getState().history.team).toEqual(saved);
+    expect(store.getState().version).toBe(5);
+  });
+
+  it("keeps its history when the chosen revision is the same, or changes are left to save", () => {
+    const store = create();
+    store.getState().dispatch(halfDeveloper);
+    const before = store.getState().history;
+
+    store.getState().adopt(chosenBasis("r1"), { team: saved, version: 9 });
+    expect(store.getState().history).toBe(before);
+
+    const chosen = createScenarioStore({
+      scenarioId: seatId(99),
+      basis: chosenBasis("r1"),
+      team,
+      version: 3,
+      save: never,
+    });
+    const kept = chosen.getState().history;
+    chosen.getState().adopt(chosenBasis("r1"), { team: saved, version: 4 });
+    expect(chosen.getState().history).toBe(kept);
+    expect(chosen.getState().version).toBe(3);
+  });
+});
+
 describe("choosing", () => {
   beforeEach(() => {
     vi.useFakeTimers();

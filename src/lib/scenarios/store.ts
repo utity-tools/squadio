@@ -174,9 +174,11 @@ export type ScenarioState = {
   saveRevision: (send: (request: RevisionRequest) => Promise<unknown>) => Promise<RevisionAnswer>;
   /**
    * Takes the basis the page loaded again, after the move to the copy: the history and what is
-   * left to save stay as they are.
+   * left to save stay as they are. When the page's chosen revision is another, or none (unchosen,
+   * or the choice moved to another revision elsewhere), the team shown is another too: the store
+   * takes the page's team and version, with nothing to undo, as long as nothing is left to save.
    */
-  adopt: (basis: ScenarioBasis) => void;
+  adopt: (basis: ScenarioBasis, page?: { team: readonly Member[]; version: number }) => void;
 };
 
 export type ScenarioStore = ReturnType<typeof createScenarioStore>;
@@ -404,7 +406,21 @@ export function createScenarioStore({ scenarioId, basis, team, version, save }: 
         set({ revisionNote: { answer, seq: (get().revisionNote?.seq ?? 0) + 1 } });
         return answer;
       },
-      adopt: (next) => set({ basis: next, roster: rosterOf(next) }),
+      adopt: (next, page) => {
+        const { basis: current, history, version } = get();
+        const moved =
+          page !== undefined &&
+          history.pending.length === 0 &&
+          (current.chosenRevision?.id ?? null) !== (next.chosenRevision?.id ?? null);
+        set({
+          basis: next,
+          roster: rosterOf(next),
+          ...(moved
+            ? // A write of this store may have answered after the page loaded: its version is newer.
+              { history: createHistory(page.team), version: Math.max(version, page.version) }
+            : {}),
+        });
+      },
     };
   });
 }

@@ -83,14 +83,15 @@ export function ScenarioEditor({
   if (!registry) throw new Error("ScenarioEditor needs a ScenarioStoreProvider above it");
   const store = registry.obtain({ scenarioId, ...editing, save });
 
-  // The copy's page brings the copy's basis: the store takes it, keeping its history. The
-  // template's page, shown again after the move, keeps the copy's: its ids are the template's.
+  // The copy's page brings the copy's basis: the store takes it, keeping its history, or the
+  // page's team when the chosen revision it shows is another. The template's page, shown again
+  // after the move, keeps the copy's: its ids are the template's.
   useEffect(() => {
     const state = store.getState();
     if (state.scenarioId === scenarioId && state.basis !== editing.basis) {
-      state.adopt(editing.basis);
+      state.adopt(editing.basis, { team: editing.team, version: editing.version });
     }
-  }, [store, scenarioId, editing.basis]);
+  }, [store, scenarioId, editing.basis, editing.team, editing.version]);
 
   const basis = useStore(store, (state) => state.basis);
   const team = useStore(store, (state) => state.history.team);
