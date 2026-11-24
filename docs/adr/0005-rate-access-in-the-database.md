@@ -138,3 +138,7 @@ no rows instead of salaries.
   arrive with [ADR 0015](0015-roles-and-invitations.md): the owner and members have rate access,
   viewers do not, and a viewer's transactions are read only, so a viewer cannot edit teams although
   the rest of this ADR allows it without rate access. The decision itself is unchanged.
+- **2026-11-24, slice 6c:** `frozen_rates` and `frozen_cost_config` are dropped (migration 0017),
+  so the restricted tables are `cost_config`, `category_rates`, `project_pricing`, `extra_costs`
+  and `scenario_revision_money`. A revision's restricted part replaces them, still with rate
+  access only. The decision itself is unchanged.

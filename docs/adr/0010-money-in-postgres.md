@@ -99,3 +99,7 @@ custom Drizzle column type that never uses floats.
   its percentages basis points, as in TypeScript, validated by its Zod schema as safe integers.
   The guard test cannot see money inside JSON, so money lives only in that restricted table, and
   the open part's strict schema has no money field. Every other money column stays `numeric(12,2)`.
+- **2026-11-24:** `frozen_rates` and `frozen_cost_config`, the last tables that held frozen money
+  and calendar hours as columns, are dropped in v0.5's slice 6c (migration 0017). A chosen
+  scenario's money lives in its revision's restricted JSON snapshot (2026-11-23). Migration 0007's
+  one-off backfill stays in the history. The decision itself is unchanged.
