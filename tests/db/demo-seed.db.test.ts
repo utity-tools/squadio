@@ -157,7 +157,7 @@ describe("seedDemo", () => {
     });
     const snapshot = { open: revision.openPart, restricted: money.restrictedPart };
     expect(recalculate(snapshot)).toEqual(storedResult(snapshot));
-    // The page shows the chosen scenario with the same figures, frozen at the same values.
+    // The page shows the chosen scenario with the same figures, from the chosen revision.
     const loaded = await loadScenario(app, demo, DEMO_IDS.deliveryScenario, SOME_DAY);
     if (!loaded?.rateAccess) throw new Error("expected the delivery plan with rate access");
     expect(storedResult(snapshot).totalCostCents).toBe(loaded.result.totalCostCents);

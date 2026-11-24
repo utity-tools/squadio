@@ -27,7 +27,7 @@ Every figure and name is synthetic.
 | [Over budget](https://squadio.utitytools.com/en/scenarios/6d656d6f-0000-4000-8000-000000000202)                            | Time and materials above its budget cap                                   |
 | [Missing rate](https://squadio.utitytools.com/en/scenarios/6d656d6f-0000-4000-8000-000000000203)                           | A category without a rate: no cost, never 0 €, and a marker on the node   |
 | [Missing price](https://squadio.utitytools.com/en/scenarios/6d656d6f-0000-4000-8000-000000000204)                          | A fixed-price project without a price: costs shown, margins pending       |
-| [Delivery plan](https://squadio.utitytools.com/en/scenarios/6d656d6f-0000-4000-8000-000000000205)                          | A chosen scenario: frozen rates, a locked team, an over-allocated lead    |
+| [Delivery plan](https://squadio.utitytools.com/en/scenarios/6d656d6f-0000-4000-8000-000000000205)                          | A chosen scenario: a locked team, an over-allocated lead                  |
 
 To compare scenarios, tick two or three on a project's page, or open
 [Plan A and Plan B side by side](https://squadio.utitytools.com/en/projects/6d656d6f-0000-4000-8000-000000000100/compare?s=6d656d6f-0000-4000-8000-000000000200&s=6d656d6f-0000-4000-8000-000000000201).

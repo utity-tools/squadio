@@ -26,8 +26,8 @@ export function LiveScenarioHeader() {
 
 export function LiveScenarioTeam() {
   const scenario = useScenarioView();
-  // A chosen scenario shows its revision's team, and says so; one chosen before the backfill gave
-  // it a revision says only that it is chosen (docs/domain.md, "Choosing a revision").
+  // A chosen scenario shows its revision's team, and says so; a legacy row chosen before slice 6
+  // with no revision says only that it is chosen (docs/domain.md, "Choosing a revision").
   const store = useScenarioStore();
   const readOnly = useScenarioReadOnly();
   const fromRevision = useStore(store, ({ basis }) => basis.chosenRevision !== undefined);

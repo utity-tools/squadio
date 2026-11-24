@@ -180,6 +180,9 @@ Roles and invitations, which sharing needs, are [ADR 0015](0015-roles-and-invita
     it is costed with that day; nobody makes the revision, and its reason is `migrated`. A scenario
     the engine cannot cost (a date outside the calendar) is unchosen instead, since nothing could
     be pointed at.
+  - **The script is retired (2026-11-24):** it ran in production's deploy of slice 6a, which
+    reported no scenario unchosen, and `pnpm db:backfill-revisions` with its CI and deploy steps
+    went in slice 6c's first pull request, before the check is validated.
   - **Choosing builds the revision before it writes anything,** so a team the engine cannot cost is
     refused and the project keeps its chosen scenario. The role is checked again inside the
     transaction, as for the alternative.
