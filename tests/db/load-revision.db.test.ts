@@ -79,14 +79,29 @@ describe("loadRevision", () => {
       latest: { id: DEMO_IDS.deliveryRevision, number: 1 },
       scenario: {
         name: "Delivery plan",
+        version: expect.any(Number),
         project: { id: expect.any(String), name: expect.any(String) },
       },
+      // The delivery plan is chosen and points at it (docs/domain.md, "In the demo").
+      chosen: { id: DEMO_IDS.deliveryRevision, number: 1 },
     });
     if (!loaded?.view.restricted) throw new Error("Expected the restricted part");
     expect(openPartSchema.parse(loaded.view.open)).toEqual(loaded.view.open);
     expect(restrictedPartSchema.parse(loaded.view.restricted)).toEqual(loaded.view.restricted);
     expect(loaded.view.targetMarginBasisPoints).toBe(today.target);
     expect(loaded.view.smallCategories).toEqual(today.small);
+  });
+
+  it("says no revision is chosen for a scenario that is not", async () => {
+    const context = { organizationId, rateAccess: true };
+    const saved = await saveRevision(
+      app,
+      context,
+      { scenarioId: copyId(DEMO_IDS.leanScenario, organizationId), baseVersion: 1 },
+      { authorId: null, commitSha: null, today: SOME_DAY },
+    );
+    if (!saved.ok) throw new Error("Expected a revision");
+    expect(await loadRevision(app, context, saved.revision.id)).toMatchObject({ chosen: null });
   });
 
   it("reads the open part alone without rate access", async () => {

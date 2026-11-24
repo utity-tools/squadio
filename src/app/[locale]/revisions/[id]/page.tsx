@@ -5,8 +5,9 @@ import { Suspense } from "react";
 import { z } from "zod";
 
 import { CurrentAccount } from "@/components/account/current-account";
+import { ChooseRevision } from "@/components/revisions/choose-revision";
 import { ProposeAlternative } from "@/components/revisions/propose-alternative";
-import { RevisionHeader } from "@/components/revisions/revision-header";
+import { CHOSEN_CHIP_ID, RevisionHeader } from "@/components/revisions/revision-header";
 import { RevisionSummary } from "@/components/revisions/revision-summary";
 import { RevisionTeam } from "@/components/revisions/revision-team";
 import { ScenarioShell } from "@/components/scenario/scenario-shell";
@@ -24,7 +25,7 @@ import { assertLocale, currentLocale } from "@/i18n/locale";
 import { redirect } from "@/i18n/navigation";
 import { revisionView } from "@/lib/revisions/revision-view";
 
-import { proposeAlternative } from "./actions";
+import { chooseRevision, previewChoice, proposeAlternative } from "./actions";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("RevisionPage");
@@ -68,6 +69,9 @@ export default async function RevisionPage({
   // «Proponer alternativa» copies the revision's money, so it needs rate access, and it writes a
   // team: a viewer, or a page with `?access=none`, is not offered it (ADR 0005, ADR 0015).
   const canPropose = context.rateAccess && context.readOnly !== true;
+  // «Elegir esta revisión» writes a choice, which needs rate access too (docs/domain.md, "Choosing
+  // a revision"); the server checks both again and reads the role inside the transaction.
+  const canChoose = canPropose && (!member || !asMember || member.capabilities.choose);
 
   return (
     <AppShell
@@ -108,8 +112,24 @@ export default async function RevisionPage({
             anonymous={asMember ? "formerMember" : "visitor"}
             query={suffix}
             actions={
-              canPropose ? (
-                <ProposeAlternative revisionId={revision.id} send={proposeAlternative} />
+              canPropose || canChoose ? (
+                <>
+                  {canChoose && (
+                    <ChooseRevision
+                      revisionId={revision.id}
+                      number={revision.number}
+                      baseVersion={scenario.version}
+                      chosen={revision.chosen?.id === revision.id}
+                      access={access === "none" ? "none" : undefined}
+                      focusTargetId={CHOSEN_CHIP_ID}
+                      preview={previewChoice}
+                      send={chooseRevision}
+                    />
+                  )}
+                  {canPropose && (
+                    <ProposeAlternative revisionId={revision.id} send={proposeAlternative} />
+                  )}
+                </>
               ) : null
             }
           />

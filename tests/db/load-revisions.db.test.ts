@@ -67,6 +67,8 @@ describe("loadRevisions", () => {
         madeAt: new Date(`${SOME_DAY}T12:00:00Z`),
         reason: "chosen",
         author: null,
+        // The delivery plan is chosen and points at it.
+        chosen: true,
       },
     ]);
   });

@@ -1341,7 +1341,8 @@
       "shared": "shared",
       "chosen": "chosen",
       "migrated": "migrated"
-    }
+    },
+    "chosen": "Chosen"
   },
   "RevisionPage": {
     "title": "Revision",
@@ -1350,7 +1351,60 @@
     "readOnly": "Read only: a revision never changes.",
     "newer": "This scenario has a newer revision.",
     "latest": "See revision {number}",
-    "emptyTeam": "This revision was saved without a team."
+    "emptyTeam": "This revision was saved without a team.",
+    "chosen": "Chosen revision",
+    "chosenOther": "This scenario's chosen revision is revision {number}."
+  },
+  "ChooseRevision": {
+    "button": "Choose this revision",
+    "title": "Choose revision {number}?",
+    "description": "The choice points at this revision with the values it was made with: its team, rates, price and result stay as they are. Nothing that changed since stops it.",
+    "replaces": "“{name}” stops being the project's chosen scenario.",
+    "loading": "Checking what changed…",
+    "changesTitle": "What changed since it was made",
+    "nothing": "Nothing changed since it was made.",
+    "confirm": "Choose revision {number}",
+    "busy": "Choosing…",
+    "cancel": "Cancel",
+    "close": "Close",
+    "chosen": "Revision {number} chosen.",
+    "change": {
+      "team": "Team: another one was saved since ({summary}). It is kept, and comes back to the editor if the choice is removed.",
+      "added": "{count, plural, one {# assignment added} other {# assignments added}}",
+      "removed": "{count} removed",
+      "changed": "{count} changed",
+      "extraCosts": "Extra costs: others were saved since.",
+      "loadNow": "{name}'s load: above 100% now in {weeks, plural, one {# week} other {# weeks}} of the revision; in none when it was made.",
+      "loadThen": "{name}'s load: above 100% in {weeks, plural, one {# week} other {# weeks}} when it was made; in none now.",
+      "rate": "{category}'s rate: then {then}; now {now}.",
+      "rateTerms": "cost {cost} · sell {sell}",
+      "annual": "{amount} a year",
+      "perHour": "{amount}/h",
+      "noRate": "no rate",
+      "pricingModel": "Pricing model: then {then}; now {now}.",
+      "fixed": "fixed price",
+      "timeAndMaterials": "time and materials",
+      "price": "Price or cap: then {then}; now {now}.",
+      "noPrice": "not set",
+      "plannedPeriod": "Planned period: then {then}; now {now}.",
+      "noPeriod": "no period",
+      "overhead": "Overhead: then {then}; now {now}.",
+      "buffer": "Buffer: then {then}; now {now}.",
+      "availability": "Available hours: then {thenNet} net a year over {thenCalendar} in the calendar; now {nowNet} over {nowCalendar}.",
+      "rulesVersion": "Costing rules: the revision was made with version {then}, and version {now} applies now. Its result is not recalculated."
+    },
+    "refused": {
+      "conflict": "The scenario changed in another tab. Reload the page.",
+      "no-change": "This revision is already the chosen one. Reload the page.",
+      "missing-rate": "This revision has categories without a rate: its staff cost is undetermined, so it cannot be chosen.",
+      "empty-team": "This revision was saved without a team, and an empty team cannot be chosen.",
+      "no-rate-access": "Choosing a revision needs rate access.",
+      "not-found": "This revision no longer exists. Reload the page.",
+      "limit": "No more copies of the demo can be made today. Try again tomorrow.",
+      "template": "The demo cannot be chosen: choose in your copy.",
+      "failed": "The revision could not be chosen. Try again.",
+      "preview": "What changed could not be checked. Close and try again."
+    }
   },
   "SaveRevision": {
     "button": "Save revision",
