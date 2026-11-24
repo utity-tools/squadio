@@ -33,8 +33,13 @@ export type LoadedRevision = {
   author: string | null;
   /** The scenario's latest revision: this one, unless a newer one exists. */
   latest: { id: string; number: number };
-  /** The scenario and its project as they are now, for the page's trail; open data. */
-  scenario: { name: string; project: { id: string; name: string } };
+  /**
+   * The scenario and its project as they are now, for the page's trail, with the version a choice
+   * made on the page names; open data.
+   */
+  scenario: { name: string; version: number; project: { id: string; name: string } };
+  /** The scenario's chosen revision, this one or another; null when it is not chosen. */
+  chosen: { id: string; number: number } | null;
   view: RevisionViewInput;
 };
 
@@ -59,6 +64,8 @@ export async function loadRevision(
         author: user.name,
         openPart: scenarioRevisions.openPart,
         scenarioName: scenarios.name,
+        scenarioVersion: scenarios.version,
+        chosenRevisionId: scenarios.chosenRevisionId,
         projectId: projects.id,
         projectName: projects.name,
       })
@@ -77,10 +84,28 @@ export async function loadRevision(
       .limit(1);
     if (!latest) throw new Error(`Revision ${row.id} has no scenario's revisions around it`);
 
-    const { openPart, scenarioName, projectId, projectName, ...line } = row;
+    const {
+      openPart,
+      scenarioName,
+      scenarioVersion,
+      chosenRevisionId,
+      projectId,
+      projectName,
+      ...line
+    } = row;
     const open = openPartSchema.parse(openPart);
-    const scenario = { name: scenarioName, project: { id: projectId, name: projectName } };
-    const loaded = { ...line, latest, scenario };
+    const scenario = {
+      name: scenarioName,
+      version: scenarioVersion,
+      project: { id: projectId, name: projectName },
+    };
+    const [chosen] = chosenRevisionId
+      ? await tx
+          .select({ id: scenarioRevisions.id, number: scenarioRevisions.number })
+          .from(scenarioRevisions)
+          .where(eq(scenarioRevisions.id, chosenRevisionId))
+      : [];
+    const loaded = { ...line, latest, scenario, chosen: chosen ?? null };
     if (!context.rateAccess) return { ...loaded, view: { open, restricted: null } };
 
     const [money] = await tx

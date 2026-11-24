@@ -1341,7 +1341,8 @@
       "shared": "compartida",
       "chosen": "elegida",
       "migrated": "migrada"
-    }
+    },
+    "chosen": "Elegida"
   },
   "RevisionPage": {
     "title": "Revisión",
@@ -1350,7 +1351,60 @@
     "readOnly": "Solo lectura: una revisión nunca cambia.",
     "newer": "Este escenario tiene una revisión más nueva.",
     "latest": "Ver la revisión {number}",
-    "emptyTeam": "Esta revisión se guardó sin equipo."
+    "emptyTeam": "Esta revisión se guardó sin equipo.",
+    "chosen": "Revisión elegida",
+    "chosenOther": "La revisión elegida de este escenario es la {number}."
+  },
+  "ChooseRevision": {
+    "button": "Elegir esta revisión",
+    "title": "¿Elegir la revisión {number}?",
+    "description": "La elección apunta a esta revisión con los valores con los que se hizo: su equipo, sus tarifas, su precio y su resultado no cambian. Nada de lo que haya cambiado desde entonces lo impide.",
+    "replaces": "«{name}» deja de ser el escenario elegido del proyecto.",
+    "loading": "Comprobando qué ha cambiado…",
+    "changesTitle": "Qué ha cambiado desde que se hizo",
+    "nothing": "Nada ha cambiado desde que se hizo.",
+    "confirm": "Elegir la revisión {number}",
+    "busy": "Eligiendo…",
+    "cancel": "Cancelar",
+    "close": "Cerrar",
+    "chosen": "Revisión {number} elegida.",
+    "change": {
+      "team": "Equipo: se ha guardado otro desde entonces ({summary}). Se conserva, y vuelve al editor si se quita la elección.",
+      "added": "{count, plural, one {# asignación añadida} other {# asignaciones añadidas}}",
+      "removed": "{count, plural, one {# quitada} other {# quitadas}}",
+      "changed": "{count, plural, one {# cambiada} other {# cambiadas}}",
+      "extraCosts": "Costes extra: se han guardado otros desde entonces.",
+      "loadNow": "Carga de {name}: ahora pasa del 100 % en {weeks, plural, one {# semana} other {# semanas}} de la revisión; cuando se hizo, en ninguna.",
+      "loadThen": "Carga de {name}: cuando se hizo pasaba del 100 % en {weeks, plural, one {# semana} other {# semanas}}; ahora, en ninguna.",
+      "rate": "Tarifa de {category}: entonces {then}; ahora {now}.",
+      "rateTerms": "coste {cost} · venta {sell}",
+      "annual": "{amount} al año",
+      "perHour": "{amount}/h",
+      "noRate": "sin tarifa",
+      "pricingModel": "Modelo de precio: entonces {then}; ahora {now}.",
+      "fixed": "precio cerrado",
+      "timeAndMaterials": "tiempo y materiales",
+      "price": "Precio o tope: entonces {then}; ahora {now}.",
+      "noPrice": "sin fijar",
+      "plannedPeriod": "Periodo previsto: entonces {then}; ahora {now}.",
+      "noPeriod": "sin periodo",
+      "overhead": "Overhead: entonces {then}; ahora {now}.",
+      "buffer": "Buffer: entonces {then}; ahora {now}.",
+      "availability": "Horas disponibles: entonces {thenNet} netas al año sobre {thenCalendar} de calendario; ahora {nowNet} sobre {nowCalendar}.",
+      "rulesVersion": "Reglas de cálculo: la revisión se hizo con la versión {then} y ahora rige la {now}. Su resultado no se recalcula."
+    },
+    "refused": {
+      "conflict": "El escenario ha cambiado en otra pestaña. Recarga la página.",
+      "no-change": "Esta revisión ya es la elegida. Recarga la página.",
+      "missing-rate": "Esta revisión tiene categorías sin tarifa: su coste de personal no está determinado, así que no se puede elegir.",
+      "empty-team": "Esta revisión se guardó sin equipo, y un equipo vacío no se puede elegir.",
+      "no-rate-access": "Elegir una revisión necesita acceso a tarifas.",
+      "not-found": "Esta revisión ya no existe. Recarga la página.",
+      "limit": "Hoy no se pueden crear más copias de la demo. Vuelve a intentarlo mañana.",
+      "template": "La demo no se puede elegir: elige en tu copia.",
+      "failed": "No se ha podido elegir. Vuelve a intentarlo.",
+      "preview": "No se ha podido comprobar qué ha cambiado. Cierra y vuelve a intentarlo."
+    }
   },
   "SaveRevision": {
     "button": "Guardar revisión",

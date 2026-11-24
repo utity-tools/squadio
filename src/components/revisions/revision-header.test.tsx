@@ -31,6 +31,7 @@ const props = (overrides: Partial<RevisionHeaderProps["revision"]> = {}): Revisi
     reason: "saved",
     author: "Ada Synthetic",
     latest: { id: FIRST, number: 1 },
+    chosen: null,
     ...overrides,
   },
   scenarioName: "Plan A",
@@ -49,6 +50,21 @@ describe("RevisionHeader", () => {
       /^28 oct 2026, 13:00.*Ada Synthetic.*guardada$/,
     );
     expect(screen.getByText("Solo lectura: una revisión nunca cambia.")).toBeTruthy();
+  });
+
+  it("says it is the chosen revision, or names and links the chosen one", () => {
+    const { unmount } = renderWithIntl(
+      <RevisionHeader {...props({ chosen: { id: FIRST, number: 1 } })} />,
+    );
+    expect(screen.getByText("Revisión elegida")).toBeTruthy();
+    unmount();
+
+    renderWithIntl(<RevisionHeader {...props({ chosen: { id: SECOND, number: 2 } })} />);
+    expect(screen.queryByText("Revisión elegida")).toBeNull();
+    expect(screen.getByText(/La revisión elegida de este escenario es la 2/)).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Ver la revisión 2" }).getAttribute("href")).toBe(
+      `/revisions/${SECOND}`,
+    );
   });
 
   it("offers the actions it is given next to the link, and none otherwise", () => {

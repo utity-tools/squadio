@@ -26,6 +26,7 @@ const lines: RevisionLine[] = [
     madeAt: new Date("2026-11-23T23:30:00Z"),
     reason: "saved",
     author: "Ada Synthetic",
+    chosen: false,
   },
   {
     id: "6d656d6f-0000-4000-8000-000000000501",
@@ -33,6 +34,7 @@ const lines: RevisionLine[] = [
     madeAt: new Date("2026-10-28T12:00:00Z"),
     reason: "chosen",
     author: null,
+    chosen: true,
   },
 ];
 
@@ -51,6 +53,14 @@ describe("RevisionList", () => {
     expect(items[0]?.querySelector("time")?.getAttribute("dateTime")).toBe(
       "2026-11-23T23:30:00.000Z",
     );
+  });
+
+  it("marks the revision its scenario chose, and only that one", () => {
+    renderWithIntl(<RevisionList revisions={lines} anonymous="visitor" />);
+
+    const [newest, chosen] = screen.getAllByRole("listitem");
+    expect(within(chosen!).getByText("Elegida")).toBeTruthy();
+    expect(within(newest!).queryByText("Elegida")).toBeNull();
   });
 
   it("links each revision to its page, keeping the query", () => {
