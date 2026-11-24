@@ -1,16 +1,20 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { refresh, revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { createTranslator } from "next-intl";
 import { z } from "zod";
 
+import { keepsRateAccess } from "@/db/access";
+import { type ChoicePreview, previewInputSchema, revisionChoiceSchema } from "@/db/choose-revision";
 import { db } from "@/db/client";
 import { deriveInputSchema } from "@/db/derive-alternative";
-import { currentMember } from "@/db/request-access";
-import { deriveAlternativeFor } from "@/db/scenario-writes";
+import { currentAccessContext, currentMember } from "@/db/request-access";
+import { chooseRevisionFor, deriveAlternativeFor, previewChoiceFor } from "@/db/scenario-writes";
+import type { VisitorChoiceResult } from "@/db/visitor-choose";
 import type { VisitorDeriveResult } from "@/db/visitor-derive";
 import { routing } from "@/i18n/routing";
+import { madridToday } from "@/lib/bench/occupancy";
 
 // docs/domain.md, "Derived alternative", and ADR 0013: the Server Action behind «Proponer
 // alternativa» on a revision's page. The request can be sent without the page, so the input is
@@ -60,6 +64,71 @@ export async function proposeAlternative(input: unknown): Promise<ProposeAlterna
     return result;
   } catch (error) {
     console.error(`proposeAlternative failed: ${describe(error)}`);
+    return { ok: false, reason: "failed" };
+  }
+}
+
+/** The page's `?access=none`: it can only take rate access away, so trusting it grants none. */
+const access = z.literal("none").optional();
+
+export type PreviewChoiceResult = ChoicePreview | { ok: false; reason: "invalid" | "failed" };
+
+const previewActionSchema = z.strictObject({ ...previewInputSchema.shape, access });
+
+/**
+ * The change check of a revision before «Elegir esta revisión» chooses it (docs/domain.md,
+ * "Choosing a revision"): what changed since it was made, and the scenario it would replace
+ * (rule i). Writes nothing; a viewer is refused, their role read again in the transaction.
+ */
+export async function previewChoice(input: unknown): Promise<PreviewChoiceResult> {
+  const parsed = previewActionSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, reason: "invalid" };
+  const { access: query, ...request } = parsed.data;
+  try {
+    return await previewChoiceFor(
+      db,
+      await currentMember(),
+      await currentAccessContext(),
+      request,
+      {
+        rateAccess: keepsRateAccess({ access: query }),
+        today: madridToday(new Date()),
+      },
+    );
+  } catch (error) {
+    console.error(`previewChoice failed: ${describe(error)}`);
+    return { ok: false, reason: "failed" };
+  }
+}
+
+export type ChooseRevisionResult =
+  VisitorChoiceResult | { ok: false; reason: "invalid" | "failed" };
+
+const chooseActionSchema = z.strictObject({ ...revisionChoiceSchema.shape, access });
+
+/**
+ * Chooses a revision (docs/domain.md, "Choosing a revision"), moving its scenario's choice to it.
+ * The page loads again, saying it is the chosen one; a visitor's first choice moves it to their
+ * copy's revision.
+ */
+export async function chooseRevision(input: unknown): Promise<ChooseRevisionResult> {
+  const parsed = chooseActionSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, reason: "invalid" };
+  const { access: query, ...request } = parsed.data;
+  try {
+    const writer = { member: await currentMember(), jar: await cookies() };
+    const result = await chooseRevisionFor(db, writer, request, {
+      rateAccess: keepsRateAccess({ access: query }),
+    });
+    if (result.ok) {
+      // The scenario's and project's pages left in the router show the choice made elsewhere.
+      revalidatePath("/[locale]/scenarios/[id]", "page");
+      revalidatePath("/[locale]/projects/[id]", "page");
+      refresh();
+    }
+    return result;
+  } catch (error) {
+    console.error(`chooseRevision failed: ${describe(error)}`);
     return { ok: false, reason: "failed" };
   }
 }
