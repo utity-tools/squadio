@@ -14,6 +14,7 @@ import {
 } from "./schema";
 import { DEMO_ORGANIZATION_ID, demoAccessContext } from "./access";
 import { freezeScenario } from "./choose-scenario";
+import { writeAlternative } from "./derive-alternative";
 import { writeRevision } from "./save-revision";
 import { ensureDemoOrganization } from "./organizations";
 import { type TenantTransaction, withOrganization } from "./tenant";
@@ -65,7 +66,12 @@ export const DEMO_IDS = {
   upkeepScenario: demoId(206),
   /** Revision 1 of the delivery plan, made when it was chosen (docs/domain.md, "In the demo"). */
   deliveryRevision: demoId(500),
+  /** An alternative derived from that revision (docs/domain.md, "In the demo"). */
+  deliveryAlternative: demoId(207),
 } as const;
+
+/** The first id of the alternative's rows: its assignments, then its extra costs. */
+const ALTERNATIVE_ROWS = 370;
 
 /** A category without a rate or people: a scenario that uses it has a partial result (rule k). */
 const UNRATED_CATEGORY = { id: demoId(15), name: "Data Engineer" };
@@ -448,6 +454,17 @@ async function insertOngoingProjects(tx: TenantTransaction, spans: OngoingSpans,
     },
     DEMO_IDS.deliveryRevision,
   );
+  // And one alternative derived from it, by nobody, as the revision was made, in the demo's
+  // language. Fixed ids, so a reseed on the same day leaves the same rows.
+  let next = ALTERNATIVE_ROWS;
+  const derived = await writeAlternative(
+    tx,
+    DEMO_IDS.deliveryRevision,
+    (n) => (n === 1 ? " (alternative)" : ` (alternative ${n})`),
+    { derivedBy: null, derivedAt: new Date(`${today}T12:00:00Z`) },
+    { scenarioId: DEMO_IDS.deliveryAlternative, newId: () => demoId(next++) },
+  );
+  if (!derived.ok) throw new Error(`The seed's alternative was refused: ${derived.reason}`);
 }
 
 /**

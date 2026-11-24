@@ -61,7 +61,12 @@ describe("loadPortfolio", () => {
     ).toEqual([
       ["Customer portal", "Demo Client", "fixed", ["Plan A", "Plan B"]],
       ["Internal tooling", "Demo Client", "fixed", ["First draft"]],
-      ["Mobile app", "Demo Retail", "time_and_materials", ["Delivery plan (chosen)"]],
+      [
+        "Mobile app",
+        "Demo Retail",
+        "time_and_materials",
+        ["Delivery plan (chosen)", "Delivery plan (alternative)"],
+      ],
       ["Platform upkeep", "Demo Client", "time_and_materials", ["Run plan (chosen)"]],
       ["Support retainer", "Demo Client", "time_and_materials", ["Data platform", "Over budget"]],
     ]);

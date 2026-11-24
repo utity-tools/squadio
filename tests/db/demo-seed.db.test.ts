@@ -87,8 +87,8 @@ describe("seedDemo", () => {
       people: 15,
       projects: 5,
       project_pricing: 2,
-      scenarios: 7,
-      assignments: 18,
+      scenarios: 8,
+      assignments: 22,
       extra_costs: 2,
       scenario_revision: 1,
       scenario_revision_money: 1,
@@ -161,6 +161,54 @@ describe("seedDemo", () => {
     const loaded = await loadScenario(app, demo, DEMO_IDS.deliveryScenario, SOME_DAY);
     if (!loaded?.rateAccess) throw new Error("expected the delivery plan with rate access");
     expect(storedResult(snapshot).totalCostCents).toBe(loaded.result.totalCostCents);
+  });
+
+  it("derives one alternative from that revision, by nobody, with its team", async () => {
+    // docs/domain.md, "In the demo": one revision and one derived alternative, to show both.
+    await seedDemo(app, SOME_DAY);
+    const [alternative] = await withOrganization(app, demo, (tx) =>
+      tx.select().from(scenarios).where(eq(scenarios.id, DEMO_IDS.deliveryAlternative)),
+    );
+    const [source] = await withOrganization(app, demo, (tx) =>
+      tx.select().from(scenarios).where(eq(scenarios.id, DEMO_IDS.deliveryScenario)),
+    );
+    expect(alternative).toMatchObject({
+      projectId: source?.projectId,
+      name: "Delivery plan (alternative)",
+      chosen: false,
+      version: 1,
+      derivedFromRevisionId: DEMO_IDS.deliveryRevision,
+      derivedBy: null,
+      derivedAt: new Date(`${SOME_DAY}T12:00:00Z`),
+    });
+    const roles = (scenarioId: string) =>
+      withOrganization(app, demo, async (tx) =>
+        (
+          await tx
+            .select({ role: assignments.projectRole, person: assignments.personId })
+            .from(assignments)
+            .where(eq(assignments.scenarioId, scenarioId))
+        ).toSorted((a, b) => a.role.localeCompare(b.role)),
+      );
+    expect(await roles(DEMO_IDS.deliveryAlternative)).toEqual(
+      await roles(DEMO_IDS.deliveryScenario),
+    );
+
+    // A reseed on the same day leaves the same rows.
+    const ids = () =>
+      withOrganization(app, demo, async (tx) =>
+        (
+          await tx
+            .select({ id: assignments.id })
+            .from(assignments)
+            .where(eq(assignments.scenarioId, DEMO_IDS.deliveryAlternative))
+        )
+          .map(({ id }) => id)
+          .toSorted(),
+      );
+    const first = await ids();
+    await seedDemo(app, SOME_DAY);
+    expect(await ids()).toEqual(first);
   });
 
   it("anchors the ongoing scenarios to the day it runs, and the guide case to 2027", async () => {
