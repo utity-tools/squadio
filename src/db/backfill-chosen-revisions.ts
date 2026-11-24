@@ -1,5 +1,6 @@
 import { and, eq, isNull } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+import { ZodError } from "zod";
 
 import { buildRevision } from "@/lib/revisions/build-revision";
 import { frozenSource } from "@/lib/revisions/frozen-source";
@@ -20,6 +21,9 @@ import { type TenantTransaction, withOrganization } from "./tenant";
 // latest revision that holds the same is used again. Its version does not move: the scenario's team
 // and choice are as they were, so a page holding it keeps saving.
 //
+// It locks only the scenarios it backfills, never their project: it unchooses none of a project's
+// others, so it takes no lock choosing takes before it.
+//
 // It runs as the owner role, whom FORCE ROW LEVEL SECURITY subjects to the policies, so each
 // organization's context is set in turn, with rate access, as migration 0007 did. Running it again
 // changes nothing.
@@ -37,8 +41,9 @@ export type BackfillOptions = {
 
 /**
  * How many chosen scenarios had no revision, how many got a new one or an existing one, and the
- * ids of those that could not be costed (a date outside the calendar, say), which keep showing
- * their saved team until someone fixes them; slice 6c's validation then finds them.
+ * ids of those the engine cannot cost (a date outside the calendar, say). Those are unchosen, their
+ * version unmoved: a chosen scenario must point at a revision (migration 0016), and one that cannot
+ * be costed has none to point at. Choosing it again, once fixed, makes one.
  */
 export type BackfillCounts = {
   pending: number;
@@ -106,13 +111,15 @@ async function backfillOrganization(
     let snapshot;
     try {
       // The saved team with the current values: what a chosen scenario without a revision shows.
-      // A scenario the engine cannot cost throws before anything is written for it, so the
-      // transaction goes on with the next one.
       const scenario = await scenarioIn(tx, context, id, today, { currentValues: true });
       if (!scenario) throw new Error(`Scenario ${id} went away while it was locked`);
       const current = revisionSourceOf(scenario.editing.basis, scenario.editing.team);
       snapshot = buildRevision(frozen ? frozenSource(current, frozen) : current);
-    } catch {
+    } catch (error) {
+      // Only the engine's refusal of its inputs, which happens before anything is written for it;
+      // any other error, a database one above all, fails the whole run.
+      if (!(error instanceof ZodError)) throw error;
+      await tx.update(scenarios).set({ chosen: false }).where(eq(scenarios.id, id));
       counts.failed.push(id);
       continue;
     }

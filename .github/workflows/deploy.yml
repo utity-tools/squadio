@@ -120,7 +120,8 @@ jobs:
           DATABASE_OWNER_URL: ${{ secrets.DATABASE_OWNER_URL }}
         run: pnpm db:migrate
       # Slice 6 (migration 0016): every scenario chosen before it gets a revision and points at it,
-      # so the new deployment reads it. Running it again changes nothing.
+      # so the new deployment reads it. Right after the migrations: until it runs, the previous
+      # deployment cannot write a chosen scenario that has none. Running it again changes nothing.
       - name: Give chosen scenarios their revision
         env:
           DATABASE_OWNER_URL: ${{ secrets.DATABASE_OWNER_URL }}
@@ -133,12 +134,6 @@ jobs:
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: pnpm exec vercel deploy --prebuilt --prod
-      # Again, for a choice the previous deployment made while this one was on its way: migration
-      # 0016 refuses one without a revision, so there is none, but the backfill says so.
-      - name: Check chosen scenarios have their revision
-        env:
-          DATABASE_OWNER_URL: ${{ secrets.DATABASE_OWNER_URL }}
-        run: pnpm db:backfill-revisions
       # The new deployment is already live by now: on failure, roll back as the runbook says.
       - name: Smoke test the guide scenario
         uses: ./.github/actions/smoke-test

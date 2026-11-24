@@ -207,7 +207,7 @@ describe("backfillChosenRevisions", () => {
     expect(await stateOf(upkeep)).toEqual(before);
   });
 
-  it("skips a scenario it cannot cost, writing nothing for it, and goes on", async () => {
+  it("unchooses a scenario it cannot cost, writing no revision for it, and goes on", async () => {
     // A date outside the calendar's years (rule h): the engine refuses it, as the page does.
     const platform = id(DEMO_IDS.missingRateScenario);
     await withOrganization(owner, context, (tx) =>
@@ -221,7 +221,18 @@ describe("backfillChosenRevisions", () => {
       pending: 3,
       failed: [platform],
     });
+    // Unchosen, its version unmoved, so it can be saved, fixed and chosen again.
+    const [after] = await withOrganization(app, context, (tx) =>
+      tx
+        .select({ chosen: scenarios.chosen, version: scenarios.version })
+        .from(scenarios)
+        .where(eq(scenarios.id, platform)),
+    );
+    expect(after).toEqual({ chosen: false, version: 1 });
     expect(await stateOf(platform)).toMatchObject({ chosenRevisionId: null, revisions: [] });
+    await withOrganization(app, context, (tx) =>
+      tx.update(scenarios).set({ name: "Data platform, fixed" }).where(eq(scenarios.id, platform)),
+    );
     expect((await stateOf(id(DEMO_IDS.upkeepScenario))).chosenRevisionId).not.toBeNull();
   });
 
