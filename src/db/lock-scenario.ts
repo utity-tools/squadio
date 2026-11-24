@@ -45,6 +45,7 @@ export async function lockScenario(
     .select({
       projectId: scenarios.projectId,
       chosen: scenarios.chosen,
+      chosenRevisionId: scenarios.chosenRevisionId,
       version: scenarios.version,
     })
     .from(scenarios)

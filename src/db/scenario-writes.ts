@@ -10,6 +10,16 @@ import {
   chooseScenario,
   unchooseScenario,
 } from "./choose-scenario";
+import {
+  type ChoicePreview,
+  type PreviewInput,
+  type RevisionChoiceInput,
+  chooseRevision,
+  previewChoice,
+  previewChoiceAsVisitor,
+  previewInputSchema,
+  revisionChoiceSchema,
+} from "./choose-revision";
 import { type DeriveInput, deriveAlternative, deriveInputSchema } from "./derive-alternative";
 import {
   type CopySuffix,
@@ -26,7 +36,12 @@ import {
 import { type SaveInput, saveInputSchema, saveScenarioChanges } from "./save-scenario";
 import { scenarioRevisions, scenarios } from "./schema";
 import { type AccessContext, withOrganization } from "./tenant";
-import { type VisitorChoiceResult, chooseForVisitor, unchooseForVisitor } from "./visitor-choose";
+import {
+  type VisitorChoiceResult,
+  chooseForVisitor,
+  chooseRevisionForVisitor,
+  unchooseForVisitor,
+} from "./visitor-choose";
 import { type VisitorDeriveResult, deriveForVisitor } from "./visitor-derive";
 import { type VisitorDuplicateResult, duplicateForVisitor } from "./visitor-duplicate";
 import { type VisitorRevisionResult, saveRevisionForVisitor } from "./visitor-revision";
@@ -208,4 +223,54 @@ export async function deriveAlternativeFor(
   const withRates = { ...context, rateAccess: context.rateAccess && rateAccess };
   if (!withRates.rateAccess) return { ok: false, reason: "no-rate-access" };
   return deriveAlternative(db, withRates, request, suffix, member);
+}
+
+/**
+ * Chooses a revision (docs/domain.md, "Choosing a revision"): in the member's organization when it
+ * holds the revision, with the member's rate access unless the page took it away, or else as a
+ * visitor, in their copy. The member's role is checked again inside the transaction
+ * (chooseRevision). Throws a ZodError on input that is not a valid choice.
+ */
+export async function chooseRevisionFor(
+  db: NodePgDatabase,
+  { member, jar }: Writer,
+  input: RevisionChoiceInput,
+  { rateAccess }: { rateAccess: boolean },
+): Promise<VisitorChoiceResult> {
+  const request = revisionChoiceSchema.parse(input);
+  const context = member && memberEditContext(member);
+  if (!member || !context || !(await holdsRevision(db, context, request.revisionId))) {
+    return chooseRevisionForVisitor(db, jar, request, rateAccess);
+  }
+  const withRates = { ...context, rateAccess: context.rateAccess && rateAccess };
+  if (!member.capabilities.choose || !withRates.rateAccess) {
+    return { ok: false, reason: "no-rate-access" };
+  }
+  const result = await chooseRevision(db, withRates, request, member);
+  return result.ok ? { ok: true, version: result.version, scenarioId: result.scenarioId } : result;
+}
+
+/**
+ * The change check of a revision before it is chosen: in the member's organization when it holds
+ * the revision, their role read again inside the transaction, or else in the visitor's copy or the
+ * demo template. Writes nothing. Throws a ZodError on input that is not a valid request.
+ */
+export async function previewChoiceFor(
+  db: NodePgDatabase,
+  member: Member | null,
+  visitor: AccessContext,
+  input: PreviewInput,
+  { rateAccess, today }: { rateAccess: boolean; today: string },
+): Promise<ChoicePreview> {
+  const request = previewInputSchema.parse(input);
+  const context = member && memberEditContext(member);
+  if (!member || !context || !(await holdsRevision(db, context, request.revisionId))) {
+    const withRates = { ...visitor, rateAccess: visitor.rateAccess && rateAccess };
+    return previewChoiceAsVisitor(db, withRates, request, today);
+  }
+  const withRates = { ...context, rateAccess: context.rateAccess && rateAccess };
+  if (!member.capabilities.choose || !withRates.rateAccess) {
+    return { ok: false, reason: "no-rate-access" };
+  }
+  return previewChoice(db, withRates, request, member, today);
 }

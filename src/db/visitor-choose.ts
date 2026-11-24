@@ -10,6 +10,11 @@ import {
   chooseScenarioIn,
   unchooseScenarioIn,
 } from "./choose-scenario";
+import {
+  type RevisionChoiceInput,
+  chooseRevisionIn,
+  revisionChoiceSchema,
+} from "./choose-revision";
 import type { TenantTransaction } from "./tenant";
 import { type CookieJar, type VisitorWriteResult, writeForVisitor } from "./visitor-write";
 
@@ -66,4 +71,29 @@ export function unchooseForVisitor(
   rateAccess: boolean,
 ): Promise<VisitorChoiceResult> {
   return choiceForVisitor(db, jar, input, rateAccess, unchooseScenarioIn);
+}
+
+/**
+ * Chooses a revision of the visitor's copy, making the copy when they have none: a template
+ * revision's id names the copy's. Throws a ZodError on input that is not a valid choice; every
+ * other outcome is a result.
+ */
+export function chooseRevisionForVisitor(
+  db: NodePgDatabase,
+  jar: CookieJar,
+  input: RevisionChoiceInput,
+  rateAccess: boolean,
+): Promise<VisitorChoiceResult> {
+  const request = revisionChoiceSchema.parse(input);
+  // chooseRevisionIn refuses it too; refusing first spares a copy that would be rolled back.
+  if (!rateAccess) return Promise.resolve({ ok: false, reason: "no-rate-access" });
+  return writeForVisitor(db, jar, rateAccess, async (tx, copy) => {
+    const revisionId = copy
+      ? translateId(request.revisionId, copy.templateIds, copy.organizationId)
+      : request.revisionId;
+    const result = await chooseRevisionIn(tx, { ...request, revisionId });
+    return result.ok
+      ? { ok: true as const, version: result.version, scenarioId: result.scenarioId }
+      : result;
+  });
 }
