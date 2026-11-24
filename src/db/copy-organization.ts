@@ -32,7 +32,7 @@ type Copied = {
   ids: readonly string[];
   /** JSON columns that name rows by id inside, with how to rename them. */
   json?: Readonly<Record<string, (value: unknown, rename: (id: string) => string) => unknown>>;
-  /** Columns the copy leaves empty: who made a template's revision is not the visitor's. */
+  /** Columns the copy leaves empty: who made a template's revision or alternative is not the visitor's. */
   cleared?: readonly string[];
 };
 
@@ -48,7 +48,13 @@ const COPIES: readonly Copied[] = [
   { table: people, ids: ["id", "categoryId"] },
   { table: projects, ids: ["id"] },
   { table: projectPricing, ids: ["projectId"] },
-  { table: scenarios, ids: ["id", "projectId"] },
+  // An alternative names its revision, copied below: the key is checked when the copy commits.
+  // Who derived a template's alternative is not the visitor's either.
+  {
+    table: scenarios,
+    ids: ["id", "projectId", "derivedFromRevisionId"],
+    cleared: ["derivedBy"],
+  },
   // One statement per table: reports_to is checked once all of its rows are in.
   { table: assignments, ids: ["id", "scenarioId", "categoryId", "personId", "reportsTo"] },
   { table: extraCosts, ids: ["id", "scenarioId"] },
