@@ -1364,5 +1364,10 @@
       "busy": "Wait for what is under way to finish.",
       "failed": "The revision could not be saved. Try again."
     }
+  },
+  "AlternativeOrigin": {
+    "from": "Alternative to <link>revision {number} of {scenario}</link>",
+    "deleted": "Alternative to a deleted revision",
+    "by": "proposed by {author}"
   }
 }
