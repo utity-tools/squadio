@@ -6,6 +6,7 @@
 // a cascade, so deleting an organization means deleting its rows first, inside its own context.
 import { sql } from "drizzle-orm";
 import {
+  type PgTableExtraConfigValue,
   boolean,
   check,
   date,
@@ -180,8 +181,19 @@ export const scenarios = pgTable(
     name: text("name").notNull(),
     chosen: boolean("chosen").notNull().default(false),
     version: integer("version").notNull().default(1),
+    // docs/domain.md, "Derived alternative": where an alternative came from and who made it. A
+    // scenario is one when derived_at is set; the revision is cleared when it is deleted with its
+    // scenario, and the author when their account is, so derived_at alone then says it was one.
+    /** The revision it was derived from; null when not derived, or once that revision is gone. */
+    derivedFromRevisionId: uuid("derived_from_revision_id"),
+    /** Who derived it; null when nobody signed in did (a visitor) or their account is gone. */
+    derivedBy: uuid("derived_by").references(() => user.id, { onDelete: "set null" }),
+    /** When it was derived; null for a scenario that is not an alternative. */
+    derivedAt: timestamp("derived_at", { withTimezone: true }),
   },
-  (t) => [
+  // Typed, since its foreign key names scenario_revision, which names scenarios back: TypeScript
+  // cannot infer two tables that refer to each other.
+  (t): PgTableExtraConfigValue[] => [
     tenantIsolation(),
     unique("scenarios_organization_id_id_key").on(t.organizationId, t.id),
     foreignKey({
@@ -189,6 +201,19 @@ export const scenarios = pgTable(
       columns: [t.organizationId, t.projectId],
       foreignColumns: [projects.organizationId, projects.id],
     }).onDelete("cascade"),
+    // ON DELETE SET NULL ("derived_from_revision_id") and DEFERRABLE INITIALLY DEFERRED are added by
+    // hand in migration 0015: Drizzle cannot limit SET NULL to one column, and a visitor's copy
+    // inserts its scenarios before the revisions they name (copy-organization.ts).
+    foreignKey({
+      name: "scenarios_derived_from_revision_fkey",
+      columns: [t.organizationId, t.derivedFromRevisionId],
+      foreignColumns: [scenarioRevisions.organizationId, scenarioRevisions.id],
+    }),
+    index("scenarios_derived_from_revision_idx").on(t.organizationId, t.derivedFromRevisionId),
+    check(
+      "scenarios_derived_check",
+      sql`derived_at is not null or (derived_from_revision_id is null and derived_by is null)`,
+    ),
     index("scenarios_project_idx").on(t.organizationId, t.projectId),
     // Rule i: at most one chosen scenario per project.
     uniqueIndex("scenarios_one_chosen_per_project")
