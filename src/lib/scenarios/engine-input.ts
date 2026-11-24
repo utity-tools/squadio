@@ -78,8 +78,8 @@ export function referenceYear(assignments: readonly Pick<StoredAssignment, "star
   return year in NATIONAL_HOLIDAYS ? year : FIRST_CALENDAR_YEAR;
 }
 
-/** Throws on a row the database's checks should have refused. */
-function toExtraCost(extra: StoredExtraCost): ExtraCost {
+/** The engine's extra cost from its row. Throws on a row the database's checks should have refused. */
+export function toExtraCost(extra: StoredExtraCost): ExtraCost {
   const label = extra.label ?? undefined;
   if (extra.kind === "percentage") {
     if (extra.percentage === null || extra.base === null) {
