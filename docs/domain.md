@@ -15,21 +15,18 @@ undetermined, never 0 ([Partial results](#partial-results)).
   over net annual hours, or the manual cost per hour when one is set. A derived cost per hour is
   never rounded to cents, since that would break "rounded once per result line" and the first
   invariant (71,120 € / 1,550 h is 45.8838… €/h, and 45.88 € × 1,550 h is 71,114 €). For a scenario
-  that is not chosen they come from the current CategoryRates and Config's net annual hours; for a
-  chosen scenario, from its FrozenRates and the net annual hours in its FrozenCostConfig.
+  that is not chosen they come from the current CategoryRates and Config's net annual hours.
 - `costSettings` holds the overhead %, the buffer % and the availability factor. For a scenario that
   is not chosen they come from the current CostConfig (or the project's overrides in
-  ProjectPricing) and Config; for a chosen scenario they are its FrozenCostConfig.
-- `targetMargin` always comes from the current CostConfig: it is never frozen (rule b).
+  ProjectPricing) and Config.
+- `targetMargin` always comes from the current CostConfig: no revision stores it (rule b).
 - `scenario` carries its assignments, its extra costs, the project's pricing model and price
-  (from ProjectPricing, not frozen) and the project's planned period, if any (not frozen).
+  (from ProjectPricing) and the project's planned period, if any.
 
-Current and frozen inputs have the same shape, so the engine does not know whether a scenario is
-chosen.
-
-**The v0.5 target** (slice 6): a chosen scenario is no longer costed from frozen rows. It is read
-from its chosen revision, which stores its inputs and its result ([Revisions](#revisions)), and the
-engine only costs scenarios that are not chosen, and revisions when they are made.
+A chosen scenario is not costed: from v0.5's slice 6 it is read from its chosen revision, which
+stores its inputs and its result ([Revisions](#revisions)). The engine costs scenarios that are not
+chosen, and revisions when they are made. Before slice 6 a chosen scenario was costed from its
+frozen rows (FrozenRate, FrozenCostConfig), in the same shape as the current values.
 
 ## Entities
 
@@ -48,9 +45,9 @@ only in the entities marked **Restricted**, which users without rate access cann
 | Person           | id, name, category, weekly hours, area?, active                                                                                                                   | No individual salary. Everyone reads people; only users with rate access write them, since a write moves rule j's count                                                                                                                                |
 | Project          | id, name, client, pricing model (fixed or T&M), planned start?, planned end?, description?                                                                        | Its money lives in ProjectPricing. The planned period has both dates or neither (v0.3, [Planned period](#planned-period)); the description is 1 to 500 characters and not blank                                                                        |
 | ProjectPricing   | project, price, overhead %?, buffer %?                                                                                                                            | One per project. Restricted. Empty overrides fall back to CostConfig                                                                                                                                                                                   |
-| Scenario         | id, project, name, chosen, version                                                                                                                                | `version` provides optimistic locking; choosing and unchoosing move it on too. Choosing writes its frozen tables (rule b). From v0.5 it also has its chosen revision and, for a derived alternative, the revision it came from and its author          |
-| FrozenRate       | scenario, category, fully loaded annual cost or manual cost per hour, sell rate                                                                                   | Written when a scenario is chosen (rule b). Restricted. Cost per hour is derived as in CategoryRate, never stored rounded. Retired in v0.5's slice 6 by revisions                                                                                      |
-| FrozenCostConfig | scenario, overhead %, buffer %, net annual hours, calendar working hours                                                                                          | One per chosen scenario, written with its FrozenRates (rule b). Restricted. Retired in v0.5's slice 6 by revisions                                                                                                                                     |
+| Scenario         | id, project, name, chosen, version                                                                                                                                | `version` provides optimistic locking; choosing and unchoosing move it on too. A chosen one points at one of its revisions (rule b). For a derived alternative, the revision it came from and its author                                               |
+| FrozenRate       | scenario, category, fully loaded annual cost or manual cost per hour, sell rate                                                                                   | Written when a scenario was chosen, before v0.5's slice 6; nothing writes or reads it since, and a later migration drops it. Restricted                                                                                                                |
+| FrozenCostConfig | scenario, overhead %, buffer %, net annual hours, calendar working hours                                                                                          | One per scenario chosen before v0.5's slice 6, written with its FrozenRates; retired like them. Restricted                                                                                                                                             |
 | Revision         | id, scenario, number, made at, author?, why, rules version, commit, open part                                                                                     | v0.5. Never updated. The open part is a JSON snapshot of the team and its hours, without money ([Revisions](#revisions))                                                                                                                               |
 | RevisionMoney    | revision, restricted part                                                                                                                                         | v0.5. One per revision, never updated. Restricted. A JSON snapshot of rates, settings, price, planned period, extra costs and result, in cents and basis points                                                                                        |
 | Assignment       | id, scenario, category, person?, project role, reports to?, weekly hours, allocation %, start date, end date                                                      | No person = open role. `reports to` builds the team tree; deleting an assignment clears `reports to` on those that pointed to it                                                                                                                       |
@@ -283,13 +280,13 @@ cost exactly the fully loaded annual cost (see the first invariant below).
 | #   | Topic                 | Rule                                                                                                                                                                                                                                                                                                                                                                          |
 | --- | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | a   | Weekly hours          | Stored on the assignment: copied from the person when one is placed (add or edit), or from Config for a new open role; an edit may change them                                                                                                                                                                                                                                |
-| b   | Choosing freezes      | Choosing a scenario freezes its category rates (FrozenRate) and its overhead %, buffer % and availability factor (FrozenCostConfig). Target margin is not frozen. Other scenarios always use current values. See [What choosing freezes](#what-choosing-freezes). v0.5 target (slice 6): choosing points at a revision instead ([Revisions](#revisions))                      |
+| b   | Choosing freezes      | Choosing a scenario points at a revision, which keeps its rates, overhead %, buffer %, availability factor, price, planned period, extra costs, hours and result ([Choosing a revision](#choosing-a-revision)). Target margin is not in it. Other scenarios always use current values. See [What choosing freezes](#what-choosing-freezes)                                    |
 | c   | Over-allocation       | Per person and week: chosen scenarios of other projects plus the scenario being edited. Never two scenarios of the same project. See [Weekly load](#weekly-load)                                                                                                                                                                                                              |
 | d   | Recurring extra costs | Prorated by day. Without dates they span the project's planned period, or, without one, the project span: from the first assignment start to the last end. Without either, such a cost is undetermined, never 0. See [Partial results](#partial-results)                                                                                                                      |
 | e   | Price in T&M          | An optional budget cap with a warning. Percentages "over price" use the calculated revenue                                                                                                                                                                                                                                                                                    |
 | f   | Margin %              | Over revenue                                                                                                                                                                                                                                                                                                                                                                  |
 | g   | Money                 | Euros in `numeric(12,2)` in Postgres, integer cents in TypeScript; money-bearing percentages in `numeric(5,2)`, basis points in TypeScript; allocation an integer from 0 to 100 ([ADR 0010](adr/0010-money-in-postgres.md)); a revision's restricted part holds them as integer cents and basis points in JSON (ADR 0010, 2026-11-23). Rounded once per result line, EUR only |
-| h   | Holidays              | One national calendar in v1, kept as a constant in code, not in the database; a known limitation. Choosing a scenario freezes its calendar working hours but not the working days of its assignments, so changing the constant still moves the hours of chosen scenarios until v0.5's slice 6, when they come from the chosen revision                                        |
+| h   | Holidays              | One national calendar in v1, kept as a constant in code, not in the database; a known limitation. A chosen scenario's hours come from its chosen revision (v0.5's slice 6), so changing the constant no longer moves them                                                                                                                                                     |
 | i   | Chosen scenario       | At most one per project, enforced by a partial unique index                                                                                                                                                                                                                                                                                                                   |
 | j   | Salary leaks          | Without rate access, no costs or margins: restricted entities return no rows (ADR 0005). A warning when a category has 1 or 2 active people, since its cost reveals a salary. See [Small categories](#small-categories)                                                                                                                                                       |
 | k   | Missing rate          | A category without a rate leaves its staff cost line undetermined, and every line that depends on it, never a cost of 0. The other lines are still shown. See [Partial results](#partial-results)                                                                                                                                                                             |
@@ -317,51 +314,46 @@ scenario and its rates, not the organization's headcount.
 ### What choosing freezes
 
 A chosen scenario is a commitment: its cost must not move because someone edits the organization's
-settings later. Choosing it copies, in one transaction, everything its cost depends on that lives
-outside the scenario:
+settings later. Its revision keeps, among the rest, everything its cost depends on that lives
+outside the scenario, which choosing copied into frozen rows before v0.5's slice 6:
 
-- **Category rates** (FrozenRate): the fully loaded annual cost (or manual cost per hour) and the
-  sell rate of each category it uses. Its cost per hour is derived from them, never stored rounded.
-- **Overhead % and buffer %** (FrozenCostConfig): the values in effect when it is chosen, the
-  project's overrides or else the organization's CostConfig.
-- **The availability factor** (FrozenCostConfig). It comes from Config (net annual hours and default
-  weekly hours) and the holiday calendar, and multiplies every assignment's hours, so without
-  freezing it, changing net annual hours would change the cost of every chosen scenario. It is
-  stored as its two terms, net annual hours and calendar working hours, so the frozen factor is
-  exactly the one the scenario was costed with, with no rounding.
+- **Category rates:** the fully loaded annual cost (or manual cost per hour) and the sell rate of
+  each category it uses. Its cost per hour is derived from them, never stored rounded.
+- **Overhead % and buffer %:** the values in effect when it is chosen, the project's overrides or
+  else the organization's CostConfig.
+- **The availability factor.** It comes from Config (net annual hours and default weekly hours) and
+  the holiday calendar, and multiplies every assignment's hours, so without keeping it, changing net
+  annual hours would change the cost of every chosen scenario. It is kept as its two terms, net
+  annual hours and calendar working hours, so the factor is exactly the one the scenario was costed
+  with, with no rounding.
 
-**Until revisions exist, a chosen scenario is not a record of its result.** What it keeps is the
-list above and nothing more: its result can still move with what is not frozen, and unchoosing
-deletes the frozen rows. The UI calls it chosen, never frozen or approved as a whole.
+**Until v0.5's slice 6 a chosen scenario was not a record of its result.** It kept the list above
+and nothing more: its result could still move with what was not frozen, and unchoosing deleted the
+frozen rows. The UI calls it chosen, never frozen or approved as a whole.
 
-**The v0.5 target** (slice 6, [ADR 0013](adr/0013-scenario-revisions.md)): choosing points at a
-revision, which holds all of the above and also the price, the planned period, the extra costs, the
-hours and the result, so nothing but the margin status moves a chosen scenario. Unchoosing removes
-the pointer and keeps the revision. A migration makes a revision for every chosen scenario from its
-existing frozen rows, never from current rates, and from the values it is costed with today for the
-rest, so no chosen result moves; a later migration drops FrozenRate and FrozenCostConfig. See
-[Choosing a revision](#choosing-a-revision).
+**From slice 6** ([ADR 0013](adr/0013-scenario-revisions.md)) choosing points at a revision, which
+holds all of the above and also the price, the planned period, the extra costs, the hours and the
+result, so nothing but the margin status moves a chosen scenario. Unchoosing removes the pointer and
+keeps the revision. Nothing writes or reads FrozenRate and FrozenCostConfig any more: a backfill
+made a revision for every chosen scenario from its existing frozen rows, never from current rates,
+and from the values it was costed with that day for the rest, so no chosen result moved; a later
+migration drops both tables. See [Choosing a revision](#choosing-a-revision).
 
-**Target margin is not frozen.** It is a goal, not a cost: changing it never changes a chosen
+**Target margin is not in it.** It is a goal, not a cost: changing it never changes a chosen
 scenario's cost or margin, only its green, amber or red status, which is always judged against the
-organization's current target. The project's price and planned period, the scenario's extra costs
-and the holiday calendar are not frozen either, so a chosen scenario's margin can still move with
-them: a new planned period moves its undated recurring costs although its team is locked.
+organization's current target.
 
-**Without rate access** FrozenCostConfig returns no rows, so for those users a chosen scenario's
-effective hours use the current Config. They see no cost or margin, so the difference only shows in
-effective hours, and only after Config changes. A revision keeps its effective hours in its open
-part, so from slice 6 everyone reads the same hours.
+**Without rate access** a chosen scenario shows its revision's open part: its team and effective
+hours as stored, so everyone reads the same hours, whatever Config says today.
 
 ## Loading a scenario
 
 The loader, `loadScenario` in `src/db`, reads a scenario inside `withOrganization`, builds the
 inputs of `calculateScenario` with the pure functions of `src/lib/scenarios`, as
-[The calculation](#the-calculation) lists them, and runs it: from the current values, or, for a
-chosen scenario read with rate access, from its FrozenRates and FrozenCostConfig. The demo seed
-freezes its two chosen scenarios the way choosing does. A chosen scenario without frozen rows,
-chosen before slice 7 and skipped by its backfill because a category has no rate, is costed with
-the current values and keeps undetermined lines (rule k) until it is chosen again.
+[The calculation](#the-calculation) lists them, and runs it from the current values. A chosen
+scenario is not costed: the loader reads its chosen revision, its team and stored result, with its
+restricted part only with rate access (see [Choosing a revision](#choosing-a-revision)). The demo
+seed chooses its two ongoing scenarios the way choosing does.
 Every organization has its Config and CostConfig from the moment it exists (the starting template
 creates them), so a missing one is an error, never a partial result.
 
@@ -397,8 +389,7 @@ category and person of the organization (name, category, weekly hours and whethe
 the change model checks against), Config's default weekly hours, the project's planned period (new
 assignments start from it, the engine's inputs carry it for undated recurring costs, and it holds
 no money) and the engine's inputs without assignments. With rate access these are the engine's inputs, never the stored salaries, plus every
-small category of the organization; for a chosen scenario its frozen rates, which cover only the
-categories its team uses, since its team cannot be edited; without it, only the hours inputs, which hold no money
+small category of the organization, and for a chosen scenario its chosen revision; without it, only the hours inputs, which hold no money
 ([ADR 0005](adr/0005-rate-access-in-the-database.md)). The team, as the change model's
 assignments, and the scenario's version, the base of the next save, come with it.
 
@@ -516,34 +507,30 @@ seed's day: its scenario has no extra costs, so it moves no figure.
 Both are clamped to the years the national calendar lists (rule h), and never start after or end
 before the seed's day, so they always cover it: on the calendar's first or last day off, covering it
 wins and a span starts or ends on that day. A seed run on a day outside those years fails: the
-calendar needs a new year. Each scenario is frozen with the calendar of its reference year, as
-choosing does. Production reseeds on every deploy and daily (ADR 0006), so its spans follow today.
+calendar needs a new year. Each is chosen as choosing does, its revision costed with the calendar
+of its reference year. Production reseeds on every deploy and daily (ADR 0006), so its spans follow today.
 
 ### Choosing a scenario
 
-Choosing a scenario needs rate access and does what rule b says, in one transaction: it marks it
-chosen, unmarks the project's previously chosen scenario (rule i) and deletes that one's frozen
-rows, and writes the new scenario's FrozenRates (one per category it uses) and its
-FrozenCostConfig, read from the current values. Unchoosing, also with rate access only, deletes its
-frozen rows. Both move the scenario's version on, like a save, so a page holding an older version
+Choosing a scenario needs rate access and does what rule b says, in one transaction: it unmarks
+the project's previously chosen scenario (rule i), makes a revision of the scenario as saved with
+the current values, or uses its latest again when nothing differs ([When one is made](#when-one-is-made)),
+and marks it chosen, pointing at that revision. Unchoosing, also with rate access only, removes the
+pointer; the revision stays. Both move the scenario's version on, like a save, so a page holding an older version
 gets a conflict instead of overwriting the choice. A scenario with a category without a rate cannot
-be chosen: there is no rate to freeze (rule k). An empty team commits to nothing: the page does not
-offer choosing it, and the server refuses it from v0.3. Those are the only rules that block
-choosing: a scenario with undetermined revenue (a missing price), or one whose dates fall outside the calendar,
-can be chosen, and its calendar working hours are those of the calendar's first year, as the engine uses.
+be chosen: its staff cost is undetermined (rule k). An empty team commits to nothing: the page does not
+offer choosing it, and the server refuses it from v0.3. Nor can one whose dates fall outside the
+calendar's years be chosen: the engine cannot cost it (rule h), so there is no revision to point at,
+and the server refuses it. Those are the only rules that block choosing: a scenario with
+undetermined revenue (a missing price) can be chosen.
 Choosing what is chosen, or unchoosing what is not, is refused as changing nothing, and the demo
 template is never chosen or unchosen: only its visitors' copies are
 ([ADR 0011](adr/0011-saving-edits-and-the-visitor-copy.md)).
 
-**A chosen scenario's team cannot be edited.** It is a commitment, and a category added after
-choosing would have no frozen rate, while writing one needs rate access that editing a team does
-not. To
-change it, unchoose it, edit it and choose it again, which freezes the current values.
-
-**The v0.5 target** (slice 6): choosing does all of the above with a revision instead of frozen rows.
-Choosing a scenario makes or reuses its latest revision and points at it; choosing an older revision
-lists what changed since first; unchoosing removes the pointer only. The rules that block choosing,
-and the locked team, stay. See [Choosing a revision](#choosing-a-revision).
+**A chosen scenario's team cannot be edited.** It is a commitment: the page shows its chosen
+revision's team, locked. To change it, unchoose it, edit it and choose it again, which makes a
+revision with the current values. Choosing an older revision, which lists what changed since first,
+is [Choosing a revision](#choosing-a-revision).
 
 ### Duplicating a scenario
 
@@ -555,10 +542,11 @@ is a new scenario of the same project, in one transaction:
   cost, with a new id. A scenario has no settings of its own besides its name: overrides live on
   the project (ProjectPricing), which both scenarios share. Nothing is shared with the original, so
   editing one never touches the other.
-- **What it does not copy:** whether it is chosen, the frozen rows and, from v0.5, its revisions. The copy is always a draft
+- **What it does not copy:** whether it is chosen and its revisions. The copy is always a draft
   with version 1, costed with the current values (rule b). A chosen scenario may be duplicated:
-  its copy keeps its team and extra costs but not its frozen rates, so its cost differs when rates
-  changed after choosing. A non-chosen scenario and its copy give the same cost and margin.
+  its copy takes the team and extra costs its page shows, its chosen revision's, but not the
+  revision's rates or settings, so its cost differs when they changed after choosing. A non-chosen
+  scenario and its copy give the same cost and margin.
 - **People are copied as they are:** a person who was deactivated or moved to another category
   after being assigned stays on the copy, as a loaded team keeps them ([Changes](#changes)).
 - **Its name** is the original's followed by a suffix in the language of whoever duplicates, like a
@@ -589,8 +577,8 @@ assignments have new ids ([Comparing scenarios](#comparing-scenarios)).
 ## The organization at a glance
 
 Inicio and the projects list show every project of the organization at once, costed exactly as
-the scenario page costs each scenario: the same engine over the same basis, a chosen scenario with
-its frozen values (rule b). Nothing here is stored; it is read again on every request. In code this
+the scenario page costs each scenario: the same engine over the same basis, a chosen scenario as
+its revision stored it (rule b). Nothing here is stored; it is read again on every request. In code this
 is the organization's portfolio: `loadPortfolio` reads it, and `src/lib/portfolio` works out what
 follows.
 
@@ -627,6 +615,9 @@ organization, chosen or not, gathered **once per missing input, not once per sce
 - **A project's exceeded budget cap:** a warning, once per time-and-materials project, for the
   scenarios whose revenue is over its cap (rule e).
 
+A chosen scenario's corrections are the warnings its chosen revision stored, since that is what its
+page shows; fixing them moves it only once it is chosen again.
+
 Each correction names the first scenario it affects (chosen scenarios first, then by project and
 scenario name) and how many more it affects, and leads to that scenario; a missing price or planned
 period leads to the project. They are listed in the order above, then by name. All of them are
@@ -653,13 +644,14 @@ for whoever reads its proposal. The period is a reference, not a limit:
   team, with how far outside it falls in calendar days; so is a planned period the team as a whole
   does not cover, from its first start to its last end, with how many days it leaves at each side.
   A scenario without a team flags nothing. The flags hold no money: everyone sees them.
-- **Undated recurring costs follow it** (rule d), in every scenario of the project, so all of them
+- **Undated recurring costs follow it** (rule d), in every scenario of the project but the chosen
+  one, whose revision keeps the period it was made with, so all of them
   are costed over the same months. Without a planned period they follow each scenario's project span,
   as before, and in a scenario without assignments they are undetermined (rule d): removing the
   whole team or clearing the period never makes the scenario fail.
 - **Changing it keeps every assignment as it was.** What moves is the undated recurring costs, so the
-  form that changes it says which ones will follow, names the chosen scenario whose cost will move
-  with them, if any, and the summary recalculates. Shifting the
+  form that changes it says which ones will follow, in the scenarios that are not chosen, and the
+  summary recalculates. Shifting the
   assignments with it would be a separate, explicit action, not part of v0.3.
 - **Its dates follow the calendar's rules** (rule h): inside the listed years, start not after end.
 
@@ -683,9 +675,9 @@ scenario page already gets.
 
 - **Two or three scenarios of the same project**, each once. Scenarios of different projects are
   never compared: each margin % is over its own revenue (rule f), and their prices are unrelated.
-- **The chosen scenario may sit next to drafts.** It is costed as its page costs it, with its frozen
-  values (rule b), and the drafts with the current ones; the comparison says which column uses frozen
-  values, since part of a difference may come from rates changed after choosing.
+- **The chosen scenario may sit next to drafts.** It shows its chosen revision, as its page does
+  (rule b), and the drafts are costed with the current values; the comparison says which column
+  shows a revision, and which one, since part of a difference may come from values changed since.
 - **A scenario without assignments** may be compared: its lines are what the engine gives it.
 - **Target margin** is the organization's current one for every column (rule b), so the margin
   statuses are judged against the same goal.
@@ -900,7 +892,7 @@ From v0.5 a scenario can have revisions: a copy of it, at one moment, that never
 link and a choice point at a revision, never at the scenario, so what someone reads or chose stays
 what it was while the scenario goes on being edited
 ([ADR 0013](adr/0013-scenario-revisions.md)). Revisions land in v0.5's slices 1 to 6
-([plan](plan.md#v05-slices)); until slice 6 a chosen scenario still freezes as
+([plan](plan.md#v05-slices)); before slice 6 a chosen scenario froze as
 [What choosing freezes](#what-choosing-freezes) says.
 
 ### What a revision holds
@@ -956,8 +948,8 @@ since nobody else can open their copy; they open the revisions of the demo and o
 the team as saved, with the current values, and leaves the choice where it was; choosing that new
 revision then moves it, as below.
 
-**In the demo** the seed writes one revision of a chosen scenario and one derived alternative, to
-show both. A visitor's copy copies them with new ids, like the rest of the template
+**In the demo** the seed writes the revision each chosen scenario points at and one derived
+alternative, to show both. A visitor's copy copies them with new ids, like the rest of the template
 ([ADR 0011](adr/0011-saving-edits-and-the-visitor-copy.md)).
 
 ### Sharing a revision
@@ -1000,10 +992,18 @@ From slice 6 choosing points at a revision; FrozenRate and FrozenCostConfig are 
 
   Nothing in the list blocks choosing: the revision keeps the values it was made with.
 
-- **What reads the chosen revision:** the scenario page, Inicio, the comparison and the weekly load
-  of other projects all read a chosen scenario's chosen revision, its result and its team, not its
-  saved team and current values. Its team cannot be edited while it is chosen, as today.
+- **What reads the chosen revision:** the scenario page, Inicio, the comparison, occupancy and the
+  weekly load of other projects all read a chosen scenario's chosen revision, its result and its
+  team, not its saved team and current values. Its team cannot be edited while it is chosen, as
+  today.
 - **Unchoosing** removes the pointer only: the revision stays, and so do the others.
+- **Chosen before slice 6:** a backfill gave each scenario chosen then a revision from its frozen
+  rows (or, without them, from the values it was costed with that day), with the team, price,
+  planned period and extra costs it had, so no result moved. Nobody made it, so it has no author and
+  says it was migrated, not «antiguo miembro». One the engine could not cost (a date outside the
+  calendar) was unchosen instead. Until the backfill reaches it, a scenario chosen before slice 6
+  shows its saved team and counts in no occupancy or weekly load: this lasts only while a deploy
+  runs (docs/operations/deploy.md).
 - **Rules that block choosing are today's:** rate access, no undetermined staff cost (a category
   without a rate, rule k), and a team that is not empty
   ([Choosing a scenario](#choosing-a-scenario)). Choosing the revision already chosen is refused as
