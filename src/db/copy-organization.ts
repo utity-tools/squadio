@@ -11,8 +11,6 @@ import {
   config,
   costConfig,
   extraCosts,
-  frozenCostConfig,
-  frozenRates,
   people,
   projectPricing,
   projects,
@@ -58,9 +56,6 @@ const COPIES: readonly Copied[] = [
   // One statement per table: reports_to is checked once all of its rows are in.
   { table: assignments, ids: ["id", "scenarioId", "categoryId", "personId", "reportsTo"] },
   { table: extraCosts, ids: ["id", "scenarioId"] },
-  // Retired in slice 6: nothing writes them, and slice 6c drops them.
-  { table: frozenRates, ids: ["scenarioId", "categoryId"] },
-  { table: frozenCostConfig, ids: ["scenarioId"] },
   // ADR 0013: a revision's parts name the template's rows, so their ids follow the copy's.
   {
     table: scenarioRevisions,
