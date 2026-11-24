@@ -164,3 +164,27 @@ Roles and invitations, which sharing needs, are [ADR 0015](0015-roles-and-invita
     numbering and a suffix of its own.
   - **The demo seed** derives its alternative from the delivery plan's revision, by nobody, with
     fixed ids; a visitor's copy copies it, its revision renamed and no author.
+- **2026-11-24, slice 6a (choosing points at a revision):** how the pointer and the backfill
+  landed; the change check and choosing an older revision follow in 6b, dropping the frozen tables
+  in 6c.
+  - **The pointer lives on the scenario:** `chosen_revision_id` (migration 0016), with a composite
+    key to one of the scenario's own revisions, deferred to the commit as the alternative's is, and
+    a check that a scenario is chosen exactly when it points at one. The check is `NOT VALID`:
+    rows chosen before the migration have no revision until the backfill gives them one, and every
+    write from the migration on must satisfy it. Slice 6c validates it once the backfill has run in
+    production.
+  - **The backfill is a script, not a migration** (`pnpm db:backfill-revisions`): a revision's
+    result needs the engine, which lives in TypeScript. It runs as the owner role, one organization
+    per transaction, right after the migrations in every deploy and in CI, and changes nothing when
+    run again. It costs each scenario with its frozen rows when it has them, else with the values
+    it is costed with that day; nobody makes the revision, and its reason is `migrated`. A scenario
+    the engine cannot cost (a date outside the calendar) is unchosen instead, since nothing could
+    be pointed at.
+  - **Choosing builds the revision before it writes anything,** so a team the engine cannot cost is
+    refused and the project keeps its chosen scenario. The role is checked again inside the
+    transaction, as for the alternative.
+  - **Readers show the chosen revision as stored,** never recalculated: the page's team and result,
+    Inicio, the comparison (which names the revision it shows), occupancy and the weekly load of
+    other projects. Duplicating a chosen scenario copies its revision's team and extra costs.
+  - **Until the new deployment is live** the previous one can neither choose nor unchoose: the
+    check refuses both. That lasts the minute or two of a deploy (`docs/operations/deploy.md`).
