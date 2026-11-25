@@ -1175,7 +1175,8 @@ and `Persona 01;Senior Developer;40;` and `Persona 02;Project Manager;40;` for p
   rows refuse the file whole. Blank lines are skipped. A row with more or fewer cells than the
   header is an error. Rows are numbered as a spreadsheet shows them: the header is row 1.
 - **Separator:** `;` or `,`, the one that splits the header outside quotes; when both do, `;`.
-  Quoted cells may hold either.
+  Quoted cells may hold either, and line breaks. A quote that never closes refuses the file whole,
+  since every row after it would read as part of one cell.
 - **Columns:** each field matches one column at most; a second column with the same name is left
   out until the member matches it by hand. Every field the file needs must be matched before the
   rows are checked.
