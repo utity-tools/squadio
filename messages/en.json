@@ -871,7 +871,6 @@
     "table": "Table",
     "locked": {
       "revision": "Team locked · shows the chosen revision",
-      "chosen": "Team locked · scenario chosen",
       "viewer": "Read only · you are a viewer"
     }
   },

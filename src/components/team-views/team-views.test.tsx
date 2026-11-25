@@ -54,15 +54,12 @@ const bodyRows = () =>
 const lastUrl = (replaceState: ReturnType<typeof stubHistory>) => replaceState.mock.lastCall?.[2];
 
 describe("TeamViews", () => {
-  it.each([
-    ["revision", "Equipo bloqueado · muestra la revisión elegida"],
-    ["chosen", "Equipo bloqueado · escenario elegido"],
-  ] as const)("says a chosen scenario's team is locked (%s)", (locked, words) => {
+  it("says a chosen scenario's team is locked and shows its chosen revision", () => {
     stubScreen({ wide: true });
     stubHistory(PATH);
-    renderWithIntl(<TeamViews {...data} locked={locked} />);
+    renderWithIntl(<TeamViews {...data} locked="revision" />);
 
-    expect(screen.getByText(words)).toBeVisible();
+    expect(screen.getByText("Equipo bloqueado · muestra la revisión elegida")).toBeVisible();
   });
 
   it("says nothing is locked while the team can be edited", () => {

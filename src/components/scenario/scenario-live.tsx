@@ -26,11 +26,10 @@ export function LiveScenarioHeader() {
 
 export function LiveScenarioTeam() {
   const scenario = useScenarioView();
-  // A chosen scenario shows its revision's team, and says so; a legacy row chosen before slice 6
-  // with no revision says only that it is chosen (docs/domain.md, "Choosing a revision").
+  // A chosen scenario shows its revision's team, and says so (docs/domain.md, "Choosing a
+  // revision").
   const store = useScenarioStore();
   const readOnly = useScenarioReadOnly();
-  const fromRevision = useStore(store, ({ basis }) => basis.chosenRevision !== undefined);
   const team = useStore(store, (state) => state.history.team);
   const basis = useStore(store, (state) => state.basis);
   // Rule c on every change, from the store's team: no money, so everyone sees it.
@@ -50,15 +49,7 @@ export function LiveScenarioTeam() {
         // Which categories lack a rate is restricted: without rate access, no node is marked.
         withoutRate={categoriesWithoutRate(scenario)}
         // A viewer's page says why the team is locked first, chosen or not (ADR 0015).
-        locked={
-          readOnly
-            ? "viewer"
-            : scenario.scenario.chosen
-              ? fromRevision
-                ? "revision"
-                : "chosen"
-              : undefined
-        }
+        locked={readOnly ? "viewer" : scenario.scenario.chosen ? "revision" : undefined}
         plannedPeriod={scenario.project.plannedPeriod}
         overAllocated={overAllocated}
       />
