@@ -14,6 +14,7 @@ import {
   createHistory,
   markSaved,
   record,
+  recordAll,
   redo,
   undo,
 } from "./history";
@@ -75,7 +76,7 @@ describe("history", () => {
     const undone = accepted(undo(recorded(createHistory(team), removeLead), roster));
     const history = recorded(undone, moveDeveloper);
     expect(canRedo(history)).toBe(false);
-    expect(history.entries.map((entry) => entry.change)).toEqual([moveDeveloper]);
+    expect(history.entries.map((entry) => entry.changes)).toEqual([[moveDeveloper]]);
   });
 
   it("drops only the changes a save sent, keeping later ones", () => {
@@ -180,5 +181,57 @@ describe("history invariants", () => {
       }),
       RUNS,
     );
+  });
+
+  describe("one entry of several changes (an example team)", () => {
+    const openRole = (n: number, reportsTo: string | null): Member => ({
+      ...team[2]!,
+      id: seatId(n),
+      personId: null,
+      reportsTo,
+    });
+    const adds: Change[] = [
+      { type: "add", member: openRole(6, null) },
+      { type: "add", member: openRole(7, seatId(6)) },
+      { type: "add", member: openRole(8, seatId(7)) },
+    ];
+    const recordedAll = (history: History, changes: readonly Change[]) =>
+      accepted(recordAll(history, roster, changes));
+
+    it("applies them as one entry and leaves each to save", () => {
+      const history = recordedAll(createHistory([]), adds);
+      expect(history.team.map((member) => member.id)).toEqual([6, 7, 8].map(seatId));
+      expect(history.entries).toHaveLength(1);
+      expect(history.cursor).toBe(1);
+      expect(history.pending).toEqual(adds);
+    });
+
+    it("undoes them in one step, last first, and redoes them in one", () => {
+      const history = recordedAll(createHistory([]), adds);
+      const undone = accepted(undo(history, roster));
+      expect(undone.team).toEqual([]);
+      expect(undone.cursor).toBe(0);
+      expect(undone.pending.slice(3)).toEqual([
+        { type: "remove", id: seatId(8) },
+        { type: "remove", id: seatId(7) },
+        { type: "remove", id: seatId(6) },
+      ]);
+      const redone = accepted(redo(undone, roster));
+      expect(redone.team).toEqual(history.team);
+      expect(redone.pending.slice(6)).toEqual(adds);
+    });
+
+    it("records none of them when one is refused", () => {
+      const history = createHistory([]);
+      const refused = [...adds.slice(0, 2), { type: "add", member: openRole(6, null) } as Change];
+      expect(recordAll(history, roster, refused)).toEqual({ ok: false, reason: "id-taken" });
+    });
+
+    it("refuses an empty list, which would only take an undo slot", () => {
+      expect(recordAll(createHistory(team), roster, [])).toEqual({
+        ok: false,
+        reason: "no-change",
+      });
+    });
   });
 });

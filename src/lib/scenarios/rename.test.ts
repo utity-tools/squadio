@@ -67,7 +67,7 @@ describe("renameHistory", () => {
     expect(next.team.find((member) => member.id === copyOf(developer.id))?.reportsTo).toBe(
       copyOf(manager.id),
     );
-    expect(next.entries[0]?.change).toEqual({ type: "remove", id: copyOf(lead.id) });
+    expect(next.entries[0]?.changes[0]).toEqual({ type: "remove", id: copyOf(lead.id) });
     expect(next.entries[0]?.inverse[0]).toMatchObject({
       type: "restore",
       member: { id: copyOf(lead.id), personId: copyOf(personId(1)), categoryId: copyOf(SENIOR) },

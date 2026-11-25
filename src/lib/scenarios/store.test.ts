@@ -376,7 +376,7 @@ describe("saving", () => {
       copyOf(PM),
     ]);
     expect(state.roster.categoryIds.has(copyOf(SENIOR))).toBe(true);
-    expect(state.history.entries[0]?.change).toEqual({
+    expect(state.history.entries[0]?.changes[0]).toEqual({
       type: "edit",
       id: copyOf(developer.id),
       set: { allocation: 50 },
