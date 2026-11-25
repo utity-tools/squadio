@@ -34,7 +34,12 @@ type Start = (
   name: string,
 ) => Promise<{ ok: true } | { ok: false; reason: "no-copy" }>;
 
-async function start(form: FormData, run: Start, label: string): Promise<StartState> {
+async function start(
+  form: FormData,
+  run: Start,
+  label: string,
+  reload = true,
+): Promise<StartState> {
   const name = organizationNameSchema.safeParse(form.get("name"));
   if (!name.success) {
     return { error: name.error.issues[0]?.message === "too-long" ? "too-long" : "blank" };
@@ -49,7 +54,7 @@ async function start(form: FormData, run: Start, label: string): Promise<StartSt
     return { error: "failed" };
   }
   // The page loads again, now as the member's.
-  refresh();
+  if (reload) refresh();
   return { error: null };
 }
 
@@ -59,6 +64,23 @@ export async function startEmptyOrganization(
   form: FormData,
 ): Promise<StartState> {
   return start(form, (starter, name) => createEmptyOrganization(db, starter, name), "startEmpty");
+}
+
+/**
+ * Creates an empty organization, as `startEmptyOrganization` does, then leads to the import of
+ * its categories in the form's locale (ADR 0016): the third way to start one.
+ */
+export async function startAndImport(_previous: StartState, form: FormData): Promise<StartState> {
+  const state = await start(
+    form,
+    (starter, name) => createEmptyOrganization(db, starter, name),
+    "startAndImport",
+    false,
+  );
+  if (state.error) return state;
+  // Outside start's try: redirect throws to navigate.
+  redirect({ href: "/import", locale: localeSchema.parse(form.get("locale")) });
+  return state;
 }
 
 /** Adopts the visitor's copy the cookie leads to, then clears the cookie. */

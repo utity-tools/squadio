@@ -26,6 +26,7 @@ import {
   adoptVisitorsCopy,
   deleteOrganization,
   deleteOwnAccount,
+  startAndImport,
   startEmptyOrganization,
 } from "./actions";
 
@@ -104,6 +105,7 @@ async function OrganizationContent() {
       <StartOrganization
         canAdopt={canAdopt}
         createEmpty={startEmptyOrganization}
+        createAndImport={startAndImport}
         adopt={adoptVisitorsCopy}
       />
       <DangerZone

@@ -1,6 +1,6 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useActionState, useId } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,7 @@ type StartFormProps = {
 /** One way to start an organization: a name and a button, and why it failed, if it did. */
 function StartForm({ heading, intro, submit, defaultName, action }: StartFormProps) {
   const t = useTranslations("Organization");
+  const locale = useLocale();
   const [state, formAction, pending] = useActionState(action, INITIAL);
   const id = useId();
   const nameId = `${id}-name`;
@@ -46,6 +47,8 @@ function StartForm({ heading, intro, submit, defaultName, action }: StartFormPro
       </h2>
       <p className="text-sm text-muted-foreground">{intro}</p>
       <form action={formAction} noValidate className="flex flex-col gap-3">
+        {/* The action leads on in the page's locale: it cannot read it itself. */}
+        <input type="hidden" name="locale" value={locale} />
         <div className="flex flex-col gap-1.5">
           <label htmlFor={nameId} className="text-sm font-medium">
             {t("nameLabel")}
@@ -87,11 +90,21 @@ type StartOrganizationProps = {
   /** The visitor's cookie leads to a copy of the demo, which can be adopted (ADR 0012). */
   canAdopt: boolean;
   createEmpty: StartAction;
+  /** Creates an empty organization, then leads to the import of its categories (ADR 0016). */
+  createAndImport: StartAction;
   adopt: StartAction;
 };
 
-/** The two ways to start an organization: adopting the visitor's copy, when there is one, or empty. */
-export function StartOrganization({ canAdopt, createEmpty, adopt }: StartOrganizationProps) {
+/**
+ * The ways to start an organization: adopting the visitor's copy, when there is one, empty, or
+ * from a spreadsheet.
+ */
+export function StartOrganization({
+  canAdopt,
+  createEmpty,
+  createAndImport,
+  adopt,
+}: StartOrganizationProps) {
   const t = useTranslations("Organization");
   return (
     <div className="flex w-full flex-col items-center gap-4">
@@ -109,6 +122,12 @@ export function StartOrganization({ canAdopt, createEmpty, adopt }: StartOrganiz
         intro={t("emptyIntro")}
         submit={t("createEmpty")}
         action={createEmpty}
+      />
+      <StartForm
+        heading={t("importHeading")}
+        intro={t("importIntro")}
+        submit={t("createAndImport")}
+        action={createAndImport}
       />
     </div>
   );

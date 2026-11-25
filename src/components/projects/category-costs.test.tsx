@@ -82,6 +82,10 @@ describe("CategoryCosts", () => {
   it("offers adding and editing to a member with rate access", () => {
     render();
     expect(screen.getByRole("button", { name: "Añadir categoría" })).toBeInTheDocument();
+    // ADR 0016: or importing them from a spreadsheet.
+    expect(
+      screen.getByRole("link", { name: "Importar desde una hoja de cálculo" }),
+    ).toHaveAttribute("href", "/import");
     expect(screen.getByRole("button", { name: "Editar Project Manager" })).toBeInTheDocument();
   });
 
@@ -89,6 +93,7 @@ describe("CategoryCosts", () => {
     render({ action: null });
     expect(screen.queryByRole("button", { name: "Añadir categoría" })).toBeNull();
     expect(screen.queryByRole("button", { name: /Editar/ })).toBeNull();
+    expect(screen.queryByRole("link", { name: /Importar/ })).toBeNull();
   });
 
   it("says what the sell rate is for under each pricing model", () => {

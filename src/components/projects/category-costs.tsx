@@ -1,9 +1,11 @@
 "use client";
 
+import { FileSpreadsheetIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useId, useState } from "react";
 
 import { TermInfo, useSummaryFormat } from "@/components/summary/summary-format";
+import { buttonVariants } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
 import { Panel, PanelTitle } from "@/components/ui/panel";
 import {
@@ -14,6 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Link } from "@/i18n/navigation";
 import { summarizeCategory } from "@/lib/categories/category-summary";
 import type { PricingModel } from "@/lib/projects/new-project";
 import type { CategoryRateValues } from "@/lib/categories/category-form";
@@ -58,7 +61,16 @@ export function CategoryCosts({
           <PanelTitle id={titleId}>{t("title")}</PanelTitle>
           <p className="text-[13px] text-muted-foreground">{t("description")}</p>
         </div>
-        {action && <CategorySheet action={action} onSaved={setSaved} />}
+        {action && (
+          <div className="flex flex-wrap items-center gap-2">
+            {/* ADR 0016: or bring them all from a spreadsheet. */}
+            <Link href="/import" className={buttonVariants({ variant: "outline" })}>
+              <FileSpreadsheetIcon aria-hidden="true" />
+              {t("import")}
+            </Link>
+            <CategorySheet action={action} onSaved={setSaved} />
+          </div>
+        )}
       </div>
 
       {categories.length === 0 ? (
