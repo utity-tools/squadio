@@ -5,15 +5,22 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { expectNoAxeViolations } from "@/test/axe";
 import { renderWithIntl } from "@/test/render";
 
-import { type ImportCategoriesAction, ImportCategories } from "./import-categories";
+import { type ImportCategoriesAction, ImportFlow, type ImportPeopleAction } from "./import-flow";
 
 vi.mock("next/navigation", () => import("@/test/navigation"));
 
-// Boards 10 to 12: a categories file uploaded, its columns matched, its rows reviewed and fixed,
-// then imported all or none (ADR 0016). The file never leaves the browser: only matched rows do.
+// Boards 10 to 13: a categories file, then a people file, uploaded, their columns matched, their
+// rows reviewed and fixed, then imported all or none (ADR 0016). A file never leaves the browser:
+// only matched rows do.
 
 const action = vi.fn<ImportCategoriesAction>();
+const peopleAction = vi.fn<ImportPeopleAction>();
 const existing = [{ id: "c-senior", name: "Senior Developer", hasRate: true }];
+const peopleContext = {
+  people: [{ id: "p-01", name: "Persona 01", categoryId: "c-senior" }],
+  categories: [...existing, { id: "c-manager", name: "Project Manager", hasRate: false }],
+  defaultWeeklyHours: 40,
+};
 
 const FILE = [
   "Perfil;Bruto anual;SS %;Otros;Precio hora;Departamento",
@@ -25,7 +32,16 @@ const FILE = [
 const csv = (text: string, name = "costes_2027.csv") =>
   new File([text], name, { type: "text/csv" });
 
-const render = () => renderWithIntl(<ImportCategories existing={existing} action={action} />);
+const render = (start: "categories" | "people" = "categories") =>
+  renderWithIntl(
+    <ImportFlow
+      start={start}
+      categories={existing}
+      people={peopleContext}
+      importCategories={action}
+      importPeople={peopleAction}
+    />,
+  );
 
 async function uploadAndMatch(user: ReturnType<typeof userEvent.setup>, text = FILE) {
   await user.upload(screen.getByLabelText("Archivo CSV de categorías y costes"), csv(text));
@@ -35,9 +51,11 @@ async function uploadAndMatch(user: ReturnType<typeof userEvent.setup>, text = F
 beforeEach(() => {
   action.mockReset();
   action.mockResolvedValue({ ok: true, creates: 1, updates: 1 });
+  peopleAction.mockReset();
+  peopleAction.mockResolvedValue({ ok: true, creates: 2, updates: 1, newCategories: 1 });
 });
 
-describe("ImportCategories", () => {
+describe("ImportFlow, categories file", () => {
   it("starts at the upload, with the template and the steps", async () => {
     render();
     expect(screen.getByRole("heading", { name: "Sube tu archivo" })).toBeInTheDocument();
@@ -215,5 +233,112 @@ describe("ImportCategories", () => {
     expect(
       screen.queryByRole("heading", { name: "Categorías importadas" }),
     ).not.toBeInTheDocument();
+  });
+});
+
+// Board 13: the people file, after the categories or alone, from «Personas».
+const PEOPLE = [
+  "nombre;categoria;jornada_semanal;area;salario",
+  "Persona 01;Senior Developer;40;;41000",
+  "Persona 02;Cloud Architect;40;Cloud;38000",
+  "Persona 03;Project Manager;40;;45000",
+  "persona 03;Project Manager;32;;45000",
+].join("\n");
+
+describe("ImportFlow, people file", () => {
+  async function toPeopleReview(user: ReturnType<typeof userEvent.setup>) {
+    await user.upload(screen.getByLabelText("Archivo CSV de personas"), csv(PEOPLE, "equipo.csv"));
+    await user.click(screen.getByRole("button", { name: "Continuar" }));
+    // The template's names match by themselves; the salary column is left out.
+    expect(screen.getByRole("combobox", { name: "Campo de Squadio para «salario»" })).toHaveValue(
+      "",
+    );
+    await user.click(screen.getByRole("button", { name: "Revisar 4 filas" }));
+  }
+
+  it("starts at the people file alone, as «Personas» leads here", async () => {
+    render("people");
+    expect(screen.getByText(/Archivo 2 de 2/)).toBeVisible();
+    const files = within(screen.getByRole("list", { name: "Archivos" })).getAllByRole("listitem");
+    expect(files).toHaveLength(2);
+    expect(files[0]).toHaveTextContent("1. Categorías y costes");
+    expect(files[1]).toHaveTextContent("2. Personas");
+    expect(files[1]).toHaveAttribute("aria-current", "step");
+    expect(files[0]).not.toHaveAttribute("aria-current");
+    expect(screen.getByRole("button", { name: "Descargar plantilla de personas" })).toBeVisible();
+    expect(screen.getByRole("link", { name: "Cancelar" })).toHaveAttribute("href", "/people");
+    await expectNoAxeViolations();
+  });
+
+  it("reviews people: a missing category is a warning, a repeated name an error", async () => {
+    const user = userEvent.setup();
+    render("people");
+    await toPeopleReview(user);
+    expect(screen.getByRole("columnheader", { name: "Nombre" })).toBeVisible();
+    expect(screen.getByRole("columnheader", { name: "Jornada semanal" })).toBeVisible();
+    const cloud = screen.getByRole("row", { name: /Persona 02/ });
+    expect(within(cloud).getByText("No existe: se creará con coste Pendiente.")).toBeVisible();
+    expect(within(cloud).getByText("Aviso")).toBeVisible();
+    const repeated = screen.getByRole("row", { name: /persona 03/ });
+    expect(within(repeated).getByText("Repite la fila 4.")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Importar 4 personas" })).toHaveAttribute(
+      "aria-disabled",
+      "true",
+    );
+    await expectNoAxeViolations();
+  });
+
+  it("fixes the repeated name and imports every person, never the salary column", async () => {
+    const user = userEvent.setup();
+    render("people");
+    await toPeopleReview(user);
+    await user.click(
+      screen.getByRole("button", { name: "Corregir Nombre de la fila 5: persona 03" }),
+    );
+    await user.type(
+      screen.getByRole("textbox", { name: "Nombre de la fila 5" }),
+      "{Control>}a{/Control}Persona 04{Enter}",
+    );
+    expect(
+      screen.getByText(
+        "3 personas nuevas, 1 que ya existe y se actualizará y 1 categoría nueva, sin coste.",
+      ),
+    ).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Importar 4 personas" }));
+    expect(peopleAction).toHaveBeenCalledWith({
+      rows: expect.arrayContaining([
+        expect.objectContaining({
+          row: 5,
+          cells: { name: "Persona 04", category: "Project Manager", weeklyHours: "32", area: "" },
+        }),
+      ]),
+    });
+    expect(JSON.stringify(peopleAction.mock.calls[0])).not.toContain("41000");
+    expect(await screen.findByRole("heading", { name: "Personas importadas" })).toHaveFocus();
+    expect(screen.getByText("2 personas creadas y 1 actualizada.")).toBeVisible();
+    expect(screen.getByText(/La categoría nueva tiene su coste pendiente/)).toBeVisible();
+    expect(screen.getByRole("link", { name: "Ir a personas" })).toHaveAttribute("href", "/people");
+  });
+
+  it("follows the categories file, saying what it imported", async () => {
+    const user = userEvent.setup();
+    render();
+    await uploadAndMatch(
+      user,
+      ["categoria;salario_bruto_anual;tarifa_venta_hora", "QA Engineer;38.000;45"].join("\n"),
+    );
+    await user.click(screen.getByRole("button", { name: "Revisar 1 fila" }));
+    await user.click(screen.getByRole("button", { name: "Importar 1 categoría" }));
+    await user.click(await screen.findByRole("button", { name: "Continuar con personas" }));
+    const upload = screen.getByRole("heading", { name: "Sube tu archivo" });
+    expect(upload).toHaveFocus();
+    // The focus lands on the heading: it carries what the categories file imported.
+    expect(upload).toHaveAccessibleDescription("2 categorías importadas. Ahora las personas.");
+    expect(screen.getByText("2 categorías importadas.").closest("[role=status]")).toHaveTextContent(
+      "2 categorías importadas. Ahora las personas.",
+    );
+    expect(screen.getByLabelText("Archivo CSV de personas")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Cancelar" })).toHaveAttribute("href", "/projects");
+    await expectNoAxeViolations();
   });
 });

@@ -16,32 +16,36 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  type CategoryField,
   type ColumnMatch,
   fieldsOf,
+  type ImportField,
+  type ImportKind,
   missingFields,
 } from "@/lib/import/columns";
 import { columnExamples, fieldAt } from "@/lib/import/review";
 
+import { useFieldLabel } from "./kinds";
 import type { LoadedFile } from "./upload-step";
 
-const FIELDS = fieldsOf("categories");
 const SELECT = controlClassName();
 
-type ColumnsStepProps = {
+type ColumnsStepProps<K extends ImportKind> = {
+  /** Which file this is: it says which fields a column can feed. */
+  kind: K;
   headingRef: Ref<HTMLHeadingElement>;
   loaded: LoadedFile;
-  columns: ColumnMatch<"categories">;
+  columns: ColumnMatch<K>;
   /** What the module matched by name, marked «Sugerido». */
-  suggested: ColumnMatch<"categories">;
-  onMatch: (index: number, field: CategoryField | null) => void;
+  suggested: ColumnMatch<K>;
+  onMatch: (index: number, field: ImportField<K> | null) => void;
   onChangeFile: () => void;
   /** The id of the missing fields' note, which the step's button points to. */
   missingId: string;
 };
 
 /** Board 11: each column of the file feeds a field of Squadio, or is left out. */
-export function ColumnsStep({
+export function ColumnsStep<K extends ImportKind>({
+  kind,
   headingRef,
   loaded,
   columns,
@@ -49,19 +53,20 @@ export function ColumnsStep({
   onMatch,
   onChangeFile,
   missingId,
-}: ColumnsStepProps) {
+}: ColumnsStepProps<K>) {
   const t = useTranslations("Import");
   const format = useFormatter();
   const id = useId();
+  const label = useFieldLabel(kind);
+  // Messages are keyed by the file; a generic kind would not name one.
+  const messages: ImportKind = kind;
   const { file, name } = loaded;
-  const missing = missingFields("categories", columns);
-  const absent = FIELDS.filter((field) => columns[field] === undefined && !missing.includes(field));
-  const list = (fields: readonly CategoryField[]) =>
-    format.list(
-      fields.map((field) => t(`fields.${field}`)),
-      { type: "conjunction" },
-    );
-  const required = FIELDS.filter((field) => missingFields("categories", {}).includes(field));
+  const fields = fieldsOf(kind);
+  const missing = missingFields(kind, columns);
+  const absent = fields.filter((field) => columns[field] === undefined && !missing.includes(field));
+  const list = (shown: readonly ImportField<K>[]) =>
+    format.list(shown.map(label), { type: "conjunction" });
+  const required = missingFields(kind, {});
 
   return (
     <section aria-labelledby={`${id}-heading`} className="flex flex-col gap-4">
@@ -119,14 +124,15 @@ export function ColumnsStep({
                       aria-label={t("columns.fieldFor", { column })}
                       value={field ?? ""}
                       onChange={(event) =>
-                        onMatch(index, (event.target.value || null) as CategoryField | null)
+                        // The options are this file's fields, or "" to leave the column out.
+                        onMatch(index, (event.target.value || null) as ImportField<K> | null)
                       }
                       className={SELECT}
                     >
                       <option value="">{t("columns.leaveOut")}</option>
-                      {FIELDS.map((option) => (
+                      {fields.map((option) => (
                         <option key={option} value={option}>
-                          {t(`fields.${option}`)}
+                          {label(option)}
                         </option>
                       ))}
                     </select>
@@ -152,7 +158,7 @@ export function ColumnsStep({
             <CheckIcon aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-status-ok-text" />
             <span>
               {t("columns.ready", { fields: list(required) })}
-              {absent.length > 0 && <> {t("columns.absent", { fields: list(absent) })}</>}
+              {absent.length > 0 && <> {t(`kinds.${messages}.absent`, { fields: list(absent) })}</>}
             </span>
           </p>
         )}

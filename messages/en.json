@@ -547,7 +547,8 @@
         "not-found": "This person no longer exists.",
         "failed": "The person could not be saved. Try again."
       }
-    }
+    },
+    "import": "Import from a spreadsheet"
   },
   "NotFound": {
     "title": "We couldn't find this page",
@@ -1451,8 +1452,10 @@
     "files": {
       "label": "Files",
       "position": "File {current} of {total}",
+      "item": "{number}. {name}",
       "categories": "Categories and costs",
-      "people": "People"
+      "people": "People",
+      "after": "<strong>{count, plural, one {# category imported} other {# categories imported}}.</strong> Now the people."
     },
     "steps": {
       "label": "Import steps",
@@ -1462,18 +1465,8 @@
       "import": "Import",
       "done": "{step}, done"
     },
-    "fields": {
-      "name": "Category",
-      "grossAnnualSalary": "Gross annual salary",
-      "socialSecurity": "Social security %",
-      "otherYearlyCosts": "Other yearly costs",
-      "sellRate": "Sell rate per hour",
-      "manualCostPerHour": "Manual cost per hour"
-    },
     "upload": {
       "heading": "Upload your file",
-      "input": "CSV file of categories and costs",
-      "drop": "Drop your categories and costs CSV here",
       "or": "or",
       "choose": "choose a file",
       "limits": "{rows} rows at most · UTF-8 · 1 MB",
@@ -1483,7 +1476,6 @@
         "too-large": "The file is larger than 1 MB. Split it or remove columns you don't need.",
         "encoding": "The file is not in UTF-8. Export it as «CSV UTF-8» from your spreadsheet.",
         "empty": "The file is empty.",
-        "header-only": "The file only has its header row. Add one row per category.",
         "too-many-rows": "The file has more than {rows} rows. Split it into several.",
         "unclosed-quote": "A quote opens and never closes. Check the file: everything after it would read as one cell.",
         "unreadable": "The file could not be read. Try again."
@@ -1491,9 +1483,6 @@
     },
     "template": {
       "heading": "Use our template",
-      "intro": "One row per category. If you keep the column names, we match them for you.",
-      "download": "Download the categories template",
-      "file": "categories-template.csv",
       "caption": "The template's first columns",
       "more": "Also {columns} (optional)."
     },
@@ -1516,8 +1505,7 @@
       "suggested": "Suggested",
       "leaveOut": "Don't import",
       "missing": "Match {fields}: without {count, plural, one {it} other {them}} no row can be reviewed.",
-      "ready": "The required fields are matched: {fields}.",
-      "absent": "Not in your file: {fields}. A category that exists keeps what it had."
+      "ready": "The required fields are matched: {fields}."
     },
     "review": {
       "heading": "Review the rows",
@@ -1529,7 +1517,6 @@
       "all": "All · {count}",
       "issues": "With an error or warning · {count}",
       "report": "Download the error report",
-      "reportFile": "categories-error-report.csv",
       "reportRow": "row",
       "reportFix": "what to fix",
       "reportIssue": "{field}: {issue}",
@@ -1546,9 +1533,7 @@
       "fixInput": "{field} of row {row}",
       "noIssues": "No row has an error or a warning.",
       "note": "Click a marked cell to fix it here, or fix your file and upload it again. Empty cells never erase what you had.",
-      "plan": "{creates, plural, =0 {No new category} one {# new category} other {# new categories}} and {updates, plural, =0 {none to update} one {# that exists and will be updated} other {# that exist and will be updated}}.",
       "blocked": "{count, plural, one {Fix the error to import} other {Fix the # errors to import}}. All or nothing.",
-      "import": "{count, plural, one {Import # category} other {Import # categories}}",
       "importing": "Importing…"
     },
     "issues": {
@@ -1561,36 +1546,81 @@
       "invalid-hours": "Write hours a week, above 0 and up to 168.",
       "out-of-range": "{column, select, socialSecurity {Between 0 and 100%.} other {Larger than can be stored.}}",
       "duplicate-row": "Repeats row {earlierRow}.",
-      "ambiguous-name": "Several categories have this name: rename one before importing.",
+      "ambiguous-name": "{subject, select, person {Several people have this name: rename one before importing.} other {Several categories have this name: rename one before importing.}}",
       "template-social-security": "Empty: the template's {percent} is used.",
       "template-other-costs": "Empty: the template's {amount} is used.",
-      "category-created-without-rate": "The category will be created without a rate."
+      "category-created-without-rate": "Doesn't exist: it will be created with its cost Pending."
     },
     "errors": {
       "invalid": "The rows could not be sent. Upload the file again.",
       "signed-out": "Your session has ended. Sign in again.",
       "no-organization": "You no longer belong to an organization.",
       "read-only": "Your role can only view: you cannot import.",
-      "no-rate-access": "Importing categories needs rate access.",
-      "rows-changed": "The categories changed while you reviewed. The rows have been checked again: look at them and import again.",
+      "no-rate-access": "Importing needs rate access.",
+      "rows-changed": "The categories or the people changed while you reviewed. The rows have been checked again: look at them and import again.",
       "failed": "The import failed. Nothing was saved; try again."
     },
     "done": {
-      "heading": "Categories imported",
-      "summary": "{creates, plural, =0 {No category created} one {# category created} other {# categories created}} and {updates, plural, =0 {none updated} one {# updated} other {# updated}}.",
-      "next": "The categories are now in «Categories and costs» on all your projects.",
       "projects": "Go to projects",
-      "again": "Import another file"
+      "again": "Import another file",
+      "continue": "Continue with people",
+      "people": "Go to people"
     },
     "unavailable": {
       "heading": "You cannot import into this organization",
-      "body": "Only owners and members, who have rate access, import categories and costs.",
+      "body": "Only owners and members, who have rate access, import categories, costs and people.",
       "home": "Back to Home"
     },
     "cancel": "Cancel",
     "back": "Back",
     "continue": "Continue",
     "uploadFirst": "Upload a file to continue.",
-    "reviewRows": "{count, plural, one {Review # row} other {Review # rows}}"
+    "reviewRows": "{count, plural, one {Review # row} other {Review # rows}}",
+    "kinds": {
+      "categories": {
+        "fields": {
+          "name": "Category",
+          "grossAnnualSalary": "Gross annual salary",
+          "socialSecurity": "Social security %",
+          "otherYearlyCosts": "Other yearly costs",
+          "sellRate": "Sell rate per hour",
+          "manualCostPerHour": "Manual cost per hour"
+        },
+        "input": "CSV file of categories and costs",
+        "drop": "Drop your categories and costs CSV here",
+        "headerOnly": "The file only has its header row. Add one row per category.",
+        "templateIntro": "One row per category. If you keep the column names, we match them for you.",
+        "templateDownload": "Download the categories template",
+        "templateFile": "categories-template.csv",
+        "absent": "Not in your file: {fields}. A category that exists keeps what it had.",
+        "reportFile": "categories-error-report.csv",
+        "plan": "{creates, plural, =0 {No new category} one {# new category} other {# new categories}} and {updates, plural, =0 {none to update} one {# that exists and will be updated} other {# that exist and will be updated}}.",
+        "import": "{count, plural, one {Import # category} other {Import # categories}}",
+        "doneHeading": "Categories imported",
+        "doneSummary": "{creates, plural, =0 {No category created} one {# category created} other {# categories created}} and {updates, plural, =0 {none updated} one {# updated} other {# updated}}.",
+        "doneNext": "The categories are now in «Categories and costs» on all your projects."
+      },
+      "people": {
+        "fields": {
+          "name": "Name",
+          "category": "Category",
+          "weeklyHours": "Weekly hours",
+          "area": "Area"
+        },
+        "input": "CSV file of people",
+        "drop": "Drop your people CSV here",
+        "headerOnly": "The file only has its header row. Add one row per person.",
+        "templateIntro": "One row per person, no salaries. If you keep the column names, we match them for you.",
+        "templateDownload": "Download the people template",
+        "templateFile": "people-template.csv",
+        "absent": "Not in your file: {fields}. A person who exists keeps what they had.",
+        "reportFile": "people-error-report.csv",
+        "plan": "{creates, plural, =0 {No new person} one {# new person} other {# new people}}, {updates, plural, =0 {none to update} one {# who exists and will be updated} other {# who exist and will be updated}} and {newCategories, plural, =0 {no new category} one {# new category, without a cost} other {# new categories, without a cost}}.",
+        "import": "{count, plural, one {Import # person} other {Import # people}}",
+        "doneHeading": "People imported",
+        "doneSummary": "{creates, plural, =0 {No person created} one {# person created} other {# people created}} and {updates, plural, =0 {none updated} one {# updated} other {# updated}}.",
+        "doneNext": "{newCategories, plural, =0 {They are now in «People», ready for your teams.} one {They are now in «People». The new category's cost is pending: complete it in «Categories and costs».} other {They are now in «People». The # new categories' costs are pending: complete them in «Categories and costs».}}"
+      }
+    }
   }
 }
