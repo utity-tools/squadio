@@ -103,3 +103,6 @@ custom Drizzle column type that never uses floats.
   and calendar hours as columns, are dropped in v0.5's slice 6c (migration 0017). A chosen
   scenario's money lives in its revision's restricted JSON snapshot (2026-11-23). Migration 0007's
   one-off backfill stays in the history. The decision itself is unchanged.
+- **2026-11-25:** `yearHours`, the `numeric(8,3)` column type of calendar working hours, is removed:
+  no column has used it since `frozen_cost_config` was dropped (2026-11-24), and a revision stores
+  those hours in its JSON snapshot.
