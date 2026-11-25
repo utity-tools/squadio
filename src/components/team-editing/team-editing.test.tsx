@@ -470,3 +470,101 @@ describe("the team's menus", () => {
     expect(screen.queryByRole("button", { name: "Añadir al equipo…" })).not.toBeInTheDocument();
   });
 });
+
+describe("starting from an example team", () => {
+  it("adds the example's open roles in one step, which one undo takes back", async () => {
+    const { user, store } = renderTeam({ members: [] });
+    await user.click(screen.getByRole("button", { name: "Partir de un ejemplo" }));
+    const dialog = screen.getByRole("dialog", { name: "Partir de un equipo de ejemplo" });
+    expect(within(dialog).getByRole("radio", { name: /Aplicación web/ })).toBeChecked();
+    // The organization has a Project Manager and a Senior Developer, chosen by name.
+    expect(within(dialog).getByRole("combobox", { name: "Senior Developer" })).toHaveDisplayValue(
+      "Senior Developer",
+    );
+    expect(within(dialog).getByText("Tu organización no tiene «DevOps Engineer».")).toBeVisible();
+
+    await user.click(within(dialog).getByRole("button", { name: "Añadir 5 vacantes" }));
+    expect(within(dialog).getByRole("alert")).toHaveTextContent(
+      "Elige una categoría para este rol, o «No añadir».",
+    );
+    const frontend = within(dialog).getByRole("combobox", { name: "Frontend Developer" });
+    expect(frontend).toHaveFocus();
+    expect(frontend).toHaveAttribute("aria-invalid", "true");
+    // The problem is read with the hint, not instead of it.
+    expect(frontend).toHaveAccessibleDescription(
+      "Tu organización no tiene «Frontend Developer». Elige una categoría para este rol, o «No añadir».",
+    );
+
+    await user.selectOptions(frontend, "Senior Developer");
+    await user.selectOptions(
+      within(dialog).getByRole("combobox", { name: "DevOps Engineer" }),
+      "No añadir",
+    );
+    await user.selectOptions(
+      within(dialog).getByRole("combobox", { name: "Junior Developer" }),
+      "Senior Developer",
+    );
+    await user.click(within(dialog).getByRole("button", { name: "Añadir 4 vacantes" }));
+
+    const { history } = store.getState();
+    expect(history.entries).toHaveLength(1);
+    expect(history.team.map((member) => [member.projectRole, member.allocation])).toEqual(
+      expect.arrayContaining([
+        ["Project Manager", 50],
+        ["Senior Developer", 100],
+        ["Frontend Developer", 100],
+        ["Junior Developer", 100],
+      ]),
+    );
+    expect(history.team.every((member) => member.personId === null)).toBe(true);
+    await waitFor(() => expect(node("Project Manager")).toHaveFocus());
+
+    await user.click(screen.getByRole("button", { name: "Deshacer" }));
+    expect(store.getState().history.team).toEqual([]);
+  });
+
+  it("keeps the team empty when the dialog is cancelled, and refuses leaving every role out", async () => {
+    const { user, store } = renderTeam({ members: [] });
+    await user.click(screen.getByRole("button", { name: "Partir de un ejemplo" }));
+    let dialog = screen.getByRole("dialog");
+    await user.click(within(dialog).getByRole("radio", { name: /Mantenimiento/ }));
+    for (const role of ["Project Manager", "Senior Developer", "Junior Developer"]) {
+      await user.selectOptions(within(dialog).getByRole("combobox", { name: role }), "No añadir");
+    }
+    await user.click(within(dialog).getByRole("button", { name: "Añadir vacantes" }));
+    expect(within(dialog).getByRole("alert")).toHaveTextContent(
+      "Deja al menos un rol para añadir.",
+    );
+
+    await user.click(within(dialog).getByRole("button", { name: "Cancelar" }));
+    expect(store.getState().history.entries).toEqual([]);
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Partir de un ejemplo" })).toHaveFocus(),
+    );
+    dialog = screen.queryByRole("dialog") as HTMLElement;
+    expect(dialog).toBeNull();
+  });
+
+  it("numbers a role the example repeats, so each select has a name of its own", async () => {
+    const { user } = renderTeam({ members: [] });
+    await user.click(screen.getByRole("button", { name: "Partir de un ejemplo" }));
+    const dialog = screen.getByRole("dialog");
+    await user.click(within(dialog).getByRole("radio", { name: /Producto con plataforma/ }));
+    expect(within(dialog).getByRole("combobox", { name: "Senior Developer (1)" })).toBeVisible();
+    expect(within(dialog).getByRole("combobox", { name: "Senior Developer (2)" })).toBeVisible();
+    expect(within(dialog).getByRole("combobox", { name: "Project Manager" })).toBeVisible();
+  });
+
+  it("is offered on an empty team only, and never where the team cannot be edited", () => {
+    const started = renderTeam();
+    expect(screen.queryByRole("button", { name: "Partir de un ejemplo" })).not.toBeInTheDocument();
+    started.unmount();
+
+    const chosen = renderTeam({ members: [], chosen: true });
+    expect(screen.queryByRole("button", { name: "Partir de un ejemplo" })).not.toBeInTheDocument();
+    chosen.unmount();
+
+    renderTeam({ members: [], wide: false });
+    expect(screen.queryByRole("button", { name: "Partir de un ejemplo" })).not.toBeInTheDocument();
+  });
+});

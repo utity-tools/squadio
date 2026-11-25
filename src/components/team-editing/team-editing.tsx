@@ -25,6 +25,7 @@ import { type StepFocus, stepFocus } from "@/lib/scenarios/step-focus";
 
 import { AddMemberDialog } from "./add-member-dialog";
 import { EditMemberDialog } from "./edit-member-dialog";
+import { ExampleTeamDialog } from "./example-team-dialog";
 import { MoveMemberDialog } from "./move-member-dialog";
 
 // Keyboard parity (canvas brief, "Keyboard and focus"; ADR 0008, point 4): every change to the
@@ -46,6 +47,8 @@ export type FocusRequest = {
 export type TeamEditing = {
   /** Opens the add dialog for a report of `reportsTo`, or for the top of the team. */
   add: (reportsTo: string | null, from: HTMLElement | null) => void;
+  /** Opens the picker of example teams, offered on an empty team only. */
+  addExample: (from: HTMLElement | null) => void;
   /** Opens the edit dialog for an assignment. */
   edit: (id: string, from: HTMLElement | null) => void;
   /** Opens the move dialog for an assignment. */
@@ -90,6 +93,7 @@ export function useTeamEditing(): TeamEditing | null {
 
 type Dialog =
   | { kind: "add"; reportsTo: string | null; from: HTMLElement | null }
+  | { kind: "example"; from: HTMLElement | null }
   | { kind: "edit"; id: string; from: HTMLElement | null }
   | { kind: "move"; id: string; from: HTMLElement | null };
 
@@ -141,6 +145,16 @@ export function TeamEditingProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  /** Dispatches an example team's adds as one step, which moves focus like any other. */
+  function dispatchAllOwn(changes: readonly Change[]) {
+    ownStep.current = true;
+    try {
+      return store.getState().dispatchAll(changes);
+    } finally {
+      ownStep.current = false;
+    }
+  }
+
   // Drops take the same steps as the menus, with the defaults of "Add to team…" and no dialog
   // (docs/domain.md, "Changes"). A chosen scenario takes none, and neither does a viewer's page.
   const { register } = useTeamDrag();
@@ -187,6 +201,7 @@ export function TeamEditingProvider({ children }: { children: ReactNode }) {
 
   const editing: TeamEditing = {
     add: (reportsTo, from) => setDialog({ kind: "add", reportsTo, from }),
+    addExample: (from) => setDialog({ kind: "example", from }),
     edit: (id, from) => setDialog({ kind: "edit", id, from }),
     move: (id, from) => setDialog({ kind: "move", id, from }),
     canMove: (id) => {
@@ -236,6 +251,9 @@ export function TeamEditingProvider({ children }: { children: ReactNode }) {
           onClose={close}
           container={region}
         />
+      )}
+      {dialog?.kind === "example" && (
+        <ExampleTeamDialog dispatchAll={dispatchAllOwn} onClose={close} container={region} />
       )}
       {dialog?.kind === "edit" && (
         <EditMemberDialog
