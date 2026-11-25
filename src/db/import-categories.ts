@@ -30,14 +30,17 @@ export type ImportCategoriesResult =
 class RowsChanged extends Error {}
 
 /** Whether Postgres refused a name another category took while the import ran. */
-function isTakenName(error: unknown): boolean {
+export function isTakenName(error: unknown): boolean {
   // Drizzle wraps the driver's error and keeps it as the cause.
   const cause: unknown =
     error instanceof Error && error.cause instanceof Error ? error.cause : error;
   return cause instanceof Error && "code" in cause && cause.code === "23505";
 }
 
-const readExisting = async (tx: TenantTransaction): Promise<ExistingCategory[]> => {
+/** The organization's categories, by name, and whether each has a rate. Needs rate access. */
+export const readImportableCategories = async (
+  tx: TenantTransaction,
+): Promise<ExistingCategory[]> => {
   const rows = await tx
     .select({ id: categories.id, name: categories.name, rated: categoryRates.categoryId })
     .from(categories)
@@ -61,7 +64,7 @@ export async function loadImportableCategories(
   context: AccessContext,
 ): Promise<ExistingCategory[] | null> {
   if (!context.rateAccess) return null;
-  return withOrganization(db, context, readExisting);
+  return withOrganization(db, context, readImportableCategories);
 }
 
 const rateColumns = (rate: CategoryRateValues) => ({
@@ -136,7 +139,7 @@ export async function importCategories(
   const { organizationId } = context;
   try {
     return await withOrganization(db, context, async (tx) => {
-      const check = checkCategoryRows(rows, await readExisting(tx), locale);
+      const check = checkCategoryRows(rows, await readImportableCategories(tx), locale);
       if (!check.ok) throw new RowsChanged();
       for (const { plan } of check.rows) {
         if (plan) await write(tx, organizationId, plan);
