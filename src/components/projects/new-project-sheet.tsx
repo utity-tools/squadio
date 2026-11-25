@@ -331,7 +331,7 @@ function NewProjectForm({ action, project, onSaved }: NewProjectFormProps) {
 
 /**
  * What a new planned period moves (docs/domain.md, "Planned period"): every undated recurring
- * cost of the project, and the chosen scenario's cost with them. A warning, never a block.
+ * cost of the project's scenarios but the chosen one. A warning, never a block.
  */
 function PeriodChangeNotice({ change, cleared }: { change: PeriodChange; cleared: boolean }) {
   const t = useTranslations("Projects.new.periodChange");
@@ -344,7 +344,6 @@ function PeriodChangeNotice({ change, cleared }: { change: PeriodChange; cleared
           <li key={id}>{t("cost", { label: label ?? t("unnamed"), scenario })}</li>
         ))}
       </ul>
-      {change.chosen && <p className="font-medium">{t("chosen", { scenario: change.chosen })}</p>}
     </Alert>
   );
 }

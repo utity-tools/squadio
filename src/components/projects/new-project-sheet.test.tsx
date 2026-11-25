@@ -188,8 +188,8 @@ const saved: NewProject = {
 
 /** Its scenarios' undated recurring costs, which follow the planned period (rule d). */
 const scenarios: PeriodScenario[] = [
-  { name: "Plan A", chosen: false, undatedRecurringCosts: [{ id: "cloud", label: "Cloud" }] },
-  { name: "Plan B", chosen: true, undatedRecurringCosts: [{ id: "licences", label: null }] },
+  { name: "Plan A", undatedRecurringCosts: [{ id: "cloud", label: "Cloud" }] },
+  { name: "Plan B", undatedRecurringCosts: [{ id: "licences", label: null }] },
 ];
 
 async function openEdit(
@@ -259,7 +259,7 @@ describe("NewProjectSheet, editing a project", () => {
     expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
 
-  it("names the undated recurring costs a new period moves, and the chosen scenario's", async () => {
+  it("names the undated recurring costs a new period moves", async () => {
     await openEdit(succeeding(), "es", scenarios);
     const end = screen.getByLabelText("Fin");
     const notice = () => screen.queryByRole("list", { name: /costes recurrentes/ });
@@ -275,7 +275,6 @@ describe("NewProjectSheet, editing a project", () => {
         .getAllByRole("listitem")
         .map((item) => item.textContent),
     ).toEqual(["Cloud, en Plan A", "Coste sin nombre, en Plan B"]);
-    expect(screen.getByText(/Plan B es el escenario elegido/)).toBeInTheDocument();
 
     // Back to the saved period, nothing moves.
     await userEvent.clear(end);
@@ -312,7 +311,6 @@ describe("NewProjectSheet, editing a project", () => {
         .getAllByRole("listitem")
         .map((item) => item.textContent),
     ).toEqual(["Cloud, in Plan A", "Unnamed cost, in Plan B"]);
-    expect(screen.getByText(/Plan B is the chosen scenario/)).toBeInTheDocument();
   });
 
   it("speaks English under /en", async () => {

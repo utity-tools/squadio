@@ -334,8 +334,7 @@
         "moved": "Al guardar, estos costes recurrentes sin fechas seguirán el nuevo periodo:",
         "cleared": "Al guardar, estos costes recurrentes sin fechas volverán a seguir al equipo de cada escenario:",
         "cost": "{label}, en {scenario}",
-        "unnamed": "Coste sin nombre",
-        "chosen": "{scenario} es el escenario elegido: su coste cambiará aunque su equipo no se mueva."
+        "unnamed": "Coste sin nombre"
       },
       "cancel": "Cancelar",
       "errors": {
