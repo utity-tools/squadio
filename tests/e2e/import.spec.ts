@@ -8,8 +8,9 @@ import { expectNoAxeViolations } from "./support/axe";
 import { expectHydrated } from "./support/hydration";
 import { expect, test } from "./support/signed-in";
 
-// ADR 0016 and boards 10 to 12: a member imports the organization's categories and their costs
-// from a CSV in four steps, reached from «Categorías y costes». The file is read in the browser;
+// ADR 0016 and boards 10 to 13: a member imports the organization's categories and their costs,
+// then its people, from two CSV files in four steps each, reached from «Categorías y costes», or
+// the people file alone from «Personas». The file is read in the browser;
 // the Server Action writes every row or none. Each test signs in an account of its own, in an
 // organization holding a copy of the demo's synthetic rows. Needs the demo organization
 // (`pnpm db:migrate` and `pnpm db:seed`).
@@ -142,4 +143,129 @@ test("a visitor of the demo is not offered the import", async ({ page }) => {
   await expect(
     page.getByRole("heading", { level: 1, name: "No puedes importar en esta organización" }),
   ).toBeVisible();
+});
+
+// Board 13. The demo's «Senior Developer 1» is updated by name; «Cloud Architect» does not exist,
+// so it is created without a rate (rule k). The salary column is left out and never sent.
+const PEOPLE = [
+  "nombre;categoria;jornada_semanal;area;salario",
+  "senior developer 1;QA Engineer;32,5;;41000",
+  "Persona 20;QA Engineer;;Calidad;38000",
+  "Persona 21;Cloud Architect;40;;45000",
+].join("\n");
+
+const peopleTable = (page: Page) => page.getByRole("table", { name: "Personas" });
+
+test("a member imports the people after the categories, as the second file", async ({
+  page,
+  signInAs,
+}) => {
+  await signInAs("member");
+  await page.goto("/import");
+  await expectHydrated(primary(page, "Continuar"));
+  await fileInput(page).setInputFiles({
+    name: "costes.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from(
+      ["categoria;salario_bruto_anual;tarifa_venta_hora", "QA Engineer;38.000;45"].join("\n"),
+    ),
+  });
+  await primary(page, "Continuar").click();
+  await primary(page, "Revisar 1 fila").click();
+  await primary(page, "Importar 1 categoría").click();
+  await page.getByRole("button", { name: "Continuar con personas" }).click();
+
+  // The people file, said to follow the categories.
+  await expect(page.getByRole("heading", { name: "Sube tu archivo" })).toBeFocused();
+  await expect(page.getByText("1 categoría importada.")).toBeVisible();
+  await expect(page.getByText(/Archivo 2 de 2/)).toBeVisible();
+  await expectAccessible(page);
+  await page.getByLabel("Archivo CSV de personas").setInputFiles({
+    name: "equipo.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from(PEOPLE),
+  });
+  await primary(page, "Continuar").click();
+  await expect(page.getByRole("combobox", { name: "Campo de Squadio para «salario»" })).toHaveValue(
+    "",
+  );
+  await primary(page, "Revisar 3 filas").click();
+
+  const cloud = page.getByRole("row", { name: /Persona 21/ });
+  await expect(cloud.getByText("No existe: se creará con coste Pendiente.")).toBeVisible();
+  await expect(
+    page.getByText(
+      "2 personas nuevas, 1 que ya existe y se actualizará y 1 categoría nueva, sin coste.",
+    ),
+  ).toBeVisible();
+  await expect(page.getByRole("main")).not.toContainText("41000");
+  await expectAccessible(page);
+
+  await primary(page, "Importar 3 personas").click();
+  await expect(page.getByRole("heading", { name: "Personas importadas" })).toBeFocused();
+  await expect(page.getByText("2 personas creadas y 1 actualizada.")).toBeVisible();
+  await expectAccessible(page);
+
+  await page.getByRole("link", { name: "Ir a personas" }).click();
+  // Keeps the existing spelling; an empty cell keeps the area.
+  const senior = peopleTable(page).getByRole("row", { name: /^Senior Developer 1/ });
+  await expect(senior).toContainText("QA Engineer");
+  await expect(senior).toContainText(/32,5\sh\/sem/);
+  await expect(peopleTable(page).getByRole("row", { name: /^Persona 20/ })).toContainText(
+    "Calidad",
+  );
+  await expect(peopleTable(page).getByRole("row", { name: /^Persona 21/ })).toContainText(
+    "Cloud Architect",
+  );
+});
+
+test("an owner imports the people alone from «Personas», fixing a repeated name", async ({
+  page,
+  signInAs,
+}) => {
+  await signInAs("owner");
+  await page.goto("/people");
+  await page.getByRole("link", { name: "Importar desde una hoja de cálculo" }).click();
+
+  await expect(page).toHaveURL("/import?file=people");
+  await expectHydrated(primary(page, "Continuar"));
+  await expect(page.getByRole("button", { name: "Descargar plantilla de personas" })).toBeVisible();
+  await page.getByLabel("Archivo CSV de personas").setInputFiles({
+    name: "equipo.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from(
+      ["nombre;categoria", "Persona 30;Senior Developer", "persona 30;Senior Developer"].join("\n"),
+    ),
+  });
+  await primary(page, "Continuar").click();
+  await primary(page, "Revisar 2 filas").click();
+
+  const repeated = page.getByRole("row", { name: /persona 30/ });
+  await expect(repeated.getByText("Repite la fila 2.")).toBeVisible();
+  await expect(primary(page, "Importar 2 personas")).toHaveAttribute("aria-disabled", "true");
+
+  await repeated.getByRole("button", { name: /Corregir Nombre de la fila 3/ }).focus();
+  await page.keyboard.press("Enter");
+  const input = page.getByRole("textbox", { name: "Nombre de la fila 3" });
+  await expect(input).toBeFocused();
+  await input.fill("Persona 31");
+  await page.keyboard.press("Enter");
+  await primary(page, "Importar 2 personas").click();
+  await expect(page.getByRole("heading", { name: "Personas importadas" })).toBeFocused();
+
+  await page.goto("/people");
+  await expect(peopleTable(page).getByRole("row", { name: /^Persona 3[01]/ })).toHaveCount(2);
+});
+
+test("a viewer is not offered the people import", async ({ page, signInAs }) => {
+  await signInAs("viewer");
+  await page.goto("/people");
+  await expect(peopleTable(page)).toBeVisible();
+  await expect(page.getByRole("link", { name: /hoja de cálculo/ })).toHaveCount(0);
+
+  await page.goto("/import?file=people");
+  await expect(
+    page.getByRole("heading", { level: 1, name: "No puedes importar en esta organización" }),
+  ).toBeVisible();
+  await expect(page.getByLabel("Archivo CSV de personas")).toHaveCount(0);
 });
