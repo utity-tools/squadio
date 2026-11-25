@@ -1093,15 +1093,18 @@ From v0.3 a signed-in member with rate access creates and edits categories on an
 created with its whole rate: name, salary, social security %, other yearly costs, an optional manual
 cost per hour and its sell rate; a new one starts with the template's 31% and 3,000 €. Editing a
 rate costs every scenario that is not chosen with it at once; chosen ones keep what they froze
-(rule b). A category without a rate, which the editor never creates but an older organization may
-hold, shows as pending (rule k), and editing it gives it one. Its cost and sell rate are written
+(rule b). A category without a rate, which the editor never creates but an older organization or
+the import of a people file may hold, shows as pending (rule k), and editing it gives it one. Its cost and sell rate are written
 together, so "Pendiente" always means both are missing.
 
 Without rate access the card does not show: which categories lack a rate is itself restricted.
 Deleting a category is not offered yet. From v0.3 an
 organization starts empty, with the Consultancy template's Config and CostConfig and no categories,
-or as a member's adopted visitor's copy ([ADR 0012](adr/0012-sign-in-and-membership.md)). Example
-scenarios to start from come in v0.6; templates for other sectors wait for evidence.
+or as a member's adopted visitor's copy ([ADR 0012](adr/0012-sign-in-and-membership.md)). From
+v0.6 its categories and people can also come from a spreadsheet
+([Importing a spreadsheet](#importing-a-spreadsheet)); a category without a rate can then exist,
+created by the people file. Example scenarios to start from come later in v0.6; templates for other
+sectors wait for evidence.
 
 The Consultancy template, also used by the demo organization (Madrid, 2026, indicative). The demo's
 first scenario is the guide case team, costed with the 2027 calendar rather than the guide case's
@@ -1117,6 +1120,131 @@ first scenario is the guide case team, costed with the 2027 calendar rather than
 
 Template values: social security 31%, other costs 3,000 € a year, 1,550 net hours, overhead 15%,
 buffer 10%, target margin 25%.
+
+## Importing a spreadsheet
+
+From v0.6 a member with rate access imports the organization's categories with their rates, and
+its people, from two CSV files instead of typing them
+([ADR 0016](adr/0016-spreadsheet-import.md)). It imports every row of a file or none. The checks
+live in one pure module, `src/lib/import`, which the page and the Server Action both run. It
+returns codes with the row, the column and the value, never text: the page words them through
+next-intl, and tests assert the codes.
+
+### The two files
+
+Categories come first, since people name theirs; the people file can also be imported alone,
+later. The template's columns are below. A header matches a field by its Spanish or English name,
+ignoring case, accents, spaces, underscores and hyphens, so «Salario bruto anual» matches
+`salario_bruto_anual`. The member can match any other column by hand or leave it out.
+
+Categories, one row per category. A category that exists without a rate (rule k) counts as new for
+the rate's columns: the row gives it its whole rate.
+
+| Column                 | English                | Needed             | When empty on a new category | When empty on an existing one |
+| ---------------------- | ---------------------- | ------------------ | ---------------------------- | ----------------------------- |
+| `categoria`            | `category`             | Always             | Error                        | Error                         |
+| `salario_bruto_anual`  | `gross_annual_salary`  | For a new category | Error                        | Keeps its salary              |
+| `seguridad_social_pct` | `social_security_pct`  | No                 | 31%, with a warning          | Keeps its social security %   |
+| `otros_costes_anuales` | `other_yearly_costs`   | No                 | 3,000 €, with a warning      | Keeps its other costs         |
+| `tarifa_venta_hora`    | `sell_rate_per_hour`   | For a new category | Error                        | Keeps its sell rate           |
+| `coste_hora_manual`    | `manual_cost_per_hour` | No                 | None: the cost is derived    | Keeps its manual cost or none |
+
+People, one row per person:
+
+| Column            | English        | Needed | When empty on a new person    | When empty on an existing one |
+| ----------------- | -------------- | ------ | ----------------------------- | ----------------------------- |
+| `nombre`          | `name`         | Always | Error                         | Error                         |
+| `categoria`       | `category`     | Always | Error                         | Error                         |
+| `jornada_semanal` | `weekly_hours` | No     | Config's default weekly hours | Keeps their weekly hours      |
+| `area`            | `area`         | No     | None                          | Keeps their area              |
+
+An empty cell never erases a value. A person's `active` is never in the file: a new person starts
+active and an existing one, active or not, keeps theirs. The people file has no salary column, and
+a column left out is dropped as the file is read: it is never sent, shown again or put in the error
+report, so a column that holds individual salaries goes nowhere.
+
+The import template is one CSV per file, in UTF-8 with a byte order mark, separated by `;`, with the
+Spanish headers in the order above and two synthetic rows, the figures of the table above:
+`Senior Developer;52.000;31;3.000;65;` and `Project Manager;55.000;31;3.000;70;` for categories,
+and `Persona 01;Senior Developer;40;` and `Persona 02;Project Manager;40;` for people.
+
+### Reading a file
+
+- **Encoding:** UTF-8, with or without a byte order mark. A file that is not UTF-8 is refused whole.
+- **Shape:** a header row and from 1 to 500 rows. An empty file, a header alone or more than 500
+  rows refuse the file whole. Blank lines are skipped. A row with more or fewer cells than the
+  header is an error. Rows are numbered as a spreadsheet shows them: the header is row 1.
+- **Separator:** `;` or `,`, the one that splits the header outside quotes; when both do, `;`.
+  Quoted cells may hold either.
+- **Columns:** each field matches one column at most; a second column with the same name is left
+  out until the member matches it by hand. Every field the file needs must be matched before the
+  rows are checked.
+- **Cells** are trimmed before any check.
+- **Amounts** read as the forms read them: with `;`, as in Spanish (`52.000,50`: the comma is the
+  decimal mark and a point may group thousands); with `,`, as in English (`52000.50`, or `"52,000.50"`
+  quoted). The euro sign is ignored. From 0 to the largest amount the database holds, with at most
+  two decimals: a written 0 is a value, never a missing one.
+- **Social security** reads as an amount with an optional `%`, from 0 to 100% with at most two
+  decimals: stricter than the category form, which accepts up to 999.99%.
+- **Weekly hours** read as the person form reads them, with a comma or a point and at most two
+  decimals, above 0 and up to 168, in either file.
+- **Names and areas:** 1 to 100 characters.
+
+### Checking rows
+
+Each row is ready, has a warning, or has an error. Only errors stop the import.
+
+| Status  | Spanish | When                                                                                                                                                                                                                                                                                                                |
+| ------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Ready   | Lista   | Every cell it needs reads well                                                                                                                                                                                                                                                                                      |
+| Warning | Aviso   | A new category's empty social security % or other costs take the template's value; a person's category does not exist and will be created without a rate (rule k)                                                                                                                                                   |
+| Error   | Error   | The row has the wrong number of cells; a required cell is empty or does not read as its kind; a value is out of bounds; its name repeats an earlier row of the same file; or its name, or a person's category, matches two or more that exist. Each error names its row, its column and what kind of value it needs |
+
+Names are compared ignoring case and surrounding spaces, in the file and against what exists, so
+«senior developer» updates «Senior Developer» and keeps the existing spelling. Two people rows that
+name the same missing category in different case create it once, spelled as the first row spells
+it. People who are not active still count as existing. The review counts the rows that create and
+the rows that update, and the member can fix a cell there or fix the file and upload it again. The
+rows with errors can be downloaded as a CSV: the row number, the matched columns and what to fix,
+with a leading `'` on any cell a spreadsheet would run as a formula.
+
+### Importing
+
+One Server Action per file, inside one transaction in `withOrganization`: it checks every row again
+and writes all of them, or refuses and writes none. A person's missing category is created in the
+same transaction, without a rate. After the import:
+
+- Rule j's count changes wherever people arrive or leave: a category a person moves to can become
+  small, and so can the one they leave.
+- Updating a rate costs every scenario that is not chosen with it at once; chosen ones keep their
+  revision (rule b).
+- A category created without a rate is pending (rule k). Inicio lists its missing cost once a
+  scenario uses it, as for any category without a rate
+  ([Pending corrections](#pending-corrections)).
+
+Only owners and members, who have rate access, import. A viewer is not offered it and the server
+refuses it. Visitors of the demo are not offered it either, on purpose: their copy has rate access
+(ADR 0011), but the demo stays synthetic and anonymous.
+
+### Import examples
+
+The next slice turns these into unit tests of `src/lib/import`. Each row is a file of its own, with
+the template's header and `;`. The organization holds «Senior Developer» (52,000 €, 31%, 3,000 €,
+65 €/h), «Project Manager» (55,000 €, 31%, 3,000 €, 70 €/h), «Cloud Architect» without a rate, and
+the person «Persona 01», a Senior Developer at 40 hours a week. Config's default weekly hours are 40.
+
+| File       | Rows                                          | Result                                                                                                                                        |
+| ---------- | --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Categories | `Senior developer;55.000;;;;`                 | Ready: updates «Senior Developer»'s salary to 55,000 €, keeps 31%, 3,000 € and 65 €/h                                                         |
+| Categories | `QA Engineer;38.000;;;45;`                    | Warning: creates it with 31% and 3,000 € from the template and 45 €/h                                                                         |
+| Categories | `QA Engineer;38.000;31;3.000;;`               | Error: a new category needs its sell rate                                                                                                     |
+| Categories | `Cloud Architect;60.000;31;3.000;80;`         | Ready: gives «Cloud Architect» its whole rate                                                                                                 |
+| Categories | `Cloud Architect;60.000;31;3.000;;`           | Error: a category without a rate needs its sell rate, as a new one does                                                                       |
+| Categories | `Data Engineer;52.000,5,0;31;3.000;64;`       | Error: the salary does not read as an amount                                                                                                  |
+| Categories | `UX Designer;40.000;131;3.000;55;`            | Error: social security must be between 0 and 100%                                                                                             |
+| People     | `Persona 01;Project Manager;32,5;`            | Ready: moves «Persona 01» to Project Manager at 32.5 hours a week; «Senior Developer» loses a person and «Project Manager» gains one (rule j) |
+| People     | `Persona 02;Data Engineer;;`                  | Warning: creates the category «Data Engineer» without a rate, and the person at 40 hours                                                      |
+| People     | `Persona 03;Project Manager;40;` on rows 2, 3 | Row 2 ready; row 3 an error that repeats row 2. The file imports nothing                                                                      |
 
 ## Guide case
 
@@ -1184,6 +1312,10 @@ scenario and its copy give the same cost and margin, with the same team tree.
 
 And on random scenarios, for [revisions](#revisions): recalculating a revision from its own inputs,
 under its rules version, gives exactly its stored result, and its open part holds no money.
+
+And on random rows, for [importing a spreadsheet](#importing-a-spreadsheet): rows written as the
+import template writes them and read back give the same rows, every amount to the same cents; an
+empty cell never changes a stored value; and a file with one error writes nothing.
 
 ## Out of scope for v1
 
