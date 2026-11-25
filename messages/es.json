@@ -470,7 +470,8 @@
           "failed": "No se ha podido guardar la categoría. Inténtalo de nuevo."
         },
         "small": "Categoría pequeña: su coste puede revelar un salario"
-      }
+      },
+      "import": "Importar desde una hoja de cálculo"
     },
     "newScenario": {
       "name": "Escenario",
@@ -1098,7 +1099,10 @@
     "activeOrganization": "en la que trabajas",
     "workIn": "Trabajar aquí",
     "workInLabel": "Trabajar aquí: {name}",
-    "switchFailed": "No pudimos cambiar de organización. Inténtalo de nuevo."
+    "switchFailed": "No pudimos cambiar de organización. Inténtalo de nuevo.",
+    "importHeading": "Desde una hoja de cálculo",
+    "importIntro": "Crea la organización con la plantilla Consultora y trae tus categorías y sus costes desde un CSV.",
+    "createAndImport": "Crear e importar"
   },
   "Members": {
     "title": "Miembros",
@@ -1440,5 +1444,153 @@
       "limit": "Hoy no se pueden crear más copias de la demo. Vuelve a intentarlo mañana.",
       "failed": "No se ha podido proponer la alternativa. Inténtalo de nuevo."
     }
+  },
+  "Import": {
+    "title": "Importar desde una hoja de cálculo",
+    "crumb": "Importar",
+    "files": {
+      "label": "Archivos",
+      "position": "Archivo {current} de {total}",
+      "categories": "Categorías y costes",
+      "people": "Personas"
+    },
+    "steps": {
+      "label": "Pasos de la importación",
+      "upload": "Subir",
+      "columns": "Columnas",
+      "review": "Revisar",
+      "import": "Importar",
+      "done": "{step}, hecho"
+    },
+    "fields": {
+      "name": "Categoría",
+      "grossAnnualSalary": "Salario bruto anual",
+      "socialSecurity": "Seguridad social %",
+      "otherYearlyCosts": "Otros costes al año",
+      "sellRate": "Tarifa de venta por hora",
+      "manualCostPerHour": "Coste por hora manual"
+    },
+    "upload": {
+      "heading": "Sube tu archivo",
+      "input": "Archivo CSV de categorías y costes",
+      "drop": "Arrastra aquí tu CSV de categorías y costes",
+      "or": "o",
+      "choose": "elige un archivo",
+      "limits": "máximo {rows} filas · UTF-8 · 1 MB",
+      "separators": "Separador «;» o «,» y coma decimal: los detectamos solos.",
+      "chosen": "{file} · {rows, plural, one {# fila} other {# filas}}",
+      "refusals": {
+        "too-large": "El archivo pesa más de 1 MB. Divídelo o quita columnas que no necesites.",
+        "encoding": "El archivo no está en UTF-8. Expórtalo como «CSV UTF-8» desde tu hoja de cálculo.",
+        "empty": "El archivo está vacío.",
+        "header-only": "El archivo solo tiene la fila de cabecera. Añade una fila por categoría.",
+        "too-many-rows": "El archivo tiene más de {rows} filas. Divídelo en varios.",
+        "unclosed-quote": "Unas comillas se abren y no se cierran. Revisa el archivo: todo lo que sigue se leería como una sola celda.",
+        "unreadable": "No se ha podido leer el archivo. Vuelve a intentarlo."
+      }
+    },
+    "template": {
+      "heading": "Usa nuestra plantilla",
+      "intro": "Una fila por categoría. Si mantienes los nombres de las columnas, las emparejamos solas.",
+      "download": "Descargar plantilla de categorías",
+      "file": "plantilla-categorias.csv",
+      "caption": "Las primeras columnas de la plantilla",
+      "more": "También {columns} (opcionales)."
+    },
+    "how": {
+      "heading": "Cómo funciona",
+      "first": "Primero las categorías y sus costes; después, las personas.",
+      "match": "Emparejas tus columnas con las de Squadio.",
+      "review": "Revisas cada fila: los errores se corrigen aquí o en tu archivo.",
+      "all": "Se importa todo o nada: un archivo con errores no deja datos a medias."
+    },
+    "columns": {
+      "heading": "Empareja tus columnas",
+      "summary": "{file} · {rows, plural, one {# fila} other {# filas}} · {columns, plural, one {# columna} other {# columnas}} · separador «{separator}»",
+      "change": "Cambiar archivo",
+      "column": "Columna de tu archivo",
+      "examples": "Ejemplos",
+      "field": "Campo de Squadio",
+      "fieldFor": "Campo de Squadio para «{column}»",
+      "unnamed": "Columna {number}",
+      "suggested": "Sugerido",
+      "leaveOut": "No importar",
+      "missing": "Falta emparejar {fields}: sin {count, plural, one {él} other {ellos}} no se puede revisar ninguna fila.",
+      "ready": "Están emparejados los campos obligatorios: {fields}.",
+      "absent": "No están en tu archivo: {fields}. Una categoría que ya existe conserva lo que tenía."
+    },
+    "review": {
+      "heading": "Revisa las filas",
+      "rows": "Filas",
+      "ready": "Listas",
+      "warning": "Con aviso",
+      "error": "Con error",
+      "filter": "Filas que se muestran",
+      "all": "Todas · {count}",
+      "issues": "Con error o aviso · {count}",
+      "report": "Descargar informe de errores",
+      "reportFile": "informe-errores-categorias.csv",
+      "reportRow": "fila",
+      "reportFix": "qué corregir",
+      "reportIssue": "{field}: {issue}",
+      "caption": "Filas del archivo, con su estado",
+      "row": "Fila",
+      "status": "Estado",
+      "statuses": {
+        "ready": "Lista",
+        "warning": "Aviso",
+        "error": "Error"
+      },
+      "empty": "vacía",
+      "fix": "Corregir {field} de la fila {row}: {value}",
+      "fixInput": "{field} de la fila {row}",
+      "noIssues": "Ninguna fila tiene errores ni avisos.",
+      "note": "Haz clic en una celda marcada para corregirla aquí, o arregla tu archivo y vuelve a subirlo. Las celdas vacías no borran lo que ya tenías.",
+      "plan": "{creates, plural, =0 {Ninguna categoría nueva} one {# categoría nueva} other {# categorías nuevas}} y {updates, plural, =0 {ninguna que actualizar} one {# que ya existe y se actualizará} other {# que ya existen y se actualizarán}}.",
+      "blocked": "{count, plural, one {Corrige el error para importar} other {Corrige los # errores para importar}}. Todo o nada.",
+      "import": "{count, plural, one {Importar # categoría} other {Importar # categorías}}",
+      "importing": "Importando…"
+    },
+    "issues": {
+      "cell-count": "Esta fila no tiene tantas celdas como la cabecera. Corrígela en tu archivo.",
+      "required": "Obligatoria.",
+      "required-for-rate": "Una categoría nueva, o sin tarifa, la necesita.",
+      "too-long": "Usa 100 caracteres como mucho.",
+      "invalid-amount": "{locale, select, en {Escribe un importe como 52000.00.} other {Escribe un importe como 52.000,00.}}",
+      "invalid-percent": "{locale, select, en {Escribe un porcentaje como 31 o 31.5.} other {Escribe un porcentaje como 31 o 31,5.}}",
+      "invalid-hours": "Escribe horas por semana, más de 0 y hasta 168.",
+      "out-of-range": "{column, select, socialSecurity {Entre 0 y 100 %.} other {Es mayor de lo que se puede guardar.}}",
+      "duplicate-row": "Repite la fila {earlierRow}.",
+      "ambiguous-name": "Hay varias categorías con este nombre: renombra una antes de importar.",
+      "template-social-security": "Vacía: se usa el {percent} de la plantilla.",
+      "template-other-costs": "Vacía: se usan los {amount} de la plantilla.",
+      "category-created-without-rate": "Se creará la categoría sin tarifa."
+    },
+    "errors": {
+      "invalid": "No se han podido enviar las filas. Vuelve a subir el archivo.",
+      "signed-out": "Tu sesión ha terminado. Vuelve a entrar.",
+      "no-organization": "Ya no perteneces a una organización.",
+      "read-only": "Tu rol solo permite ver: no puedes importar.",
+      "no-rate-access": "Importar categorías necesita acceso a las tarifas.",
+      "rows-changed": "Las categorías han cambiado mientras revisabas. Hemos vuelto a revisar las filas: compruébalas e importa de nuevo.",
+      "failed": "No se ha podido importar. No se ha guardado nada; vuelve a intentarlo."
+    },
+    "done": {
+      "heading": "Categorías importadas",
+      "summary": "{creates, plural, =0 {Ninguna categoría creada} one {# categoría creada} other {# categorías creadas}} y {updates, plural, =0 {ninguna actualizada} one {# actualizada} other {# actualizadas}}.",
+      "next": "Las categorías ya están en «Categorías y costes» de todos tus proyectos.",
+      "projects": "Ir a proyectos",
+      "again": "Importar otro archivo"
+    },
+    "unavailable": {
+      "heading": "No puedes importar en esta organización",
+      "body": "Solo las personas propietarias y los miembros, que tienen acceso a las tarifas, importan categorías y costes.",
+      "home": "Volver a Inicio"
+    },
+    "cancel": "Cancelar",
+    "back": "Atrás",
+    "continue": "Continuar",
+    "uploadFirst": "Sube un archivo para seguir.",
+    "reviewRows": "{count, plural, one {Revisar # fila} other {Revisar # filas}}"
   }
 }

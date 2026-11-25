@@ -41,3 +41,17 @@ export const categoriesImportSchema = z.strictObject({
 });
 
 export type CategoriesImport = z.infer<typeof categoriesImportSchema>;
+
+/** Why the import did not happen; the page says so. */
+export type ImportError =
+  | "invalid"
+  | "signed-out"
+  | "no-organization"
+  | "read-only"
+  | "no-rate-access"
+  /** A row has an error against the categories as they are now: nothing was written. */
+  | "rows-changed"
+  | "failed";
+
+export type ImportResult =
+  { ok: true; creates: number; updates: number } | { ok: false; error: ImportError };

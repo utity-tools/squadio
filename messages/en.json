@@ -470,7 +470,8 @@
           "failed": "The category could not be saved. Try again."
         },
         "small": "Small category: its cost may reveal a salary"
-      }
+      },
+      "import": "Import from a spreadsheet"
     },
     "newScenario": {
       "name": "Scenario",
@@ -1098,7 +1099,10 @@
     "activeOrganization": "the one you work in",
     "workIn": "Work here",
     "workInLabel": "Work here: {name}",
-    "switchFailed": "We couldn't switch organizations. Try again."
+    "switchFailed": "We couldn't switch organizations. Try again.",
+    "importHeading": "From a spreadsheet",
+    "importIntro": "Create the organization with the Consultancy template and bring your categories and their costs from a CSV.",
+    "createAndImport": "Create and import"
   },
   "Members": {
     "title": "Members",
@@ -1440,5 +1444,153 @@
       "limit": "No more copies of the demo can be made today. Try again tomorrow.",
       "failed": "The alternative could not be proposed. Try again."
     }
+  },
+  "Import": {
+    "title": "Import from a spreadsheet",
+    "crumb": "Import",
+    "files": {
+      "label": "Files",
+      "position": "File {current} of {total}",
+      "categories": "Categories and costs",
+      "people": "People"
+    },
+    "steps": {
+      "label": "Import steps",
+      "upload": "Upload",
+      "columns": "Columns",
+      "review": "Review",
+      "import": "Import",
+      "done": "{step}, done"
+    },
+    "fields": {
+      "name": "Category",
+      "grossAnnualSalary": "Gross annual salary",
+      "socialSecurity": "Social security %",
+      "otherYearlyCosts": "Other yearly costs",
+      "sellRate": "Sell rate per hour",
+      "manualCostPerHour": "Manual cost per hour"
+    },
+    "upload": {
+      "heading": "Upload your file",
+      "input": "CSV file of categories and costs",
+      "drop": "Drop your categories and costs CSV here",
+      "or": "or",
+      "choose": "choose a file",
+      "limits": "{rows} rows at most · UTF-8 · 1 MB",
+      "separators": "Separator «;» or «,» and decimal mark: we detect them.",
+      "chosen": "{file} · {rows, plural, one {# row} other {# rows}}",
+      "refusals": {
+        "too-large": "The file is larger than 1 MB. Split it or remove columns you don't need.",
+        "encoding": "The file is not in UTF-8. Export it as «CSV UTF-8» from your spreadsheet.",
+        "empty": "The file is empty.",
+        "header-only": "The file only has its header row. Add one row per category.",
+        "too-many-rows": "The file has more than {rows} rows. Split it into several.",
+        "unclosed-quote": "A quote opens and never closes. Check the file: everything after it would read as one cell.",
+        "unreadable": "The file could not be read. Try again."
+      }
+    },
+    "template": {
+      "heading": "Use our template",
+      "intro": "One row per category. If you keep the column names, we match them for you.",
+      "download": "Download the categories template",
+      "file": "categories-template.csv",
+      "caption": "The template's first columns",
+      "more": "Also {columns} (optional)."
+    },
+    "how": {
+      "heading": "How it works",
+      "first": "Categories and their costs first; people next.",
+      "match": "You match your columns to Squadio's.",
+      "review": "You review each row: errors are fixed here or in your file.",
+      "all": "Everything or nothing is imported: a file with errors leaves no half-imported data."
+    },
+    "columns": {
+      "heading": "Match your columns",
+      "summary": "{file} · {rows, plural, one {# row} other {# rows}} · {columns, plural, one {# column} other {# columns}} · separator «{separator}»",
+      "change": "Change file",
+      "column": "Your file's column",
+      "examples": "Examples",
+      "field": "Squadio field",
+      "fieldFor": "Squadio field for «{column}»",
+      "unnamed": "Column {number}",
+      "suggested": "Suggested",
+      "leaveOut": "Don't import",
+      "missing": "Match {fields}: without {count, plural, one {it} other {them}} no row can be reviewed.",
+      "ready": "The required fields are matched: {fields}.",
+      "absent": "Not in your file: {fields}. A category that exists keeps what it had."
+    },
+    "review": {
+      "heading": "Review the rows",
+      "rows": "Rows",
+      "ready": "Ready",
+      "warning": "With a warning",
+      "error": "With an error",
+      "filter": "Rows shown",
+      "all": "All · {count}",
+      "issues": "With an error or warning · {count}",
+      "report": "Download the error report",
+      "reportFile": "categories-error-report.csv",
+      "reportRow": "row",
+      "reportFix": "what to fix",
+      "reportIssue": "{field}: {issue}",
+      "caption": "The file's rows, with their status",
+      "row": "Row",
+      "status": "Status",
+      "statuses": {
+        "ready": "Ready",
+        "warning": "Warning",
+        "error": "Error"
+      },
+      "empty": "empty",
+      "fix": "Fix {field} of row {row}: {value}",
+      "fixInput": "{field} of row {row}",
+      "noIssues": "No row has an error or a warning.",
+      "note": "Click a marked cell to fix it here, or fix your file and upload it again. Empty cells never erase what you had.",
+      "plan": "{creates, plural, =0 {No new category} one {# new category} other {# new categories}} and {updates, plural, =0 {none to update} one {# that exists and will be updated} other {# that exist and will be updated}}.",
+      "blocked": "{count, plural, one {Fix the error to import} other {Fix the # errors to import}}. All or nothing.",
+      "import": "{count, plural, one {Import # category} other {Import # categories}}",
+      "importing": "Importing…"
+    },
+    "issues": {
+      "cell-count": "This row has a different number of cells from the header. Fix it in your file.",
+      "required": "Required.",
+      "required-for-rate": "A new category, or one without a rate, needs it.",
+      "too-long": "Use 100 characters at most.",
+      "invalid-amount": "{locale, select, en {Write an amount like 52000.00.} other {Write an amount like 52.000,00.}}",
+      "invalid-percent": "{locale, select, en {Write a percentage like 31 or 31.5.} other {Write a percentage like 31 or 31,5.}}",
+      "invalid-hours": "Write hours a week, above 0 and up to 168.",
+      "out-of-range": "{column, select, socialSecurity {Between 0 and 100%.} other {Larger than can be stored.}}",
+      "duplicate-row": "Repeats row {earlierRow}.",
+      "ambiguous-name": "Several categories have this name: rename one before importing.",
+      "template-social-security": "Empty: the template's {percent} is used.",
+      "template-other-costs": "Empty: the template's {amount} is used.",
+      "category-created-without-rate": "The category will be created without a rate."
+    },
+    "errors": {
+      "invalid": "The rows could not be sent. Upload the file again.",
+      "signed-out": "Your session has ended. Sign in again.",
+      "no-organization": "You no longer belong to an organization.",
+      "read-only": "Your role can only view: you cannot import.",
+      "no-rate-access": "Importing categories needs rate access.",
+      "rows-changed": "The categories changed while you reviewed. The rows have been checked again: look at them and import again.",
+      "failed": "The import failed. Nothing was saved; try again."
+    },
+    "done": {
+      "heading": "Categories imported",
+      "summary": "{creates, plural, =0 {No category created} one {# category created} other {# categories created}} and {updates, plural, =0 {none updated} one {# updated} other {# updated}}.",
+      "next": "The categories are now in «Categories and costs» on all your projects.",
+      "projects": "Go to projects",
+      "again": "Import another file"
+    },
+    "unavailable": {
+      "heading": "You cannot import into this organization",
+      "body": "Only owners and members, who have rate access, import categories and costs.",
+      "home": "Back to Home"
+    },
+    "cancel": "Cancel",
+    "back": "Back",
+    "continue": "Continue",
+    "uploadFirst": "Upload a file to continue.",
+    "reviewRows": "{count, plural, one {Review # row} other {Review # rows}}"
   }
 }
