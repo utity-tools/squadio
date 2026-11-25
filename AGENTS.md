@@ -54,8 +54,11 @@ See [ADR 0001](docs/adr/0001-stack-and-workflow.md) for why.
 Keep this table in sync with `package.json` when adding scripts. Database tests and migrations need
 Postgres: start it with `docker compose up -d --wait`. E2E tests also need the demo organization:
 run `pnpm db:migrate` and `pnpm db:seed` first. Before pushing a change to pages or E2E tests, run
-`pnpm test:e2e:linux` (needs Docker): CI's browser runs on Linux, which lays out fonts, handles keys
-and times focus differently from macOS. It takes the same arguments as `playwright test`.
+the specs it touches with `pnpm test:e2e:linux <specs>` (needs Docker): CI's browser runs on Linux,
+which lays out fonts, handles keys and times focus differently from macOS. It takes the same
+arguments as `playwright test`. Do not also run `pnpm test:e2e` (macOS, dev server): it adds nothing
+the Linux run and CI do not cover. CI runs the whole suite, in three shards, and checks every commit
+of a pull request on a runner of its own.
 
 ## Workflow (mandatory)
 
