@@ -73,11 +73,17 @@ decisions below are the owner's, not evidence of use.
 - Three roles, owner, member with rate access and viewer without it, and invitations by a link the
   owner copies, with no mail provider ([ADR 0015](adr/0015-roles-and-invitations.md)).
 
+**Accepted** by the owner on 2026-11-25, for v0.6:
+
+- The CSV import holds categories with their rates and people, in two files; committed assignments
+  of other projects wait for evidence ([ADR 0016](adr/0016-spreadsheet-import.md)).
+- A person whose name matches an existing one updates them; an empty cell never erases a value.
+- The picker of example scenarios stays in v0.6, last, and starts from a design board the owner
+  approves.
+
 **Proposed**, to be decided before the version that needs it:
 
 - Microsoft sign-in, once interviews ask for it.
-- What the CSV import holds: categories, rates and people, and whether it also brings committed
-  assignments of other projects (v0.6).
 
 ### Service limits
 
@@ -96,6 +102,23 @@ decisions below are the owner's, not evidence of use.
   approval.
 - **Load is what Squadio knows.** A person's load comes from the chosen scenarios registered here;
   an empty week means nothing is registered, not that the person is free.
+
+### v0.6 slices
+
+v0.6 ships in six pull requests or more, tests first, in this order, planned on 2026-11-25. The
+rules come first and the reading and checking of a file is pure, so the pages only call it
+([importing a spreadsheet](domain.md#importing-a-spreadsheet),
+[ADR 0016](adr/0016-spreadsheet-import.md)). The owner's boards 02 and 10 to 13 of 2026-11-05 draw
+the import; the picker of example scenarios has no board yet.
+
+| #   | Slice                | Done when                                                                                                                                                                                                                                                                                    |
+| --- | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0   | Rules                | ADR 0016, the domain's import with worked examples, the glossary and these slices. Docs only                                                                                                                                                                                                 |
+| 1   | Reading and checking | `src/lib/import` reads a CSV, matches its columns, parses numbers and checks each row into ready, warning or error, with what it will create or update. The domain's examples are unit tests; fast-check checks that a template written and read back gives the same rows                    |
+| 2   | Categories           | The import page's four steps for the categories file (boards 10 to 12): the template, matching columns, the review with cells to fix and the error report, and a Server Action that writes every row or none. Reached from «Categorías y costes» and as a third way to start an organization |
+| 3   | People               | The people file as the second step and on its own from «Personas» (board 13): updates people by name and creates a missing category without a rate. DB tests cover a viewer refused, another organization untouched and a bad row writing nothing                                            |
+| 4   | Example scenarios    | A design board the owner approves first, then the picker it draws                                                                                                                                                                                                                            |
+| 5   | v0.6 release         | Handoff, README with new screenshots, tag `v0.6.0`                                                                                                                                                                                                                                           |
 
 ### v0.5 slices
 
