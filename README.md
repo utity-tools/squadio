@@ -3,7 +3,7 @@
 Staffing simulator for consultancies: build a project team by dragging people or open roles
 into a scenario and see cost, margin and effective rate update live, before you commit.
 
-**v0.5 is live** at [squadio.utitytools.com](https://squadio.utitytools.com): a synthetic demo
+**v0.6 is live** at [squadio.utitytools.com](https://squadio.utitytools.com): a synthetic demo
 organization with its home page, projects, people and scenarios. Edit a scenario and watch cost and
 margin follow every change; when data is missing, the estimate shows every line it can compute and
 says what each other line is waiting for. Duplicate a scenario to try a variant, compare two or
@@ -11,10 +11,11 @@ three side by side, and see each person's load week by week, with the people the
 flagged. Save a revision of a scenario, which never changes, and share its link: a reviewer opens
 it, with no money unless they have rate access, and a member with rate access proposes an
 alternative derived from it. Choosing
-a scenario now points at one of its revisions. Your edits go to your own copy of the demo, kept for
-30 days after your last save. Signing in with GitHub or Google to work with your own organization,
-with its owner, members and viewers and invitations by link, is built but closed in production for
-now (see the [roadmap](docs/plan.md#roadmap)).
+a scenario points at one of its revisions. An empty team starts from one of four example teams of
+open roles, undone in one step. Your edits go to your own copy of the demo, kept for 30 days after
+your last save. Signing in with GitHub or Google to work with your own organization, with its owner,
+members and viewers, invitations by link and its categories and people imported from two CSV files,
+is built but closed in production for now (see the [roadmap](docs/plan.md#roadmap)).
 
 ![The demo's Plan A in the editor: the bench of people with today's occupancy and their weekly load, the team as a tree with an over-allocated project manager, and the summary rail with net margin, key figures and result lines](docs/images/editor-light.png)
 
@@ -44,6 +45,10 @@ Spanish is the default locale; drop `/en` from a link to see it in Spanish.
 </p>
 <p>
   <img src="docs/images/revision-light.png" alt="A revision of the Delivery plan, read only: its team, hours and result as they were saved, and who made it" width="49%">
+  <img src="docs/images/example-team-dark.png" alt="Plan A's team emptied, in the dark theme, and the picker of example teams: Product with a platform chosen, its structure of six open roles, and each role matched to one of the organization's categories" width="49%">
+</p>
+<p>
+  <img src="docs/images/import-light.png" alt="Importing a categories file, in its review step: three rows, one ready, one with a warning for its empty cells and one with an error to fix in place, and the import held until it is fixed" width="49%">
 </p>
 <p>
   <img src="docs/images/inicio-light.png" alt="Home: projects, scenarios with a chosen one, pending corrections and active people, with the list of corrections the data is waiting for" width="49%">
@@ -108,6 +113,17 @@ Spanish is the default locale; drop `/en` from a link to see it in Spanish.
 - **Roles and invitations** ([ADR 0015](docs/adr/0015-roles-and-invitations.md)): owner, member with
   rate access and viewer without it. The owner invites by a link they copy, with no mail provider,
   and changes roles or removes members; a viewer's transactions are read only in the database.
+- **Importing a spreadsheet** ([importing a spreadsheet](docs/domain.md#importing-a-spreadsheet),
+  [ADR 0016](docs/adr/0016-spreadsheet-import.md)): a member brings the organization's categories
+  with their costs, then its people, from two CSV files and a template. The file is read and
+  checked in the browser by pure functions; a review marks each row ready, with a warning or with
+  an error, lets a cell be fixed in place and downloads an error report; a Server Action writes
+  every row or none. A person whose name exists is updated, and an empty cell never erases a value.
+- **Starting from an example team**
+  ([example team](docs/domain.md#starting-from-an-example-team)): an empty scenario offers four
+  teams of open roles, from a proof of concept to maintenance, each role matched to one of the
+  organization's categories or left out. They are added as one change, which one undo takes back,
+  and no money reaches the picker.
 
 The vocabulary is in the [glossary](docs/glossary.md) and every decision in [docs/adr](docs/adr).
 
