@@ -126,7 +126,8 @@ jobs:
       - name: Deploy
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-        run: pnpm exec vercel deploy --prebuilt --prod
+        # One archive instead of one upload per file: the free plan allows 5000 uploads a day.
+        run: pnpm exec vercel deploy --prebuilt --prod --archive=tgz
       # The new deployment is already live by now: on failure, roll back as the runbook says.
       - name: Smoke test the guide scenario
         uses: ./.github/actions/smoke-test
