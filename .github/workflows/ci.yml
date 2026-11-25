@@ -90,12 +90,19 @@ jobs:
       - run: pnpm db:migrate
       - run: pnpm test:db
 
-  e2e:
-    name: E2E tests on a production build
+  # The suite is split in three shards that run at once, each on its own runner with its own
+  # database: every test still runs, on the same production build. The required check keeps its
+  # name in the `e2e` job below, which passes only when every shard did.
+  e2e-shard:
+    name: E2E shard ${{ matrix.shard }} of 3
     needs: changes
     if: ${{ needs.changes.outputs.code == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
     # The scenario pages read the demo organization: migrate and seed before the tests.
     env:
       DATABASE_OWNER_URL: postgres://squadio_owner:squadio_owner_dev@127.0.0.1:5434/squadio_test
@@ -126,7 +133,7 @@ jobs:
       - run: pnpm build
       # The server gets them, synthetic like .env.test's: no provider knows these clients. The
       # signed-in tests use the same secret and DATABASE_URL to sign their accounts in (ADR 0012).
-      - run: pnpm exec playwright test
+      - run: pnpm exec playwright test --shard=${{ matrix.shard }}/3
         env:
           E2E_PROD: "1"
           BETTER_AUTH_SECRET: synthetic-test-auth-secret-0123456789abcdef
@@ -138,23 +145,43 @@ jobs:
       - if: ${{ failure() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.shard }}
           path: playwright-report/
           retention-days: 7
 
-  commits:
-    name: Every commit passes the checks
-    # Rebase merge puts every commit on main, so each one must be green on its own. The checks job
-    # already covers the last commit; the ruleset requires branches to be up to date with main.
-    # Commit messages are linted on every pull request; the code of each commit only when it changes.
+  e2e:
+    name: E2E tests on a production build
+    needs: [changes, e2e-shard]
+    # A skipped shard (a docs-only pull request) counts as passed, as the job did when it skipped;
+    # a failed change detection does not, or every shard would skip and pass.
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - env:
+          DETECTION: ${{ needs.changes.result }}
+          SHARDS: ${{ needs.e2e-shard.result }}
+        run: |
+          echo "Change detection: $DETECTION, E2E shards: $SHARDS"
+          [ "$DETECTION" = success ]
+          [ "$SHARDS" = success ] || [ "$SHARDS" = skipped ]
+
+  # Rebase merge puts every commit on main, so each one must be green on its own. The checks job
+  # already covers the last commit; the ruleset requires branches to be up to date with main.
+  # Commit messages are linted on every pull request; the code of each commit only when it changes.
+  # Each earlier commit runs on a runner of its own, with the same checks as before; the required
+  # check keeps its name in the `commits` job below.
+  commit-list:
+    name: List the commits and lint their messages
     needs: changes
     if: ${{ github.event_name == 'pull_request' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 10
+    outputs:
+      shas: ${{ steps.list.outputs.shas }}
     env:
       BASE_SHA: ${{ github.event.pull_request.base.sha }}
       HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-      DATABASE_OWNER_URL: postgres://squadio_owner:squadio_owner_dev@127.0.0.1:5434/squadio_test
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -170,27 +197,80 @@ jobs:
       # Also catches commits made with hooks skipped or outside this machine.
       - name: Lint commit messages
         run: pnpm exec commitlint --from "$BASE_SHA" --to "$HEAD_SHA" --verbose
-      - name: Check each earlier commit
-        if: ${{ needs.changes.outputs.code == 'true' }}
+      # The last commit is the checks job's: only the ones before it are listed, as a JSON array of
+      # {sha, short} objects for the matrix.
+      - id: list
+        env:
+          CODE: ${{ needs.changes.outputs.code }}
         run: |
-          commits=$(git rev-list --reverse "$BASE_SHA..$HEAD_SHA~1")
-          for sha in $commits; do
-            echo "::group::$(git log -1 --format='%h %s' "$sha")"
-            git checkout --quiet "$sha"
-            git clean -ffdxq -e node_modules
-            pnpm install --frozen-lockfile --prefer-offline
-            pnpm lint
-            pnpm typecheck
-            pnpm format:check
-            pnpm test
-            # A fresh database per commit, from that commit's compose file and init script.
-            if jq -e '.scripts["test:db"]' package.json > /dev/null; then
-              docker compose down --volumes
-              docker compose up -d --wait
-              pnpm test:db
-            fi
-            echo "::endgroup::"
-          done
+          shas='[]'
+          if [ "$CODE" = true ]; then
+            shas=$(git rev-list --reverse "$BASE_SHA..$HEAD_SHA~1" | jq -R '{sha: ., short: .[0:7]}' | jq -cs .)
+          fi
+          echo "shas=$shas" | tee -a "$GITHUB_OUTPUT"
+
+  commit:
+    name: Check commit ${{ matrix.short }}
+    needs: commit-list
+    if: ${{ needs.commit-list.outputs.shas != '[]' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.commit-list.outputs.shas) }}
+    env:
+      DATABASE_OWNER_URL: postgres://squadio_owner:squadio_owner_dev@127.0.0.1:5434/squadio_test
+    steps:
+      # The pull request's head, as the other jobs check out, then the earlier commit this runner
+      # checks, which must be in the pull request's own history.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Switch to the commit
+        env:
+          SHA: ${{ matrix.sha }}
+        run: |
+          git merge-base --is-ancestor "$SHA" HEAD
+          git checkout --quiet "$SHA"
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm format:check
+      - run: pnpm test
+      # A fresh database from that commit's compose file and init script: the runner is new.
+      - name: Database tests
+        run: |
+          if jq -e '.scripts["test:db"]' package.json > /dev/null; then
+            docker compose up -d --wait
+            pnpm test:db
+          fi
+
+  commits:
+    name: Every commit passes the checks
+    needs: [changes, commit-list, commit]
+    if: ${{ always() && github.event_name == 'pull_request' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # Skipped is fine (a docs-only pull request, or a single commit); failed or cancelled is not.
+      # The listing must have run: with it skipped, no commit would be checked at all.
+      - env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+          LISTING: ${{ needs.commit-list.result }}
+        run: |
+          echo "Results: $RESULTS"
+          [ "$LISTING" = success ]
+          case " $RESULTS " in
+            *" failure "* | *" cancelled "*) exit 1 ;;
+          esac
 
   actionlint:
     name: Lint workflows
