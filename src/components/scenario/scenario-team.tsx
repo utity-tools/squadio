@@ -12,6 +12,7 @@ import { type AssignmentCard, assignmentCards } from "@/lib/team-tree/cards";
 import { cn } from "@/lib/utils";
 
 import { AddToTeamButton } from "@/components/team-editing/add-to-team-button";
+import { StartFromExampleButton } from "@/components/team-editing/start-from-example-button";
 import { useDragState } from "@/components/team-drag/team-drag";
 import { useTeamEditing } from "@/components/team-editing/team-editing";
 import { useWideScreen } from "@/components/team-views/use-wide-screen";
@@ -99,7 +100,12 @@ function EmptyTeam() {
         <p className="text-sm text-muted-foreground">
           {editing ? tEditing("emptyDescription") : t("description")}
         </p>
-        {editing && <AddToTeamButton editing={editing} takesTopFocus className="mt-1" />}
+        {editing && (
+          <div className="mt-1 flex flex-wrap justify-center gap-2">
+            <AddToTeamButton editing={editing} takesTopFocus />
+            <StartFromExampleButton editing={editing} />
+          </div>
+        )}
       </div>
     </div>
   );

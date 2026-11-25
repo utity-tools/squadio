@@ -656,6 +656,7 @@
     "hours": "Effective hours: {hours}",
     "did": "{what} {summary}",
     "added": "{name} joins the team.",
+    "addedMany": "{count, plural, one {# assignment joins} other {# assignments join}} the team.",
     "removed": "{name} leaves the team.",
     "moved": "{name} now reports to {manager}.",
     "movedToTop": "{name} now reports to no one.",
@@ -794,7 +795,7 @@
     "cancel": "Cancel",
     "close": "Close",
     "instructions": "Enter opens the assignment's actions.",
-    "emptyDescription": "Drag someone from the bench, starting with whoever leads the project. Cost and margin show up once someone is there.",
+    "emptyDescription": "Drag someone from the bench, starting with whoever leads the project, or start from an example team and swap its open roles for people. Cost and margin show up once someone is there.",
     "addFirst": "This is the first assignment. Starts at {percent} for next month.",
     "whoMissing": "Choose a person or an open role.",
     "someAssignment": "an assignment",
@@ -818,6 +819,51 @@
     },
     "editHint": "Choosing a person sets their weekly hours, which can still be changed.",
     "samePersonOption": "{name}{active, select, false {, inactive} other {}}, occupancy today: {percent}"
+  },
+  "ExampleTeams": {
+    "open": "Start from an example",
+    "title": "Start from an example team",
+    "description": "Adds a team of open roles to the scenario, with its structure and allocation. Then swap each open role for a person.",
+    "examples": "Example team",
+    "teams": {
+      "proof-of-concept": {
+        "name": "Proof of concept",
+        "summary": "Test an idea in a few weeks."
+      },
+      "web-app": {
+        "name": "Web application",
+        "summary": "A web product with its development team."
+      },
+      "platform": {
+        "name": "Product with a platform",
+        "summary": "Web, services and its own infrastructure."
+      },
+      "maintenance": {
+        "name": "Maintenance",
+        "summary": "Enhancements and support for something already running."
+      }
+    },
+    "size": "{roles, plural, one {# open role} other {# open roles}} · {people} full-time people",
+    "structure": "Structure",
+    "rolesCaption": "The example's roles and the category of your organization each one takes",
+    "columns": {
+      "role": "Role in the example",
+      "allocation": "Allocation",
+      "category": "Your organization's category"
+    },
+    "chooseCategory": "Choose a category",
+    "omit": "Leave out",
+    "noMatch": "Your organization has no “{role}”.",
+    "repeatedRole": "{role} ({number})",
+    "datesPlanned": "They all span the project's planned period.",
+    "datesNextMonth": "The project has no planned period: they all span next month.",
+    "undoNote": "Undone in one step.",
+    "submit": "Add {count, plural, =0 {open roles} one {# open role} other {# open roles}}",
+    "problems": {
+      "unchosen": "Choose a category for this role, or “Leave out”.",
+      "empty": "Keep at least one role to add.",
+      "notEmpty": "The team already has assignments: an example only goes into an empty team."
+    }
   },
   "TeamViews": {
     "label": "View",

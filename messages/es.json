@@ -656,6 +656,7 @@
     "hours": "Horas efectivas: {hours}",
     "did": "{what} {summary}",
     "added": "{name} entra en el equipo.",
+    "addedMany": "{count, plural, one {Entra # asignación} other {Entran # asignaciones}} en el equipo.",
     "removed": "{name} sale del equipo.",
     "moved": "{name} depende ahora de {manager}.",
     "movedToTop": "{name} ya no depende de nadie.",
@@ -794,7 +795,7 @@
     "cancel": "Cancelar",
     "close": "Cerrar",
     "instructions": "Intro abre las acciones de la asignación.",
-    "emptyDescription": "Arrastra a alguien desde el banquillo, empezando por quien dirige el proyecto. El coste y el margen aparecen en cuanto haya alguien.",
+    "emptyDescription": "Arrastra a alguien desde el banquillo, empezando por quien dirige el proyecto, o parte de un equipo de ejemplo y cambia sus vacantes por personas. El coste y el margen aparecen en cuanto haya alguien.",
     "addFirst": "Será la primera asignación. Empieza al {percent} durante el mes que viene.",
     "whoMissing": "Elige una persona o una vacante.",
     "someAssignment": "una asignación",
@@ -818,6 +819,51 @@
     },
     "editHint": "Al elegir a una persona se ponen sus horas semanales; se pueden cambiar.",
     "samePersonOption": "{name}{active, select, false {, no activa} other {}}, ocupación hoy: {percent}"
+  },
+  "ExampleTeams": {
+    "open": "Partir de un ejemplo",
+    "title": "Partir de un equipo de ejemplo",
+    "description": "Añade al escenario un equipo de vacantes con su estructura y dedicación. Luego cambia cada vacante por una persona.",
+    "examples": "Equipo de ejemplo",
+    "teams": {
+      "proof-of-concept": {
+        "name": "Prueba de concepto",
+        "summary": "Validar una idea en pocas semanas."
+      },
+      "web-app": {
+        "name": "Aplicación web",
+        "summary": "Un producto web con su equipo de desarrollo."
+      },
+      "platform": {
+        "name": "Producto con plataforma",
+        "summary": "Web, servicios e infraestructura propia."
+      },
+      "maintenance": {
+        "name": "Mantenimiento",
+        "summary": "Evolutivos y soporte de algo ya en marcha."
+      }
+    },
+    "size": "{roles, plural, one {# vacante} other {# vacantes}} · {people} personas a tiempo completo",
+    "structure": "Estructura",
+    "rolesCaption": "Roles del ejemplo y la categoría de tu organización que toma cada uno",
+    "columns": {
+      "role": "Rol en el ejemplo",
+      "allocation": "Dedicación",
+      "category": "Categoría de tu organización"
+    },
+    "chooseCategory": "Elige una categoría",
+    "omit": "No añadir",
+    "noMatch": "Tu organización no tiene «{role}».",
+    "repeatedRole": "{role} ({number})",
+    "datesPlanned": "Todas ocupan el periodo previsto del proyecto.",
+    "datesNextMonth": "El proyecto no tiene periodo previsto: todas ocupan el mes que viene.",
+    "undoNote": "Se deshace de una vez.",
+    "submit": "Añadir {count, plural, =0 {vacantes} one {# vacante} other {# vacantes}}",
+    "problems": {
+      "unchosen": "Elige una categoría para este rol, o «No añadir».",
+      "empty": "Deja al menos un rol para añadir.",
+      "notEmpty": "El equipo ya tiene asignaciones: un ejemplo solo se añade a un equipo vacío."
+    }
   },
   "TeamViews": {
     "label": "Vista",

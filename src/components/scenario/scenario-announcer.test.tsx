@@ -90,6 +90,17 @@ describe("ScenarioAnnouncer", () => {
     expect(region.textContent).toMatch(/^Role 3 \(vacante\) entra en el equipo\. /);
   });
 
+  it("says how many joined after an example team's adds, made in one step", () => {
+    const { store, region } = renderAnnouncer();
+    act(() => {
+      store.getState().dispatchAll([
+        { type: "add", member: { ...developer, id: seatId(7), reportsTo: null } },
+        { type: "add", member: { ...developer, id: seatId(8), reportsTo: seatId(7) } },
+      ]);
+    });
+    expect(region.textContent).toMatch(/^Entran 2 asignaciones en el equipo\. Margen neto: /);
+  });
+
   it("says nothing when a save renames the team's ids", () => {
     const { store, region } = renderAnnouncer();
     act(() => {

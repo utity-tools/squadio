@@ -27,8 +27,8 @@ export function useFieldProblem<Field extends string>() {
   const [attempt, setAttempt] = useState(0);
 
   return {
-    /** Shows `message` against `field`. */
-    report: (field: Field, message: string) => {
+    /** Shows `message` against `field`, or against the whole form when null. */
+    report: (field: Field | null, message: string) => {
       setProblem({ field, message });
       setAttempt((last) => last + 1);
     },

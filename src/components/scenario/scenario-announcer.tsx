@@ -17,7 +17,9 @@ type Named = { role: string; person: string | null };
 /** What a change did to the team, said before the summary. */
 type Done =
   | { kind: "added" | "removed" | "movedToTop" | "edited"; member: Named }
-  | { kind: "moved"; member: Named; manager: Named };
+  | { kind: "moved"; member: Named; manager: Named }
+  /** An example team's adds, one step (docs/domain.md, "Starting from an example team"). */
+  | { kind: "addedMany"; count: number };
 
 /** What was announced: a step's result, or why a step was refused. */
 type Announcement =
@@ -98,10 +100,13 @@ export function ScenarioAnnouncer() {
         const step =
           cursor < before.cursor ? "undo" : entries === before.entries ? "redo" : "change";
         // A screen reader user hears what a change did, not only its effect on the summary.
+        const changes = entries[cursor - 1]?.changes ?? [];
         const done =
-          step === "change"
-            ? doneBy(state.basis, entries[cursor - 1]?.changes[0], before.team, state.history.team)
-            : null;
+          step !== "change"
+            ? null
+            : changes.length > 1
+              ? ({ kind: "addedMany", count: changes.length } as const)
+              : doneBy(state.basis, changes[0], before.team, state.history.team);
         setAnnouncement((last) => ({ count: count(last), step, done }));
       }),
     [store],
@@ -110,9 +115,11 @@ export function ScenarioAnnouncer() {
   const name = ({ role, person }: Named) =>
     tEditing("member", { role, person: person ?? tEditing("openRole") });
   const what = (done: Done) =>
-    done.kind === "moved"
-      ? t("moved", { name: name(done.member), manager: name(done.manager) })
-      : t(done.kind, { name: name(done.member) });
+    done.kind === "addedMany"
+      ? t("addedMany", { count: done.count })
+      : done.kind === "moved"
+        ? t("moved", { name: name(done.member), manager: name(done.manager) })
+        : t(done.kind, { name: name(done.member) });
 
   const summary = (scenario: LoadedScenario) => {
     if (!scenario.rateAccess) return t("hours", { hours: hours(scenario.hours.effective) });
