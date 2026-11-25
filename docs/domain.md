@@ -1172,7 +1172,7 @@ and `Persona 01;Senior Developer;40;` and `Persona 02;Project Manager;40;` for p
 
 - **Encoding:** UTF-8, with or without a byte order mark. A file that is not UTF-8 is refused whole.
 - **Shape:** a header row and from 1 to 500 rows. An empty file, a header alone or more than 500
-  rows refuse the file whole. Blank lines are skipped. A row with more or fewer cells than the
+  rows refuse the file whole, and so does a file over 1 MB, before it is decoded. Blank lines are skipped. A row with more or fewer cells than the
   header is an error. Rows are numbered as a spreadsheet shows them: the header is row 1.
 - **Separator:** `;` or `,`, the one that splits the header outside quotes; when both do, `;`.
   Quoted cells may hold either, and line breaks. A quote that never closes refuses the file whole,
