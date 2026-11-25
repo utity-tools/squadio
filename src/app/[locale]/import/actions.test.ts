@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   session: null as null | { userId: string; sessionId: string; activeOrganizationId: null },
   member: null as null | { organizationId: string; capabilities: Capabilities },
   importCategories: vi.fn(),
+  importPeople: vi.fn(),
 }));
 vi.mock("@/db/client", () => ({ db: { client: "app" } }));
 vi.mock("@/auth/session", () => ({ currentSession: async () => mocks.session }));
@@ -18,8 +19,9 @@ vi.mock("@/db/access", async (original) => ({
   memberOf: async () => mocks.member,
 }));
 vi.mock("@/db/import-categories", () => ({ importCategories: mocks.importCategories }));
+vi.mock("@/db/import-people", () => ({ importPeople: mocks.importPeople }));
 
-const { importCategoriesFile } = await import("./actions");
+const { importCategoriesFile, importPeopleFile } = await import("./actions");
 
 const organizationId = "0b5e0c1e-0000-4000-8000-000000000002";
 const owner: Capabilities = { rateAccess: true, edit: true, choose: true, manage: true };
@@ -44,6 +46,8 @@ beforeEach(() => {
   mocks.member = { organizationId, capabilities: owner };
   mocks.importCategories.mockReset();
   mocks.importCategories.mockResolvedValue({ ok: true, creates: 1, updates: 0 });
+  mocks.importPeople.mockReset();
+  mocks.importPeople.mockResolvedValue({ ok: true, creates: 1, updates: 2, newCategories: 1 });
 });
 
 describe("importCategoriesFile", () => {
@@ -96,6 +100,56 @@ describe("importCategoriesFile", () => {
     );
     expect(await importCategoriesFile(input)).toEqual({ ok: false, error: "failed" });
     expect(log).toHaveBeenCalledWith("importCategories failed: Error 57014");
+    log.mockRestore();
+  });
+});
+
+describe("importPeopleFile", () => {
+  const people = {
+    rows: [
+      {
+        row: 2,
+        cells: { name: "Persona 02", category: "Data Engineer", weeklyHours: "", area: "" },
+        cellCountMatches: true,
+      },
+    ],
+  };
+
+  it("imports the rows into the session's organization, with its rate access", async () => {
+    expect(await importPeopleFile(people)).toEqual({
+      ok: true,
+      creates: 1,
+      updates: 2,
+      newCategories: 1,
+    });
+    expect(mocks.importPeople).toHaveBeenCalledWith(
+      { client: "app" },
+      { organizationId, rateAccess: true, readOnly: false },
+      people.rows,
+    );
+  });
+
+  it("refuses a categories file's rows without reaching the database", async () => {
+    expect(await importPeopleFile(input)).toEqual({ ok: false, error: "invalid" });
+    expect(mocks.importPeople).not.toHaveBeenCalled();
+  });
+
+  it("refuses a viewer without writing", async () => {
+    mocks.member = { organizationId, capabilities: viewer };
+    expect(await importPeopleFile(people)).toEqual({ ok: false, error: "read-only" });
+    expect(mocks.importPeople).not.toHaveBeenCalled();
+  });
+
+  it("says when the rows no longer pass the check", async () => {
+    mocks.importPeople.mockResolvedValue({ ok: false, reason: "rows-changed" });
+    expect(await importPeopleFile(people)).toEqual({ ok: false, error: "rows-changed" });
+  });
+
+  it("logs an unexpected error by its kind only and says it failed", async () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    mocks.importPeople.mockRejectedValue(new TypeError("Persona 02"));
+    expect(await importPeopleFile(people)).toEqual({ ok: false, error: "failed" });
+    expect(log).toHaveBeenCalledWith("importPeople failed: TypeError");
     log.mockRestore();
   });
 });

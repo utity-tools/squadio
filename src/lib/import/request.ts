@@ -42,6 +42,11 @@ export const categoriesImportSchema = z.strictObject({
 
 export type CategoriesImport = z.infer<typeof categoriesImportSchema>;
 
+/** What «Importar» sends for a people file: weekly hours read with a comma or a point alike. */
+export const peopleImportSchema = z.strictObject({ rows: rowsOf("people") });
+
+export type PeopleImport = z.infer<typeof peopleImportSchema>;
+
 /** Why the import did not happen; the page says so. */
 export type ImportError =
   | "invalid"
@@ -49,9 +54,16 @@ export type ImportError =
   | "no-organization"
   | "read-only"
   | "no-rate-access"
-  /** A row has an error against the categories as they are now: nothing was written. */
+  /** A row has an error against what the organization holds now: nothing was written. */
   | "rows-changed"
   | "failed";
 
 export type ImportResult =
-  { ok: true; creates: number; updates: number } | { ok: false; error: ImportError };
+  | {
+      ok: true;
+      creates: number;
+      updates: number;
+      /** A people file's categories created without a rate (rule k). */
+      newCategories?: number;
+    }
+  | { ok: false; error: ImportError };
