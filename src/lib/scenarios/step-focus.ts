@@ -29,11 +29,13 @@ function focusOf(change: Change, before: readonly Member[], after: readonly Memb
 export function stepFocus(before: History, after: History): StepFocus | null {
   if (after.cursor === before.cursor) return null;
   // A change or a redo applies the entry before the new cursor; an undo, the inverse of the entry
-  // it moved past. An inverse's first change names the assignment: a restore's inverse is its
-  // remove, followed by moves that put back reports which came from elsewhere.
+  // it moved past. An entry's first change names the assignment: an example team's first add is
+  // its top. An inverse's first change does too: a restore's inverse is its remove, followed by
+  // moves that put back reports which came from elsewhere; an example team's undo removes the
+  // last role first, which focus does not follow (the team is empty again).
   const applied =
     after.cursor > before.cursor
-      ? after.entries[after.cursor - 1]?.change
+      ? after.entries[after.cursor - 1]?.changes[0]
       : before.entries[before.cursor - 1]?.inverse[0];
   return applied ? focusOf(applied, before.team, after.team) : null;
 }

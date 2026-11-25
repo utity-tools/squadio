@@ -58,8 +58,8 @@ export function renamer(renamed: Readonly<Record<string, string>>): Rename {
 export function renameHistory(history: History, rename: Rename): History {
   return {
     team: history.team.map((member) => renameMember(member, rename)),
-    entries: history.entries.map(({ change, inverse }) => ({
-      change: renameChange(change, rename),
+    entries: history.entries.map(({ changes, inverse }) => ({
+      changes: changes.map((step) => renameChange(step, rename)),
       inverse: inverse.map((step) => renameChange(step, rename)),
     })),
     cursor: history.cursor,

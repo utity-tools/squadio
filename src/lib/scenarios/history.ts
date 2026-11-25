@@ -5,7 +5,14 @@ import type { Change, Member } from "./change";
 // redo move, and what is left to save. Pure and immutable: the scenario store (slice 3) holds one
 // and replaces it on every step.
 
-export type HistoryEntry = { readonly change: Change; readonly inverse: readonly Change[] };
+/**
+ * One step of undo and redo: one change, or the adds of an example team, applied whole or not at
+ * all (docs/domain.md, "Starting from an example team"), with the changes that undo them.
+ */
+export type HistoryEntry = {
+  readonly changes: readonly Change[];
+  readonly inverse: readonly Change[];
+};
 
 export type History = {
   /** The team as it stands after the entries before the cursor. */
@@ -32,17 +39,39 @@ export const canRedo = (history: History) => history.cursor < history.entries.le
 export type HistoryResult = { ok: true; history: History } | { ok: false; reason: Rejection };
 
 export function record(history: History, roster: Roster, change: Change): HistoryResult {
-  const result = applyChange(history.team, roster, change);
-  if (!result.ok) return result;
-  // The change as applied: an edit that filled a role names the hours it copied (rule a).
-  const entry = { change: result.applied, inverse: result.inverse };
+  return recordAll(history, roster, [change]);
+}
+
+/**
+ * Applies changes in order as one entry, which undo and redo take in one step, or none of them when
+ * one is refused. No changes is refused too: the entry would only take an undo slot.
+ */
+export function recordAll(
+  history: History,
+  roster: Roster,
+  changes: readonly Change[],
+): HistoryResult {
+  if (changes.length === 0) return { ok: false, reason: "no-change" };
+  let team = history.team;
+  const applied: Change[] = [];
+  const inverses: (readonly Change[])[] = [];
+  for (const change of changes) {
+    const result = applyChange(team, roster, change);
+    if (!result.ok) return result;
+    team = result.team;
+    // The change as applied: an edit that filled a role names the hours it copied (rule a).
+    applied.push(result.applied);
+    inverses.push(result.inverse);
+  }
+  // The last change is undone first, against the team it left.
+  const entry = { changes: applied, inverse: inverses.toReversed().flat() };
   return {
     ok: true,
     history: {
-      team: result.team,
+      team,
       entries: [...history.entries.slice(0, history.cursor), entry],
       cursor: history.cursor + 1,
-      pending: [...history.pending, result.applied],
+      pending: [...history.pending, ...applied],
     },
   };
 }
@@ -72,15 +101,15 @@ export function undo(history: History, roster: Roster): HistoryResult {
 export function redo(history: History, roster: Roster): HistoryResult {
   const entry = history.entries[history.cursor];
   if (!entry) return { ok: true, history };
-  const result = applyChange(history.team, roster, entry.change);
-  if (!result.ok) return result;
+  const result = applyChanges(history.team, roster, entry.changes);
+  if (!result.ok) return { ok: false, reason: result.reason };
   return {
     ok: true,
     history: {
       ...history,
       team: result.team,
       cursor: history.cursor + 1,
-      pending: [...history.pending, entry.change],
+      pending: [...history.pending, ...entry.changes],
     },
   };
 }

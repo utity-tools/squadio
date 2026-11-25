@@ -178,7 +178,7 @@ describe("the team's menus", () => {
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(store.getState().history.entries).toHaveLength(entries + 1);
-    expect(store.getState().history.entries.at(-1)?.change).toEqual({
+    expect(store.getState().history.entries.at(-1)?.changes[0]).toEqual({
       type: "edit",
       id: seatId(2),
       set: { projectRole: "Architect", allocation: 50, weeklyHours: 32.5 },

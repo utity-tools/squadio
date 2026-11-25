@@ -100,7 +100,7 @@ export function ScenarioAnnouncer() {
         // A screen reader user hears what a change did, not only its effect on the summary.
         const done =
           step === "change"
-            ? doneBy(state.basis, entries[cursor - 1]?.change, before.team, state.history.team)
+            ? doneBy(state.basis, entries[cursor - 1]?.changes[0], before.team, state.history.team)
             : null;
         setAnnouncement((last) => ({ count: count(last), step, done }));
       }),
