@@ -2,10 +2,9 @@ import type { PlannedPeriod } from "./project-details";
 
 // docs/domain.md, "Planned period": undated recurring costs span the planned period, or else the
 // project span (rule d), in every scenario of the project but the chosen one, whose revision keeps
-// the period it was made with (the portfolio lists none for it; a legacy row chosen before slice 6
-// with no revision still moves). So changing it moves them, and the project form names them before it
-// is saved. Their
-// labels are restricted (ADR 0005): only a form shown with rate access gets them.
+// the period it was made with (the portfolio lists none for it). So changing it moves them, and the
+// project form names them before it is saved. Their labels are restricted (ADR 0005): only a form
+// shown with rate access gets them.
 
 /** An extra cost as the form names it; its amount stays in the summary. */
 export type PeriodCost = { id: string; label: string | null };
@@ -13,15 +12,12 @@ export type PeriodCost = { id: string; label: string | null };
 /** A scenario of the project, with its recurring costs that have no dates of their own. */
 export type PeriodScenario = {
   name: string;
-  chosen: boolean;
   undatedRecurringCosts: readonly PeriodCost[];
 };
 
 export type PeriodChange = {
   /** In the order of the scenarios, then of their costs. */
   costs: (PeriodCost & { scenario: string })[];
-  /** The chosen scenario whose cost moves with them, if any (rule i: at most one). */
-  chosen: string | null;
 };
 
 const samePeriod = (a: PlannedPeriod | null, b: PlannedPeriod | null) =>
@@ -43,6 +39,5 @@ export function costsFollowingPeriod(
     costs: following.flatMap(({ name, undatedRecurringCosts }) =>
       undatedRecurringCosts.map((cost) => ({ ...cost, scenario: name })),
     ),
-    chosen: following.find((scenario) => scenario.chosen)?.name ?? null,
   };
 }

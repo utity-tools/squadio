@@ -113,9 +113,8 @@ export default async function ProjectPage({
                   description: project.description,
                 },
                 // What a new period moves (rule d): restricted, read with rate access.
-                scenarios: project.scenarios.map(({ name, chosen, money }) => ({
+                scenarios: project.scenarios.map(({ name, money }) => ({
                   name,
-                  chosen,
                   undatedRecurringCosts: money?.undatedRecurringCosts ?? [],
                 })),
               }}
