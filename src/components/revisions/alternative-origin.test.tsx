@@ -33,7 +33,7 @@ const props = (
   query: "",
 });
 
-const plain = (element: Element) => (element.textContent ?? "").replace(/[  ]/g, " ");
+const plain = (element: Element) => (element.textContent ?? "").replace(/[\u00a0\u202f]/g, " ");
 
 describe("AlternativeOrigin", () => {
   it("links to the revision it came from, with who proposed it and when in Madrid", async () => {
