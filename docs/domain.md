@@ -472,9 +472,11 @@ the UI says so and the history stays where it was.
 ### History, undo and redo
 
 The history is the list of changes made in the page, with a cursor. Undo moves the cursor back one
-change and redo forward one; a new change drops everything after the cursor. Each entry keeps its
-change and the inverse that undoes it, computed against the team it applied to (undoing a remove
-restores the assignment and puts its reports back under it).
+entry and redo forward one; a new entry drops everything after the cursor. Each entry keeps its
+changes and the inverse that undoes them, computed against the team they applied to (undoing a
+remove restores the assignment and puts its reports back under it). An entry holds one change,
+except an [example team](#starting-from-an-example-team), whose adds are one entry: applied whole or
+not at all, and undone in one step.
 
 What is left to save is kept next to the history: every change, undo and redo adds the changes it
 applied (a change, or an entry's inverse), and a successful save drops those it sent. Undoing a saved
@@ -575,6 +577,43 @@ is a new scenario of the same project, in one transaction:
 
 The copy opens in the editor. Comparing it with its original matches people by person, since its
 assignments have new ids ([Comparing scenarios](#comparing-scenarios)).
+
+### Starting from an example team
+
+From v0.6 an empty team can start from an example team instead of one assignment at a time. An
+example team is the shape of a team: open roles with a project role, an allocation and who they
+report to. It holds no people and no money, so it needs no rate access, only the right to edit
+teams, like any other change ([ADR 0003](adr/0003-structure-not-people.md),
+[ADR 0005](adr/0005-rate-access-in-the-database.md)). The examples are code constants, the same for
+every organization; an organization cannot save its own yet.
+
+| Example                 | Open roles, as project role (allocation) → who they report to                                                                                                               | Full-time equivalents |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------: |
+| Proof of concept        | Project Manager (20%); Senior Developer (100%) → PM; Frontend Developer (50%) → PM                                                                                          |                   1.7 |
+| Web application         | Project Manager (50%); Senior Developer (100%) → PM; Frontend Developer (100%) → PM; DevOps Engineer (50%) → PM; Junior Developer (100%) → Senior Developer                 |                   4.0 |
+| Product with a platform | Project Manager (50%); two Senior Developers (100%) → PM; Frontend Developer (100%) → PM; DevOps Engineer (100%) → PM; Junior Developer (100%) → the first Senior Developer |                   5.5 |
+| Maintenance             | Project Manager (20%); Senior Developer (50%) → PM; Junior Developer (100%) → Senior Developer                                                                              |                   1.7 |
+
+The project roles are the Consultancy template's category names. Applying an example:
+
+- **Only on an empty team,** never merged into one that has assignments (the adds are refused there), and never on a chosen
+  scenario or a viewer's page, which cannot be edited.
+- **Each role takes one of the organization's categories.** The category whose name is the role's,
+  ignoring case and the spaces around it, is chosen first (the first listed, if several); the person can choose another one, or
+  leave the role out. A role without a category of that name has none chosen, and the example is
+  not applied until each role has a category or is left out. No category is created: a team is
+  built from the organization's categories ([Editing a scenario](#editing-a-scenario)). At least
+  one role must stay.
+- **A role left out passes its reports to the role it reported to,** or makes them roots, as
+  removing it would ([Changes](#changes)).
+- **Each role is an add,** an open role with the example's project role and allocation, Config's
+  default weekly hours and the dates of a new assignment in an empty team: the planned period, or
+  the next full month. Managers come before their reports, so each add finds its parent.
+- **The adds are one history entry:** applied whole or not at all, undone and redone in one step.
+  Saving sends them as the adds they are, so the server checks each one as usual.
+
+The cost is the chosen categories' (ADR 0003): a Frontend Developer role given the Senior Developer
+category costs as a Senior Developer, under the project role «Frontend Developer».
 
 ## The organization at a glance
 
@@ -1103,8 +1142,8 @@ organization starts empty, with the Consultancy template's Config and CostConfig
 or as a member's adopted visitor's copy ([ADR 0012](adr/0012-sign-in-and-membership.md)). From
 v0.6 its categories and people can also come from a spreadsheet
 ([Importing a spreadsheet](#importing-a-spreadsheet)); a category without a rate can then exist,
-created by the people file. Example scenarios to start from come later in v0.6; templates for other
-sectors wait for evidence.
+created by the people file. A scenario's team can start from an
+[example team](#starting-from-an-example-team); templates for other sectors wait for evidence.
 
 The Consultancy template, also used by the demo organization (Madrid, 2026, indicative). The demo's
 first scenario is the guide case team, costed with the 2027 calendar rather than the guide case's
