@@ -7,6 +7,12 @@ import type { AmountLocale } from "@/lib/money/euros";
 /** The most rows a file may hold, besides its header. */
 export const MAX_IMPORT_ROWS = 500;
 
+/**
+ * The largest file the page reads, checked before decoding it: 500 rows of a few hundred
+ * characters fit many times over, and a larger file is refused before it costs the browser.
+ */
+export const MAX_IMPORT_BYTES = 1024 * 1024;
+
 /** Why a whole file is refused before any row is checked. */
 export type FileRefusal =
   | "encoding"
