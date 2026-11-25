@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
@@ -11,7 +11,7 @@ const ok: StartAction = async () => ({ error: null });
 describe("StartOrganization", () => {
   it("offers an empty organization, and adopting only when the cookie leads to a copy", () => {
     const { unmount } = renderWithIntl(
-      <StartOrganization canAdopt={false} createEmpty={ok} adopt={ok} />,
+      <StartOrganization canAdopt={false} createEmpty={ok} createAndImport={ok} adopt={ok} />,
     );
     expect(screen.getByRole("button", { name: "Crear una organización vacía" })).toBeVisible();
     expect(
@@ -19,7 +19,7 @@ describe("StartOrganization", () => {
     ).not.toBeInTheDocument();
 
     unmount();
-    renderWithIntl(<StartOrganization canAdopt createEmpty={ok} adopt={ok} />);
+    renderWithIntl(<StartOrganization canAdopt createEmpty={ok} createAndImport={ok} adopt={ok} />);
     expect(
       screen.getByRole("button", {
         name: "Crear una organización nueva con este ejemplo y mis cambios",
@@ -27,8 +27,28 @@ describe("StartOrganization", () => {
     ).toBeVisible();
   });
 
+  it("offers starting from a spreadsheet, and sends the page's locale to lead there", async () => {
+    const user = userEvent.setup();
+    const createAndImport = vi.fn<StartAction>(async () => ({ error: null }));
+    renderWithIntl(
+      <StartOrganization
+        canAdopt={false}
+        createEmpty={ok}
+        createAndImport={createAndImport}
+        adopt={ok}
+      />,
+      { locale: "en" },
+    );
+    const section = screen.getByRole("region", { name: "From a spreadsheet" });
+    await user.type(within(section).getByRole("textbox"), "Synthetic Consulting");
+    await user.click(within(section).getByRole("button", { name: "Create and import" }));
+    const sent = createAndImport.mock.calls[0]?.[1];
+    expect(sent?.get("name")).toBe("Synthetic Consulting");
+    expect(sent?.get("locale")).toBe("en");
+  });
+
   it("names the adopted organization the example by default, and the empty one not at all", () => {
-    renderWithIntl(<StartOrganization canAdopt createEmpty={ok} adopt={ok} />);
+    renderWithIntl(<StartOrganization canAdopt createEmpty={ok} createAndImport={ok} adopt={ok} />);
     const [adoptName, emptyName] = screen.getAllByRole("textbox", {
       name: "Nombre de la organización",
     });
@@ -39,9 +59,17 @@ describe("StartOrganization", () => {
   it("sends the typed name, and says why it failed, tied to the field", async () => {
     const user = userEvent.setup();
     const createEmpty = vi.fn<StartAction>(async () => ({ error: "blank" }));
-    renderWithIntl(<StartOrganization canAdopt={false} createEmpty={createEmpty} adopt={ok} />);
+    renderWithIntl(
+      <StartOrganization
+        canAdopt={false}
+        createEmpty={createEmpty}
+        createAndImport={ok}
+        adopt={ok}
+      />,
+    );
 
-    const name = screen.getByRole("textbox", { name: "Nombre de la organización" });
+    const empty = screen.getByRole("region", { name: "Una organización vacía" });
+    const name = within(empty).getByRole("textbox", { name: "Nombre de la organización" });
     await user.type(name, "Synthetic Consulting");
     await user.click(screen.getByRole("button", { name: "Crear una organización vacía" }));
 
@@ -56,9 +84,12 @@ describe("StartOrganization", () => {
   it("says when the copy is gone, without marking the name wrong", async () => {
     const user = userEvent.setup();
     const adopt: StartAction = async () => ({ error: "no-copy" });
-    renderWithIntl(<StartOrganization canAdopt createEmpty={ok} adopt={adopt} />, {
-      locale: "en",
-    });
+    renderWithIntl(
+      <StartOrganization canAdopt createEmpty={ok} createAndImport={ok} adopt={adopt} />,
+      {
+        locale: "en",
+      },
+    );
 
     await user.click(
       screen.getByRole("button", {

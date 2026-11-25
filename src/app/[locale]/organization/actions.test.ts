@@ -30,8 +30,13 @@ vi.mock("@/db/delete-organization", () => ({
 }));
 vi.mock("@/i18n/navigation", () => ({ redirect: mocks.redirect }));
 
-const { adoptVisitorsCopy, deleteOrganization, deleteOwnAccount, startEmptyOrganization } =
-  await import("./actions");
+const {
+  adoptVisitorsCopy,
+  deleteOrganization,
+  deleteOwnAccount,
+  startAndImport,
+  startEmptyOrganization,
+} = await import("./actions");
 
 const starter = { userId: "0b5e0c1e-0000-4000-8000-000000000001", sessionId: "s" };
 const named = (name: unknown) => {
@@ -96,6 +101,32 @@ describe("startEmptyOrganization", () => {
     expect(await startEmptyOrganization(initial, named("Synthetic"))).toEqual({ error: "failed" });
     expect(log).toHaveBeenCalledWith("startEmpty failed: Error 23505");
     expect(mocks.refresh).not.toHaveBeenCalled();
+  });
+});
+
+describe("startAndImport", () => {
+  // ADR 0016: the third way to start an organization creates an empty one, then leads to the import.
+  it("creates an empty organization, then leads to the import in the form's locale", async () => {
+    mocks.createEmptyOrganization.mockResolvedValue({ ok: true, organizationId: "o" });
+    const form = named("Synthetic Consulting");
+    form.set("locale", "en");
+    await startAndImport(initial, form);
+    expect(mocks.createEmptyOrganization).toHaveBeenCalledWith(
+      { client: "app" },
+      expect.objectContaining(starter),
+      "Synthetic Consulting",
+    );
+    expect(mocks.redirect).toHaveBeenCalledWith({ href: "/import", locale: "en" });
+  });
+
+  it("stays on the page and says why when it cannot start one", async () => {
+    expect(await startAndImport(initial, named(" "))).toEqual({ error: "blank" });
+    mocks.session = null;
+    expect(await startAndImport(initial, named("Synthetic Consulting"))).toEqual({
+      error: "signed-out",
+    });
+    expect(mocks.createEmptyOrganization).not.toHaveBeenCalled();
+    expect(mocks.redirect).not.toHaveBeenCalled();
   });
 });
 
