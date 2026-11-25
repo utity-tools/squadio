@@ -9,6 +9,7 @@ import {
   createHistory,
   markSaved,
   record,
+  recordAll,
   redo,
   undo,
 } from "./history";
@@ -149,6 +150,11 @@ export type ScenarioState = {
   revisionNote: RevisionNote | null;
   /** Applies a change; false, with the reason in `rejection`, when it is refused. */
   dispatch: (change: Change) => boolean;
+  /**
+   * Applies several changes as one step, which undo takes back whole: an example team's adds
+   * (docs/domain.md, "Starting from an example team"). False, and none applied, when one is refused.
+   */
+  dispatchAll: (changes: readonly Change[]) => boolean;
   /** Undoes the last change; false when there is nothing to undo or it is refused. */
   undo: () => boolean;
   /** Redoes the last undone change; false when there is nothing to redo or it is refused. */
@@ -353,6 +359,17 @@ export function createScenarioStore({ scenarioId, basis, team, version, save }: 
         }
         const { history, roster } = get();
         return step("change", record(history, roster, parsed.data));
+      },
+      dispatchAll: (changes) => {
+        if (refusedBeforeHistory("change")) return false;
+        const parsed = changes.map((change) => parseChange(change));
+        const valid = parsed.flatMap((result) => (result.success ? [result.data] : []));
+        if (valid.length < parsed.length) {
+          set({ rejection: { action: "change", reason: "invalid" } });
+          return false;
+        }
+        const { history, roster } = get();
+        return step("change", recordAll(history, roster, valid));
       },
       undo: () => {
         if (refusedBeforeHistory("undo")) return false;
