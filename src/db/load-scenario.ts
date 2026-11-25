@@ -213,9 +213,9 @@ export async function scenarioIn(
     money,
     structure.roster,
   );
-  // A chosen scenario shows its revision, and the editor holds its team, locked. A legacy row chosen
-  // before slice 6 with no revision shows the saved team (slice 6c validates the check against it).
-  const row = structure.chosen && !currentValues ? structure.chosenRevision : undefined;
+  // A chosen scenario shows its revision, and the editor holds its team, locked. Only a chosen
+  // scenario has one (the validated `scenarios_chosen_revision_check`).
+  const row = currentValues ? undefined : structure.chosenRevision;
   const chosenRevision =
     row &&
     chosenRevisionOf(

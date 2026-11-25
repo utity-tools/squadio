@@ -1055,9 +1055,9 @@ From slice 6 choosing points at a revision; FrozenRate and FrozenCostConfig are 
   rows (or, without them, from the values it was costed with that day), with the team, price,
   planned period and extra costs it had, so no result moved. Nobody made it, so it has no author and
   says it was migrated, not «antiguo miembro». One the engine could not cost (a date outside the
-  calendar) was unchosen instead. The backfill ran in production's deploy and is retired; a legacy row
-  without a revision would show its saved team and count in no occupancy or weekly load, which
-  slice 6c's validated check makes impossible.
+  calendar) was unchosen instead. The backfill ran in production's deploy and is retired, and slice
+  6c's validated check keeps a scenario chosen exactly when it points at a revision, so the app reads
+  no other case.
 - **Rules that block choosing are today's,** applied to the revision: rate access, no undetermined
   staff cost in its stored result (a category without a rate then, rule k), and a team that is not
   empty ([Choosing a scenario](#choosing-a-scenario)). A stored revision was costed, so its dates
