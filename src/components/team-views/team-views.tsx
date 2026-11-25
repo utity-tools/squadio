@@ -34,7 +34,7 @@ export type TeamViewsProps = {
   /**
    * A chosen scenario's team is locked: the bar says so, and that it shows the chosen revision's.
    */
-  locked?: "revision" | "chosen" | "viewer";
+  locked?: "revision" | "viewer";
   /** How much of the planned period the team leaves uncovered, if any: flagged, never refused. */
   uncovered?: UncoveredPeriod | null;
 };

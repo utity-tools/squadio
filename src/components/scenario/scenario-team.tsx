@@ -30,7 +30,7 @@ export type ScenarioTeamProps = {
    * A chosen scenario's team is locked, and shows its chosen revision's. A viewer's is locked too
    * (ADR 0015).
    */
-  locked?: "revision" | "chosen" | "viewer";
+  locked?: "revision" | "viewer";
   /** The project's: what falls outside it is flagged on the team, never refused. */
   plannedPeriod?: PlannedPeriod | null;
   /** The over-allocated weeks of each assignment, flagged on the team, never refused (rule c). */

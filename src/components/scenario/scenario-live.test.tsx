@@ -102,11 +102,6 @@ describe("the live scenario regions", () => {
       renderPage(withRevision(basis));
       expect(screen.getByText("Equipo bloqueado · muestra la revisión elegida")).toBeVisible();
     });
-
-    it("say only that it is chosen before it has a revision", () => {
-      renderPage(chosen(ratesBasis));
-      expect(screen.getByText("Equipo bloqueado · escenario elegido")).toBeVisible();
-    });
   });
 
   // ADR 0015: a viewer reads the team and edits nothing, even on a wide screen.
