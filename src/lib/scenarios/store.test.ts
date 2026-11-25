@@ -77,6 +77,32 @@ describe("createScenarioStore", () => {
     expect(store.getState().rejection).toEqual({ action: "change", reason: "cycle" });
   });
 
+  it("applies several changes as one step, or none of them", () => {
+    const store = create();
+    const quarterLead: Change = { type: "edit", id: lead.id, set: { allocation: 25 } };
+    expect(store.getState().dispatchAll([halfDeveloper, quarterLead])).toBe(true);
+    const { history } = store.getState();
+    expect(history.cursor).toBe(1);
+    expect(history.pending).toEqual([halfDeveloper, quarterLead]);
+    expect(store.getState().undo()).toBe(true);
+    expect(store.getState().history.team).toEqual(team);
+
+    const before = store.getState().history;
+    const cycle: Change = { type: "move", id: manager.id, reportsTo: lead.id };
+    expect(store.getState().dispatchAll([halfDeveloper, cycle])).toBe(false);
+    expect(store.getState().history).toBe(before);
+    expect(store.getState().rejection).toEqual({ action: "change", reason: "cycle" });
+  });
+
+  it("refuses several changes when one has the wrong shape", () => {
+    const store = create();
+    const before = store.getState().history;
+    const invalid = { type: "edit", id: developer.id, set: { allocation: 150 } } as Change;
+    expect(store.getState().dispatchAll([halfDeveloper, invalid])).toBe(false);
+    expect(store.getState().history).toBe(before);
+    expect(store.getState().rejection).toEqual({ action: "change", reason: "invalid" });
+  });
+
   it("refuses every change to a chosen scenario, whose team cannot be edited", () => {
     const store = createScenarioStore({
       scenarioId: seatId(99),
