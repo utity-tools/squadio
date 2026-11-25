@@ -1,8 +1,10 @@
 "use client";
 
+import { FileSpreadsheetIcon } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
 import { useId, useState } from "react";
 
+import { buttonVariants } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
 import { InfoTip } from "@/components/ui/info-tip";
 import {
@@ -13,6 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Link } from "@/i18n/navigation";
 import type { ListedPerson } from "@/lib/people/person-form";
 import type { SmallCategory } from "@/lib/rates/small-categories";
 
@@ -68,7 +71,19 @@ export function PeopleList({
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <p className="text-sm text-muted-foreground">{t("description")}</p>
-        {canAdd && sheet()}
+        {action && (
+          <div className="flex flex-wrap items-center gap-2">
+            {/* ADR 0016: or bring them all from a spreadsheet; it creates a missing category. */}
+            <Link
+              href={{ pathname: "/import", query: { file: "people" } }}
+              className={buttonVariants({ variant: "outline" })}
+            >
+              <FileSpreadsheetIcon aria-hidden="true" />
+              {t("import")}
+            </Link>
+            {canAdd && sheet()}
+          </div>
+        )}
       </div>
 
       {people.length === 0 ? (

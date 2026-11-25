@@ -74,6 +74,7 @@ describe("PeopleList", () => {
     );
     expect(screen.queryByText(/Categoría pequeña/)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Añadir persona|Editar/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /hoja de cálculo/ })).not.toBeInTheDocument();
   });
 
   it("with rate access marks small categories (rule j)", () => {
@@ -103,6 +104,10 @@ describe("PeopleList", () => {
     );
     expect(screen.getByRole("button", { name: "Añadir persona" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Editar Irene Sanz" })).toBeInTheDocument();
+    // ADR 0016: or bring them all from a spreadsheet, the import's people file alone.
+    expect(
+      screen.getByRole("link", { name: "Importar desde una hoja de cálculo" }),
+    ).toHaveAttribute("href", "/import?file=people");
   });
 
   it("asks for a category before the first person", () => {
@@ -118,6 +123,8 @@ describe("PeopleList", () => {
     expect(screen.queryByRole("button", { name: "Añadir persona" })).not.toBeInTheDocument();
     expect(screen.getByText(/Aún no hay personas/)).toBeInTheDocument();
     expect(screen.getByText(/primero una categoría/)).toBeInTheDocument();
+    // The import creates a category a person names.
+    expect(screen.getByRole("link", { name: "Importar desde una hoja de cálculo" })).toBeVisible();
   });
 
   it("has no axe violations", async () => {
