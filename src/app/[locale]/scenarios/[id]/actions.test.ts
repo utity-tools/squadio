@@ -2,7 +2,7 @@
 // ADR 0011, "Saving", and docs/domain.md, "Choosing a scenario": the Server Actions validate their
 // input and hand on who the request is: the session's member, resolved on the server (ADR 0012),
 // and the request's cookies.
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 const mocks = vi.hoisted(() => ({
@@ -81,6 +81,15 @@ describe("saveScenario", () => {
 
 describe("setScenarioChoice", () => {
   const choice = { scenarioId: valid.scenarioId, baseVersion: 1 };
+
+  // The action stamps Madrid's day: pin the clock so the expected day never depends on the run's.
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-11-23T23:30:00Z"));
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
 
   it("chooses or unchooses for the request, with rate access, and refreshes the page", async () => {
     mocks.setChoiceFor
