@@ -547,7 +547,8 @@
         "not-found": "Esta persona ya no existe.",
         "failed": "No se ha podido guardar la persona. Inténtalo de nuevo."
       }
-    }
+    },
+    "import": "Importar desde una hoja de cálculo"
   },
   "NotFound": {
     "title": "No encontramos esta página",
@@ -1451,8 +1452,10 @@
     "files": {
       "label": "Archivos",
       "position": "Archivo {current} de {total}",
+      "item": "{number}. {name}",
       "categories": "Categorías y costes",
-      "people": "Personas"
+      "people": "Personas",
+      "after": "<strong>{count, plural, one {# categoría importada} other {# categorías importadas}}.</strong> Ahora las personas."
     },
     "steps": {
       "label": "Pasos de la importación",
@@ -1462,18 +1465,8 @@
       "import": "Importar",
       "done": "{step}, hecho"
     },
-    "fields": {
-      "name": "Categoría",
-      "grossAnnualSalary": "Salario bruto anual",
-      "socialSecurity": "Seguridad social %",
-      "otherYearlyCosts": "Otros costes al año",
-      "sellRate": "Tarifa de venta por hora",
-      "manualCostPerHour": "Coste por hora manual"
-    },
     "upload": {
       "heading": "Sube tu archivo",
-      "input": "Archivo CSV de categorías y costes",
-      "drop": "Arrastra aquí tu CSV de categorías y costes",
       "or": "o",
       "choose": "elige un archivo",
       "limits": "máximo {rows} filas · UTF-8 · 1 MB",
@@ -1483,7 +1476,6 @@
         "too-large": "El archivo pesa más de 1 MB. Divídelo o quita columnas que no necesites.",
         "encoding": "El archivo no está en UTF-8. Expórtalo como «CSV UTF-8» desde tu hoja de cálculo.",
         "empty": "El archivo está vacío.",
-        "header-only": "El archivo solo tiene la fila de cabecera. Añade una fila por categoría.",
         "too-many-rows": "El archivo tiene más de {rows} filas. Divídelo en varios.",
         "unclosed-quote": "Unas comillas se abren y no se cierran. Revisa el archivo: todo lo que sigue se leería como una sola celda.",
         "unreadable": "No se ha podido leer el archivo. Vuelve a intentarlo."
@@ -1491,9 +1483,6 @@
     },
     "template": {
       "heading": "Usa nuestra plantilla",
-      "intro": "Una fila por categoría. Si mantienes los nombres de las columnas, las emparejamos solas.",
-      "download": "Descargar plantilla de categorías",
-      "file": "plantilla-categorias.csv",
       "caption": "Las primeras columnas de la plantilla",
       "more": "También {columns} (opcionales)."
     },
@@ -1516,8 +1505,7 @@
       "suggested": "Sugerido",
       "leaveOut": "No importar",
       "missing": "Falta emparejar {fields}: sin {count, plural, one {él} other {ellos}} no se puede revisar ninguna fila.",
-      "ready": "Están emparejados los campos obligatorios: {fields}.",
-      "absent": "No están en tu archivo: {fields}. Una categoría que ya existe conserva lo que tenía."
+      "ready": "Están emparejados los campos obligatorios: {fields}."
     },
     "review": {
       "heading": "Revisa las filas",
@@ -1529,7 +1517,6 @@
       "all": "Todas · {count}",
       "issues": "Con error o aviso · {count}",
       "report": "Descargar informe de errores",
-      "reportFile": "informe-errores-categorias.csv",
       "reportRow": "fila",
       "reportFix": "qué corregir",
       "reportIssue": "{field}: {issue}",
@@ -1546,9 +1533,7 @@
       "fixInput": "{field} de la fila {row}",
       "noIssues": "Ninguna fila tiene errores ni avisos.",
       "note": "Haz clic en una celda marcada para corregirla aquí, o arregla tu archivo y vuelve a subirlo. Las celdas vacías no borran lo que ya tenías.",
-      "plan": "{creates, plural, =0 {Ninguna categoría nueva} one {# categoría nueva} other {# categorías nuevas}} y {updates, plural, =0 {ninguna que actualizar} one {# que ya existe y se actualizará} other {# que ya existen y se actualizarán}}.",
       "blocked": "{count, plural, one {Corrige el error para importar} other {Corrige los # errores para importar}}. Todo o nada.",
-      "import": "{count, plural, one {Importar # categoría} other {Importar # categorías}}",
       "importing": "Importando…"
     },
     "issues": {
@@ -1561,36 +1546,81 @@
       "invalid-hours": "Escribe horas por semana, más de 0 y hasta 168.",
       "out-of-range": "{column, select, socialSecurity {Entre 0 y 100 %.} other {Es mayor de lo que se puede guardar.}}",
       "duplicate-row": "Repite la fila {earlierRow}.",
-      "ambiguous-name": "Hay varias categorías con este nombre: renombra una antes de importar.",
+      "ambiguous-name": "{subject, select, person {Hay varias personas con este nombre: renombra una antes de importar.} other {Hay varias categorías con este nombre: renombra una antes de importar.}}",
       "template-social-security": "Vacía: se usa el {percent} de la plantilla.",
       "template-other-costs": "Vacía: se usan los {amount} de la plantilla.",
-      "category-created-without-rate": "Se creará la categoría sin tarifa."
+      "category-created-without-rate": "No existe: se creará con coste Pendiente."
     },
     "errors": {
       "invalid": "No se han podido enviar las filas. Vuelve a subir el archivo.",
       "signed-out": "Tu sesión ha terminado. Vuelve a entrar.",
       "no-organization": "Ya no perteneces a una organización.",
       "read-only": "Tu rol solo permite ver: no puedes importar.",
-      "no-rate-access": "Importar categorías necesita acceso a las tarifas.",
-      "rows-changed": "Las categorías han cambiado mientras revisabas. Hemos vuelto a revisar las filas: compruébalas e importa de nuevo.",
+      "no-rate-access": "Importar necesita acceso a las tarifas.",
+      "rows-changed": "Las categorías o las personas han cambiado mientras revisabas. Hemos vuelto a revisar las filas: compruébalas e importa de nuevo.",
       "failed": "No se ha podido importar. No se ha guardado nada; vuelve a intentarlo."
     },
     "done": {
-      "heading": "Categorías importadas",
-      "summary": "{creates, plural, =0 {Ninguna categoría creada} one {# categoría creada} other {# categorías creadas}} y {updates, plural, =0 {ninguna actualizada} one {# actualizada} other {# actualizadas}}.",
-      "next": "Las categorías ya están en «Categorías y costes» de todos tus proyectos.",
       "projects": "Ir a proyectos",
-      "again": "Importar otro archivo"
+      "again": "Importar otro archivo",
+      "continue": "Continuar con personas",
+      "people": "Ir a personas"
     },
     "unavailable": {
       "heading": "No puedes importar en esta organización",
-      "body": "Solo las personas propietarias y los miembros, que tienen acceso a las tarifas, importan categorías y costes.",
+      "body": "Solo las personas propietarias y los miembros, que tienen acceso a las tarifas, importan categorías, costes y personas.",
       "home": "Volver a Inicio"
     },
     "cancel": "Cancelar",
     "back": "Atrás",
     "continue": "Continuar",
     "uploadFirst": "Sube un archivo para seguir.",
-    "reviewRows": "{count, plural, one {Revisar # fila} other {Revisar # filas}}"
+    "reviewRows": "{count, plural, one {Revisar # fila} other {Revisar # filas}}",
+    "kinds": {
+      "categories": {
+        "fields": {
+          "name": "Categoría",
+          "grossAnnualSalary": "Salario bruto anual",
+          "socialSecurity": "Seguridad social %",
+          "otherYearlyCosts": "Otros costes al año",
+          "sellRate": "Tarifa de venta por hora",
+          "manualCostPerHour": "Coste por hora manual"
+        },
+        "input": "Archivo CSV de categorías y costes",
+        "drop": "Arrastra aquí tu CSV de categorías y costes",
+        "headerOnly": "El archivo solo tiene la fila de cabecera. Añade una fila por categoría.",
+        "templateIntro": "Una fila por categoría. Si mantienes los nombres de las columnas, las emparejamos solas.",
+        "templateDownload": "Descargar plantilla de categorías",
+        "templateFile": "plantilla-categorias.csv",
+        "absent": "No están en tu archivo: {fields}. Una categoría que ya existe conserva lo que tenía.",
+        "reportFile": "informe-errores-categorias.csv",
+        "plan": "{creates, plural, =0 {Ninguna categoría nueva} one {# categoría nueva} other {# categorías nuevas}} y {updates, plural, =0 {ninguna que actualizar} one {# que ya existe y se actualizará} other {# que ya existen y se actualizarán}}.",
+        "import": "{count, plural, one {Importar # categoría} other {Importar # categorías}}",
+        "doneHeading": "Categorías importadas",
+        "doneSummary": "{creates, plural, =0 {Ninguna categoría creada} one {# categoría creada} other {# categorías creadas}} y {updates, plural, =0 {ninguna actualizada} one {# actualizada} other {# actualizadas}}.",
+        "doneNext": "Las categorías ya están en «Categorías y costes» de todos tus proyectos."
+      },
+      "people": {
+        "fields": {
+          "name": "Nombre",
+          "category": "Categoría",
+          "weeklyHours": "Jornada semanal",
+          "area": "Área"
+        },
+        "input": "Archivo CSV de personas",
+        "drop": "Arrastra aquí tu CSV de personas",
+        "headerOnly": "El archivo solo tiene la fila de cabecera. Añade una fila por persona.",
+        "templateIntro": "Una fila por persona, sin salarios. Si mantienes los nombres de las columnas, las emparejamos solas.",
+        "templateDownload": "Descargar plantilla de personas",
+        "templateFile": "plantilla-personas.csv",
+        "absent": "No están en tu archivo: {fields}. Una persona que ya existe conserva lo que tenía.",
+        "reportFile": "informe-errores-personas.csv",
+        "plan": "{creates, plural, =0 {Ninguna persona nueva} one {# persona nueva} other {# personas nuevas}}, {updates, plural, =0 {ninguna que actualizar} one {# que ya existe y se actualizará} other {# que ya existen y se actualizarán}} y {newCategories, plural, =0 {ninguna categoría nueva} one {# categoría nueva, sin coste} other {# categorías nuevas, sin coste}}.",
+        "import": "{count, plural, one {Importar # persona} other {Importar # personas}}",
+        "doneHeading": "Personas importadas",
+        "doneSummary": "{creates, plural, =0 {Ninguna persona creada} one {# persona creada} other {# personas creadas}} y {updates, plural, =0 {ninguna actualizada} one {# actualizada} other {# actualizadas}}.",
+        "doneNext": "{newCategories, plural, =0 {Ya están en «Personas», listas para tus equipos.} one {Ya están en «Personas». La categoría nueva tiene su coste pendiente: complétalo en «Categorías y costes».} other {Ya están en «Personas». Las # categorías nuevas tienen su coste pendiente: complétalo en «Categorías y costes».}}"
+      }
+    }
   }
 }

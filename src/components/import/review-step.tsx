@@ -17,31 +17,38 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { CategoriesCheck } from "@/lib/import/categories";
-import type { CategoryField, MatchedRow } from "@/lib/import/columns";
+import type { ImportField, ImportKind, MatchedRow } from "@/lib/import/columns";
 import type { ErrorCode, RowIssue, RowStatus, WarningCode } from "@/lib/import/issues";
 import { countByStatus, shownIssues } from "@/lib/import/review";
 import { cn } from "@/lib/utils";
 
-export type CategoryIssue = RowIssue<CategoryField, ErrorCode | WarningCode>;
+import { type FileCheck, isNumeric, useFieldLabel } from "./kinds";
+
+export type FileIssue<K extends ImportKind> = RowIssue<ImportField<K>, ErrorCode | WarningCode>;
 
 const TONES: Record<RowStatus, ChipTone> = { ready: "ok", warning: "warn", error: "bad" };
 const INPUT = controlClassName({ numeric: true });
 
-type ReviewStepProps = {
+type ReviewStepProps<K extends ImportKind> = {
+  /** Which file this is: it names the columns and says which hold numbers. */
+  kind: K;
   headingRef: Ref<HTMLHeadingElement>;
   /** The matched fields, in the template's order: only they are shown. */
-  fields: readonly CategoryField[];
-  rows: readonly MatchedRow<"categories">[];
-  check: CategoriesCheck;
+  fields: readonly ImportField<K>[];
+  rows: readonly MatchedRow<K>[];
+  check: FileCheck<K>;
   /** Words an issue as the page's language says it. */
-  describe: (issue: CategoryIssue) => string;
-  onFix: (row: number, field: CategoryField, value: string) => void;
+  describe: (issue: FileIssue<K>) => string;
+  onFix: (row: number, field: ImportField<K>, value: string) => void;
   onReport: () => void;
 };
 
-/** Board 12: every row with its status, the cells to fix, and the rows with errors as a CSV. */
-export function ReviewStep({
+/**
+ * Boards 12 and 13: every row with its status, the cells to fix, and the rows with errors as a
+ * CSV. The name, the first field of either file, also carries the issues of the row's shape.
+ */
+export function ReviewStep<K extends ImportKind>({
+  kind,
   headingRef,
   fields,
   rows,
@@ -49,21 +56,22 @@ export function ReviewStep({
   describe,
   onFix,
   onReport,
-}: ReviewStepProps) {
+}: ReviewStepProps<K>) {
   const t = useTranslations("Import");
+  const fieldLabel = useFieldLabel(kind);
   const id = useId();
   const [filter, setFilter] = useState<"all" | "issues">("all");
-  const [editing, setEditing] = useState<{ row: number; field: CategoryField } | null>(null);
+  const [editing, setEditing] = useState<{ row: number; field: ImportField<K> } | null>(null);
   // Enter or Escape has finished the edit: the blur that follows as the input leaves is ignored.
   const finished = useRef(false);
   const counts = countByStatus(check.rows);
   const withIssues = counts.warning + counts.error;
   const checked = new Map(check.rows.map((row) => [row.row, row]));
   const shown = rows.filter((row) => filter === "all" || checked.get(row.row)?.status !== "ready");
-  const cellId = (row: number, field: CategoryField) => `${id}-cell-${row}-${field}`;
+  const cellId = (row: number, field: ImportField<K>) => `${id}-cell-${row}-${field}`;
 
   /** Leaves the input, back to the cell it was in, which keeps the focus. */
-  function finish(row: number, field: CategoryField, value: string | null) {
+  function finish(row: number, field: ImportField<K>, value: string | null) {
     if (finished.current) return;
     finished.current = true;
     setEditing(null);
@@ -138,8 +146,8 @@ export function ReviewStep({
                   {t("review.row")}
                 </TableHead>
                 {fields.map((field) => (
-                  <TableHead key={field} scope="col" numeric={field !== "name"}>
-                    {t(`fields.${field}`)}
+                  <TableHead key={field} scope="col" numeric={isNumeric(kind, field)}>
+                    {fieldLabel(field)}
                   </TableHead>
                 ))}
                 <TableHead scope="col">{t("review.status")}</TableHead>
@@ -171,11 +179,12 @@ export function ReviewStep({
                       const tone = cellIssues.length === 0 ? null : status;
                       const isEditing = editing?.row === row.row && editing.field === field;
                       const noteId = `${cellId(row.row, field)}-note`;
-                      const label = t(`fields.${field}`);
+                      const label = fieldLabel(field);
+                      const numeric = isNumeric(kind, field);
                       return (
                         <TableCell
                           key={field}
-                          numeric={field !== "name"}
+                          numeric={numeric}
                           className={cn(
                             tone === "error" && "tint-bad",
                             tone === "warning" && "tint-warn",
@@ -188,7 +197,7 @@ export function ReviewStep({
                               aria-label={t("review.fixInput", { field: label, row: row.row })}
                               aria-describedby={noteId}
                               defaultValue={value}
-                              className={cn(INPUT, field === "name" && "text-left font-sans")}
+                              className={cn(INPUT, !numeric && "text-left font-sans")}
                               onKeyDown={(event) => {
                                 if (event.key === "Enter") {
                                   event.preventDefault();

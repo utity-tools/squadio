@@ -7,6 +7,7 @@ import { type Ref, useId, useRef, useState } from "react";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Panel, PanelTitle } from "@/components/ui/panel";
+import { fieldsOf, type ImportKind } from "@/lib/import/columns";
 import {
   type CsvFile,
   decodeFile,
@@ -19,6 +20,7 @@ import { writeTemplate } from "@/lib/import/write";
 import { cn } from "@/lib/utils";
 
 import { downloadCsv } from "./download";
+import { isNumeric } from "./kinds";
 
 /** A file read in the browser: its name and what it holds. */
 export type LoadedFile = { name: string; file: CsvFile };
@@ -45,25 +47,41 @@ export async function loadFile(
   return { ok: true, loaded: { name: file.name, file: { separator, locale, header, rows } } };
 }
 
-/** The template, read back with the module: its header and two synthetic rows. */
-const TEMPLATE = writeTemplate("categories");
-const templateFile = readCsv(TEMPLATE);
+/** Each file's template, read back with the module: its header and two synthetic rows. */
+const TEMPLATES = Object.fromEntries(
+  (["categories", "people"] as const).map((kind) => {
+    const text = writeTemplate(kind);
+    return [kind, { text, file: readCsv(text) }];
+  }),
+) as Record<ImportKind, { text: string; file: ReturnType<typeof readCsv> }>;
 const SHOWN_COLUMNS = 3;
 
 type UploadStepProps = {
+  /** Which file this is: it names the template and the input. */
+  kind: ImportKind;
   headingRef: Ref<HTMLHeadingElement>;
+  /** The id of what describes the step, such as what the file before it imported. */
+  headingDescribedBy?: string;
   loaded: LoadedFile | null;
   onLoaded: (loaded: LoadedFile) => void;
 };
 
 /** Board 10: drop or choose a CSV, or start from the template. */
-export function UploadStep({ headingRef, loaded, onLoaded }: UploadStepProps) {
+export function UploadStep({
+  kind,
+  headingRef,
+  headingDescribedBy,
+  loaded,
+  onLoaded,
+}: UploadStepProps) {
   const t = useTranslations("Import");
   const format = useFormatter();
   const input = useRef<HTMLInputElement>(null);
   const [refusal, setRefusal] = useState<UploadRefusal | null>(null);
   const [dragging, setDragging] = useState(false);
   const id = useId();
+  const { text: template, file: templateFile } = TEMPLATES[kind];
+  const fields = fieldsOf(kind);
 
   async function take(file: File | undefined) {
     if (!file) return;
@@ -78,7 +96,13 @@ export function UploadStep({ headingRef, loaded, onLoaded }: UploadStepProps) {
 
   return (
     <section aria-labelledby={`${id}-heading`} className="flex flex-col gap-5">
-      <h2 id={`${id}-heading`} ref={headingRef} tabIndex={-1} className="sr-only">
+      <h2
+        id={`${id}-heading`}
+        ref={headingRef}
+        tabIndex={-1}
+        aria-describedby={headingDescribedBy}
+        className="sr-only"
+      >
         {t("upload.heading")}
       </h2>
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
@@ -103,7 +127,7 @@ export function UploadStep({ headingRef, loaded, onLoaded }: UploadStepProps) {
             <span className="flex size-11 items-center justify-center rounded-lg bg-card shadow-xs">
               <UploadIcon aria-hidden="true" className="size-5 text-brand-text" />
             </span>
-            <p className="text-base font-semibold">{t("upload.drop")}</p>
+            <p className="text-base font-semibold">{t(`kinds.${kind}.drop`)}</p>
             <p className="text-sm text-muted-foreground">
               {t("upload.or")}{" "}
               <Button
@@ -121,7 +145,7 @@ export function UploadStep({ headingRef, loaded, onLoaded }: UploadStepProps) {
               ref={input}
               type="file"
               accept=".csv,text/csv"
-              aria-label={t("upload.input")}
+              aria-label={t(`kinds.${kind}.input`)}
               tabIndex={-1}
               className="sr-only"
               onChange={(event) => {
@@ -133,7 +157,9 @@ export function UploadStep({ headingRef, loaded, onLoaded }: UploadStepProps) {
           </div>
           {refusal && (
             <Alert tone="bad" role="alert">
-              {t(`upload.refusals.${refusal}`, { rows: MAX_IMPORT_ROWS })}
+              {refusal === "header-only"
+                ? t(`kinds.${kind}.headerOnly`)
+                : t(`upload.refusals.${refusal}`, { rows: MAX_IMPORT_ROWS })}
             </Alert>
           )}
           {/* Always there, so the file's name is announced when it arrives. */}
@@ -147,15 +173,15 @@ export function UploadStep({ headingRef, loaded, onLoaded }: UploadStepProps) {
           <PanelTitle id={`${id}-template`} className="font-semibold">
             {t("template.heading")}
           </PanelTitle>
-          <p className="text-sm text-muted-foreground">{t("template.intro")}</p>
+          <p className="text-sm text-muted-foreground">{t(`kinds.${kind}.templateIntro`)}</p>
           <Button
             type="button"
             variant="outline"
             className="self-start"
-            onClick={() => downloadCsv(t("template.file"), TEMPLATE)}
+            onClick={() => downloadCsv(t(`kinds.${kind}.templateFile`), template)}
           >
             <DownloadIcon aria-hidden="true" />
-            {t("template.download")}
+            {t(`kinds.${kind}.templateDownload`)}
           </Button>
           {templateFile.ok && (
             <>
@@ -189,7 +215,9 @@ export function UploadStep({ headingRef, loaded, onLoaded }: UploadStepProps) {
                             key={templateFile.header[index]}
                             className={cn(
                               "px-3 py-2",
-                              index > 0 && "text-right font-mono tabular-nums",
+                              fields[index] !== undefined &&
+                                isNumeric(kind, fields[index]) &&
+                                "text-right font-mono tabular-nums",
                             )}
                           >
                             {cell}
