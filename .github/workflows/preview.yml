@@ -173,7 +173,8 @@ jobs:
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
-          deployed=$(pnpm exec vercel deploy --prebuilt --json \
+          # One archive instead of one upload per file: the free plan allows 5000 uploads a day.
+          deployed=$(pnpm exec vercel deploy --prebuilt --archive=tgz --json \
             --env "DATABASE_URL=$DATABASE_URL" --env "NEXT_PUBLIC_APP_URL=https://$ALIAS")
           url=$(jq -r '.deployment.url // .url // empty' <<< "$deployed")
           if [ -z "$url" ]; then echo "::error::vercel deploy returned no URL."; exit 1; fi
