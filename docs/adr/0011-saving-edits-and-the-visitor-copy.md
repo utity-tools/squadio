@@ -65,8 +65,8 @@ demo template that belongs to the visitor and is found through a random token in
   30 days without a save (see Clean-up), and a cookie whose copy is gone is no copy.
 - **The database keeps only its SHA-256 hash.** A dump of the table cannot be turned back into
   cookies. A plain hash is enough: the token has 256 bits of entropy, so there is nothing to guess.
-- **An unknown or expired token is no copy.** The visitor reads the template, and the next edit
-  makes a new copy and replaces the cookie.
+- **An unknown or expired token is no copy.** The visitor reads the template; an edit makes no copy
+  and clears the cookie, and the edit after it makes a new copy (amended 2026-11-26).
 
 ### When the copy is made
 
@@ -222,3 +222,14 @@ organization, as ADR 0005 already requires for rate access.
   leaves none; the clean-up deletes it after the claim. A third `SECURITY DEFINER` function,
   `app.release_visitor_copy`, takes an adopted copy out of `visitor_copies`. The decision itself is
   unchanged.
+- **2026-11-26:** **A cookie that leads to no copy makes none.** The firewall rule tells first
+  writes apart by the absence of the `squadio_visitor` cookie, so a made-up value used to skip the
+  per-IP limit while the app still made a copy, and one client could spend the day's 200 copies in
+  seconds (security audit of 2026-11-04, S1). A write whose cookie is forged, or left from a copy
+  the clean-up deleted, now makes no copy: it clears the cookie and returns `not-found`, which each
+  write's page already shows as a refusal (a save, as a copy that no longer exists, with a way back
+  to the demo). The next write, without
+  the cookie, meets the firewall rule like any first write. The rule itself is unchanged. One IP
+  can still spend the day's copies at the rule's pace, 10 every 10 minutes; anything finer would
+  need the app to count by address, which this ADR rules out. A request with a made-up cookie
+  still skips the rule, but now costs only a hash and one lookup, and makes nothing.
