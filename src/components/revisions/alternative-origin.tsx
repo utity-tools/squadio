@@ -1,4 +1,4 @@
-import { GitBranchIcon } from "lucide-react";
+import { GitBranchIcon, HistoryIcon } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
 
 import type { AlternativeOrigin as Origin } from "@/db/load-alternative-origin";
@@ -24,37 +24,46 @@ export function AlternativeOrigin({ origin, anonymous, query = "" }: Alternative
   const format = useFormatter();
   const { revision } = origin;
 
+  const author = origin.author ?? revisions(`anonymous.${anonymous}`);
+
+  // One line in the scenario's card, as a pull request's «wants to merge … from …» (ADR 0017):
+  // who proposed it, from which revision, as a reference to it, and when.
   return (
-    <p role="note" className="flex flex-wrap items-center gap-x-1.5 text-sm text-muted-foreground">
-      <GitBranchIcon aria-hidden className="size-4 shrink-0" />
-      <span>
-        {revision
-          ? t.rich("from", {
-              number: revision.number,
-              scenario: revision.scenarioName,
-              link: (chunks) => (
-                <Link
-                  href={`/revisions/${revision.id}${query}`}
-                  className="font-medium text-foreground underline underline-offset-4"
-                >
-                  {chunks}
-                </Link>
-              ),
-            })
-          : t("deleted")}
-        <span aria-hidden> · </span>
-        <span className="sr-only">, </span>
-        {t("by", { author: origin.author ?? revisions(`anonymous.${anonymous}`) })}
-        <span aria-hidden> · </span>
-        <span className="sr-only">, </span>
-        <time dateTime={origin.derivedAt.toISOString()}>
-          {format.dateTime(origin.derivedAt, {
-            dateStyle: "medium",
-            timeStyle: "short",
-            timeZone: "Europe/Madrid",
-          })}
-        </time>
-      </span>
+    <p role="note" className="text-[13px] leading-relaxed text-muted-foreground">
+      <GitBranchIcon aria-hidden className="me-1 inline size-3.5 align-[-2px] text-alt" />
+      {revision ? (
+        t.rich("proposed", {
+          author,
+          number: revision.number,
+          scenario: revision.scenarioName,
+          who: (chunks) => <span className="font-medium text-foreground">{chunks}</span>,
+          link: (chunks) => (
+            <Link
+              href={`/revisions/${revision.id}${query}`}
+              className="inline-flex items-center gap-1 rounded-sm tint-brand px-1.5 py-px font-medium whitespace-nowrap text-brand-text underline underline-offset-2 hover:decoration-2"
+            >
+              <HistoryIcon aria-hidden className="size-3.5" />
+              {chunks}
+            </Link>
+          ),
+        })
+      ) : (
+        <span>
+          {t("deleted")}
+          <span aria-hidden> · </span>
+          <span className="sr-only">, </span>
+          {t("by", { author })}
+        </span>
+      )}
+      <span aria-hidden> · </span>
+      <span className="sr-only">, </span>
+      <time dateTime={origin.derivedAt.toISOString()} className="whitespace-nowrap">
+        {format.dateTime(origin.derivedAt, {
+          dateStyle: "medium",
+          timeStyle: "short",
+          timeZone: "Europe/Madrid",
+        })}
+      </time>
     </p>
   );
 }

@@ -16,9 +16,11 @@ import { ScenarioDuplicate } from "@/components/scenario/duplicate-scenario";
 import { ScenarioChoice } from "@/components/scenario/scenario-choice";
 import { ScenarioEditor } from "@/components/scenario/scenario-editor";
 import { ScenarioRevision } from "@/components/scenario/save-revision";
+import { DecisionStatus } from "@/components/scenario/decision-status";
+import { RailToggle } from "@/components/scenario/rail-toggle";
+import { ScenarioBarName, ScenarioCard } from "@/components/scenario/scenario-card";
 import {
   LiveScenarioCrumbs,
-  LiveScenarioHeader,
   LiveScenarioSummary,
   LiveScenarioTeam,
 } from "@/components/scenario/scenario-live";
@@ -88,6 +90,7 @@ export default async function ScenarioPage({
     >
       <AppShell
         scope="editor"
+        card
         current="inside-projects"
         organization={
           <Suspense>
@@ -107,34 +110,44 @@ export default async function ScenarioPage({
         }
       >
         <ScenarioShell
-          header={
-            origin ? (
-              <div className="flex flex-col gap-1">
-                <LiveScenarioHeader />
-                <AlternativeOrigin origin={origin} anonymous={anonymous} query={accessQuery} />
-              </div>
-            ) : (
-              <LiveScenarioHeader />
-            )
-          }
+          // The bar says what to do; the card on the right says what the scenario is (ADR 0017).
+          header={<ScenarioBarName />}
           actions={
-            readOnly ? null : (
+            readOnly ? (
+              <RailToggle />
+            ) : (
               <>
                 <SaveStatus />
                 <HistoryControls />
+                <DecisionStatus />
                 <ScenarioDuplicate send={duplicateScenario} />
                 <ScenarioRevision send={saveRevision} />
                 <ScenarioChoice scenarioId={id} send={setScenarioChoice} />
+                <RailToggle />
               </>
             )
           }
           bench={<Bench day={today} />}
           team={<LiveScenarioTeam />}
+          summaryFocusable={false}
           summary={
-            <div className="flex flex-col gap-8">
-              <LiveScenarioSummary />
-              <RevisionList revisions={revisions} anonymous={anonymous} query={accessQuery} />
-            </div>
+            <ScenarioCard
+              organization={
+                <Suspense>
+                  <CurrentOrganization />
+                </Suspense>
+              }
+              alternative={origin !== null}
+              origin={
+                origin && (
+                  <AlternativeOrigin origin={origin} anonymous={anonymous} query={accessQuery} />
+                )
+              }
+              result={<LiveScenarioSummary />}
+              history={
+                <RevisionList revisions={revisions} anonymous={anonymous} query={accessQuery} />
+              }
+            />
           }
         />
       </AppShell>

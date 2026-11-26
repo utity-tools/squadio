@@ -6,6 +6,7 @@ import { expectNoAxeViolations } from "./support/axe";
 import { expectOnCopy } from "./support/copy";
 import { expectHydrated } from "./support/hydration";
 import { expect, test } from "./support/signed-in";
+import { openHistory, openResult } from "./support/scenario-card";
 
 // docs/domain.md, "Choosing a revision", and ADR 0013: «Elegir esta revisión» on a revision's page
 // lists what changed since it was made, the change check, and moves the scenario's choice to it on
@@ -57,6 +58,7 @@ test("an older revision is chosen after the check lists the team saved since (Ol
   await expectHydrated(node(page, "Project manager"));
   await banner(page).getByRole("button", { name: "Guardar revisión" }).click();
   await expectOnCopy(page, GUIDE_SCENARIO);
+  await openHistory(page);
   await expect(revisionLines(page)).toHaveCount(1);
   await expectHydrated(node(page, "DevOps engineer"));
   await remove(page, "DevOps engineer");
@@ -89,7 +91,9 @@ test("an older revision is chosen after the check lists the team saved since (Ol
   await expect(page.getByRole("heading", { level: 1, name: "Plan A" })).toBeVisible();
   await expect(page.getByText("Equipo bloqueado · muestra la revisión elegida")).toBeVisible();
   // The demo's Plan A with its DevOps engineer: revision 1's total cost, not the team saved since.
+  await openResult(page);
   await expect(rail(page)).toContainText("Subtotal Coste total136.644 €");
+  await openHistory(page);
   await expect(revisionLines(page).first()).toContainText("Elegida");
 
   // Unchosen, the team saved since comes back, without the DevOps engineer.

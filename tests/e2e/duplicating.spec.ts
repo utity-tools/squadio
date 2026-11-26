@@ -17,10 +17,11 @@ const banner = (page: Page) => page.getByRole("region", { name: "Datos del escen
 const rail = (page: Page) => page.getByRole("complementary", { name: "Resumen" });
 const duplicateButton = (page: Page) => banner(page).getByRole("button", { name: "Duplicar" });
 
-/** The figures the summary's rail shows, which a copy shares with its original. */
+/** The figures the card's result shows, which a copy shares with its original. */
 const figuresOf = async (page: Page) => {
-  await expect(rail(page).getByText("Completo · 9 de 9 líneas")).toBeVisible();
-  return (await rail(page).innerText()).replace(/\s+/g, " ");
+  const result = rail(page).getByRole("tabpanel", { name: "Resultado" });
+  await expect(result.getByText("Completo · 9 de 9 líneas")).toBeVisible();
+  return (await result.innerText()).replace(/\s+/g, " ");
 };
 
 async function openScenario(page: Page, scenarioId: string, query = "") {
@@ -49,7 +50,8 @@ test("duplicating the guide scenario from its header opens a draft with the same
   expect(await context.cookies()).toContainEqual(expect.objectContaining({ httpOnly: true }));
   // A draft, whatever the original was, with the same team and extra costs.
   await expect(banner(page).getByRole("button", { name: "Elegir escenario" })).toBeVisible();
-  expect(await figuresOf(page)).toBe(original.replace("Plan A", "Plan A (copia)"));
+  expect(await figuresOf(page)).toBe(original);
+  await expect(page.getByRole("heading", { level: 1, name: "Plan A (copia)" })).toBeVisible();
 
   for (const colorScheme of ["light", "dark"] as const) {
     await page.emulateMedia({ colorScheme });

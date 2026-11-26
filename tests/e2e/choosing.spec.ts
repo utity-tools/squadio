@@ -2,6 +2,7 @@ import { type Page, expect, test } from "@playwright/test";
 
 import { expectNoAxeViolations } from "./support/axe";
 import { expectHydrated } from "./support/hydration";
+import { scenarioCard } from "./support/scenario-card";
 
 // docs/domain.md, "Choosing a scenario": with rate access, the header chooses a scenario after a
 // dialog, which freezes its rates and locks its team, and unchooses it again. The demo template is
@@ -45,7 +46,7 @@ test("choosing the guide scenario makes the copy and locks its team", async ({ p
   await expect(page).not.toHaveURL(new RegExp(GUIDE_SCENARIO));
   await expect(dialog(page)).toHaveCount(0);
   expect(await context.cookies()).toContainEqual(expect.objectContaining({ httpOnly: true }));
-  await expect(banner(page).getByText("Elegido", { exact: true })).toBeVisible();
+  await expect(scenarioCard(page).getByText("Elegido", { exact: true })).toBeVisible();
   // The focus comes back to the button on the copy's page, and a status says the choice was made.
   await expect(unchooseButton(page)).toBeFocused();
   await expect(
@@ -67,7 +68,7 @@ test("choosing the guide scenario makes the copy and locks its team", async ({ p
   const copy = page.url();
   await page.reload();
   expect(page.url()).toBe(copy);
-  await expect(banner(page).getByText("Elegido", { exact: true })).toBeVisible();
+  await expect(scenarioCard(page).getByText("Elegido", { exact: true })).toBeVisible();
 });
 
 test("unchoosing a chosen scenario of the demo, from the keyboard, unlocks its team", async ({
@@ -85,7 +86,7 @@ test("unchoosing a chosen scenario of the demo, from the keyboard, unlocks its t
 
   await expect(page).not.toHaveURL(new RegExp(DELIVERY_SCENARIO));
   await expect(chooseButton(page)).toBeFocused();
-  await expect(banner(page).getByText("Elegido", { exact: true })).toHaveCount(0);
+  await expect(scenarioCard(page).getByText("Elegido", { exact: true })).toHaveCount(0);
   await expect(addButton(page)).toBeVisible();
 });
 

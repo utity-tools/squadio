@@ -13,7 +13,8 @@ import { renderWithIntl } from "@/test/render";
 import { StoreSpy } from "@/test/store-spy";
 
 import { ScenarioEditor, ScenarioStoreProvider } from "./scenario-editor";
-import { LiveScenarioHeader, LiveScenarioSummary, LiveScenarioTeam } from "./scenario-live";
+import { ScenarioBarName, ScenarioCard } from "./scenario-card";
+import { LiveScenarioSummary, LiveScenarioTeam } from "./scenario-live";
 
 vi.mock("next/navigation", () => import("@/test/navigation"));
 
@@ -36,9 +37,9 @@ function renderPage(basis: ScenarioBasis, { readOnly = false } = {}) {
         save={never}
         readOnly={readOnly}
       >
-        <LiveScenarioHeader />
+        <ScenarioBarName />
+        <ScenarioCard alternative={false} result={<LiveScenarioSummary />} history={null} />
         <LiveScenarioTeam />
-        <LiveScenarioSummary />
         <StoreSpy
           onStore={(found) => {
             stores.push(found);
@@ -53,9 +54,11 @@ function renderPage(basis: ScenarioBasis, { readOnly = false } = {}) {
 }
 
 describe("the live scenario regions", () => {
-  it("draw the header, the team and the summary from the store", () => {
+  it("draw the bar's name, the card, the team and the summary from the store", () => {
     renderPage(ratesBasis);
-    expect(screen.getByRole("heading", { level: 1, name: "Plan A" })).toBeInTheDocument();
+    // One h1, the bar's: the card's panel can be hidden.
+    expect(screen.getByRole("heading", { level: 1, name: "Plan A" })).toHaveClass("truncate");
+    expect(screen.getByRole("group", { name: "Plan A" })).toBeInTheDocument();
     expect(screen.getByRole("treegrid")).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "Margen neto" })).toBeInTheDocument();
   });

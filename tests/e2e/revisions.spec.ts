@@ -3,6 +3,7 @@ import { type Page, expect, test } from "@playwright/test";
 import { expectNoAxeViolations } from "./support/axe";
 import { expectOnCopy } from "./support/copy";
 import { expectHydrated } from "./support/hydration";
+import { openHistory } from "./support/scenario-card";
 
 // docs/domain.md, "Revisions", and ADR 0013: «Guardar revisión» saves a revision of the scenario
 // as the page shows it, with rate access only, and the summary rail lists every revision to
@@ -54,6 +55,7 @@ test("a visitor saves revision 1 of the demo in their copy, and saving again reu
   context,
 }) => {
   await openScenario(page, GUIDE_SCENARIO);
+  await openHistory(page);
   await expect(revisions(page).getByText("Todavía no hay revisiones")).toBeVisible();
 
   await saveButton(page).focus();
@@ -62,6 +64,7 @@ test("a visitor saves revision 1 of the demo in their copy, and saving again reu
   // The first write made the visitor's copy, and the page moved to it with the revision listed.
   await expectOnCopy(page, GUIDE_SCENARIO);
   expect(await context.cookies()).toContainEqual(expect.objectContaining({ httpOnly: true }));
+  await openHistory(page);
   await expect(lines(page)).toHaveCount(1);
   await expect(outcome(page)).toHaveText("Revisión 1 guardada");
   await expect(lines(page).first()).toContainText("Revisión 1");
@@ -85,6 +88,7 @@ test("saving right after an edit saves the edit first, and makes revision 2", as
   await expectHydrated(node(page, "Project manager"));
   await saveButton(page).click();
   await expectOnCopy(page, GUIDE_SCENARIO);
+  await openHistory(page);
   await expect(lines(page)).toHaveCount(1);
   await expectHydrated(node(page, "Project manager"));
 
@@ -100,6 +104,7 @@ test("saving right after an edit saves the edit first, and makes revision 2", as
   await page.reload();
   await expect(node(page, "Project manager")).toBeVisible();
   await expect(node(page, "Tech lead")).toHaveCount(0);
+  await openHistory(page);
   await expect(lines(page)).toHaveCount(2);
 });
 
@@ -108,12 +113,14 @@ test("without rate access nothing offers to save a revision, and the list is sti
 }) => {
   await openScenario(page, DELIVERY_SCENARIO, "?access=none");
   await expect(saveButton(page)).toHaveCount(0);
+  await openHistory(page);
   await expect(lines(page)).toHaveCount(1);
   await expectNoAxeViolations(page);
 });
 
 test("the demo lists the revision made when the delivery plan was chosen", async ({ page }) => {
   await openScenario(page, DELIVERY_SCENARIO);
+  await openHistory(page);
   await expect(lines(page)).toHaveCount(1);
   const line = lines(page).first();
   await expect(line).toContainText("Revisión 1");

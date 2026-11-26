@@ -2,6 +2,7 @@ import { type Page, expect, test } from "@playwright/test";
 
 import { expectNoAxeViolations } from "./support/axe";
 import { expectHydrated } from "./support/hydration";
+import { scenarioCard } from "./support/scenario-card";
 
 // The app's one frame (ADR 0017): from lg no top bar, and a sidebar that is the page's banner,
 // with the logo on top and the organization, the theme and the account at its foot; open on the
@@ -69,7 +70,7 @@ test("the sidebar is open on Inicio, marks it, and folds to a rail it remembers"
   await expect(page.getByRole("button", { name: "Desplegar la barra lateral" })).toBeVisible();
 });
 
-test("the scenario editor starts with the rail, a tooltip on each icon and the trail", async ({
+test("the scenario editor starts with the rail, a tooltip on each icon and its card", async ({
   page,
 }) => {
   await page.goto(`/scenarios/${GUIDE_SCENARIO}`);
@@ -81,10 +82,11 @@ test("the scenario editor starts with the rail, a tooltip on each icon and the t
   await home.hover();
   await expect(page.getByRole("tooltip")).toHaveText("Inicio");
 
-  // The trail sits above the page, and the theme stacks in the rail.
-  const trail = page.getByRole("navigation", { name: "Ruta de navegación" });
-  await expect(page.getByRole("banner")).not.toContainText("Plan A");
-  await expect(trail.getByText("Plan A")).toHaveAttribute("aria-current", "page");
+  // The scenario's card names its project and organization, not a trail (ADR 0017), and the
+  // theme stacks in the rail.
+  await expect(page.getByRole("navigation", { name: "Ruta de navegación" })).toBeHidden();
+  await expect(scenarioCard(page).getByRole("link", { name: "Customer portal" })).toBeVisible();
+  await expect(scenarioCard(page)).toContainText("Consultora Demo");
   const theme = page.getByRole("banner").getByRole("radiogroup", { name: "Tema" });
   await expect(theme).toBeVisible();
   // Stacked, it fits the 56 px rail.

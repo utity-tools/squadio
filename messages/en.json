@@ -626,7 +626,9 @@
       "time_and_materials": "Time and materials"
     },
     "span": "Project span",
-    "workingDays": "{count, plural, one {# working day} other {# working days}}"
+    "workingDays": "{count, plural, one {# working day} other {# working days}}",
+    "alternative": "Alternative",
+    "draft": "Draft"
   },
   "ScenarioHistory": {
     "label": "Change history",
@@ -1517,9 +1519,9 @@
     }
   },
   "AlternativeOrigin": {
-    "from": "Alternative to <link>revision {number} of {scenario}</link>",
     "deleted": "Alternative to a deleted revision",
-    "by": "proposed by {author}"
+    "by": "proposed by {author}",
+    "proposed": "<who>{author}</who> proposed this alternative from <link>{scenario} · revision {number}</link>"
   },
   "ProposeAlternative": {
     "suffix": " (alternative)",
@@ -1712,5 +1714,23 @@
         "doneNext": "{newCategories, plural, =0 {They are now in «People», ready for your teams.} one {They are now in «People». The new category's cost is pending: complete it in «Categories and costs».} other {They are now in «People». The # new categories' costs are pending: complete them in «Categories and costs».}}"
       }
     }
+  },
+  "DecisionStatus": {
+    "label": "Status for choosing: {status}",
+    "ready": "Ready to choose",
+    "missing": "Missing figures · {determined} of {total}",
+    "noTeam": "No team",
+    "below": "Below target",
+    "loss": "At a loss"
+  },
+  "ScenarioCard": {
+    "tabsLabel": "Scenario card",
+    "result": "Result",
+    "history": "History",
+    "details": "Details",
+    "project": "Project",
+    "showPanel": "Show the panel",
+    "hidePanel": "Hide the panel",
+    "dismiss": "Dismiss the notice"
   }
 }

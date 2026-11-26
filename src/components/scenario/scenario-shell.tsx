@@ -5,13 +5,24 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 type Slots = {
   header: ReactNode;
-  /** The header's right-aligned controls: undo, redo, the save state, choosing. */
+  /**
+   * The bar's right-aligned controls: undo, redo, the save state, choosing, and the panel's
+   * toggle, which hides the rail and gives its room to the team (ADR 0017).
+   */
   actions?: ReactNode;
   /** The left column, from `xl`: people to add to the team. */
   bench?: ReactNode;
   team: ReactNode;
   summary: ReactNode;
+  /**
+   * Whether the rail takes a tab stop of its own, so the keyboard can scroll it: only while it
+   * holds no control. The editor's card holds tabs and links, which scroll it into view.
+   */
+  summaryFocusable?: boolean;
 };
+
+/** The rail's id, which the bar's toggle names as what it shows and hides (ADR 0017). */
+export const SCENARIO_PANEL_ID = "scenario-panel";
 
 /**
  * The scenario page grid of direction A, "Ledger rail" (docs/design/canvas-brief.md), inside the
@@ -24,7 +35,14 @@ type Slots = {
  * scrolls inside its own region. Below `md` the regions stack in
  * one column no wider than the screen: a wide table scrolls inside the team region, not the page.
  */
-export function ScenarioShell({ header, actions, bench, team, summary }: Slots) {
+export function ScenarioShell({
+  header,
+  actions,
+  bench,
+  team,
+  summary,
+  summaryFocusable = true,
+}: Slots) {
   const t = useTranslations("ScenarioPage");
 
   return (
@@ -37,7 +55,7 @@ export function ScenarioShell({ header, actions, bench, team, summary }: Slots) 
         <div className="min-w-0">{header}</div>
         <div className="ms-auto flex flex-wrap items-center justify-end gap-3">{actions}</div>
       </section>
-      <div className="grid flex-1 grid-cols-[minmax(0,1fr)] md:min-h-0 md:grid-cols-[0_minmax(0,1fr)_clamp(280px,22vw,330px)] md:grid-rows-[minmax(0,1fr)] xl:grid-cols-[12rem_minmax(0,1fr)_clamp(280px,22vw,330px)]">
+      <div className="grid flex-1 grid-cols-[minmax(0,1fr)] md:min-h-0 md:grid-cols-[0_minmax(0,1fr)_clamp(280px,22vw,330px)] md:grid-rows-[minmax(0,1fr)] xl:grid-cols-[12rem_minmax(0,1fr)_clamp(280px,22vw,330px)] [:root[data-rail=hidden]_&]:md:grid-cols-[0_minmax(0,1fr)_0] [:root[data-rail=hidden]_&]:xl:grid-cols-[12rem_minmax(0,1fr)_0]">
         {/* Focusable, so the keyboard can scroll the list, whose people hold no control yet. */}
         {bench && (
           <aside
@@ -56,14 +74,15 @@ export function ScenarioShell({ header, actions, bench, team, summary }: Slots) 
           {team}
         </main>
         {/*
-          Focusable, so the keyboard can scroll the rail: it holds no control of its own. Below
-          `md` it does not scroll, and the extra tab stop is accepted. The ring is drawn inside,
-          since the rail touches the window's edges.
+          Focusable when it holds no control, so the keyboard can scroll the rail. Below `md` it
+          does not scroll, and the extra tab stop is accepted. The ring is drawn inside, since the
+          rail touches the window's edges.
         */}
         <aside
+          id={SCENARIO_PANEL_ID}
           aria-label={t("summary")}
-          tabIndex={0}
-          className="border-t p-4 focus-visible:-outline-offset-2 md:col-start-3 md:overflow-y-auto md:border-t-0 md:border-l"
+          tabIndex={summaryFocusable ? 0 : undefined}
+          className="border-t p-4 focus-visible:-outline-offset-2 md:col-start-3 md:overflow-y-auto md:border-t-0 md:border-l [:root[data-rail=hidden]_&]:md:hidden"
         >
           {summary}
         </aside>

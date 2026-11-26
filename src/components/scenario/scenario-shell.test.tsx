@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import { renderWithIntl } from "@/test/render";
 
-import { ScenarioShell, ScenarioShellSkeleton } from "./scenario-shell";
+import { SCENARIO_PANEL_ID, ScenarioShell, ScenarioShellSkeleton } from "./scenario-shell";
 
 describe("ScenarioShell", () => {
   it("lays out a header, the team and the summary, in that order", () => {
@@ -38,6 +38,27 @@ describe("ScenarioShell", () => {
     renderWithIntl(<ScenarioShell header={null} team={null} summary={<p>ledger</p>} />);
 
     expect(screen.getByRole("complementary", { name: "Resumen" })).toHaveAttribute("tabindex", "0");
+  });
+
+  it("leaves the rail out of the tab order when its content holds controls, as the card's tabs", () => {
+    renderWithIntl(
+      <ScenarioShell header={null} team={null} summary={<p>card</p>} summaryFocusable={false} />,
+    );
+
+    const rail = screen.getByRole("complementary", { name: "Resumen" });
+    expect(rail).not.toHaveAttribute("tabindex");
+    // The panel's toggle in the bar names it.
+    expect(rail).toHaveAttribute("id", SCENARIO_PANEL_ID);
+  });
+
+  it("hides the rail, and gives its room to the team, when the panel is hidden (ADR 0017)", () => {
+    renderWithIntl(<ScenarioShell header={null} team={null} summary={<p>ledger</p>} />);
+
+    const rail = screen.getByRole("complementary", { name: "Resumen" });
+    expect(rail).toHaveClass("[:root[data-rail=hidden]_&]:md:hidden");
+    expect(rail.parentElement).toHaveClass(
+      "[:root[data-rail=hidden]_&]:md:grid-cols-[0_minmax(0,1fr)_0]",
+    );
   });
 
   it("puts the actions at the header's end and leaves the theme to the app's top bar", () => {

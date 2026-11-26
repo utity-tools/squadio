@@ -2,12 +2,13 @@
 
 import { CopyIcon } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
-import { useId, useState, useTransition } from "react";
+import { useId, useRef, useState, useTransition } from "react";
 import { useStore } from "zustand";
 
 import { Button } from "@/components/ui/button";
 import { useRouter } from "@/i18n/navigation";
 
+import { BarRefusal } from "./bar-refusal";
 import { useScenarioStore, useScenarioView } from "./scenario-editor";
 
 /** What the page sends to duplicate a scenario. */
@@ -35,6 +36,12 @@ type DuplicateButtonProps = {
   /** Why it cannot duplicate yet, said next to it; it stays focusable so the reason is heard. */
   waiting?: string | null;
   size?: "sm" | "default";
+  /**
+   * In the editor's bar (ADR 0017): ghost, beside the one primary action, an icon from lg with
+   * its name kept, and a refusal that floats under it until it is dismissed, so the bar never
+   * moves.
+   */
+  inBar?: boolean;
 };
 
 /**
@@ -47,6 +54,7 @@ export function DuplicateButton({
   send,
   waiting = null,
   size = "sm",
+  inBar = false,
 }: DuplicateButtonProps) {
   const t = useTranslations("DuplicateScenario");
   const locale = useLocale();
@@ -54,6 +62,7 @@ export function DuplicateButton({
   const [sending, setSending] = useState(false);
   const [opening, startOpening] = useTransition();
   const [refusal, setRefusal] = useState<Refusal | null>(null);
+  const button = useRef<HTMLButtonElement>(null);
   const hintId = useId();
   const busy = sending || opening;
   const unavailable = busy || waiting !== null;
@@ -83,30 +92,44 @@ export function DuplicateButton({
   };
 
   return (
-    <span className="inline-flex flex-col items-end gap-1">
+    <span className={inBar ? "relative inline-flex" : "inline-flex flex-col items-end gap-1"}>
       <Button
+        ref={button}
         type="button"
-        variant="outline"
+        variant={inBar ? "ghost" : "outline"}
         size={size}
         aria-label={name === undefined ? undefined : t("named", { name })}
         aria-disabled={unavailable || undefined}
         aria-describedby={waiting === null ? undefined : hintId}
         onClick={duplicate}
+        title={inBar ? t("button") : undefined}
         className="aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
       >
         <CopyIcon aria-hidden="true" />
-        {t(busy ? "duplicating" : "button")}
+        <span className={inBar ? "lg:sr-only" : undefined}>
+          {t(busy ? "duplicating" : "button")}
+        </span>
       </Button>
       {waiting !== null && (
         <span id={hintId} className="sr-only">
           {waiting}
         </span>
       )}
-      {refusal && (
-        <span role="alert" className="max-w-64 text-right text-[13px] text-status-bad-text">
-          {t(`errors.${refusal}`)}
-        </span>
-      )}
+      {refusal &&
+        (inBar ? (
+          <BarRefusal
+            onDismiss={() => {
+              setRefusal(null);
+              button.current?.focus();
+            }}
+          >
+            {t(`errors.${refusal}`)}
+          </BarRefusal>
+        ) : (
+          <span role="alert" className="max-w-64 text-right text-[13px] text-status-bad-text">
+            {t(`errors.${refusal}`)}
+          </span>
+        ))}
     </span>
   );
 }
@@ -125,6 +148,11 @@ export function ScenarioDuplicate({ send }: { send: SendDuplicate }) {
   const unsaved = useStore(store, (state) => state.history.pending.length > 0);
   if (!view.rateAccess) return null;
   return (
-    <DuplicateButton scenarioId={scenarioId} send={send} waiting={unsaved ? t("waiting") : null} />
+    <DuplicateButton
+      scenarioId={scenarioId}
+      send={send}
+      inBar
+      waiting={unsaved ? t("waiting") : null}
+    />
   );
 }

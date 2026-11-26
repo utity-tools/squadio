@@ -2,26 +2,32 @@ import { expect, test } from "@playwright/test";
 
 import { expectNoAxeViolations } from "./support/axe";
 import { expectHydrated } from "./support/hydration";
+import { scenarioCard } from "./support/scenario-card";
 
 // Needs the demo organization: `pnpm db:migrate` and `pnpm db:seed` (CI does both).
 const GUIDE_SCENARIO = "6d656d6f-0000-4000-8000-000000000200";
 
-test("a demo scenario opens with its header, team and summary", async ({ page }) => {
+test("a demo scenario opens with its bar, card, team and summary", async ({ page }) => {
   await page.goto(`/scenarios/${GUIDE_SCENARIO}`);
 
   await expect(page).toHaveTitle("Escenario · Squadio");
-  await expect(page.getByRole("heading", { level: 1, name: "Plan A" })).toBeVisible();
-  const breadcrumb = page.getByRole("navigation", { name: "Ruta de navegación" });
-  await expect(breadcrumb.getByRole("listitem")).toHaveText([
-    "Proyectos",
-    "Customer portal",
-    "Plan A",
-  ]);
-  await expect(breadcrumb.getByRole("link", { name: "Customer portal" })).toHaveAttribute(
+  // The card says what the scenario is, and leads to its project (ADR 0017).
+  const card = scenarioCard(page);
+  // The bar's name is the page's heading; the card is a group named after the scenario.
+  const bar = page.getByRole("region", { name: "Datos del escenario" });
+  await expect(bar.getByRole("heading", { level: 1, name: "Plan A" })).toBeVisible();
+  await expect(page.getByRole("group", { name: "Plan A" })).toBeVisible();
+  await expect(card.getByText("Borrador", { exact: true })).toBeVisible();
+  await expect(card.getByRole("link", { name: "Customer portal" })).toHaveAttribute(
     "href",
     "/projects/6d656d6f-0000-4000-8000-000000000100",
   );
-  await expect(page.getByText("Precio cerrado", { exact: true })).toBeVisible();
+  await expect(card).toContainText(/Precio cerrado · 1 abr\s–\s29 sept 2027/);
+  await expect(page.getByRole("navigation", { name: "Ruta de navegación" })).toBeHidden();
+  // The bar says what to do: the status for choosing, and choosing.
+  await expect(bar.getByRole("button", { name: /^Estado para elegir: / })).toBeVisible();
+  await expect(bar.getByRole("button", { name: "Elegir escenario" })).toBeVisible();
+  await page.getByRole("tab", { name: "Detalles" }).click();
   await expect(page.getByText("130 días laborables")).toBeVisible();
   await expect(page.getByRole("main", { name: "Equipo" })).toBeVisible();
   await expect(page.getByRole("complementary", { name: "Resumen" })).toBeVisible();
@@ -48,9 +54,8 @@ test("the scenario page speaks English under /en", async ({ page }) => {
   await page.goto(`/en/scenarios/${GUIDE_SCENARIO}`);
 
   await expect(page.getByRole("main", { name: "Team" })).toBeVisible();
-  await expect(page.getByRole("navigation", { name: "Breadcrumb" })).toBeVisible();
-  await expect(page.getByText("Fixed price", { exact: true })).toBeVisible();
-  await expect(page.getByText("130 working days")).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Result" })).toBeVisible();
+  await expect(scenarioCard(page)).toContainText(/Fixed price · /);
 });
 
 for (const [what, id] of [
@@ -86,3 +91,27 @@ for (const colorScheme of ["light", "dark"] as const) {
     await expectNoAxeViolations(page);
   });
 }
+
+test("hiding the panel keeps the page's heading, and the status brings the card back", async ({
+  page,
+}) => {
+  await page.goto(`/scenarios/${GUIDE_SCENARIO}`);
+  const bar = page.getByRole("region", { name: "Datos del escenario" });
+  const hide = bar.getByRole("button", { name: "Ocultar el panel" });
+  await expectHydrated(hide);
+  await expect(hide).toHaveAttribute("aria-expanded", "true");
+
+  await hide.click();
+  await expect(page.getByRole("complementary", { name: "Resumen" })).toBeHidden();
+  await expect(bar.getByRole("button", { name: "Mostrar el panel" })).toHaveAttribute(
+    "aria-expanded",
+    "false",
+  );
+  await expect(page.getByRole("heading", { level: 1, name: "Plan A" })).toBeVisible();
+  await expect(page.getByRole("radio", { name: "Árbol" })).toBeChecked();
+  await expectNoAxeViolations(page);
+
+  await bar.getByRole("button", { name: /^Estado para elegir: / }).click();
+  await expect(page.getByRole("complementary", { name: "Resumen" })).toBeVisible();
+  await expect(page.getByRole("group", { name: "Plan A" })).toBeFocused();
+});

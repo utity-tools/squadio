@@ -626,7 +626,9 @@
       "time_and_materials": "Tiempo y materiales"
     },
     "span": "Duración del proyecto",
-    "workingDays": "{count, plural, one {# día laborable} other {# días laborables}}"
+    "workingDays": "{count, plural, one {# día laborable} other {# días laborables}}",
+    "alternative": "Alternativa",
+    "draft": "Borrador"
   },
   "ScenarioHistory": {
     "label": "Historial de cambios",
@@ -1517,9 +1519,9 @@
     }
   },
   "AlternativeOrigin": {
-    "from": "Alternativa de la <link>revisión {number} de {scenario}</link>",
     "deleted": "Alternativa de una revisión eliminada",
-    "by": "propuesta por {author}"
+    "by": "propuesta por {author}",
+    "proposed": "<who>{author}</who> propuso esta alternativa a partir de <link>{scenario} · revisión {number}</link>"
   },
   "ProposeAlternative": {
     "suffix": " (alternativa)",
@@ -1712,5 +1714,23 @@
         "doneNext": "{newCategories, plural, =0 {Ya están en «Personas», listas para tus equipos.} one {Ya están en «Personas». La categoría nueva tiene su coste pendiente: complétalo en «Categorías y costes».} other {Ya están en «Personas». Las # categorías nuevas tienen su coste pendiente: complétalo en «Categorías y costes».}}"
       }
     }
+  },
+  "DecisionStatus": {
+    "label": "Estado para elegir: {status}",
+    "ready": "Listo para elegir",
+    "missing": "Faltan datos · {determined} de {total}",
+    "noTeam": "Sin equipo",
+    "below": "Bajo objetivo",
+    "loss": "En pérdidas"
+  },
+  "ScenarioCard": {
+    "tabsLabel": "Ficha del escenario",
+    "result": "Resultado",
+    "history": "Historial",
+    "details": "Detalles",
+    "project": "Proyecto",
+    "showPanel": "Mostrar el panel",
+    "hidePanel": "Ocultar el panel",
+    "dismiss": "Cerrar el aviso"
   }
 }
