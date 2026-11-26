@@ -64,10 +64,10 @@ export function SummaryLedger({ ledger, team, pricingModel }: SummaryLedgerProps
       <section aria-label={t("figures.title")}>
         {/* Each figure keeps to one line: one that does not fit moves down whole. */}
         <dl className="flex flex-wrap justify-between gap-x-4 gap-y-2 rounded-[10px] bg-muted p-3">
-          <Figure term={t("figures.effectiveRate")} info="effectiveRate" mono>
+          <Figure term={t("figures.effectiveRate")} info="effectiveRate">
             <Value amount={figures.effectiveRateCents} format={rate} counts />
           </Figure>
-          <Figure term={t("figures.effectiveHours")} info="effectiveHours" mono>
+          <Figure term={t("figures.effectiveHours")} info="effectiveHours">
             <CountUp value={figures.effectiveHours} format={hours} />
           </Figure>
           <Figure term={t("figures.team")}>
@@ -124,7 +124,7 @@ export function SummaryEmpty({ ledger, pricingModel }: Omit<SummaryLedgerProps, 
                   {t("lines.revenueHint.fixed")}
                 </span>
               </th>
-              <td className="py-[7px] text-end align-baseline font-mono whitespace-nowrap tabular-nums">
+              <td className="py-[7px] text-end align-baseline whitespace-nowrap tabular-nums">
                 <Value amount={revenue.cents} format={euros} />
               </td>
             </tr>
@@ -408,7 +408,7 @@ function ResultLine({ line, pricingModel }: { line: LedgerLine; pricingModel: Pr
       {/* A figure never splits across lines. A subtotal's amount sits by its name, under the tag. */}
       <td
         className={cn(
-          "py-[7px] text-end font-mono whitespace-nowrap tabular-nums",
+          "py-[7px] text-end whitespace-nowrap tabular-nums",
           subtotal ? "align-bottom" : "align-baseline",
         )}
       >
@@ -426,7 +426,7 @@ function CategoryTable({ categories }: { categories: CategoryLine[] }) {
   const t = useTranslations("Summary.categories");
   const { euros, cents, hours } = useSummaryFormat();
   // Figures a size below the names, and headers that may break, so the narrowest rail fits them.
-  const figure = "py-2 ps-1 text-end align-top font-mono text-xs whitespace-nowrap tabular-nums";
+  const figure = "py-2 ps-1 text-end align-top text-xs whitespace-nowrap tabular-nums";
 
   return (
     <details className="border-t pt-3">

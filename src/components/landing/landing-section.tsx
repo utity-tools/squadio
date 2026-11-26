@@ -36,7 +36,7 @@ export function SectionTitle({
   );
 }
 
-/** A step's or a pain's number, in the figures' face: 01, 02… */
+/** A step's or a pain's number, 01, 02…: a label, so it keeps mono, as codes do (ADR 0017). */
 export function StepNumber({ className, children }: { className?: string; children: ReactNode }) {
   return (
     <span className={cn("font-mono text-[13px] font-medium text-brand-text", className)}>

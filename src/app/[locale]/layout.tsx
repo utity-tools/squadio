@@ -20,7 +20,7 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-// Headings only (ADR 0014); text stays in Geist and figures in Geist Mono.
+// Headings only (ADR 0014); text and figures stay in Geist (ADR 0017).
 const plusJakartaSans = Plus_Jakarta_Sans({
   variable: "--font-plus-jakarta-sans",
   subsets: ["latin"],

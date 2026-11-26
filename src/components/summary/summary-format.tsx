@@ -3,7 +3,6 @@ import type { ReactNode } from "react";
 
 import { InfoTip } from "@/components/ui/info-tip";
 import type { Amount } from "@/lib/summary/summary";
-import { cn } from "@/lib/utils";
 
 // Shared by both summaries, with and without rate access: formats only, never data.
 
@@ -89,18 +88,16 @@ export function TermInfo({ term, name }: { term: InfoTerm; name: string }) {
 }
 
 /**
- * A labelled figure of a `dl`; `mono` sets a number in the figures' face, `info` explains the
+ * A labelled figure of a `dl`, with even digits so it lines up (ADR 0017); `info` explains the
  * term.
  */
 export function Figure({
   term,
   info,
-  mono = false,
   children,
 }: {
   term: string;
   info?: InfoTerm;
-  mono?: boolean;
   children: ReactNode;
 }) {
   return (
@@ -109,9 +106,7 @@ export function Figure({
         {info && <TermInfo term={info} name={term} />}
         {term}
       </dt>
-      <dd className={cn("font-semibold whitespace-nowrap tabular-nums", mono && "font-mono")}>
-        {children}
-      </dd>
+      <dd className="font-semibold whitespace-nowrap tabular-nums">{children}</dd>
     </div>
   );
 }

@@ -93,9 +93,7 @@ function DashboardCards({ portfolio, found }: { portfolio: Portfolio; found: Cor
         <Kpi
           label={t("corrections")}
           pending={figures.corrections > 0}
-          value={
-            <span className="font-mono text-[28px] tabular-nums">{count(figures.corrections)}</span>
-          }
+          value={<span className="text-[28px] tabular-nums">{count(figures.corrections)}</span>}
         />
       )}
       <Kpi label={t("activePeople")} value={count(figures.activePeople)} />
@@ -221,7 +219,7 @@ function OccupancyPanel({ occupancy }: { occupancy: CategoryOccupancy[] }) {
                 style={{ width: `${Math.min(percent, 100)}%` }}
               />
             </span>
-            <span className="text-right font-mono tabular-nums">
+            <span className="text-right tabular-nums">
               {format.number(percent / 100, { style: "percent" })}
             </span>
           </li>

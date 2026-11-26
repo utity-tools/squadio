@@ -265,7 +265,7 @@ function RoleRow({
       <th scope="row" className="py-2 pe-2 text-left font-normal">
         <label htmlFor={selectId}>{label}</label>
       </th>
-      <td className="py-2 pe-2 text-end font-mono tabular-nums">
+      <td className="py-2 pe-2 text-end tabular-nums">
         {format.number(role.allocation / 100, { style: "percent" })}
       </td>
       <td className="py-2">
@@ -315,7 +315,7 @@ function Structure({ team }: { team: ExampleTeam }) {
           <li key={role.key}>
             <span className="inline-flex gap-2 rounded-md border border-dashed bg-background px-2 py-1 text-[13px]">
               {role.projectRole}
-              <span className="font-mono text-muted-foreground tabular-nums">
+              <span className="text-muted-foreground tabular-nums">
                 {format.number(role.allocation / 100, { style: "percent" })}
               </span>
             </span>

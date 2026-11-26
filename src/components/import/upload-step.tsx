@@ -217,7 +217,7 @@ export function UploadStep({
                               "px-3 py-2",
                               fields[index] !== undefined &&
                                 isNumeric(kind, fields[index]) &&
-                                "text-right font-mono tabular-nums",
+                                "text-right tabular-nums",
                             )}
                           >
                             {cell}

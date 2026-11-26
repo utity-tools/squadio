@@ -424,7 +424,7 @@ export function ComparisonView({ comparison, access = "" }: ComparisonViewProps)
                           <span className="wrap-anywhere">
                             {extra.label ?? summary(`lines.extraCost.${extra.kind}`)}
                           </span>
-                          <span className="font-mono whitespace-nowrap tabular-nums">
+                          <span className="whitespace-nowrap tabular-nums">
                             <FigureValue figure={extra.cents} kind="money" />
                           </span>
                         </li>

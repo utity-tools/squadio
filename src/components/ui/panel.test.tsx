@@ -20,12 +20,13 @@ describe("Panel", () => {
 });
 
 describe("Kpi", () => {
-  it("names its figure and sets it in mono", () => {
+  it("names its figure and sets it in the text's face with even digits", () => {
     render(<Kpi label="Margen" value="18,4 %" />);
 
     const card = screen.getByText("Margen").closest("[data-slot=kpi]");
     expect(card).toHaveClass("rounded-xl", "border", "bg-card", "shadow-xs");
-    expect(screen.getByText("18,4 %")).toHaveClass("font-mono", "tabular-nums", "text-[28px]");
+    expect(screen.getByText("18,4 %")).toHaveClass("tabular-nums", "text-[28px]");
+    expect(screen.getByText("18,4 %")).not.toHaveClass("font-mono");
   });
 
   it("marks a pending figure with the warning's dashed tint and says it in words", () => {

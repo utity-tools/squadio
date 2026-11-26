@@ -68,7 +68,7 @@ export function ProjectHeader({ project, action }: ProjectHeaderProps) {
             <div className="flex items-center gap-2">
               <span aria-hidden>·</span>
               <dt className="sr-only">{fixed ? t("price") : t("cap")}</dt>
-              <dd className="font-mono tabular-nums">{price(project.price.cents)}</dd>
+              <dd className="tabular-nums">{price(project.price.cents)}</dd>
             </div>
           )}
           {project.plannedPeriod && (

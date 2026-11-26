@@ -9,7 +9,7 @@ import type { StepRejection } from "@/lib/scenarios/store";
 /** A form field in the team's dialogs: the design system's control, sized like its buttons. */
 export const FIELD = controlClassName();
 
-/** A field for a number, right-aligned in mono so the digits line up. */
+/** A field for a number, right-aligned with even digits so they line up. */
 export const NUMBER_FIELD = controlClassName({ numeric: true });
 
 /** What is wrong with a dialog's form, and the field it is about. */

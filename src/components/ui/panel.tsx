@@ -23,7 +23,7 @@ type KpiProps = Omit<React.ComponentProps<"div">, "children"> & {
   children?: React.ReactNode;
 };
 
-/** One headline figure: its name above, the value in mono. */
+/** One headline figure: its name above, the value with even digits (ADR 0017). */
 function Kpi({ label, value, pending = false, className, children, ...props }: KpiProps) {
   return (
     <div
@@ -41,9 +41,7 @@ function Kpi({ label, value, pending = false, className, children, ...props }: K
       <p
         className={cn(
           "leading-[1.15] font-semibold tracking-[-0.02em]",
-          pending
-            ? "font-sans text-[22px] text-status-warn-text"
-            : "font-mono text-[28px] tabular-nums",
+          pending ? "font-sans text-[22px] text-status-warn-text" : "text-[28px] tabular-nums",
         )}
       >
         {value}
