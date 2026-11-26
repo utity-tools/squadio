@@ -47,6 +47,7 @@ decisions below are the owner's, not evidence of use.
 | v0.4 · Compare      | Duplicate scenarios, compare two or three side by side, and see each person's load week by week against the projects registered in Squadio: over-allocation (rule c), the first health check                                                                                    |
 | v0.5 · Share        | Revisions that never change, an authenticated link to one, a reviewer who sends back an alternative derived from it, choosing a revision, and the invitations sharing needs                                                                                                     |
 | v0.6 · Faster start | CSV import with a template, a preview and an all-or-nothing confirm, and a picker of example scenarios                                                                                                                                                                          |
+| v0.7 · Redesign     | One frame and GitHub's patterns for lists, checks and a scenario's state, in eleven slices ([ADR 0017](adr/0017-visual-identity-v07.md))                                                                                                                                        |
 | Later, on evidence  | The other health checks (seniority mix, PM ratio, single points of failure), formal approval, other segments and sectors, and the AI assistant ([ADR 0003](adr/0003-structure-not-people.md))                                                                                   |
 
 ### Accepted and proposed
