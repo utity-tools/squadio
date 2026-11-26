@@ -515,16 +515,9 @@
     "description": "Tu equipo: cada persona con su categoría y su jornada. Nunca su salario.",
     "count": "{count, plural, one {# persona} other {# personas}}",
     "columns": {
-      "name": "Nombre",
-      "category": "Categoría",
-      "weeklyHours": "Jornada",
-      "area": "Área",
-      "occupancy": "Ocupación hoy",
-      "status": "Estado",
-      "actions": "Acciones"
+      "occupancy": "Ocupación hoy"
     },
     "hours": "{hours} h/sem",
-    "noArea": "Sin área",
     "active": "Activa",
     "inactive": "Inactiva",
     "small": "Categoría pequeña: su coste puede revelar un salario",
@@ -570,7 +563,37 @@
         "failed": "No se ha podido guardar la persona. Inténtalo de nuevo."
       }
     },
-    "import": "Importar desde una hoja de cálculo"
+    "import": "Importar desde una hoja de cálculo",
+    "smallShort": "Categoría pequeña",
+    "occupancyToday": "{percent} hoy",
+    "list": {
+      "search": "Buscar por nombre, categoría o área",
+      "count": "{count, plural, one {# persona} other {# personas}}",
+      "tabs": {
+        "label": "Filtrar personas",
+        "active": "Activas",
+        "free": "Libres hoy",
+        "over": "Más del 100 %",
+        "inactive": "Inactivas"
+      },
+      "category": {
+        "label": "Categoría",
+        "all": "Todas las categorías",
+        "title": "Filtrar por categoría",
+        "chosen": "Categoría: {category}"
+      },
+      "sort": {
+        "label": "Orden: {order}",
+        "title": "Ordenar por",
+        "name": "Nombre",
+        "occupancy": "Ocupación"
+      },
+      "none": {
+        "title": "Ninguna persona coincide",
+        "description": "Prueba con otro nombre, categoría o área, o mira todas las personas activas.",
+        "clear": "Quitar filtros"
+      }
+    }
   },
   "NotFound": {
     "title": "No encontramos esta página",

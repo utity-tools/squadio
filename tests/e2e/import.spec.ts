@@ -154,7 +154,10 @@ const PEOPLE = [
   "Persona 21;Cloud Architect;40;;45000",
 ].join("\n");
 
-const peopleTable = (page: Page) => page.getByRole("table", { name: "Personas" });
+// The people list (ADR 0017): one item per person, its name first.
+const peopleList = (page: Page) => page.getByRole("list", { name: "Personas" });
+const person = (page: Page, name: RegExp) =>
+  peopleList(page).getByRole("listitem").filter({ hasText: name });
 
 test("a member imports the people after the categories, as the second file", async ({
   page,
@@ -208,15 +211,11 @@ test("a member imports the people after the categories, as the second file", asy
 
   await page.getByRole("link", { name: "Ir a personas" }).click();
   // Keeps the existing spelling; an empty cell keeps the area.
-  const senior = peopleTable(page).getByRole("row", { name: /^Senior Developer 1/ });
+  const senior = person(page, /^Senior Developer 1/);
   await expect(senior).toContainText("QA Engineer");
   await expect(senior).toContainText(/32,5\sh\/sem/);
-  await expect(peopleTable(page).getByRole("row", { name: /^Persona 20/ })).toContainText(
-    "Calidad",
-  );
-  await expect(peopleTable(page).getByRole("row", { name: /^Persona 21/ })).toContainText(
-    "Cloud Architect",
-  );
+  await expect(person(page, /^Persona 20/)).toContainText("Calidad");
+  await expect(person(page, /^Persona 21/)).toContainText("Cloud Architect");
 });
 
 test("an owner imports the people alone from «Personas», fixing a repeated name", async ({
@@ -254,13 +253,13 @@ test("an owner imports the people alone from «Personas», fixing a repeated nam
   await expect(page.getByRole("heading", { name: "Personas importadas" })).toBeFocused();
 
   await page.goto("/people");
-  await expect(peopleTable(page).getByRole("row", { name: /^Persona 3[01]/ })).toHaveCount(2);
+  await expect(person(page, /^Persona 3[01]/)).toHaveCount(2);
 });
 
 test("a viewer is not offered the people import", async ({ page, signInAs }) => {
   await signInAs("viewer");
   await page.goto("/people");
-  await expect(peopleTable(page)).toBeVisible();
+  await expect(peopleList(page)).toBeVisible();
   await expect(page.getByRole("link", { name: /hoja de cálculo/ })).toHaveCount(0);
 
   await page.goto("/import?file=people");
