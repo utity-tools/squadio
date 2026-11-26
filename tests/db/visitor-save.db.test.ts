@@ -48,6 +48,9 @@ const copies = async () =>
     )
   ).rows;
 
+const organizations = async () =>
+  (await owner.query("select count(*)::int as rows from auth.organization")).rows;
+
 const organizationRow = async (organizationId: string) =>
   (
     await owner.query<{ name: string; example: boolean }>(
@@ -134,8 +137,6 @@ describe("saveForVisitor: the first save", () => {
 
   it("stops at the day's limit, saving nothing", async () => {
     await owner.query(claimCopies(200));
-    const organizations = async () =>
-      (await owner.query("select count(*)::int as rows from auth.organization")).rows;
     const before = await organizations();
     const { cookies, sets } = jar();
     expect(await saveForVisitor(app, cookies, firstSave)).toEqual({ ok: false, reason: "limit" });
@@ -144,13 +145,22 @@ describe("saveForVisitor: the first save", () => {
     expect(sets).toEqual([]);
   });
 
-  it("treats a forged cookie or one whose copy is gone as no copy", async () => {
+  it("makes no copy for a forged cookie or one whose copy is gone, and clears the cookie", async () => {
+    // The firewall limits first saves by IP only without a cookie: a cookie that leads to no copy
+    // must not make one, or any made-up value would skip the limit.
+    const before = await organizations();
     for (const cookie of ["forged", newToken()]) {
       const { cookies, sets } = jar(cookie);
-      expect((await saveForVisitor(app, cookies, firstSave)).ok).toBe(true);
-      expect(sets[0]?.value).not.toBe(cookie);
+      expect(await saveForVisitor(app, cookies, firstSave)).toEqual({
+        ok: false,
+        reason: "not-found",
+      });
+      expect(sets).toEqual([
+        { name: VISITOR_COOKIE, value: "", options: expect.objectContaining({ maxAge: 0 }) },
+      ]);
     }
-    expect(await copies()).toHaveLength(2);
+    expect(await copies()).toEqual([]);
+    expect(await organizations()).toEqual(before);
   });
 
   it("refuses input that is not a valid save", async () => {

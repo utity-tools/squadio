@@ -17,7 +17,7 @@ import { duplicateForVisitor } from "@/db/visitor-duplicate";
 import type { CookieJar } from "@/db/visitor-write";
 import { MAX_SCENARIOS_PER_PROJECT } from "@/lib/scenarios/duplicate";
 import { copyId } from "@/lib/visitors/copy-id";
-import { VISITOR_COOKIE } from "@/lib/visitors/token";
+import { VISITOR_COOKIE, newToken } from "@/lib/visitors/token";
 
 import { SOME_DAY, appPool, newOrganization, ownerPool } from "./support";
 import { chooseAsNobody } from "./choose";
@@ -360,6 +360,15 @@ describe("duplicateForVisitor", () => {
     });
     expect(row?.name.endsWith(" (copia)")).toBe(true);
     expect(await scenarioCount(copy)).toBe((before ?? 0) + 1);
+  });
+
+  it("makes no copy for a cookie that leads to none, and clears it", async () => {
+    const { cookies, sets } = jar(newToken());
+    expect(
+      await duplicateForVisitor(app, cookies, { scenarioId: DEMO_IDS.guideScenario }, true, suffix),
+    ).toEqual({ ok: false, reason: "not-found" });
+    expect(sets).toEqual([VISITOR_COOKIE]);
+    expect(await claims()).toEqual([]);
   });
 
   it("refuses without rate access and makes no copy", async () => {
