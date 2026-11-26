@@ -3,34 +3,45 @@ import { type Page, expect, test } from "@playwright/test";
 import { expectNoAxeViolations } from "./support/axe";
 import { expectHydrated } from "./support/hydration";
 
-// The app shell of the design board "Navegación de la app": one 56 px top bar everywhere, and a
-// sidebar that is open on the app's pages and folded to a 56 px icon rail in the scenario editor.
-// Each place remembers the person's choice. Below lg (boards 28–30) a ☰ menu replaces the
-// sidebar. Needs the demo organization for the scenario page.
+// The app's one frame (ADR 0017): from lg no top bar, and a sidebar that is the page's banner,
+// with the logo on top and the organization, the theme and the account at its foot; open on the
+// app's pages and folded to a 56 px icon rail in the scenario editor. Each place remembers the
+// person's choice. Below lg (boards 28–30) a 56 px top bar and its ☰ menu replace the sidebar.
+// Needs the demo organization for the scenario page.
 const GUIDE_SCENARIO = "6d656d6f-0000-4000-8000-000000000200";
 
 const sidebarOf = (page: Page) => page.getByRole("navigation", { name: "Secciones" });
 const widthOf = async (page: Page) =>
   (await sidebarOf(page).locator("..").boundingBox())?.width ?? 0;
 
-test("the top bar is 56 px, with the logo leading home and the theme", async ({ page }) => {
-  await page.goto("/home");
-
-  const bar = page.getByRole("banner");
-  expect((await bar.boundingBox())?.height).toBe(56);
-  await expect(bar.getByRole("link", { name: "Squadio, Inicio" })).toHaveAttribute("href", "/home");
-  await expect(bar.getByRole("radiogroup", { name: "Tema" })).toBeVisible();
-});
-
-test("a visitor's top bar names the demo, with its chip and its fictitious figures", async ({
+test("from lg the sidebar is the only banner: the logo on top, the theme at its foot", async ({
   page,
 }) => {
   await page.goto("/home");
 
-  const bar = page.getByRole("banner");
-  await expect(bar.getByText("Consultora Demo")).toBeVisible();
-  await expect(bar.getByText("Demo", { exact: true })).toBeVisible();
-  await expect(bar.getByText("Nombres y cifras ficticios")).toBeVisible();
+  const banner = page.getByRole("banner");
+  await expect(banner).toHaveCount(1);
+  await expect(banner.getByRole("navigation", { name: "Secciones" })).toBeVisible();
+  await expect(banner.getByRole("link", { name: "Squadio, Inicio" })).toHaveAttribute(
+    "href",
+    "/home",
+  );
+  await expect(banner.getByRole("radiogroup", { name: "Tema" })).toBeVisible();
+  // It stays in view at the window's height.
+  expect((await banner.boundingBox())?.height).toBe(page.viewportSize()?.height);
+  await page.mouse.wheel(0, 2000);
+  expect((await banner.boundingBox())?.y).toBe(0);
+});
+
+test("a visitor's sidebar names the demo, with its chip and its fictitious figures", async ({
+  page,
+}) => {
+  await page.goto("/home");
+
+  const banner = page.getByRole("banner");
+  await expect(banner.getByText("Consultora Demo")).toBeVisible();
+  await expect(banner.getByText("Demo", { exact: true })).toBeVisible();
+  await expect(banner.getByText("Nombres y cifras ficticios")).toBeVisible();
 });
 
 test("the sidebar is open on Inicio, marks it, and folds to a rail it remembers", async ({
@@ -70,8 +81,19 @@ test("the scenario editor starts with the rail, a tooltip on each icon and the t
   await home.hover();
   await expect(page.getByRole("tooltip")).toHaveText("Inicio");
 
-  const trail = page.getByRole("banner").getByRole("navigation", { name: "Ruta de navegación" });
+  // The trail sits above the page, and the theme stacks in the rail.
+  const trail = page.getByRole("navigation", { name: "Ruta de navegación" });
+  await expect(page.getByRole("banner")).not.toContainText("Plan A");
   await expect(trail.getByText("Plan A")).toHaveAttribute("aria-current", "page");
+  const theme = page.getByRole("banner").getByRole("radiogroup", { name: "Tema" });
+  await expect(theme).toBeVisible();
+  // Stacked, it fits the 56 px rail.
+  const [switchBox, rail] = await Promise.all([
+    theme.boundingBox(),
+    page.getByRole("banner").boundingBox(),
+  ]);
+  expect(switchBox!.height).toBeGreaterThan(switchBox!.width);
+  expect(switchBox!.x + switchBox!.width).toBeLessThanOrEqual(rail!.x + rail!.width);
   // A scenario lives under its project, so the editor sits in Proyectos, which is not its page.
   await expect(sidebarOf(page).getByRole("link", { name: "Proyectos" })).toHaveAttribute(
     "aria-current",

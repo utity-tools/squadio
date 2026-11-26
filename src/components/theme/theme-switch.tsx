@@ -29,7 +29,7 @@ function subscribe(onChange: () => void) {
  * System, light or dark: a segmented radio group, one tab stop. As the APG radio group says, the
  * arrow keys move to the next option and choose it.
  */
-export function ThemeSwitch() {
+export function ThemeSwitch({ className }: { className?: string }) {
   const t = useTranslations("Theme");
   // The server cannot read the cookie without making every page dynamic: it renders "system"
   // and the stored preference shows once hydrated. The page itself never flashes.
@@ -42,6 +42,9 @@ export function ThemeSwitch() {
   return (
     <Segmented
       aria-label={t("label")}
+      className={className}
+      // Both arrow pairs move: the folded sidebar stacks the options.
+      orientation={undefined}
       value={preference}
       onValueChange={(value) => {
         if (isThemePreference(value)) writeThemePreference(value);

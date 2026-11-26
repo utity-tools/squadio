@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -32,9 +32,12 @@ describe("ScenarioError", () => {
   it("keeps the app's frame, to go on from", () => {
     renderWithIntl(<ScenarioError error={new Error("down")} retry={() => {}} />);
 
-    expect(screen.getByRole("banner")).toContainElement(
-      screen.getByRole("link", { name: "Squadio, Inicio" }),
-    );
+    // Both banners are in jsdom's document: the top bar below lg, the sidebar from lg (ADR 0017).
+    const banners = screen.getAllByRole("banner");
+    expect(banners).toHaveLength(2);
+    for (const banner of banners) {
+      expect(within(banner).getByRole("link", { name: "Squadio, Inicio" })).toBeInTheDocument();
+    }
     expect(screen.getByRole("link", { name: "Volver al inicio" })).toHaveAttribute("href", "/");
   });
 

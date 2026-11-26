@@ -28,7 +28,8 @@ test("the projects list leads to a project's page, under Proyectos in the trail"
 
   await expect(page).toHaveURL(`/projects/${PORTAL}`);
   await expect(page.getByRole("heading", { level: 1, name: "Customer portal" })).toBeVisible();
-  const trail = page.getByRole("banner").getByRole("navigation", { name: "Ruta de navegación" });
+  // From lg the trail sits above the page, not in a top bar (ADR 0017).
+  const trail = page.getByRole("navigation", { name: "Ruta de navegación" });
   await expect(trail.getByRole("link", { name: "Proyectos" })).toHaveAttribute("href", "/projects");
   await expect(trail.getByText("Customer portal")).toHaveAttribute("aria-current", "page");
   // Inside Proyectos, not its page: the section is current, not the page.

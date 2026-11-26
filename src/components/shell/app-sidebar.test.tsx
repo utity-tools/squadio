@@ -101,6 +101,31 @@ describe("AppSidebar", () => {
     expect(await screen.findByRole("tooltip")).toHaveTextContent("Inicio");
   });
 
+  it("is the page's banner from lg, sticky at the window's height, with a top and a foot", () => {
+    renderWithIntl(
+      <AppSidebar scope="app" top={<button type="button">Logo</button>} bottom={<span>Tema</span>}>
+        <SidebarLink href="/" icon="home" label="Inicio" />
+      </AppSidebar>,
+    );
+
+    const banner = screen.getByRole("banner");
+    expect(banner).toHaveClass("max-lg:hidden", "lg:sticky", "lg:top-0", "lg:h-dvh");
+    const nav = screen.getByRole("navigation", { name: "Secciones" });
+    expect(banner).toContainElement(nav);
+    expect(screen.getByRole("button", { name: "Logo" }).compareDocumentPosition(nav)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+    expect(nav.compareDocumentPosition(screen.getByText("Tema"))).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+    // The fold button stays last.
+    expect(
+      screen
+        .getByText("Tema")
+        .compareDocumentPosition(screen.getByRole("button", { name: "Plegar la barra lateral" })),
+    ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+
   it("shows no tooltip while open: the label is on screen", async () => {
     renderSidebar("app");
 

@@ -156,7 +156,10 @@ describe("DemoOrganization", () => {
     expect(screen.getByText("Consultora Demo")).toBeInTheDocument();
     // Not read twice: «Consultora Demo» already says it, and the note says the figures are fictitious.
     expect(screen.getByText("Demo")).toHaveAttribute("aria-hidden", "true");
-    expect(screen.getByText("Nombres y cifras ficticios · tu copia")).toBeInTheDocument();
+    const note = screen.getByText("Nombres y cifras ficticios · tu copia");
+    // Only the narrow top bar, below lg, keeps it for screen readers; the sidebar shows it.
+    expect(note).toHaveClass("max-lg:sr-only");
+    expect(note).not.toHaveClass("max-xl:sr-only");
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
 

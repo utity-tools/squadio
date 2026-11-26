@@ -54,7 +54,8 @@ test("ticking two scenarios with the keyboard compares them, the first picked as
     "href",
     `/scenarios/${PLAN_B}`,
   );
-  const trail = page.getByRole("banner").getByRole("navigation", { name: "Ruta de navegación" });
+  // From lg the trail sits above the page, not in a top bar (ADR 0017).
+  const trail = page.getByRole("navigation", { name: "Ruta de navegación" });
   await expect(trail.getByRole("link", { name: "Customer portal" })).toHaveAttribute(
     "href",
     `/projects/${PORTAL}`,

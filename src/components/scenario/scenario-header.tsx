@@ -9,8 +9,9 @@ import type { OpenScenario } from "@/lib/scenarios/scenario-view";
 export type ScenarioHeaderProps = Pick<OpenScenario, "project" | "scenario" | "span">;
 
 /**
- * The trail in the app's top bar: the project and its client, then the scenario. Projects joins it
- * once its page exists, and the organization once tenant tables reference it (v0.3, slice 2b).
+ * The trail above the editor (in the top bar below lg): the project and its client, then the
+ * scenario. Projects joins it once its page exists, and the organization once tenant tables
+ * reference it (v0.3, slice 2b).
  */
 export function ScenarioCrumbs({
   project,
@@ -31,7 +32,7 @@ export function ScenarioCrumbs({
 
 /**
  * The header of the canvas brief: scenario name with its Chosen badge, pricing model and project
- * span. The trail above it lives in the app's top bar (`ScenarioCrumbs`).
+ * span. The trail above it is the shell's (`ScenarioCrumbs`).
  */
 export function ScenarioHeader({ project, scenario, span }: ScenarioHeaderProps) {
   const t = useTranslations("ScenarioHeader");

@@ -11,9 +11,9 @@ export type Crumb = {
 };
 
 /**
- * The top bar's trail: 13 px and muted, the last crumb the current page. On phones only the
- * parent crumb stays, on one line, as a link back: the page's heading names the current one, and
- * the bar keeps to 56 px beside the organization.
+ * The page's trail, above it from lg and in the top bar below (ADR 0017): 13 px and muted, the
+ * last crumb the current page. On phones only the parent crumb stays, on one line, as a link back:
+ * the page's heading names the current one, and the bar keeps to 56 px beside the organization.
  */
 export function Breadcrumbs({ items }: { items: Crumb[] }) {
   const t = useTranslations("Shell");
