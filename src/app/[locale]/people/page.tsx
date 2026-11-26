@@ -44,20 +44,10 @@ async function PeopleContent({
   // Occupancy is measured on today in Madrid: a value of the request, never of a prerender.
   await connection();
   const list = await loadPeople(db, access.context, madridToday(new Date()));
-  const t = await getTranslations("People");
   // Writing a person moves rule j's count, so only a member with rate access may (docs/domain.md,
   // Person); a visitor's copy and the demo never offer it.
   // A viewer edits nothing (ADR 0015).
   const canWrite = access.member && access.context.rateAccess && access.context.readOnly !== true;
-  return (
-    <>
-      <h1 className="flex items-baseline gap-2 text-[26px] font-semibold tracking-tight">
-        {t("title")}
-        <span className="text-base font-normal text-muted-foreground">
-          {t("count", { count: list.people.length })}
-        </span>
-      </h1>
-      <PeopleList {...list} action={canWrite ? savePerson : null} />
-    </>
-  );
+  // The list draws its own title, with the count and the actions at its right (ADR 0017).
+  return <PeopleList {...list} action={canWrite ? savePerson : null} />;
 }

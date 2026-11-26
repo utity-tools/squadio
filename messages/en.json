@@ -515,16 +515,9 @@
     "description": "Your team: each person with their category and working week. Never their salary.",
     "count": "{count, plural, one {# person} other {# people}}",
     "columns": {
-      "name": "Name",
-      "category": "Category",
-      "weeklyHours": "Working week",
-      "area": "Area",
-      "occupancy": "Occupancy today",
-      "status": "Status",
-      "actions": "Actions"
+      "occupancy": "Occupancy today"
     },
     "hours": "{hours} h/wk",
-    "noArea": "No area",
     "active": "Active",
     "inactive": "Inactive",
     "small": "Small category: its cost may reveal a salary",
@@ -570,7 +563,37 @@
         "failed": "The person could not be saved. Try again."
       }
     },
-    "import": "Import from a spreadsheet"
+    "import": "Import from a spreadsheet",
+    "smallShort": "Small category",
+    "occupancyToday": "{percent} today",
+    "list": {
+      "search": "Search by name, category or area",
+      "count": "{count, plural, one {# person} other {# people}}",
+      "tabs": {
+        "label": "Filter people",
+        "active": "Active",
+        "free": "Free today",
+        "over": "Over 100 %",
+        "inactive": "Inactive"
+      },
+      "category": {
+        "label": "Category",
+        "all": "All categories",
+        "title": "Filter by category",
+        "chosen": "Category: {category}"
+      },
+      "sort": {
+        "label": "Sort: {order}",
+        "title": "Sort by",
+        "name": "Name",
+        "occupancy": "Occupancy"
+      },
+      "none": {
+        "title": "No person matches",
+        "description": "Try another name, category or area, or see every active person.",
+        "clear": "Clear filters"
+      }
+    }
   },
   "NotFound": {
     "title": "We couldn't find this page",
