@@ -22,7 +22,7 @@ test("the projects list leads to a project's page, under Proyectos in the trail"
 }) => {
   await page.goto("/projects");
   await page
-    .getByRole("table", { name: "Proyectos" })
+    .getByRole("list", { name: "Proyectos" })
     .getByRole("link", { name: "Customer portal" })
     .click();
 
