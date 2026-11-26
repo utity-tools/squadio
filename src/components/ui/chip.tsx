@@ -17,6 +17,9 @@ const chipVariants = cva(
         na: "bg-muted text-muted-foreground",
         error: "border-status-bad tint-bad text-status-bad-text",
         chosen: "bg-brand-solid text-brand-solid-foreground",
+        // A scenario's state (ADR 0017): an alternative in its own colour, a draft outlined.
+        alternative: "bg-alt text-alt-foreground",
+        draft: "border-border text-muted-foreground",
         demo: "tint-brand text-brand-text",
         muted: "bg-muted text-muted-foreground",
         open: "border-[1.5px] border-dashed border-muted-foreground text-muted-foreground",

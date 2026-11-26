@@ -43,6 +43,8 @@ const textPairs: [string, string][] = [
   // The primary button, the selection and the "Elegido" chip, at rest and on hover.
   ["brand-solid-foreground", "brand-solid"],
   ["brand-solid-foreground", "brand-solid-hover"],
+  // The "Alternativa" chip (ADR 0017).
+  ["alt-foreground", "alt"],
   ...[...statuses, "brand"].flatMap((fill) =>
     surfaces.map((surface): [string, string] => [`${fill}-text`, surface]),
   ),
@@ -58,6 +60,8 @@ const uiPairs: [string, string][] = [
   ["primary", "selected"],
   // A selected tree card's border.
   ...surfaces.map((surface): [string, string] => ["brand-solid", surface]),
+  // An alternative's dot in a timeline (ADR 0017).
+  ...surfaces.map((surface): [string, string] => ["alt", surface]),
 ];
 
 describe.each(Object.entries(themes))("the %s theme", (_, theme) => {

@@ -45,6 +45,9 @@ describe("Chip", () => {
     ["error", ["tint-bad", "text-status-bad-text", "border-status-bad"]],
     ["demo", ["tint-brand", "text-brand-text"]],
     ["open", ["border-dashed", "border-muted-foreground", "text-muted-foreground"]],
+    // A scenario's state (ADR 0017): an alternative in its own purple, a draft outlined.
+    ["alternative", ["bg-alt", "text-alt-foreground"]],
+    ["draft", ["border-border", "text-muted-foreground"]],
   ] as const)("draws %s chips as the spec does", (tone, classes) => {
     render(<Chip tone={tone}>x</Chip>);
 
