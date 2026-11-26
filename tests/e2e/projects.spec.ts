@@ -58,7 +58,9 @@ test("offers a visitor no way to create a project: the demo is not theirs", asyn
   await expect(page.getByRole("button", { name: /Nuevo proyecto|Crear proyecto/ })).toHaveCount(0);
 });
 
-test("marks Proyectos in the sidebar and names the page in the trail", async ({ page }) => {
+test("marks Proyectos in the sidebar and leaves out a trail that repeats the heading", async ({
+  page,
+}) => {
   await page.goto("/projects");
 
   const projects = page
@@ -66,8 +68,10 @@ test("marks Proyectos in the sidebar and names the page in the trail", async ({ 
     .getByRole("link", { name: "Proyectos" });
   await expect(projects).toHaveAttribute("aria-current", "page");
   await expect(projects).toHaveAttribute("href", "/projects");
-  const trail = page.getByRole("banner").getByRole("navigation", { name: "Ruta de navegación" });
-  await expect(trail.getByText("Proyectos")).toHaveAttribute("aria-current", "page");
+  // From lg the trail sits above the page only with two crumbs or more (ADR 0017): here it would
+  // only repeat «Proyectos».
+  await expect(page.getByRole("heading", { level: 1, name: "Proyectos" })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Ruta de navegación" })).toBeHidden();
   await expect(page).toHaveTitle(/Proyectos/);
 });
 

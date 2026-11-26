@@ -31,12 +31,13 @@ type AppShellProps = {
 };
 
 /**
- * The app's frame (design board "Navegación de la app"): one 56 px top bar everywhere, with the
- * logo, a separator, the organization, the trail, the theme and the account, and the sidebar beside the page. Below
- * lg (boards 28–30) the sidebar, the theme and the account move into the ☰ menu at the bar's end.
- * In the editor, from `md`, the frame holds to the window's height, so the canvas fits it. There,
- * under the bar, a band says when the connection is down (Errors board, section 5): the editor is
- * the only page that saves.
+ * The app's frame, one for every page (ADR 0017). From lg there is no top bar: the sidebar is the
+ * banner, with the logo on top and the organization, the theme and the account at its foot, and
+ * the trail sits above the page when it has two crumbs or more (one would repeat the heading).
+ * Below lg (boards 28–30) a 56 px top bar holds the logo, the organization and the trail, and its
+ * ☰ menu the sections, the theme and the account. In the editor, from `md`, the frame holds to the
+ * window's height, so the canvas fits it. There a band atop the page says when the connection is
+ * down (Errors board, section 5): the editor is the only page that saves.
  */
 export function AppShell({
   scope,
@@ -72,23 +73,53 @@ export function AppShell({
       data-sidebar-scope={scope}
       className={cn("flex min-h-dvh flex-1 flex-col", scope === "editor" && "md:max-h-dvh")}
     >
-      <header className="flex min-h-14 flex-wrap items-center gap-x-4 gap-y-2 border-b bg-background px-4 py-2 max-lg:gap-x-3 max-lg:py-1 max-lg:pe-2">
+      <header className="flex min-h-14 flex-wrap items-center gap-x-3 gap-y-2 border-b bg-background py-1 ps-4 pe-2 lg:hidden">
         <Link href="/home" aria-label={t("homeLink")} className="rounded-md">
           <Logo wordmark="from-sm" />
         </Link>
         <span aria-hidden className="h-6 w-px bg-border max-sm:hidden" />
         {organization}
         <div className="min-w-0 flex-1">{crumbs}</div>
-        <div className="flex flex-wrap items-center gap-2 max-lg:hidden">
-          <ThemeSwitch />
-          {account}
-        </div>
         <AppMenu organization={organization} sections={nav} account={account} />
       </header>
-      {scope === "editor" && <ConnectionBanner />}
       <div className="flex min-h-0 flex-1">
-        <AppSidebar scope={scope}>{nav}</AppSidebar>
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col">{children}</div>
+        <AppSidebar
+          scope={scope}
+          top={
+            <Link href="/home" aria-label={t("homeLink")} className="rounded-md p-2">
+              {/* The wordmark goes when the sidebar folds to its icons. */}
+              <Logo className="sidebar-folded:[&>span]:hidden" />
+            </Link>
+          }
+          bottom={
+            <>
+              {organization && (
+                <div className="flex w-full min-w-0 flex-col gap-1 sidebar-folded:hidden">
+                  {organization}
+                </div>
+              )}
+              <ThemeSwitch className="sidebar-folded:flex-col" />
+              {account}
+            </>
+          }
+        >
+          {nav}
+        </AppSidebar>
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+          {/* In the page's column, so the sidebar keeps the window's height whatever it takes. */}
+          {scope === "editor" && <ConnectionBanner />}
+          {crumbs && (
+            <div
+              className={cn(
+                "max-lg:hidden [&:not(:has(li+li))]:hidden",
+                scope === "editor" ? "border-b px-4 py-2" : "px-8 pt-6",
+              )}
+            >
+              {crumbs}
+            </div>
+          )}
+          {children}
+        </div>
       </div>
     </div>
   );

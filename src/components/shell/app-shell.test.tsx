@@ -13,9 +13,15 @@ vi.mock("@/i18n/navigation", () => ({
   ),
 }));
 
-// One top bar across the app, 56 px: the logo, which leads home, a separator, the trail, then
-// the theme and the account. Below it, the sidebar and the page (design board "Navegación de la
-// app"). Below lg the theme, the account and the sections move into the ☰ menu (boards 28–30).
+// One frame (ADR 0017). From lg there is no top bar: the sidebar is the page's banner, with the
+// logo on top and the organization, the theme and the account at its foot, and the trail sits
+// above the page when it has two crumbs or more. Below lg the 56 px top bar holds the logo, the
+// organization, the trail and the ☰ menu, which holds the rest (boards 28–30).
+// jsdom applies no media queries, so both banners are in the document: each test looks in one.
+
+const topBar = () => screen.getAllByRole("banner")[0] as HTMLElement;
+const sidebar = () =>
+  screen.getByRole("navigation", { name: "Secciones" }).closest("header") as HTMLElement;
 
 let wide = false;
 const medias: { query: string; matches: boolean; listeners: Set<() => void> }[] = [];
@@ -48,10 +54,11 @@ beforeEach(() => {
 });
 
 describe("AppShell", () => {
-  it("puts the logo, the trail, the theme and the account in a 56 px top bar", () => {
+  it("keeps a 56 px top bar only below lg, with the logo, the organization and the trail", () => {
     renderWithIntl(
       <AppShell
         scope="app"
+        organization={<span>Consultora Norte</span>}
         crumbs={<nav aria-label="Ruta de navegación">Plan A</nav>}
         account={<button type="button">Entrar</button>}
       >
@@ -59,19 +66,71 @@ describe("AppShell", () => {
       </AppShell>,
     );
 
-    const bar = screen.getByRole("banner");
-    expect(bar).toHaveClass("min-h-14");
+    const bar = topBar();
+    expect(bar).toHaveClass("min-h-14", "lg:hidden");
     expect(within(bar).getByRole("link", { name: "Squadio, Inicio" })).toHaveAttribute(
       "href",
       "/home",
     );
+    expect(within(bar).getByText("Consultora Norte")).toBeInTheDocument();
     expect(within(bar).getByRole("navigation", { name: "Ruta de navegación" })).toBeInTheDocument();
-    expect(within(bar).getByRole("radiogroup", { name: "Tema" })).toBeInTheDocument();
-    expect(within(bar).getByRole("button", { name: "Entrar" })).toBeInTheDocument();
+    // Below lg the theme and the account are in the ☰ menu, not on the bar.
+    expect(within(bar).queryByRole("radiogroup", { name: "Tema" })).not.toBeInTheDocument();
+    expect(within(bar).queryByRole("button", { name: "Entrar" })).not.toBeInTheDocument();
     expect(screen.getByRole("main")).toHaveTextContent("Contenido");
   });
 
-  it("says in the editor, right under the top bar, when the connection is down", () => {
+  it("makes the sidebar the banner from lg: the logo on top, the rest at its foot", () => {
+    renderWithIntl(
+      <AppShell
+        scope="app"
+        organization={<span>Consultora Norte</span>}
+        account={<button type="button">Entrar</button>}
+      >
+        <main />
+      </AppShell>,
+    );
+
+    const side = sidebar();
+    expect(side).toHaveClass("max-lg:hidden", "lg:sticky");
+    const logo = within(side).getByRole("link", { name: "Squadio, Inicio" });
+    expect(logo).toHaveAttribute("href", "/home");
+    const theme = within(side).getByRole("radiogroup", { name: "Tema" });
+    const account = within(side).getByRole("button", { name: "Entrar" });
+    const organization = within(side).getByText("Consultora Norte");
+    // Logo, sections, then organization, theme and account, in that order.
+    const sections = within(side).getByRole("navigation", { name: "Secciones" });
+    const order = [logo, sections, organization, theme, account];
+    for (const [index, element] of order.slice(1).entries()) {
+      expect(order[index]!.compareDocumentPosition(element)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    }
+    // The organization's name has no room in the folded 56 px rail, and the switch stacks there.
+    expect(organization.parentElement).toHaveClass("sidebar-folded:hidden");
+    expect(theme).toHaveClass("sidebar-folded:flex-col");
+  });
+
+  it.each(["app", "editor"] as const)(
+    "shows the %s page's trail above it from lg, when the trail has two crumbs or more",
+    (scope) => {
+      renderWithIntl(
+        <AppShell scope={scope} crumbs={<nav aria-label="Ruta de navegación">Plan A</nav>}>
+          <main>Contenido</main>
+        </AppShell>,
+      );
+
+      const trails = screen.getAllByRole("navigation", { name: "Ruta de navegación" });
+      expect(trails).toHaveLength(2);
+      const above = trails[1]!.parentElement;
+      expect(above).not.toBe(topBar());
+      expect(topBar()).not.toContainElement(above);
+      expect(above).toHaveClass("max-lg:hidden", "[&:not(:has(li+li))]:hidden");
+      expect(
+        above!.compareDocumentPosition(screen.getByRole("main")) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    },
+  );
+
+  it("says in the editor, atop the page beside the sidebar, when the connection is down", () => {
     vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);
     renderWithIntl(
       <AppShell scope="editor">
@@ -81,7 +140,10 @@ describe("AppShell", () => {
 
     const banner = screen.getByRole("status");
     expect(banner).toHaveTextContent("Sin conexión.");
-    expect(screen.getByRole("banner").nextElementSibling).toBe(banner);
+    // In the page's column, so the sidebar keeps the window's height whatever the band takes.
+    expect(sidebar()).not.toContainElement(banner);
+    expect(banner.parentElement?.firstElementChild).toBe(banner);
+    expect(banner.parentElement).toContainElement(screen.getByRole("main"));
     vi.restoreAllMocks();
   });
 
@@ -97,21 +159,17 @@ describe("AppShell", () => {
     vi.restoreAllMocks();
   });
 
-  it("hides the sidebar, the theme and the account below lg, where the ☰ menu holds them", () => {
+  it("hides the sidebar below lg, where the ☰ menu holds the sections, theme and account", () => {
     renderWithIntl(
       <AppShell scope="app" account={<button type="button">Entrar</button>}>
         <main />
       </AppShell>,
     );
 
-    const bar = screen.getByRole("banner");
-    expect(within(bar).getByRole("radiogroup", { name: "Tema" }).parentElement).toHaveClass(
-      "max-lg:hidden",
+    expect(within(topBar()).getByRole("button", { name: "Abrir el menú" })).toHaveClass(
+      "lg:hidden",
     );
-    expect(within(bar).getByRole("button", { name: "Abrir el menú" })).toHaveClass("lg:hidden");
-    expect(screen.getByRole("navigation", { name: "Secciones" }).parentElement).toHaveClass(
-      "max-lg:hidden",
-    );
+    expect(sidebar()).toHaveClass("max-lg:hidden");
   });
 
   it("always offers Inicio, Proyectos and Personas, then the sections the page adds", () => {

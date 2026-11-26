@@ -16,6 +16,7 @@ import { type ReactNode, createContext, use, useEffect, useId, useSyncExternalSt
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Link } from "@/i18n/navigation";
+import { cn } from "@/lib/utils";
 
 import { menuItemClass, useShellPlacement } from "./placement";
 
@@ -62,6 +63,10 @@ type AppSidebarProps = {
   scope: SidebarScope;
   /** The sections, as `SidebarLink`s. */
   children: ReactNode;
+  /** Above the sections: the logo. */
+  top?: ReactNode;
+  /** Below the sections, above the fold button: the organization, the theme and the account. */
+  bottom?: ReactNode;
 };
 
 /**
@@ -69,8 +74,10 @@ type AppSidebarProps = {
  * buttons. The look follows the attribute the inline script put on <html> (the `sidebar-folded`
  * variant in globals.css), so it is right from the first paint; React state only drives the
  * button and the tooltips. Below lg there is none: the ☰ menu holds the sections (`AppMenu`).
+ * From lg there is no top bar (ADR 0017), so the sidebar is the page's banner: it holds the logo
+ * on top and the shell's corner at its foot, and stays in view at the window's height.
  */
-export function AppSidebar({ scope, children }: AppSidebarProps) {
+export function AppSidebar({ scope, children, top, bottom }: AppSidebarProps) {
   const t = useTranslations("Shell");
   const folded = useFolded(scope);
   // Not a fixed id: Next.js keeps the previous page, hidden, in the document.
@@ -100,11 +107,22 @@ export function AppSidebar({ scope, children }: AppSidebarProps) {
   return (
     <ScopeContext value={scope}>
       <TooltipProvider>
-        <div className="flex w-58 shrink-0 flex-col gap-2 border-e bg-background p-3 transition-[width] duration-(--duration-layout) ease-snappy motion-reduce:transition-none max-lg:hidden sidebar-folded:w-14 sidebar-folded:items-center sidebar-folded:px-2">
+        <header className="flex w-58 shrink-0 flex-col gap-2 overflow-y-auto border-e bg-background p-3 transition-[width] duration-(--duration-layout) ease-snappy motion-reduce:transition-none max-lg:hidden lg:sticky lg:top-0 lg:h-dvh lg:self-start sidebar-folded:w-14 sidebar-folded:items-center sidebar-folded:px-2">
+          {top && <div className="mb-3 flex w-full sidebar-folded:justify-center">{top}</div>}
           <nav id={navId} aria-label={t("sections")} className="w-full">
             <ul className="flex flex-col gap-0.5 sidebar-folded:items-center">{children}</ul>
           </nav>
-          <div className="mt-auto flex w-full justify-end sidebar-folded:justify-center">
+          {bottom && (
+            <div className="mt-auto flex w-full flex-col items-start gap-3 sidebar-folded:items-center">
+              {bottom}
+            </div>
+          )}
+          <div
+            className={cn(
+              "flex w-full justify-end sidebar-folded:justify-center",
+              bottom ? "border-t pt-2" : "mt-auto",
+            )}
+          >
             <Tooltip>
               <TooltipTrigger asChild>{toggle}</TooltipTrigger>
               <TooltipContent side="right" hidden={!folded}>
@@ -112,7 +130,7 @@ export function AppSidebar({ scope, children }: AppSidebarProps) {
               </TooltipContent>
             </Tooltip>
           </div>
-        </div>
+        </header>
       </TooltipProvider>
     </ScopeContext>
   );

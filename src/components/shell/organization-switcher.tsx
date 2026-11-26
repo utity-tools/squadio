@@ -161,7 +161,7 @@ export function DemoOrganization({ copy }: { copy: boolean }) {
         {t("demo")}
       </Chip>
       <span
-        className={cn("text-[13px] text-muted-foreground", placement === "bar" && "max-xl:sr-only")}
+        className={cn("text-[13px] text-muted-foreground", placement === "bar" && "max-lg:sr-only")}
       >
         {copy ? t("fictitiousCopy") : t("fictitious")}
       </span>

@@ -160,7 +160,7 @@ test("a save from a stale tab interrupts with a reload to the latest version", a
   await expect(dialog).toHaveCount(0);
 });
 
-test("a band under the top bar says when the connection is down, and when it is back", async ({
+test("a band atop the editor says when the connection is down, and when it is back", async ({
   page,
   context,
 }) => {
@@ -169,6 +169,11 @@ test("a band under the top bar says when the connection is down, and when it is 
 
   await context.setOffline(true);
   await expect(band).toHaveText("Sin conexión. No se puede guardar hasta que vuelva.");
+  // Beside the sidebar, not above it: the sidebar keeps the window's height and its foot in view.
+  const sidebar = await page.getByRole("banner").boundingBox();
+  expect(sidebar).toMatchObject({ y: 0, height: page.viewportSize()?.height });
+  expect((await band.boundingBox())?.x).toBeGreaterThanOrEqual(sidebar!.width);
+  await expect(page.getByRole("button", { name: "Desplegar la barra lateral" })).toBeInViewport();
   for (const colorScheme of ["light", "dark"] as const) {
     await page.emulateMedia({ colorScheme });
     await expect(page.locator("html")).toHaveAttribute("data-theme", colorScheme);

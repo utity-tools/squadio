@@ -77,6 +77,18 @@ describe("ThemeSwitch", () => {
     expect(document.body).toHaveFocus();
   });
 
+  it("moves with the up and down arrows too, as the folded sidebar stacks it", async () => {
+    const user = userEvent.setup();
+    renderWithIntl(<ThemeSwitch className="sidebar-folded:flex-col" />);
+
+    expect(screen.getByRole("radiogroup", { name: "Tema" })).toHaveClass("sidebar-folded:flex-col");
+    await user.tab();
+    await user.keyboard("{ArrowDown}");
+    await vi.waitFor(() => expect(screen.getByRole("radio", { name: "Claro" })).toHaveFocus());
+    await user.keyboard("{ArrowUp}");
+    await vi.waitFor(() => expect(screen.getByRole("radio", { name: "Sistema" })).toHaveFocus());
+  });
+
   it("tabs into the chosen theme", async () => {
     document.cookie = `${THEME_COOKIE}=dark; path=/`;
     const user = userEvent.setup();
