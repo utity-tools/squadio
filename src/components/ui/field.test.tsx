@@ -6,7 +6,7 @@ import { renderWithIntl } from "@/test/render";
 import { Field, controlClassName } from "./field";
 
 // The design system's field (ADR 0014): label above, a 36 px control, help below; the error
-// replaces the help. Numbers sit right-aligned in Geist Mono.
+// replaces the help. Numbers sit right-aligned with even digits.
 
 describe("Field", () => {
   it("names its control with the label above it and describes it with the help below", () => {
@@ -82,8 +82,9 @@ describe("controlClassName", () => {
     expect(controlClassName()).not.toMatch(/outline-(none|hidden)/);
   });
 
-  it("right-aligns numbers in mono", () => {
-    expect(controlClassName({ numeric: true })).toMatch(/text-right font-mono tabular-nums/);
+  it("right-aligns numbers with even digits, in the text's face", () => {
+    expect(controlClassName({ numeric: true })).toMatch(/text-right tabular-nums/);
+    expect(controlClassName({ numeric: true })).not.toMatch(/font-mono/);
     expect(controlClassName()).not.toMatch(/text-right/);
   });
 });

@@ -212,7 +212,7 @@ function Node({
       <span className="truncate text-xs text-muted-foreground">
         {member.person ?? t("openRole")}
       </span>
-      <span className="font-mono text-[11px] text-muted-foreground tabular-nums">
+      <span className="text-[11px] text-muted-foreground tabular-nums">
         {t("seat", { allocation: member.allocation, hours: member.weeklyHours })}
       </span>
     </div>
@@ -245,13 +245,11 @@ function Ledger({ figures }: { figures: ReturnType<typeof useFigures> }) {
   return (
     <div className="flex flex-col gap-0.5 border-s bg-background px-4.5 py-4">
       <span className="text-xs text-muted-foreground">{ts("netMargin")}</span>
-      <span className="font-mono text-[30px] leading-tight font-semibold tracking-[-0.02em] tabular-nums">
+      <span className="text-[30px] leading-tight font-semibold tracking-[-0.02em] tabular-nums">
         {figures.netMargin}
       </span>
       <div className="mt-1 mb-2.5 flex flex-wrap items-center gap-2">
-        <span className="font-mono text-sm text-muted-foreground tabular-nums">
-          {figures.percent}
-        </span>
+        <span className="text-sm text-muted-foreground tabular-nums">{figures.percent}</span>
         <Chip tone={STATUS_TONE[figures.status]}>{figures.target}</Chip>
       </div>
       {lines.map(({ label, cents, subtotal }) => (
@@ -288,7 +286,7 @@ function LedgerLine({
       )}
     >
       <span className={subtotal ? "text-foreground" : "text-muted-foreground"}>{label}</span>
-      <span className="font-mono whitespace-nowrap tabular-nums">{children}</span>
+      <span className="whitespace-nowrap tabular-nums">{children}</span>
     </div>
   );
 }
@@ -327,7 +325,7 @@ function PhoneMock() {
         </span>
         <Chip tone={STATUS_TONE[figures.status]}>{figures.statusLabel}</Chip>
       </div>
-      <span className="font-mono text-[26px] font-semibold tabular-nums">
+      <span className="text-[26px] font-semibold tabular-nums">
         {figures.netMargin} <span className="text-sm text-muted-foreground">{figures.percent}</span>
       </span>
       <div className="grid grid-cols-2 gap-1.5">

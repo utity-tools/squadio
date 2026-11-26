@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./table";
 
 // The design system's tables (ADR 0014): 36 px rows, the header on --muted, numbers right-aligned
-// in mono, a selected row on --selected and a total row in bold on --muted.
+// with even digits, a selected row on --selected and a total row in bold on --muted.
 
 function Ledger() {
   return (
@@ -51,15 +51,12 @@ describe("Table", () => {
     expect(screen.getByRole("columnheader", { name: "Coste" })).not.toHaveClass("font-mono");
   });
 
-  it("right-aligns numbers in mono", () => {
+  it("right-aligns numbers with even digits, in the text's face", () => {
     render(<Ledger />);
 
-    expect(screen.getByRole("cell", { name: "45,88 €" })).toHaveClass(
-      "h-9",
-      "text-right",
-      "font-mono",
-      "tabular-nums",
-    );
+    const cell = screen.getByRole("cell", { name: "45,88 €" });
+    expect(cell).toHaveClass("h-9", "text-right", "tabular-nums");
+    expect(cell).not.toHaveClass("font-mono");
     expect(screen.getByRole("cell", { name: "Senior Developer" })).not.toHaveClass("text-right");
   });
 

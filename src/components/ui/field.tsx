@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 /**
  * A form control's look (ADR 0014): 36 px, radius 8, on the input's border. Focus rings it, an
  * invalid value rings it in the bad status, and what cannot be changed is dashed on --muted.
- * Numbers sit right-aligned in Geist Mono.
+ * Numbers sit right-aligned with even digits.
  */
 export function controlClassName({ numeric = false }: { numeric?: boolean } = {}) {
   return cn(
@@ -16,7 +16,7 @@ export function controlClassName({ numeric = false }: { numeric?: boolean } = {}
     "aria-invalid:border-status-bad aria-invalid:ring-3 aria-invalid:ring-status-bad/18",
     // Only text that cannot be typed in: CSS's :read-only also matches every <select>.
     "[&:is(input,textarea):read-only]:border-dashed [&:is(input,textarea):read-only]:bg-muted",
-    numeric && "text-right font-mono tabular-nums",
+    numeric && "text-right tabular-nums",
   );
 }
 

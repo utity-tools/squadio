@@ -183,7 +183,7 @@ function ResultVisual() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="flex flex-col">
           <span className="text-xs text-muted-foreground">{ts("headline.netMargin")}</span>
-          <span className="font-mono text-[34px] leading-[1.1] font-semibold tracking-[-0.02em] tabular-nums">
+          <span className="text-[34px] leading-[1.1] font-semibold tracking-[-0.02em] tabular-nums">
             {format.euros(result.netMarginCents)}{" "}
             <span className="text-base font-medium text-muted-foreground">
               {format.percent(result.netMarginBasisPoints)}
@@ -203,7 +203,7 @@ function ResultVisual() {
               className="h-2.5 rounded-[3px] bg-brand"
               style={{ width: `${Math.round((costCents / largest) * 100)}%` }}
             />
-            <span className="text-end font-mono tabular-nums">{format.euros(costCents)}</span>
+            <span className="text-end tabular-nums">{format.euros(costCents)}</span>
           </div>
         ))}
       </div>
@@ -265,7 +265,7 @@ function MissingVisual() {
           >
             <span className={subtotal ? "text-foreground" : "text-muted-foreground"}>{label}</span>
             {isDetermined(amount) ? (
-              <span className="font-mono tabular-nums">{format.euros(amount)}</span>
+              <span className="tabular-nums">{format.euros(amount)}</span>
             ) : (
               <span className="font-semibold text-status-warn-text">{ts("undetermined")}</span>
             )}
@@ -302,7 +302,7 @@ function CompareVisual() {
           className={cn("flex flex-col gap-1 rounded-[10px] border bg-background p-3", className)}
         >
           <span className="text-xs text-muted-foreground">{name}</span>
-          <span className="font-mono font-semibold tabular-nums">{value}</span>
+          <span className="font-semibold tabular-nums">{value}</span>
         </div>
       ))}
     </div>

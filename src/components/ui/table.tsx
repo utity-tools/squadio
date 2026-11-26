@@ -2,7 +2,7 @@ import type * as React from "react";
 
 import { cn } from "@/lib/utils";
 
-// ADR 0014: 36 px rows, the header on --muted, numbers right-aligned in mono.
+// ADR 0014: 36 px rows, the header on --muted, numbers right-aligned with even digits (ADR 0017: no mono).
 
 function Table({ className, ...props }: React.ComponentProps<"table">) {
   return (
@@ -84,7 +84,7 @@ function TableCell({
       data-slot="table-cell"
       className={cn(
         "h-9 border-b px-3 py-1.5 align-middle",
-        numeric && "text-right font-mono whitespace-nowrap tabular-nums",
+        numeric && "text-right whitespace-nowrap tabular-nums",
         className,
       )}
       {...props}

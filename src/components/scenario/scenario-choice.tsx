@@ -286,7 +286,7 @@ function MarginOfChoice() {
         </span>
       ) : (
         // The figure never splits: it moves down whole when it does not fit by its name.
-        <span className="font-mono font-semibold whitespace-nowrap tabular-nums">
+        <span className="font-semibold whitespace-nowrap tabular-nums">
           {typeof basisPoints === "number"
             ? t("amountWithPercent", { amount: euros(cents), percent: percent(basisPoints) })
             : t("amountPercentNotApplicable", { amount: euros(cents) })}

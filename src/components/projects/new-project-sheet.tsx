@@ -287,7 +287,7 @@ function NewProjectForm({ action, project, onSaved }: NewProjectFormProps) {
                       const typed = event.currentTarget.value;
                       setPeriod((current) => ({ ...current, [date]: typed }));
                     }}
-                    className={cn(TEXT, "font-mono tabular-nums")}
+                    className={cn(TEXT, "tabular-nums")}
                   />
                 )}
               </Field>

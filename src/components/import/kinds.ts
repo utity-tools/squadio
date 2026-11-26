@@ -13,7 +13,7 @@ import type { AmountLocale } from "@/lib/money/euros";
 // What the import's steps need to know about each file (ADR 0016): which fields hold numbers, and
 // how a field is named. The steps are the same for both files.
 
-/** The fields shown aligned right, in monospaced figures. */
+/** The fields shown aligned right, with even digits. */
 const NUMERIC: { [K in ImportKind]: readonly ImportField<K>[] } = {
   categories: [
     "grossAnnualSalary",
