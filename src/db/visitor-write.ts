@@ -49,7 +49,7 @@ export type VisitorWriteResult<Refused> =
       renamed?: Record<string, string>;
     })
   | Refused
-  /** The copy went away. */
+  /** The copy went away, or the cookie led to none: it was cleared. */
   | { ok: false; reason: "not-found" }
   /** The day's new copies ran out: nothing was written, and the page still reads the template. */
   | { ok: false; reason: "limit" };
@@ -61,14 +61,15 @@ class Rollback<Refused> extends Error {
   }
 }
 
+const COOKIE_OPTIONS = { httpOnly: true, secure: true, sameSite: "lax", path: "/" } as const;
+
 function setCookie(jar: CookieJar, token: string) {
-  jar.set(VISITOR_COOKIE, token, {
-    httpOnly: true,
-    secure: true,
-    sameSite: "lax",
-    path: "/",
-    maxAge: VISITOR_COOKIE_MAX_AGE,
-  });
+  jar.set(VISITOR_COOKIE, token, { ...COOKIE_OPTIONS, maxAge: VISITOR_COOKIE_MAX_AGE });
+}
+
+/** Expires the cookie: the same name and path, so the browser drops the one it holds. */
+function clearCookie(jar: CookieJar) {
+  jar.set(VISITOR_COOKIE, "", { ...COOKIE_OPTIONS, maxAge: 0 });
 }
 
 async function claim(tx: TenantTransaction, token: string, organizationId: string) {
@@ -99,7 +100,16 @@ export async function writeForVisitor<Refused extends { ok: false }>(
   rateAccess: boolean,
   write: (tx: TenantTransaction, copy: TemplateCopy | null) => Promise<Written | Refused>,
 ): Promise<VisitorWriteResult<Refused>> {
-  const visitor = await editContextFor(db, jar.get(VISITOR_COOKIE)?.value);
+  const cookie = jar.get(VISITOR_COOKIE)?.value;
+  const visitor = await editContextFor(db, cookie);
+
+  // A cookie that leads to no copy, forged or left from a copy the clean-up deleted, makes none:
+  // the firewall limits first writes by IP only without the cookie, so any made-up value would skip
+  // it. The cookie goes, and the page's next write, without it, meets the limit.
+  if (!visitor && cookie !== undefined) {
+    clearCookie(jar);
+    return { ok: false, reason: "not-found" };
+  }
 
   if (visitor) {
     const { token } = visitor;
