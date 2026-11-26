@@ -293,8 +293,8 @@ When it finishes, check that `https://squadio.utitytools.com` loads and its cert
 ### 7. Rate limit on first saves
 
 A visitor's first save makes their copy of the demo ([ADR 0011](../adr/0011-saving-edits-and-the-visitor-copy.md),
-"Abuse"). One firewall rule limits first saves per IP; saves from a visitor who already has a copy
-carry the cookie and never meet it. In the Vercel dashboard, project `squadio`, Firewall, Configure,
+"Abuse"). One firewall rule limits first saves per IP; saves from a visitor whose cookie leads to their
+copy never meet it. In the Vercel dashboard, project `squadio`, Firewall, Configure,
 New Rule:
 
 - **Name:** `First saves per IP`.
@@ -303,6 +303,9 @@ New Rule:
 - **Then:** Rate Limit, fixed window, 10 minutes, 10 requests, keyed by IP, action Deny.
 
 Review Changes, then Publish. Hobby allows one rate limit rule per project, so this is it.
+
+A made-up cookie does not skip the rule: a write whose cookie leads to no copy makes none and
+clears the cookie, so the next write meets the rule (ADR 0011, amended 2026-11-26).
 
 ### 8. Sign-in
 
