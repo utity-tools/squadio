@@ -375,7 +375,30 @@
           "failed": "The project could not be saved. Try again."
         }
       }
-    }
+    },
+    "list": {
+      "search": "Search by project or client",
+      "count": "{count, plural, one {# project} other {# projects}}",
+      "tabs": {
+        "label": "Filter projects",
+        "all": "All",
+        "decide": "To decide",
+        "risk": "At risk",
+        "ok": "On target"
+      },
+      "sort": {
+        "label": "Sort: {order}",
+        "title": "Sort by",
+        "risk": "Risk",
+        "name": "Name"
+      },
+      "none": {
+        "title": "No project matches",
+        "description": "Try another name or client, or see every project.",
+        "clear": "Clear filters"
+      }
+    },
+    "scenarios": "{count, plural, one {# scenario} other {# scenarios}}"
   },
   "Project": {
     "title": "Project",

@@ -375,7 +375,30 @@
           "failed": "No se ha podido guardar el proyecto. Inténtalo de nuevo."
         }
       }
-    }
+    },
+    "list": {
+      "search": "Buscar por proyecto o cliente",
+      "count": "{count, plural, one {# proyecto} other {# proyectos}}",
+      "tabs": {
+        "label": "Filtrar proyectos",
+        "all": "Todos",
+        "decide": "Por decidir",
+        "risk": "En riesgo",
+        "ok": "En objetivo"
+      },
+      "sort": {
+        "label": "Orden: {order}",
+        "title": "Ordenar por",
+        "risk": "Riesgo",
+        "name": "Nombre"
+      },
+      "none": {
+        "title": "Ningún proyecto coincide",
+        "description": "Prueba con otro nombre o cliente, o mira todos los proyectos.",
+        "clear": "Quitar filtros"
+      }
+    },
+    "scenarios": "{count, plural, one {# escenario} other {# escenarios}}"
   },
   "Project": {
     "title": "Proyecto",

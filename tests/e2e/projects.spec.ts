@@ -3,27 +3,31 @@ import { type Page, expect, test } from "@playwright/test";
 import { expectNoAxeViolations } from "./support/axe";
 import { expectHydrated } from "./support/hydration";
 
-// The projects list (board 05's page, in boards 01 and 14's table style): every project of the
-// demo with the scenario that speaks for it and, with rate access, its margin and status
-// (docs/domain.md, "A project's margin"). Needs the demo organization.
+// The projects list (board 05's page) as ADR 0017's list: every project of the demo with the
+// scenario that speaks for it and, with rate access, its margin and status (docs/domain.md, "A
+// project's margin"). The search, tab and order live in the URL. Needs the demo organization.
 
-const table = (page: Page) => page.getByRole("table", { name: "Proyectos" });
+const list = (page: Page) => page.getByRole("list", { name: "Proyectos" });
 const row = (page: Page, name: string) =>
-  table(page).getByRole("row", { name: new RegExp(`^${name}`) });
+  list(page)
+    .getByRole("listitem")
+    .filter({ has: page.getByRole("link", { name, exact: true }) });
+const tabs = (page: Page) => page.getByRole("tablist", { name: "Filtrar proyectos" });
 /** Any money figure: every amount is a field in cents. */
 const MONEY = /Cents\\*"\s*:/;
 
 test("lists the demo's projects with their scenario, margin and status", async ({ page }) => {
-  await page.goto("/projects");
+  await page.goto("/projects?order=name");
 
   await expect(page.getByRole("heading", { level: 1, name: "Proyectos" })).toBeVisible();
-  await expect(table(page).getByRole("columnheader")).toHaveText([
-    "Proyecto",
-    "Escenario",
-    "Margen neto",
-    "Estado",
+  await expect(tabs(page).getByRole("tab")).toHaveText([
+    /^Todos\s*5$/,
+    /^Por decidir/,
+    /^En riesgo/,
+    /^En objetivo/,
   ]);
-  await expect(table(page).getByRole("link")).toHaveText([
+  await expect(page.getByRole("button", { name: "Orden: Nombre" })).toBeVisible();
+  await expect(list(page).getByRole("link")).toHaveText([
     "Customer portal",
     "Internal tooling",
     "Mobile app",
@@ -49,10 +53,29 @@ test("lists the demo's projects with their scenario, margin and status", async (
   await expect(page.getByText("Los márgenes de proyectos distintos no se suman.")).toBeVisible();
 });
 
+test("searches and filters by tab, kept in the URL, and Back undoes the tab", async ({ page }) => {
+  await page.goto("/projects");
+  const search = page.getByRole("searchbox", { name: "Buscar por proyecto o cliente" });
+  await expectHydrated(search);
+
+  await tabs(page)
+    .getByRole("tab", { name: /^Por decidir/ })
+    .click();
+  await expect(page).toHaveURL("/projects?tab=decide");
+  await expect(list(page).getByRole("link", { name: "Mobile app" })).toHaveCount(0);
+  await search.fill("portal");
+  await expect(list(page).getByRole("link")).toHaveText(["Customer portal"]);
+  await expect(page).toHaveURL("/projects?tab=decide&q=portal");
+
+  await page.goBack();
+  await expect(page).toHaveURL("/projects");
+  await expect(list(page).getByRole("link")).toHaveCount(5);
+});
+
 test("offers a visitor no way to create a project: the demo is not theirs", async ({ page }) => {
   await page.goto("/projects");
 
-  await expect(table(page)).toBeVisible();
+  await expect(list(page)).toBeVisible();
   // Only a signed-in member with rate access creates projects (ADR 0005, ADR 0012); E2E never
   // signs in, so unit and database tests cover that side.
   await expect(page.getByRole("button", { name: /Nuevo proyecto|Crear proyecto/ })).toHaveCount(0);
@@ -78,9 +101,10 @@ test("marks Proyectos in the sidebar and leaves out a trail that repeats the hea
 test("without rate access lists projects and scenarios, and no money at all", async ({ page }) => {
   const response = await page.goto("/projects?access=none");
 
-  await expect(table(page).getByRole("columnheader")).toHaveText(["Proyecto", "Escenario"]);
+  await expect(tabs(page).getByRole("tab")).toHaveText([/^Todos/, /^Por decidir/]);
+  await expect(page.getByRole("button", { name: /^Orden/ })).toHaveCount(0);
   await expect(row(page, "Mobile app").getByText("Elegido")).toBeVisible();
-  await expect(table(page)).not.toContainText(/€|%|Pendiente|Falta/);
+  await expect(list(page)).not.toContainText(/€|%|Pendiente|Falta/);
   await expect(
     page.getByText("Los márgenes los ven las personas con acceso a tarifas."),
   ).toBeVisible();
@@ -93,16 +117,16 @@ test("without rate access lists projects and scenarios, and no money at all", as
 test("speaks English under /en", async ({ page }) => {
   await page.goto("/en/projects");
 
-  const projects = page.getByRole("table", { name: "Projects" });
-  await expect(projects.getByRole("row", { name: /^Customer portal/ })).toContainText(
+  const projects = page.getByRole("list", { name: "Projects" }).getByRole("listitem");
+  await expect(projects.filter({ hasText: /^Customer portal/ })).toContainText(
     "Not chosen · 2 scenarios",
   );
-  await expect(projects.getByRole("row", { name: /^Support retainer/ })).toContainText(
+  await expect(projects.filter({ hasText: /^Support retainer/ })).toContainText(
     "Demo Client · Time and materials",
   );
 });
 
-test("on a phone the ☰ menu offers Proyectos, marked, and the table scrolls sideways", async ({
+test("on a phone the ☰ menu offers Proyectos, marked, and the list fits the width", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -118,11 +142,8 @@ test("on a phone the ☰ menu offers Proyectos, marked, and the table scrolls si
   );
   await page.keyboard.press("Escape");
 
-  // The table keeps its columns and its scroller holds it: the page itself never scrolls sideways.
-  const scroller = table(page).locator("..");
-  expect(await scroller.evaluate((element) => element.scrollWidth > element.clientWidth)).toBe(
-    true,
-  );
+  // One row per project: the page never scrolls sideways.
+  await expect(list(page)).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
 });
 
@@ -133,7 +154,7 @@ for (const colorScheme of ["light", "dark"] as const) {
     }) => {
       await page.emulateMedia({ colorScheme });
       await page.goto(`/projects${access}`);
-      await expect(table(page)).toBeVisible();
+      await expect(list(page)).toBeVisible();
 
       await expectNoAxeViolations(page);
     });
