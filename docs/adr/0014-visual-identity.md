@@ -75,3 +75,9 @@ these tokens.
 - Each screen has at most one primary button; the others are outline or ghost.
 - When the logo changes, `--brand` and its pairs may change with it; the tests will catch a pair
   that loses contrast.
+
+## Amendments
+
+- **2026-11-26, [ADR 0017](0017-visual-identity-v07.md):** figures are set in Geist with tabular
+  digits, not Geist Mono; from lg there is no top bar, and the sidebar holds the logo, the theme
+  and the account; `--alt` and `--alt-foreground` mark an alternative. The rest of this ADR stands.
