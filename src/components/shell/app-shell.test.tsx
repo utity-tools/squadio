@@ -109,26 +109,42 @@ describe("AppShell", () => {
     expect(theme).toHaveClass("sidebar-folded:flex-col");
   });
 
-  it.each(["app", "editor"] as const)(
-    "shows the %s page's trail above it from lg, when the trail has two crumbs or more",
-    (scope) => {
-      renderWithIntl(
-        <AppShell scope={scope} crumbs={<nav aria-label="Ruta de navegación">Plan A</nav>}>
-          <main>Contenido</main>
-        </AppShell>,
-      );
+  it("shows an app page's trail above it from lg, when the trail has two crumbs or more", () => {
+    renderWithIntl(
+      <AppShell scope="app" crumbs={<nav aria-label="Ruta de navegación">Plan A</nav>}>
+        <main>Contenido</main>
+      </AppShell>,
+    );
 
-      const trails = screen.getAllByRole("navigation", { name: "Ruta de navegación" });
-      expect(trails).toHaveLength(2);
-      const above = trails[1]!.parentElement;
-      expect(above).not.toBe(topBar());
-      expect(topBar()).not.toContainElement(above);
-      expect(above).toHaveClass("max-lg:hidden", "[&:not(:has(li+li))]:hidden");
-      expect(
-        above!.compareDocumentPosition(screen.getByRole("main")) & Node.DOCUMENT_POSITION_FOLLOWING,
-      ).toBeTruthy();
-    },
-  );
+    const trails = screen.getAllByRole("navigation", { name: "Ruta de navegación" });
+    expect(trails).toHaveLength(2);
+    const above = trails[1]!.parentElement;
+    expect(topBar()).not.toContainElement(above);
+    expect(above).toHaveClass("max-lg:hidden", "[&:not(:has(li+li))]:hidden");
+    expect(
+      above!.compareDocumentPosition(screen.getByRole("main")) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it("leaves the trail and organization to a page with its own card, as the editor, from lg", () => {
+    renderWithIntl(
+      <AppShell
+        scope="editor"
+        card
+        organization={<span>Consultora Norte</span>}
+        crumbs={<nav aria-label="Ruta de navegación">Plan A</nav>}
+      >
+        <main>Contenido</main>
+      </AppShell>,
+    );
+
+    // Only the top bar's, below lg.
+    expect(screen.getAllByRole("navigation", { name: "Ruta de navegación" })).toEqual([
+      within(topBar()).getByRole("navigation", { name: "Ruta de navegación" }),
+    ]);
+    expect(within(sidebar()).queryByText("Consultora Norte")).not.toBeInTheDocument();
+    expect(within(topBar()).getByText("Consultora Norte")).toBeInTheDocument();
+  });
 
   it("says in the editor, atop the page beside the sidebar, when the connection is down", () => {
     vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);

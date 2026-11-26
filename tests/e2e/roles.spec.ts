@@ -48,7 +48,9 @@ test("a viewer reads a scenario locked, with nothing to edit and no money", asyn
 
   await expect(page.getByText("Solo lectura · tu rol es de lector")).toBeVisible();
   await expect(node(page, "Tech lead")).toBeVisible();
-  await expect(details(page).getByRole("button")).toHaveCount(0);
+  // Nothing to do but hide the card's panel (ADR 0017).
+  await expect(details(page).getByRole("button")).toHaveText([""]);
+  await expect(details(page).getByRole("button", { name: "Ocultar el panel" })).toBeVisible();
   await node(page, "Tech lead").focus();
   await page.keyboard.press("Enter");
   await expect(page.getByRole("menuitem", { name: "Quitar del equipo" })).toHaveCount(0);

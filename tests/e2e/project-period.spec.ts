@@ -3,6 +3,7 @@ import { type Page, expect, test } from "@playwright/test";
 import { expectNoAxeViolations } from "./support/axe";
 import { expectOnCopy } from "./support/copy";
 import { expectHydrated } from "./support/hydration";
+import { scenarioCard } from "./support/scenario-card";
 
 // docs/domain.md, "Planned period": the demo's Internal tooling plans 1 April to 31 December 2027,
 // and a new assignment in its scenario spans that period, not the team's 1 April to 29 September:
@@ -53,8 +54,8 @@ for (const colorScheme of ["light", "dark"] as const) {
     await page.goto(`/scenarios/${FIRST_DRAFT}?view=table`);
     // The one assignment spans the whole project, 1 April to 29 September.
     await expect(row(page, "Developer")).toContainText("Todo el proyecto");
-    const span = page.getByRole("term").filter({ hasText: "Duración del proyecto" }).locator("..");
-    await expect(span).toContainText(/1 abr\s–\s29 sept 2027/);
+    // The card's terms (ADR 0017).
+    await expect(scenarioCard(page)).toContainText(/Precio cerrado · 1 abr\s–\s29 sept 2027/);
     const add = page.getByRole("button", { name: "Añadir al equipo…" });
     await expectHydrated(add);
     await page
@@ -77,7 +78,7 @@ for (const colorScheme of ["light", "dark"] as const) {
 
     await expect(dialog(page)).toHaveCount(0);
     await expect(row(page, "Tooling lead")).toContainText("Todo el proyecto");
-    await expect(span).toContainText(/1 abr\s–\s31 dic 2027/);
+    await expect(scenarioCard(page)).toContainText(/Precio cerrado · 1 abr\s–\s31 dic 2027/);
     // The team keeps its own dates: the period never moves an assignment.
     await expect(row(page, "Developer")).toContainText(/1 abr\s–\s29 sept 2027/);
     await expect(

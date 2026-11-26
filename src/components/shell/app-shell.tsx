@@ -27,6 +27,11 @@ type AppShellProps = {
   current?: "home" | "projects" | "inside-projects" | "people";
   /** Sections after Inicio, Proyectos and Personas, as `SidebarLink`s: only those whose page exists. */
   sections?: ReactNode;
+  /**
+   * The page names its organization and its place in a card of its own from lg, as the scenario
+   * editor does (ADR 0017): the sidebar and the trail above the page leave them out there.
+   */
+  card?: boolean;
   children: ReactNode;
 };
 
@@ -46,6 +51,7 @@ export function AppShell({
   account,
   current,
   sections,
+  card = false,
   children,
 }: AppShellProps) {
   const t = useTranslations("Shell");
@@ -93,7 +99,7 @@ export function AppShell({
           }
           bottom={
             <>
-              {organization && (
+              {organization && !card && (
                 <div className="flex w-full min-w-0 flex-col gap-1 sidebar-folded:hidden">
                   {organization}
                 </div>
@@ -108,7 +114,7 @@ export function AppShell({
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           {/* In the page's column, so the sidebar keeps the window's height whatever it takes. */}
           {scope === "editor" && <ConnectionBanner />}
-          {crumbs && (
+          {crumbs && !card && (
             <div
               className={cn(
                 "max-lg:hidden [&:not(:has(li+li))]:hidden",

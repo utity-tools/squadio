@@ -173,4 +173,38 @@ describe("ScenarioRevision", () => {
     await userEvent.setup().click(screen.getByRole("button", { name: "Guardar revisión" }));
     await expectNoAxeViolations();
   });
+
+  it("is an icon in the bar from lg, still named, and its answer floats a moment, then goes", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    renderInEditor(ratesBasis);
+    const button = screen.getByRole("button", { name: "Guardar revisión" });
+    expect(button).toHaveAttribute("title", "Guardar revisión");
+    expect(button.querySelector("span")).toHaveClass("lg:sr-only");
+
+    await userEvent.setup({ advanceTimers: vi.advanceTimersByTime }).click(button);
+    await waitFor(() =>
+      expect(screen.getByRole("status")).toHaveTextContent("Revisión 1 guardada"),
+    );
+    expect(screen.getByRole("status")).toHaveClass("absolute", "top-full");
+    act(() => vi.advanceTimersByTime(5000));
+    expect(screen.getByRole("status")).toBeEmptyDOMElement();
+    vi.useRealTimers();
+  });
+
+  it("keeps a refusal until it is dismissed, and gives the focus back to the button", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    renderInEditor(ratesBasis, async () => ({ ok: false, reason: "conflict" }));
+    const button = screen.getByRole("button", { name: "Guardar revisión" });
+
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    await user.click(button);
+    expect(screen.getByRole("alert").parentElement).toHaveClass("absolute", "top-full");
+    // A refusal is read at one's own pace (WCAG 2.2.1): it stays until it is dismissed.
+    act(() => vi.advanceTimersByTime(60_000));
+    expect(screen.getByRole("alert")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Cerrar el aviso" }));
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(button).toHaveFocus();
+    vi.useRealTimers();
+  });
 });

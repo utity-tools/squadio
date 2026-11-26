@@ -7,7 +7,7 @@ import { teamOverAllocation } from "@/lib/load/over-allocation";
 import { categoriesWithoutRate } from "@/lib/team-tree/cards";
 
 import { useScenarioReadOnly, useScenarioStore, useScenarioView } from "./scenario-editor";
-import { ScenarioCrumbs, ScenarioHeader } from "./scenario-header";
+import { ScenarioCrumbs } from "./scenario-header";
 import { ScenarioSummary } from "./scenario-summary";
 import { ScenarioTeam } from "./scenario-team";
 
@@ -17,11 +17,6 @@ import { ScenarioTeam } from "./scenario-team";
 export function LiveScenarioCrumbs() {
   const { project, scenario } = useScenarioView();
   return <ScenarioCrumbs project={project} scenario={scenario} />;
-}
-
-export function LiveScenarioHeader() {
-  const { project, scenario, span } = useScenarioView();
-  return <ScenarioHeader project={project} scenario={scenario} span={span} />;
 }
 
 export function LiveScenarioTeam() {

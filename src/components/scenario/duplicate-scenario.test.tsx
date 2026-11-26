@@ -123,4 +123,28 @@ describe("ScenarioDuplicate", () => {
     await userEvent.setup().click(button);
     expect(send).not.toHaveBeenCalled();
   });
+
+  it("is an icon in the bar from lg, still named, and its refusal floats until it is dismissed", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    renderInEditor(
+      ratesBasis,
+      vi.fn<SendDuplicate>(async () => ({ ok: false, reason: "too-many" })),
+    );
+    const button = screen.getByRole("button", { name: "Duplicar" });
+    expect(button).toHaveAttribute("title", "Duplicar");
+    expect(button.querySelector("span")).toHaveClass("lg:sr-only");
+
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    await user.click(button);
+    const alert = screen.getByRole("alert");
+    // Under the button, over the page: the bar never moves.
+    expect(alert.parentElement).toHaveClass("absolute", "top-full");
+    // A refusal is read at one's own pace (WCAG 2.2.1): it stays until it is dismissed.
+    act(() => vi.advanceTimersByTime(60_000));
+    expect(screen.getByRole("alert")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Cerrar el aviso" }));
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(button).toHaveFocus();
+    vi.useRealTimers();
+  });
 });

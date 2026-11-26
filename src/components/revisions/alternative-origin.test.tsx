@@ -15,7 +15,8 @@ vi.mock("@/i18n/navigation", () => ({
 }));
 
 // docs/domain.md, "Derived alternative" and "Retention": an alternative says which revision it came
-// from and who proposed it; once that revision is deleted, that it came from a deleted one, and
+// from and who proposed it, in one line of the scenario's card, as a pull request's «wants to
+// merge … from …» (ADR 0017); once that revision is deleted, that it came from a deleted one, and
 // without an author, «antiguo miembro». Synthetic data only.
 
 const REVISION = "6d656d6f-0000-4000-8000-000000000501";
@@ -41,11 +42,13 @@ describe("AlternativeOrigin", () => {
 
     const note = screen.getByRole("note");
     expect(plain(note)).toMatch(
-      /^Alternativa de la revisión 2 de Plan A.*propuesta por Ada Synthetic.*28 oct 2026, 13:00$/,
+      /^Ada Synthetic propuso esta alternativa a partir de Plan A · revisión 2.*28 oct 2026, 13:00$/,
     );
-    expect(screen.getByRole("link", { name: "revisión 2 de Plan A" }).getAttribute("href")).toBe(
+    expect(screen.getByRole("link", { name: "Plan A · revisión 2" }).getAttribute("href")).toBe(
       `/revisions/${REVISION}?access=none`,
     );
+    // A link inside a sentence is told by more than its colour (WCAG 1.4.1).
+    expect(screen.getByRole("link", { name: "Plan A · revisión 2" })).toHaveClass("underline");
     await expectNoAxeViolations();
   });
 
@@ -60,13 +63,13 @@ describe("AlternativeOrigin", () => {
     unmount();
 
     renderWithIntl(<AlternativeOrigin {...props({ author: null })} anonymous="visitor" />);
-    expect(plain(screen.getByRole("note"))).toMatch(/propuesta por visitante/);
+    expect(plain(screen.getByRole("note"))).toMatch(/^visitante propuso esta alternativa/);
   });
 
   it("reads in English", () => {
     renderWithIntl(<AlternativeOrigin {...props()} />, { locale: "en" });
     expect(plain(screen.getByRole("note"))).toMatch(
-      /^Alternative to revision 2 of Plan A.*proposed by Ada Synthetic/,
+      /^Ada Synthetic proposed this alternative from Plan A · revision 2/,
     );
   });
 });
