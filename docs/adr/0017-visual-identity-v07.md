@@ -47,6 +47,14 @@ figures in the text's face, and a colour for alternatives.**
   request (light `oklch(0.538 0.2 300)` with white text; dark `oklch(0.72 0.15 300)` with dark text),
   for an alternative's chip, its dot in a timeline and its origin. No other colour, radius, shadow
   or motion token changes.
+- **The bench docks under the team.** From lg the bench is no longer a left column: it docks
+  under the team, as wide as its column, and only a row of its title, filters and «Añadir al
+  equipo…» peeks out. It rises over the canvas on hover or keyboard focus, and a handle on its top
+  edge raises it to three quarters of the team until pressed again. Escape folds it however it
+  rose, and a drag folds it so the whole canvas takes the drop. Its lanes, one per category, wrap
+  rather than scroll across. The Árbol/Tabla switch floats at the team's top end, stacked beside
+  the zoom buttons over the tree and flat above the header over the table, so the team has no view
+  bar.
 - **Two shared patterns.**
   - **List** (GitHub's issues): a search field; one bordered box whose grey header holds tabs with
     counts and the order and filter menus; one row per item; when the filters leave nothing,

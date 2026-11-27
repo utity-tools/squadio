@@ -4,7 +4,9 @@ import { LockIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
 import { type ReactNode, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
+import { useBenchSlot } from "@/components/bench/bench-slot";
 import { AddToTeamButton } from "@/components/team-editing/add-to-team-button";
 import { useTeamEditing } from "@/components/team-editing/team-editing";
 import { TeamTable } from "@/components/team-table/team-table";
@@ -22,6 +24,7 @@ import {
 import type { UncoveredPeriod } from "@/lib/scenarios/period-flags";
 import type { AssignmentCard } from "@/lib/team-tree/cards";
 import { treeNavigation } from "@/lib/team-tree/navigation";
+import { cn } from "@/lib/utils";
 
 import { UncoveredPeriodNote } from "./period-flags";
 import { useWideScreen } from "./use-wide-screen";
@@ -46,8 +49,8 @@ export type TeamViewsProps = {
  * the URL with `history.replaceState`: no new history entries and no trip to the server.
  *
  * Where the team can be edited, from `md` up (mobile is read-only), each node and row gets its
- * menu, the bar an "Add to team…" button, and the focus manager's requests select the assignment a
- * step touched and, when asked, focus it.
+ * menu, the bar an "Add to team…" button (from `lg`, the bench's row), and the focus manager's
+ * requests select the assignment a step touched and, when asked, focus it.
  */
 export function TeamViews({ team, nodes, cards, locked, uncovered = null }: TeamViewsProps) {
   const query = useSearchParams();
@@ -65,6 +68,8 @@ export function TeamViews({ team, nodes, cards, locked, uncovered = null }: Team
   );
   const wide = useWideScreen();
   const views = useRef<HTMLDivElement>(null);
+  // Where the bench keeps a place for "Add to team…", from lg.
+  const benchActions = useBenchSlot();
   // Mobile is read-only: no menus below `md`. Focus requests still apply, since undo works there.
   const editing = wide === true ? teamEditing : null;
   const request = teamEditing?.focusRequest ?? null;
@@ -145,14 +150,33 @@ export function TeamViews({ team, nodes, cards, locked, uncovered = null }: Team
 
   return (
     <div ref={views} className="flex h-full flex-col">
-      <ViewBar>
-        <ViewSwitch view={view} onViewChange={changeView} />
-        {editing && <AddToTeamButton editing={editing} />}
+      {/*
+        One switch: in the bar below lg. From lg it floats at the top end of the view under the
+        bar, hung from the bar's foot so a note that wraps never covers it, and the bar is left
+        with the notes, if any. Over the tree it stacks beside the canvas's zoom buttons; over the
+        table it lies flat above the header. "Add to team…" moves to the end of the bench's row
+        from lg: a portal keeps the editing context, which the bench is outside of.
+      */}
+      <ViewBar
+        className={cn("lg:relative lg:z-10", !(locked || uncovered) && "lg:border-0 lg:p-0")}
+      >
+        <div
+          className={cn(
+            "lg:absolute lg:top-full",
+            // Beside the zoom buttons of TeamCanvas's top-right panel, which React Flow sets 15 px
+            // from the edges and which is 2.5 rem wide: change one and the other follows.
+            view === "table" ? "lg:end-4 lg:mt-2" : "lg:end-[4.25rem] lg:mt-[15px]",
+          )}
+        >
+          <ViewSwitch view={view} onViewChange={changeView} stacked={view !== "table"} />
+        </div>
+        {editing && !benchActions && <AddToTeamButton editing={editing} />}
         {locked && <LockedNote locked={locked} />}
         {uncovered && <UncoveredPeriodNote uncovered={uncovered} />}
       </ViewBar>
+      {editing && benchActions && createPortal(<AddToTeamButton editing={editing} />, benchActions)}
       {view === "tree" && (
-        <div className="min-h-96 flex-1">
+        <div data-team-view="" className="min-h-96 flex-1">
           <TeamCanvas
             team={team}
             nodes={nodes}
@@ -164,7 +188,8 @@ export function TeamViews({ team, nodes, cards, locked, uncovered = null }: Team
         </div>
       )}
       {view === "table" && (
-        <div className="flex-1 bg-background">
+        // Room above the header for the switch, from lg, so every column still fits across.
+        <div data-team-view="" className="flex-1 bg-background lg:pt-14">
           <TeamTable
             team={team}
             nodes={nodes}
@@ -207,7 +232,8 @@ function focusWhenDrawn(views: HTMLElement | null, id: string, done?: () => void
 export function TeamViewsSkeleton() {
   return (
     <div className="flex h-full flex-col">
-      <ViewBar>
+      {/* From lg the switch floats over the view, and nothing holds its place. */}
+      <ViewBar className="lg:hidden">
         <div aria-hidden className="h-8 w-44 rounded-md border" />
       </ViewBar>
       <ViewPlaceholder />
@@ -225,9 +251,15 @@ function LockedNote({ locked }: { locked: NonNullable<TeamViewsProps["locked"]> 
   );
 }
 
-function ViewBar({ children }: { children: ReactNode }) {
+function ViewBar({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-2 border-b bg-background px-4 py-2">
+    <div
+      data-view-bar=""
+      className={cn(
+        "flex flex-wrap items-center justify-between gap-2 border-b bg-background px-4 py-2",
+        className,
+      )}
+    >
       {children}
     </div>
   );

@@ -99,8 +99,11 @@ const ARROWS: Record<string, keyof Moves> = {
 const ZOOM_DURATION = 200;
 const MIN_ZOOM = 0.1;
 const MAX_ZOOM = 2;
-/** Fitting never zooms past 100%: a small team keeps the card size of the layout. */
-const FIT_VIEW = { maxZoom: 1 } satisfies FitViewOptions;
+/**
+ * Fitting never zooms past 100%, so a small team keeps the card size of the layout, nor below 75%,
+ * so a deep team over the docked bench stays legible and is panned rather than shrunk.
+ */
+const FIT_VIEW = { maxZoom: 1, minZoom: 0.75 } satisfies FitViewOptions;
 /** React Flow's own zoom in and out step. */
 const ZOOM_STEP = 1.2;
 

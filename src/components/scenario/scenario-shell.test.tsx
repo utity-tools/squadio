@@ -22,7 +22,7 @@ describe("ScenarioShell", () => {
     expect(team.compareDocumentPosition(summary) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
-  it("puts the bench before the team, in a region of its own", () => {
+  it("docks the bench after the team, inside the team's column, in a region of its own", () => {
     renderWithIntl(
       <ScenarioShell header={null} bench={<p>people</p>} team={<p>tree</p>} summary={null} />,
     );
@@ -31,7 +31,18 @@ describe("ScenarioShell", () => {
     const team = screen.getByRole("main", { name: "Equipo" });
     expect(within(bench).getByText("people")).toBeInTheDocument();
     expect(bench).toHaveAttribute("tabindex", "0");
-    expect(bench.compareDocumentPosition(team) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // DOM order is the visual order: the team, then the bench docked under it.
+    expect(team.compareDocumentPosition(bench) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(bench.parentElement).toBe(team.parentElement);
+    // The canvas keeps the room of the row that peeks out.
+    expect(team.parentElement).toHaveClass("relative", "lg:pb-14");
+  });
+
+  it("leaves the team's column its whole height without a bench", () => {
+    renderWithIntl(<ScenarioShell header={null} team={<p>tree</p>} summary={null} />);
+
+    expect(screen.queryByRole("complementary", { name: "Banquillo" })).not.toBeInTheDocument();
+    expect(screen.getByRole("main", { name: "Equipo" }).parentElement).not.toHaveClass("lg:pb-14");
   });
 
   it("lets the keyboard reach the summary, which scrolls in its own rail", () => {
@@ -56,8 +67,10 @@ describe("ScenarioShell", () => {
 
     const rail = screen.getByRole("complementary", { name: "Resumen" });
     expect(rail).toHaveClass("[:root[data-rail=hidden]_&]:md:hidden");
+    // Two columns, the team and the rail: the bench has no column of its own any more.
+    expect(rail.parentElement).toHaveClass("md:grid-cols-[minmax(0,1fr)_clamp(280px,22vw,330px)]");
     expect(rail.parentElement).toHaveClass(
-      "[:root[data-rail=hidden]_&]:md:grid-cols-[0_minmax(0,1fr)_0]",
+      "[:root[data-rail=hidden]_&]:md:grid-cols-[minmax(0,1fr)_0]",
     );
   });
 

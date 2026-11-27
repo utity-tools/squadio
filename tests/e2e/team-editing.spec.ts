@@ -19,7 +19,10 @@ const row = (page: Page, title: string) =>
 const menu = (page: Page) => page.getByRole("menu");
 const dialog = (page: Page) => page.getByRole("dialog");
 
-/** Opens the guide scenario and tabs from the view switch, past "Add to team…", into the view. */
+/**
+ * Opens the guide scenario and tabs from the view switch into the view: from lg "Add to team…"
+ * waits at the end of the bench's row, after the team.
+ */
 async function tabIntoView(page: Page, view: "tree" | "table") {
   await page.goto(`/scenarios/${GUIDE_SCENARIO}?view=${view}`);
   const first = view === "tree" ? node(page, "Project manager") : row(page, "Project manager");
@@ -29,8 +32,6 @@ async function tabIntoView(page: Page, view: "tree" | "table") {
     .getByRole("radiogroup", { name: "Vista" })
     .getByRole("radio", { checked: true })
     .focus();
-  await page.keyboard.press("Tab");
-  await expect(page.getByRole("button", { name: "Añadir al equipo…" })).toBeFocused();
   await page.keyboard.press("Tab");
   await expect(first).toBeFocused();
 }

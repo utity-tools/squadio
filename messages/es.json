@@ -616,7 +616,9 @@
     "team": "Equipo",
     "summary": "Resumen",
     "loading": "Cargando el escenario…",
-    "details": "Datos del escenario"
+    "details": "Datos del escenario",
+    "benchRaise": "Subir el banquillo",
+    "benchLower": "Bajar el banquillo"
   },
   "ScenarioHeader": {
     "chosen": "Elegido",

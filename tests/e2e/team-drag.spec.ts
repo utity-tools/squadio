@@ -1,6 +1,7 @@
 import { type Locator, type Page, expect, test } from "@playwright/test";
 
 import { expectNoAxeViolations } from "./support/axe";
+import { bench, benchHeight, raiseBench } from "./support/bench";
 import { expectHydrated } from "./support/hydration";
 
 // Needs the demo organization: `pnpm db:migrate` and `pnpm db:seed` (CI does both). ADR 0008,
@@ -19,7 +20,6 @@ const nodeGrip = (page: Page, name: string) =>
       has: page.getByRole("button", { name: new RegExp(`^${name}\\s*,`) }),
     })
     .locator("[data-drag-grip]");
-const bench = (page: Page) => page.getByRole("complementary", { name: "Banquillo" });
 const benchCard = (page: Page, name: string) =>
   bench(page).getByRole("listitem").filter({ hasText: name });
 const grid = (page: Page) => page.getByRole("treegrid", { name: "Tabla del equipo" });
@@ -30,6 +30,15 @@ async function openTree(page: Page) {
   await page.goto(`/scenarios/${GUIDE_SCENARIO}?view=tree`);
   await expect(node(page, "Project manager")).toBeVisible();
   await expectHydrated(node(page, "Project manager"));
+}
+
+/**
+ * Hovers the bench, docked under the team: it rises over the canvas's foot, and its cards hold
+ * still to be grabbed. A drag folds it to its row, so the whole canvas takes the drop.
+ */
+async function hoverBench(page: Page) {
+  await bench(page).hover({ position: { x: 8, y: 8 } });
+  await expect.poll(() => benchHeight(page)).toBe(288);
 }
 
 /** The middle of an element, scrolled into view first: the bench scrolls on its own. */
@@ -81,6 +90,7 @@ async function showTable(page: Page) {
 
 test("a person dragged from the bench onto a node joins the team under it", async ({ page }) => {
   await openTree(page);
+  await hoverBench(page);
 
   await mouseDrag(page, benchCard(page, "Junior Developer 2"), node(page, "Tech lead"));
 
@@ -105,9 +115,11 @@ test("an open role dragged from the bench joins the team, and can be dragged aga
     .locator("li[data-bench-open-role]")
     .filter({ hasText: "Vacante (Junior Developer)" });
 
+  await hoverBench(page);
   await mouseDrag(page, openRole, node(page, "Tech lead"));
   await expect(node(page, "Junior Developer")).toBeFocused();
   await expect(node(page, "Junior Developer")).toContainText("Vacante");
+  await hoverBench(page);
   await mouseDrag(page, openRole, node(page, "Project manager"));
 
   await expect(node(page, "Junior Developer")).toHaveCount(2);
@@ -146,11 +158,13 @@ test.describe("with touch", () => {
     page,
   }) => {
     await openTree(page);
+    // A finger does not hover: the handle raises the bench, and the drag folds it.
+    await raiseBench(page);
     const start = await centre(benchCard(page, "Junior Developer 2").locator("[data-drag-grip]"));
     const canvas = await tree(page).boundingBox();
     if (!canvas) throw new Error("expected the canvas");
     // An empty spot of the canvas, left of the tree.
-    const end = { x: canvas.x + 40, y: canvas.y + canvas.height - 40 };
+    const end = { x: canvas.x + 40, y: canvas.y + 40 };
 
     await touchDrag(page, start, end);
 
@@ -183,6 +197,7 @@ for (const colorScheme of ["light", "dark"] as const) {
   }) => {
     await page.emulateMedia({ colorScheme });
     await openTree(page);
+    await hoverBench(page);
 
     await mouseDrag(page, benchCard(page, "Junior Developer 2"), node(page, "Tech lead"), {
       drop: false,

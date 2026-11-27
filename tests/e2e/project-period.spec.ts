@@ -58,12 +58,8 @@ for (const colorScheme of ["light", "dark"] as const) {
     await expect(scenarioCard(page)).toContainText(/Precio cerrado · 1 abr\s–\s29 sept 2027/);
     const add = page.getByRole("button", { name: "Añadir al equipo…" });
     await expectHydrated(add);
-    await page
-      .getByRole("radiogroup", { name: "Vista" })
-      .getByRole("radio", { checked: true })
-      .focus();
-    await page.keyboard.press("Tab");
-    await expect(add).toBeFocused();
+    // At the end of the bench's row, from lg.
+    await add.focus();
     await page.keyboard.press("Enter");
 
     await expect(dialog(page)).toHaveAccessibleName("Añadir al equipo");
