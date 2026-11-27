@@ -8,7 +8,7 @@ import { z } from "zod";
 import { CurrentAccount } from "@/components/account/current-account";
 import { Bench } from "@/components/bench/bench";
 import { AlternativeOrigin } from "@/components/revisions/alternative-origin";
-import { RevisionList } from "@/components/revisions/revision-list";
+import { HistoryTimeline } from "@/components/revisions/history-timeline";
 import { HistoryControls } from "@/components/scenario/history-controls";
 import { SaveStatus } from "@/components/scenario/save-status";
 import { ScenarioAnnouncer } from "@/components/scenario/scenario-announcer";
@@ -145,7 +145,12 @@ export default async function ScenarioPage({
               }
               result={<LiveScenarioSummary />}
               history={
-                <RevisionList revisions={revisions} anonymous={anonymous} query={accessQuery} />
+                <HistoryTimeline
+                  revisions={revisions}
+                  origin={origin}
+                  anonymous={anonymous}
+                  query={accessQuery}
+                />
               }
             />
           }
