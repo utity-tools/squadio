@@ -99,6 +99,27 @@ describe("TeamViews", () => {
     ]);
   });
 
+  it("floats the switch, from lg, under the bar: stacked over the tree, flat over the table", () => {
+    const { unmount } = (() => {
+      stubScreen({ wide: true });
+      stubHistory(`${PATH}?view=tree`);
+      return renderWithIntl(<TeamViews {...data} locked="revision" />);
+    })();
+    const group = () => screen.getByRole("radiogroup", { name: "Vista" });
+    // Hung from the bar's foot, so a note that wraps never covers it.
+    expect(group().parentElement).toHaveClass("lg:absolute", "lg:top-full");
+    expect(group().closest("[data-view-bar]")).toHaveClass("lg:relative");
+    expect(group()).toHaveClass("lg:flex-col");
+    unmount();
+
+    open("?view=table");
+    expect(group()).not.toHaveClass("lg:flex-col");
+    // The table keeps room for it above its header, not at its end, so every column still fits.
+    const view = table()!.closest("[data-team-view]");
+    expect(view).toHaveClass("lg:pt-14");
+    expect(view).not.toHaveClass("lg:pe-14");
+  });
+
   it("shows the tree on a wide screen without a view in the URL", () => {
     open("");
 

@@ -64,7 +64,8 @@ const scrollWidths = (page: Page) =>
 
 for (const viewport of [
   { width: 1280, height: 800 },
-  // The md shell with the summary rail leaves the table about 780 px here.
+  // The md shell with the summary rail leaves the table about 780 px here. From lg the view switch
+  // lies above its header, so it takes no width from the columns.
   { width: 1110, height: 800 },
 ]) {
   test(`every column fits a ${viewport.width} px wide window, without scrolling`, async ({
