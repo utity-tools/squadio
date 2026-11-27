@@ -1,6 +1,7 @@
 import { type Page, expect, test } from "@playwright/test";
 
 import { expectNoAxeViolations } from "./support/axe";
+import { openBreakdown } from "./support/summary";
 
 // Needs the demo organization: `pnpm db:migrate` and `pnpm db:seed` (CI does both). Plan A is the
 // guide case team, costed with the 2027 calendar (docs/domain.md, "Configuration per
@@ -19,8 +20,9 @@ const warning = (page: Page, title: string) =>
     .filter({ has: page.getByRole("heading", { level: 3, name: title }) });
 /** Intl separates figures from their units with no-break spaces. */
 const figure = (text: string) => new RegExp(text.replaceAll(" ", "[\\s\\u00a0\\u202f]"));
-/** Staff cost by category is folded under its count: open it to read it. */
+/** Staff cost by category is folded under its count, inside the breakdown: open both to read it. */
 async function categoryTable(page: Page) {
+  await openBreakdown(page);
   await rail(page)
     .getByText(/^Coste de personal por categoría \(\d+\)$/)
     .click();
@@ -45,7 +47,16 @@ test("the rail leads with the net margin, its status and the key figures", async
 test("the rail lists the result lines and staff cost by category", async ({ page }) => {
   await page.goto(`/scenarios/${GUIDE_SCENARIO}`);
 
+  // At a glance: revenue, total cost and the net margin; the rest folds, counted.
   const lines = region(page, "Cuenta de resultados").getByRole("rowheader");
+  await expect(lines).toHaveText([
+    "Ingresos · precio cerrado",
+    "Subtotal Coste total",
+    figure("Margen neto · 31,7 %"),
+  ]);
+  await expect(rail(page).getByText("Ver desglose (6 líneas)")).toBeVisible();
+
+  await openBreakdown(page);
   await expect(lines).toHaveText([
     "Ingresos · precio cerrado",
     figure("Coste de personal · 2379,92 h"),
@@ -234,7 +245,7 @@ for (const access of ["full", "none"] as const) {
         region(page, access === "none" ? "Equipo y horas" : "Margen neto"),
       ).toBeVisible();
       if (access === "full") {
-        // With an info tip and staff cost by category open, so axe checks them too.
+        // With the breakdown, staff cost by category and an info tip open, so axe checks them too.
         await categoryTable(page);
         await rail(page).getByRole("button", { name: "Qué es: Overhead" }).hover();
         await expect(page.getByRole("tooltip")).toContainText("overhead % × coste de personal");
@@ -262,17 +273,22 @@ test("at a window 1000 px wide the rail shows every amount, nothing cut off", as
       Math.max(0, Math.round(table.getBoundingClientRect().right - end)),
     );
   });
-  expect(overflow).toEqual([0, 0]);
+  // The statement's opening, breakdown and closing tables, and staff cost by category.
+  expect(overflow).toEqual([0, 0, 0, 0]);
   expect(await rail(page).evaluate((element) => element.scrollWidth - element.clientWidth)).toBe(0);
   // A figure never splits: each amount of the statement sits on one line, here at the rail's
-  // narrowest. Plan A has no pending line, whose reason may wrap under «Pendiente».
-  const lines = await statement.getByRole("cell").evaluateAll((cells) =>
-    cells.map((cell) => {
-      const range = document.createRange();
-      range.selectNodeContents(cell);
-      const tops = new Set([...range.getClientRects()].map((rect) => Math.round(rect.top)));
-      return `${cell.textContent} ${tops.size}`;
-    }),
-  );
+  // narrowest. Plan A has no pending line, whose reason may wrap under «Pendiente». Staff cost by
+  // category folds inside the statement, but its notes are text, not amounts: leave it out.
+  const lines = await statement
+    .getByRole("table", { name: /^(Cuenta de resultados|Desglose del coste|Cierre de la cuenta)$/ })
+    .getByRole("cell")
+    .evaluateAll((cells) =>
+      cells.map((cell) => {
+        const range = document.createRange();
+        range.selectNodeContents(cell);
+        const tops = new Set([...range.getClientRects()].map((rect) => Math.round(rect.top)));
+        return `${cell.textContent} ${tops.size}`;
+      }),
+    );
   expect(lines.filter((line) => !line.endsWith(" 1"))).toEqual([]);
 });

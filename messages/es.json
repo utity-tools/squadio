@@ -966,6 +966,9 @@
     },
     "lines": {
       "title": "Cuenta de resultados",
+      "breakdown": "Ver desglose ({count, plural, one {# línea} other {# líneas}})",
+      "breakdownCaption": "Desglose del coste",
+      "closing": "Cierre de la cuenta",
       "staffCost": "Coste de personal",
       "extraCost": {
         "fixed": "Coste extra fijo",

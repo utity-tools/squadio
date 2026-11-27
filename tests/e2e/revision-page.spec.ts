@@ -54,6 +54,10 @@ test("the demo's revision opens from the scenario's history, read only, with its
   await expect(team(page).getByRole("treegrid")).toBeVisible();
   await expect(team(page).getByRole("button", { name: /^Acciones de/ })).toHaveCount(0);
   await expect(rail(page)).toContainText("€");
+  // No card names this rail yet (v0.7 slice 7 brings its tabs), so its heading shows.
+  const heading = rail(page).getByRole("heading", { level: 2, name: "Resultado" });
+  await expect(heading).toBeVisible();
+  await expect(heading).not.toHaveClass(/\bsr-only\b/);
   await expect(page.getByRole("button", { name: "Guardar revisión" })).toHaveCount(0);
   await expectAccessible(page);
 

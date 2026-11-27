@@ -53,5 +53,6 @@ export function LiveScenarioTeam() {
 }
 
 export function LiveScenarioSummary() {
-  return <ScenarioSummary scenario={useScenarioView()} />;
+  // The card's «Resultado» tab names the rail on screen; its heading stays for screen readers.
+  return <ScenarioSummary scenario={useScenarioView()} heading="hidden" />;
 }
