@@ -3,13 +3,13 @@ import { type Page, expect, test } from "@playwright/test";
 import { expectNoAxeViolations } from "./support/axe";
 import { expectOnCopy } from "./support/copy";
 import { expectHydrated } from "./support/hydration";
-import { openHistory } from "./support/scenario-card";
+import { historySteps, historyTimeline, openHistory } from "./support/scenario-card";
 
 // docs/domain.md, "Revisions", and ADR 0013: «Guardar revisión» saves a revision of the scenario
-// as the page shows it, with rate access only, and the summary rail lists every revision to
-// everyone. The demo template is never written, so a visitor's first revision makes their copy, as
-// a first save does (ADR 0011). Needs the demo organization (`pnpm db:migrate` and `pnpm db:seed`).
-// Each test has its own browser context, so its own copy.
+// as the page shows it, with rate access only, and the card's «Historial» tab shows every revision
+// to everyone, as a timeline (ADR 0017). The demo template is never written, so a visitor's first
+// revision makes their copy, as a first save does (ADR 0011). Needs the demo organization
+// (`pnpm db:migrate` and `pnpm db:seed`). Each test has its own browser context, so its own copy.
 
 const demoId = (n: number) => `6d656d6f-0000-4000-8000-${String(n).padStart(12, "0")}`;
 const GUIDE_SCENARIO = demoId(200);
@@ -17,7 +17,6 @@ const DELIVERY_SCENARIO = demoId(205);
 
 const banner = (page: Page) => page.getByRole("region", { name: "Datos del escenario" });
 const rail = (page: Page) => page.getByRole("complementary", { name: "Resumen" });
-const revisions = (page: Page) => rail(page).getByRole("region", { name: "Revisiones" });
 const saveButton = (page: Page) =>
   banner(page).getByRole("button", { name: /^Guardar revisión$|^Guardando revisión…$/ });
 const outcome = (page: Page) =>
@@ -48,7 +47,7 @@ async function remove(page: Page, name: string) {
   await expect(node(page, name)).toHaveCount(0);
 }
 
-const lines = (page: Page) => revisions(page).getByRole("listitem");
+const lines = historySteps;
 
 test("a visitor saves revision 1 of the demo in their copy, and saving again reuses it", async ({
   page,
@@ -56,7 +55,8 @@ test("a visitor saves revision 1 of the demo in their copy, and saving again reu
 }) => {
   await openScenario(page, GUIDE_SCENARIO);
   await openHistory(page);
-  await expect(revisions(page).getByText("Todavía no hay revisiones")).toBeVisible();
+  await expect(rail(page).getByText("Todavía no hay historial")).toBeVisible();
+  await expect(historyTimeline(page)).toHaveCount(0);
 
   await saveButton(page).focus();
   await page.keyboard.press("Enter");
@@ -67,9 +67,11 @@ test("a visitor saves revision 1 of the demo in their copy, and saving again reu
   await openHistory(page);
   await expect(lines(page)).toHaveCount(1);
   await expect(outcome(page)).toHaveText("Revisión 1 guardada");
-  await expect(lines(page).first()).toContainText("Revisión 1");
-  await expect(lines(page).first()).toContainText("visitante");
-  await expect(lines(page).first()).toContainText("guardada");
+  await expect(lines(page).first()).toContainText("visitante guardó la revisión 1");
+  await expect(
+    lines(page).first().getByRole("link", { name: "revisión 1", exact: true }),
+  ).toBeVisible();
+  await expect(lines(page).first()).toContainText("Última");
 
   await expectHydrated(saveButton(page));
   await saveButton(page).click();
@@ -98,7 +100,7 @@ test("saving right after an edit saves the edit first, and makes revision 2", as
   await expect(outcome(page)).toHaveText("Revisión 2 guardada");
   await expect(banner(page).getByText("Guardado")).toBeVisible();
   await expect(lines(page)).toHaveCount(2);
-  await expect(lines(page).first()).toContainText("Revisión 2");
+  await expect(lines(page).first()).toContainText("guardó la revisión 2");
 
   // Revision 2 holds the edit: after a reload the team is still without the tech lead.
   await page.reload();
@@ -108,7 +110,7 @@ test("saving right after an edit saves the edit first, and makes revision 2", as
   await expect(lines(page)).toHaveCount(2);
 });
 
-test("without rate access nothing offers to save a revision, and the list is still there", async ({
+test("without rate access nothing offers to save a revision, and the history is still there", async ({
   page,
 }) => {
   await openScenario(page, DELIVERY_SCENARIO, "?access=none");
@@ -118,13 +120,17 @@ test("without rate access nothing offers to save a revision, and the list is sti
   await expectNoAxeViolations(page);
 });
 
-test("the demo lists the revision made when the delivery plan was chosen", async ({ page }) => {
+test("the demo's history shows the revision made when the delivery plan was chosen", async ({
+  page,
+}) => {
   await openScenario(page, DELIVERY_SCENARIO);
   await openHistory(page);
   await expect(lines(page)).toHaveCount(1);
   const line = lines(page).first();
-  await expect(line).toContainText("Revisión 1");
-  await expect(line).toContainText("visitante");
-  await expect(line).toContainText("elegida");
+  await expect(line).toContainText("visitante eligió el escenario con la revisión 1");
+  // The chosen revision, which is also the latest, carries both chips.
+  await expect(line.getByText("Elegida", { exact: true })).toHaveAttribute("data-tone", "chosen");
+  await expect(line.getByText("Última", { exact: true })).toBeVisible();
   await expect(line.locator("time")).toHaveAttribute("datetime", /T12:00:00\.000Z$/);
+  await expectNoAxeViolations(page);
 });

@@ -1426,8 +1426,6 @@
     "short": "{count, plural, one {# week} other {# weeks}} above 100%"
   },
   "Revisions": {
-    "title": "Revisions",
-    "empty": "This scenario has no revisions yet.",
     "number": "Revision {number}",
     "anonymous": {
       "visitor": "visitor",
@@ -1438,8 +1436,22 @@
       "shared": "shared",
       "chosen": "chosen",
       "migrated": "migrated"
+    }
+  },
+  "History": {
+    "title": "History",
+    "latest": "Latest",
+    "chosenNow": "Chosen",
+    "empty": "No history yet",
+    "emptyHint": "«Save revision» takes a snapshot of the scenario, which shows up here.",
+    "reason": {
+      "saved": "<who>{author}</who> saved <link>revision {number}</link>",
+      "shared": "<who>{author}</who> shared <link>revision {number}</link>",
+      "chosen": "<who>{author}</who> chose the scenario with <link>revision {number}</link>",
+      "migrated": "<link>Revision {number}</link> came from an earlier version of Squadio"
     },
-    "chosen": "Chosen"
+    "origin": "<who>{author}</who> proposed this alternative from <link>{scenario} · revision {number}</link>",
+    "originDeleted": "<who>{author}</who> proposed this alternative from a revision since deleted"
   },
   "RevisionPage": {
     "title": "Revision",

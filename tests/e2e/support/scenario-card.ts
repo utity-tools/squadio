@@ -8,7 +8,13 @@ import { expectHydrated } from "./hydration";
 /** The card: organization, project, name, state, terms and origin, then the tabs. */
 export const scenarioCard = (page: Page) => page.locator("#scenario-card");
 
-/** Opens the card's «Historial» tab, where the scenario's revisions are listed. */
+/** The «Historial» tab's timeline: the scenario's revisions, newest first, then its origin. */
+export const historyTimeline = (page: Page) => page.getByRole("list", { name: "Historial" });
+
+/** The timeline's steps, newest first. */
+export const historySteps = (page: Page) => historyTimeline(page).getByRole("listitem");
+
+/** Opens the card's «Historial» tab, where the scenario's history is a timeline. */
 export async function openHistory(page: Page) {
   await openTab(page, "Historial");
 }

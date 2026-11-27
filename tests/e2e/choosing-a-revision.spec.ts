@@ -6,7 +6,7 @@ import { expectNoAxeViolations } from "./support/axe";
 import { expectOnCopy } from "./support/copy";
 import { expectHydrated } from "./support/hydration";
 import { expect, test } from "./support/signed-in";
-import { openHistory, openResult } from "./support/scenario-card";
+import { historySteps, openHistory, openResult } from "./support/scenario-card";
 
 // docs/domain.md, "Choosing a revision", and ADR 0013: «Elegir esta revisión» on a revision's page
 // lists what changed since it was made, the change check, and moves the scenario's choice to it on
@@ -20,8 +20,7 @@ const DELIVERY_REVISION = demoId(500);
 
 const banner = (page: Page) => page.getByRole("region", { name: "Datos del escenario" });
 const rail = (page: Page) => page.getByRole("complementary", { name: "Resumen" });
-const revisionLines = (page: Page) =>
-  rail(page).getByRole("region", { name: "Revisiones" }).getByRole("listitem");
+const revisionLines = historySteps;
 const chooseButton = (page: Page) =>
   banner(page).getByRole("button", { name: "Elegir esta revisión" });
 const chosenChip = (page: Page) => banner(page).getByText("Revisión elegida", { exact: true });
@@ -64,7 +63,7 @@ test("an older revision is chosen after the check lists the team saved since (Ol
   await remove(page, "DevOps engineer");
   await expect(banner(page).getByText("Guardado")).toBeVisible();
 
-  await revisionLines(page).first().getByRole("link", { name: "Revisión 1" }).click();
+  await revisionLines(page).first().getByRole("link", { name: "revisión 1", exact: true }).click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Plan A · Revisión 1");
   await expectHydrated(chooseButton(page));
 
@@ -94,7 +93,10 @@ test("an older revision is chosen after the check lists the team saved since (Ol
   await openResult(page);
   await expect(rail(page)).toContainText("Subtotal Coste total136.644 €");
   await openHistory(page);
-  await expect(revisionLines(page).first()).toContainText("Elegida");
+  await expect(revisionLines(page).first().getByText("Elegida", { exact: true })).toHaveAttribute(
+    "data-tone",
+    "chosen",
+  );
 
   // Unchosen, the team saved since comes back, without the DevOps engineer.
   await page.goto(`${new URL(page.url()).pathname}?view=tree`);

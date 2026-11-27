@@ -1426,8 +1426,6 @@
     "short": "{count, plural, one {# semana} other {# semanas}} por encima del 100 %"
   },
   "Revisions": {
-    "title": "Revisiones",
-    "empty": "Todavía no hay revisiones de este escenario.",
     "number": "Revisión {number}",
     "anonymous": {
       "visitor": "visitante",
@@ -1438,8 +1436,22 @@
       "shared": "compartida",
       "chosen": "elegida",
       "migrated": "migrada"
+    }
+  },
+  "History": {
+    "title": "Historial",
+    "latest": "Última",
+    "chosenNow": "Elegida",
+    "empty": "Todavía no hay historial",
+    "emptyHint": "«Guardar revisión» hace una foto del escenario, que aparecerá aquí.",
+    "reason": {
+      "saved": "<who>{author}</who> guardó la <link>revisión {number}</link>",
+      "shared": "<who>{author}</who> compartió la <link>revisión {number}</link>",
+      "chosen": "<who>{author}</who> eligió el escenario con la <link>revisión {number}</link>",
+      "migrated": "La <link>revisión {number}</link> llegó de una versión anterior de Squadio"
     },
-    "chosen": "Elegida"
+    "origin": "<who>{author}</who> propuso esta alternativa a partir de <link>{scenario} · revisión {number}</link>",
+    "originDeleted": "<who>{author}</who> propuso esta alternativa a partir de una revisión ya eliminada"
   },
   "RevisionPage": {
     "title": "Revisión",

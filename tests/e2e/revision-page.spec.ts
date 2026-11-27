@@ -3,7 +3,7 @@ import { type Page, expect, test } from "@playwright/test";
 import { expectNoAxeViolations } from "./support/axe";
 import { expectOnCopy } from "./support/copy";
 import { expectHydrated } from "./support/hydration";
-import { openHistory } from "./support/scenario-card";
+import { historyTimeline, openHistory } from "./support/scenario-card";
 
 // docs/domain.md, "Sharing a revision", and ADR 0013 with its amendment of 2026-11-23: a revision's
 // page shows it read only, as stored; with rate access its result, without it no money; and when
@@ -19,7 +19,6 @@ const DELIVERY_REVISION = demoId(500);
 const details = (page: Page) => page.getByRole("region", { name: "Datos del escenario" });
 const rail = (page: Page) => page.getByRole("complementary", { name: "Resumen" });
 const team = (page: Page) => page.getByRole("main", { name: "Equipo" });
-const revisions = (page: Page) => rail(page).getByRole("region", { name: "Revisiones" });
 const saveButton = (page: Page) =>
   details(page).getByRole("button", { name: /^Guardar revisión$|^Guardando revisión…$/ });
 const outcome = (page: Page) =>
@@ -36,12 +35,12 @@ async function expectAccessible(page: Page) {
   }
 }
 
-test("the demo's revision opens from the scenario's list, read only, with its result", async ({
+test("the demo's revision opens from the scenario's history, read only, with its result", async ({
   page,
 }) => {
   await page.goto(`/scenarios/${DELIVERY_SCENARIO}`);
   await openHistory(page);
-  const link = revisions(page).getByRole("link", { name: "Revisión 1" });
+  const link = historyTimeline(page).getByRole("link", { name: "revisión 1", exact: true });
   await expectHydrated(link);
   await link.focus();
   await page.keyboard.press("Enter");
@@ -86,7 +85,7 @@ test("an older revision says a newer one exists and links to it", async ({ page 
   const copy = new URL(page.url()).pathname;
 
   await openHistory(page);
-  const first = revisions(page).getByRole("link", { name: "Revisión 1" });
+  const first = historyTimeline(page).getByRole("link", { name: "revisión 1", exact: true });
   const firstHref = await first.getAttribute("href");
   await first.click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Plan A · Revisión 1");
