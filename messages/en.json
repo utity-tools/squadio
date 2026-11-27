@@ -616,7 +616,9 @@
     "team": "Team",
     "summary": "Summary",
     "loading": "Loading the scenario…",
-    "details": "Scenario details"
+    "details": "Scenario details",
+    "benchRaise": "Raise the bench",
+    "benchLower": "Lower the bench"
   },
   "ScenarioHeader": {
     "chosen": "Chosen",

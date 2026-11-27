@@ -37,13 +37,11 @@ for (const colorScheme of ["light", "dark"] as const) {
     await expect(developer).not.toContainText("después del periodo previsto");
     await expectNoAxeViolations(page);
 
-    // Tab from the view switch, past «Añadir al equipo…», to the row, and edit its end.
+    // Tab from the view switch to the row, and edit its end.
     await page
       .getByRole("radiogroup", { name: "Vista" })
       .getByRole("radio", { checked: true })
       .focus();
-    await page.keyboard.press("Tab");
-    await expect(page.getByRole("button", { name: "Añadir al equipo…" })).toBeFocused();
     await page.keyboard.press("Tab");
     await expect(developer).toBeFocused();
     await page.keyboard.press("Enter");

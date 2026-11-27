@@ -28,6 +28,7 @@ import { type WeekLoad, scenarioWeeks, weeklyLoad } from "@/lib/load/weekly-load
 import type { Dragged } from "@/lib/scenarios/drop-action";
 import { cn } from "@/lib/utils";
 
+import { benchSlot } from "./bench-slot";
 import { WeekStrip } from "./week-strip";
 
 const FIELD =
@@ -91,50 +92,58 @@ export function Bench({
   };
 
   return (
-    <div className="flex flex-col gap-4">
-      <h2 className="sr-only">{t("title")}</h2>
+    <div className="flex flex-col gap-3">
+      {/*
+        Docked under the team, only this row peeks out: the title, the filters and "Add to team…"
+        on one line that never wraps, so the fields give way first. The notes come below it.
+      */}
       <div className="flex flex-col gap-2">
-        <label htmlFor={searchId} className="sr-only">
-          {t("search")}
-        </label>
-        <div className="relative">
-          <SearchIcon
-            aria-hidden
-            className="pointer-events-none absolute top-2 left-2 size-4 text-muted-foreground"
-          />
-          <input
-            ref={searchRef}
-            id={searchId}
-            type="search"
-            value={filter.query}
-            placeholder={t("search")}
-            onChange={(event) => setFilter({ ...filter, query: event.target.value })}
-            className={cn(FIELD, "ps-8")}
-          />
-        </div>
-        <label htmlFor={categoryId} className="sr-only">
-          {t("category")}
-        </label>
-        <select
-          id={categoryId}
-          value={filter.categoryId ?? ""}
-          onChange={(event) => setFilter({ ...filter, categoryId: event.target.value || null })}
-          className={FIELD}
-        >
-          <option value="">{t("allCategories")}</option>
-          {basis.categories.map((category) => (
-            <option key={category.id} value={category.id}>
-              {category.name}
-            </option>
-          ))}
-        </select>
-        {/*
+        <div className="flex min-w-0 items-center gap-3">
+          <h2 className="shrink-0 text-sm font-semibold">{t("title")}</h2>
+          <label htmlFor={searchId} className="sr-only">
+            {t("search")}
+          </label>
+          <div className="relative max-w-56 min-w-20 flex-1">
+            <SearchIcon
+              aria-hidden
+              className="pointer-events-none absolute top-2 left-2 size-4 text-muted-foreground"
+            />
+            <input
+              ref={searchRef}
+              id={searchId}
+              type="search"
+              value={filter.query}
+              placeholder={t("search")}
+              onChange={(event) => setFilter({ ...filter, query: event.target.value })}
+              className={cn(FIELD, "ps-8")}
+            />
+          </div>
+          <label htmlFor={categoryId} className="sr-only">
+            {t("category")}
+          </label>
+          <select
+            id={categoryId}
+            value={filter.categoryId ?? ""}
+            onChange={(event) => setFilter({ ...filter, categoryId: event.target.value || null })}
+            className={cn(FIELD, "max-w-52 min-w-20 flex-1")}
+          >
+            <option value="">{t("allCategories")}</option>
+            {basis.categories.map((category) => (
+              <option key={category.id} value={category.id}>
+                {category.name}
+              </option>
+            ))}
+          </select>
+          {/*
           The number of people the filter leaves follows each keystroke on screen; a screen reader
           hears it once typing stops, not once per letter.
         */}
-        <p aria-hidden className="text-xs text-muted-foreground">
-          {t("count", { count })}
-        </p>
+          <p aria-hidden className="shrink-0 text-xs whitespace-nowrap text-muted-foreground">
+            {t("count", { count })}
+          </p>
+          {/* "Add to team…" lands here, at the row's end, from the team's views (bench-slot.ts). */}
+          <div ref={benchSlot} data-bench-actions="" className="ms-auto shrink-0 empty:hidden" />
+        </div>
         <p role="status" className="sr-only">
           {t("count", { count: announced })}
         </p>
@@ -147,7 +156,9 @@ export function Bench({
             day: plainSpaces(format.dateTime(utcDay(day), { dateStyle: "long", timeZone: "UTC" })),
           })}
         </p>
-        {weeks.length > 0 && <p className="text-xs text-muted-foreground">{t("weeklyNote")}</p>}
+        {weeks.length > 0 && (
+          <p className="-mt-1 text-xs text-muted-foreground">{t("weeklyNote")}</p>
+        )}
       </div>
 
       {/*
@@ -170,29 +181,32 @@ export function Bench({
         />
       )}
       {count === 0 && !filtered && <p className="text-sm">{t("none")}</p>}
-      {groups.map((group) => (
-        <div key={group.category.id}>
-          <h3 className="mb-2 flex items-baseline justify-between gap-2 text-sm font-semibold">
-            <span>{group.category.name}</span>
-            {/* A bare number says nothing to a screen reader: it hears "3 people". */}
-            <span aria-hidden className="text-xs font-normal text-muted-foreground">
-              {format.number(group.people.length)}
-            </span>
-            <span className="sr-only">{t("count", { count: group.people.length })}</span>
-          </h3>
-          <ul className="flex flex-col gap-2">
-            {group.openRole && <OpenRoleCard category={group.category} />}
-            {group.people.map((person) => (
-              <BenchCard
-                key={person.id}
-                person={person}
-                weeks={weeks}
-                loads={loads.get(person.id)}
-              />
-            ))}
-          </ul>
-        </div>
-      ))}
+      {/* One lane per category, as many side by side as fit: they wrap, never scroll across. */}
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(12rem,1fr))] items-start gap-3">
+        {groups.map((group) => (
+          <div key={group.category.id} className="min-w-0">
+            <h3 className="mb-2 flex items-baseline justify-between gap-2 text-sm font-semibold">
+              <span>{group.category.name}</span>
+              {/* A bare number says nothing to a screen reader: it hears "3 people". */}
+              <span aria-hidden className="text-xs font-normal text-muted-foreground">
+                {format.number(group.people.length)}
+              </span>
+              <span className="sr-only">{t("count", { count: group.people.length })}</span>
+            </h3>
+            <ul className="flex flex-col gap-2">
+              {group.openRole && <OpenRoleCard category={group.category} />}
+              {group.people.map((person) => (
+                <BenchCard
+                  key={person.id}
+                  person={person}
+                  weeks={weeks}
+                  loads={loads.get(person.id)}
+                />
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

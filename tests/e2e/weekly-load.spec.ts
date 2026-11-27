@@ -1,18 +1,18 @@
 import { type Page, expect, test } from "@playwright/test";
 
 import { expectNoAxeViolations } from "./support/axe";
+import { bench, raiseBench } from "./support/bench";
 import { expectHydrated } from "./support/hydration";
 
 // docs/domain.md, "Weekly load". Needs the demo organization. The seed anchors the ongoing chosen
 // scenarios to the day it runs (docs/domain.md, "The demo's dates"): both cover today, and
 // Senior Developer 4 leads the Mobile app's Delivery plan at 100% while reviewing Platform upkeep at
 // 30%, so on the Delivery plan's page the weeks they share are over-allocated, whatever the date.
-// The bench shows from `xl`; Playwright's desktop viewport is 1280 px wide.
+// The bench docks under the team from `lg`; Playwright's desktop viewport is 1280 px wide.
 
 const GUIDE_SCENARIO = "6d656d6f-0000-4000-8000-000000000200";
 const DELIVERY_SCENARIO = "6d656d6f-0000-4000-8000-000000000205";
 
-const bench = (page: Page) => page.getByRole("complementary", { name: "Banquillo" });
 const benchCard = (page: Page, name: string) =>
   bench(page).locator("li[data-bench-person]").filter({ hasText: name });
 const tree = (page: Page) => page.getByRole("application", { name: "Árbol del equipo" });
@@ -35,6 +35,7 @@ test("the bench lists each person's weeks with their load, with the keyboard", a
     name: /^(Ver|Ocultar) semanas de Senior Developer 4$/,
   });
   await expectHydrated(toggle);
+  await raiseBench(page);
 
   await expect(bench(page)).toContainText(
     "Carga por semana del escenario, según lo registrado en Squadio: una semana vacía no significa que la persona esté libre.",
@@ -128,6 +129,7 @@ for (const colorScheme of ["light", "dark"] as const) {
     });
     await expectHydrated(toggle);
     await expect(page.locator("html")).toHaveAttribute("data-theme", colorScheme);
+    await raiseBench(page);
     await toggle.click();
     await expectNoAxeViolations(page);
 

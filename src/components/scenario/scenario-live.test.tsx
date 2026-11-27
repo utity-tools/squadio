@@ -1,6 +1,7 @@
 import { act, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { Bench } from "@/components/bench/bench";
 import { buildRevision } from "@/lib/revisions/build-revision";
 import { revisionSourceOf } from "@/lib/revisions/revision-source";
 import { hoursBasis, ratesBasis } from "@/lib/scenarios/basis.fixtures";
@@ -27,7 +28,7 @@ beforeEach(() => {
 
 const never = () => new Promise<SaveOutcome>(() => {});
 
-function renderPage(basis: ScenarioBasis, { readOnly = false } = {}) {
+function renderPage(basis: ScenarioBasis, { readOnly = false, bench = false } = {}) {
   const stores: ScenarioStore[] = [];
   const view = renderWithIntl(
     <ScenarioStoreProvider>
@@ -40,6 +41,7 @@ function renderPage(basis: ScenarioBasis, { readOnly = false } = {}) {
         <ScenarioBarName />
         <ScenarioCard alternative={false} result={<LiveScenarioSummary />} history={null} />
         <LiveScenarioTeam />
+        {bench && <Bench day="2026-10-29" />}
         <StoreSpy
           onStore={(found) => {
             stores.push(found);
@@ -121,6 +123,20 @@ describe("the live scenario regions", () => {
     it("lets an editor add to the team on a wide screen", () => {
       renderPage(hoursBasis);
       expect(screen.getByRole("button", { name: "Añadir al equipo…" })).toBeVisible();
+    });
+
+    it("puts «Añadir al equipo…» at the end of the bench's row, from lg", () => {
+      renderPage(hoursBasis, { bench: true });
+      const add = screen.getByRole("button", { name: "Añadir al equipo…" });
+      expect(add.closest("[data-bench-actions]")).not.toBeNull();
+      // The views' bar keeps only the switch.
+      expect(screen.getAllByRole("button", { name: "Añadir al equipo…" })).toHaveLength(1);
+    });
+
+    it("keeps «Añadir al equipo…» in the views' bar where there is no bench", () => {
+      renderPage(hoursBasis);
+      const add = screen.getByRole("button", { name: "Añadir al equipo…" });
+      expect(add.closest("[data-bench-actions]")).toBeNull();
     });
 
     it("lock the team, say why, and offer nothing to change it", () => {
