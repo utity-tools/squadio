@@ -63,6 +63,11 @@ describe("the live scenario regions", () => {
     expect(screen.getByRole("region", { name: "Margen neto" })).toBeInTheDocument();
   });
 
+  it("leave the summary's heading to screen readers: the card's «Resultado» tab names it", () => {
+    renderPage(ratesBasis);
+    expect(screen.getByRole("heading", { level: 2, name: "Resultado" })).toHaveClass("sr-only");
+  });
+
   it("recalculate the summary after each change", () => {
     const { store } = renderPage(ratesBasis);
     const margin = () => screen.getByRole("region", { name: "Margen neto" }).textContent;

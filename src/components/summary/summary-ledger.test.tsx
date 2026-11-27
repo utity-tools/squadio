@@ -7,7 +7,7 @@ import userEvent from "@testing-library/user-event";
 import { expectNoAxeViolations } from "@/test/axe";
 import { renderWithIntl } from "@/test/render";
 
-import { SummaryLedger } from "./summary-ledger";
+import { SummaryEmpty, SummaryLedger } from "./summary-ledger";
 
 // docs/design/canvas-brief.md, "4. Summary" and "States".
 
@@ -70,6 +70,19 @@ const plain = (element: Element) => (element.textContent ?? "").replace(/[  ]
 
 const section = (name: string) => screen.getByRole("region", { name });
 
+/** The fold under the statement's three lines (v0.7, "Folded result"). */
+const breakdown = () => screen.getByText(/^Ver desglose/).closest("details")!;
+
+/** Opens «Ver desglose», as a person would. */
+const openBreakdown = () => userEvent.click(screen.getByText(/^Ver desglose/));
+
+/** The statement's rows a person sees: jsdom leaves a closed fold's rows in the tree. */
+const shownRows = () =>
+  within(section("Cuenta de resultados"))
+    .getAllByRole("row")
+    .filter((row) => !row.closest("details:not([open])"))
+    .map(plain);
+
 describe("SummaryLedger", () => {
   it("leads with the net margin, its status as a word and the target", () => {
     renderWithIntl(<SummaryLedger ledger={complete} team={team} pricingModel="fixed" />);
@@ -91,7 +104,7 @@ describe("SummaryLedger", () => {
     expect(within(section("Margen neto")).getByText(word)).toBeInTheDocument();
   });
 
-  it("shows no status without revenue, and says why the margin % does not apply", () => {
+  it("shows no status without revenue, and says why the margin % does not apply", async () => {
     const ledger: Ledger = {
       ...complete,
       headline: {
@@ -115,6 +128,7 @@ describe("SummaryLedger", () => {
     expect(within(headline).queryByText(/objetivo$|Pérdidas/)).not.toBeInTheDocument();
     expect(plain(headline)).toContain("54.300 €");
     expect(plain(headline)).toContain("Margen % no aplicable. Sin ingresos");
+    await openBreakdown();
     const statement = within(section("Cuenta de resultados"));
     // The hint is part of the row's name: a screen reader says the % before the amount.
     const row = (name: RegExp) => plain(statement.getByRole("rowheader", { name }).parentElement!);
@@ -131,8 +145,16 @@ describe("SummaryLedger", () => {
   it("says the result is complete, counting its lines", () => {
     renderWithIntl(<SummaryLedger ledger={complete} team={team} pricingModel="fixed" />);
 
-    expect(screen.getByRole("heading", { level: 2, name: "Resultado" })).toBeVisible();
+    expect(screen.getByRole("heading", { level: 2, name: "Resultado" })).not.toHaveClass("sr-only");
     expect(screen.getByText("Completo · 10 de 10 líneas")).toBeVisible();
+  });
+
+  it("keeps its heading for screen readers only when told to hide it", () => {
+    renderWithIntl(
+      <SummaryLedger ledger={complete} team={team} pricingModel="fixed" heading="hidden" />,
+    );
+
+    expect(screen.getByRole("heading", { level: 2, name: "Resultado" })).toHaveClass("sr-only");
   });
 
   it("splits revenue in a bar, and says the split in words", () => {
@@ -203,12 +225,40 @@ describe("SummaryLedger", () => {
     expect(plain(figures.getByText("Equipo").nextElementSibling!)).toBe(words);
   });
 
-  it("reads the result lines as a statement, with hints and subtotals", () => {
+  it("shows revenue, total cost and the net margin at a glance, the rest folded", () => {
     renderWithIntl(<SummaryLedger ledger={complete} team={team} pricingModel="fixed" />);
 
-    const rows = within(section("Cuenta de resultados"))
-      .getAllByRole("row")
-      .map((row) => plain(row));
+    const rows = shownRows();
+    expect(rows).toEqual([
+      "Ingresos · precio cerrado150.000 €",
+      "Subtotal Coste total95.700 €",
+      "Margen neto · 36,2 %54.300 €",
+    ]);
+    // Each extra cost counts as a line of its own.
+    expect(screen.getByText("Ver desglose (7 líneas)")).toBeVisible();
+    expect(breakdown()).not.toHaveAttribute("open");
+    expect(screen.getByRole("rowheader", { name: /^Overhead/, hidden: true })).not.toBeVisible();
+    expect(screen.getByRole("table", { name: "Cierre de la cuenta" })).toBeVisible();
+  });
+
+  it("counts the folded lines of a statement without extra costs", () => {
+    const ledger: Ledger = {
+      ...complete,
+      lines: complete.lines.filter((line) => line.key !== "extraCost"),
+    };
+    renderWithIntl(<SummaryLedger ledger={ledger} team={team} pricingModel="fixed" />);
+
+    expect(screen.getByText("Ver desglose (5 líneas)")).toBeVisible();
+  });
+
+  it("reads the whole statement once the breakdown opens, with hints and subtotals", async () => {
+    renderWithIntl(<SummaryLedger ledger={complete} team={team} pricingModel="fixed" />);
+
+    await openBreakdown();
+    expect(breakdown()).toHaveAttribute("open");
+    const folded = screen.getByRole("table", { name: "Desglose del coste" });
+    expect(breakdown()).toContainElement(folded);
+    const rows = shownRows();
     expect(rows).toEqual([
       "Ingresos · precio cerrado150.000 €",
       "Coste de personal · 1983,27 h70.000 €",
@@ -221,10 +271,17 @@ describe("SummaryLedger", () => {
       "Subtotal Coste total95.700 €",
       "Margen neto · 36,2 %54.300 €",
     ]);
+    // Staff cost by category is part of the breakdown, folded on its own.
+    const categories = screen.getByText("Coste de personal por categoría (2)");
+    expect(categories).toBeVisible();
+    expect(breakdown()).toContainElement(categories);
+    expect(categories.closest("details")).not.toHaveAttribute("open");
+    await expectNoAxeViolations();
   });
 
   it("explains each term of the statement and the figures in an «i», but not extra costs", async () => {
     renderWithIntl(<SummaryLedger ledger={complete} team={team} pricingModel="fixed" />);
+    await openBreakdown();
 
     const named = screen
       .getAllByRole("button", { name: /^Qué es: / })
@@ -264,8 +321,9 @@ describe("SummaryLedger", () => {
     expect(plain(rows[0]!)).toBe("Ingresos · tiempo y materiales150.000 €");
   });
 
-  it("folds each category's hours, cost per hour and cost, warning on a small one", () => {
+  it("folds each category's hours, cost per hour and cost, warning on a small one", async () => {
     renderWithIntl(<SummaryLedger ledger={complete} team={team} pricingModel="fixed" />);
+    await openBreakdown();
 
     const details = screen.getByText("Coste de personal por categoría (2)").closest("details");
     expect(details).not.toHaveAttribute("open");
@@ -391,16 +449,30 @@ describe("SummaryLedger", () => {
       expect(plain(headline)).not.toContain("€");
     });
 
-    it("keeps the determined lines and names what each other line misses, never 0 €", () => {
+    it("shows total cost and the net margin pending at a glance, the breakdown closed", () => {
       renderWithIntl(<SummaryLedger ledger={partial} team={team} pricingModel="fixed" />);
+
+      const rates = "Pendiente Faltan los costes de DevOps Engineer y Project Manager";
+      const rows = shownRows();
+      expect(rows).toEqual([
+        "Ingresos · precio cerradoPendiente Falta el precio",
+        `Subtotal Coste total${rates}`,
+        `Margen neto${rates}. Falta el precio`,
+      ]);
+      // A partial result does not open the fold (owner's decision).
+      expect(breakdown()).not.toHaveAttribute("open");
+      expect(screen.getByText("Ver desglose (6 líneas)")).toBeVisible();
+    });
+
+    it("keeps the determined lines and names what each other line misses, never 0 €", async () => {
+      renderWithIntl(<SummaryLedger ledger={partial} team={team} pricingModel="fixed" />);
+      await openBreakdown();
 
       const figures = within(section("Cifras clave"));
       const value = (term: string) => plain(figures.getByText(term).nextElementSibling!);
       expect(value("Tarifa efectiva")).toBe("Pendiente Falta el precio");
       expect(screen.getByText("Parcial · 1 de 9 líneas")).toBeVisible();
-      const rows = within(section("Cuenta de resultados"))
-        .getAllByRole("row")
-        .map((row) => plain(row));
+      const rows = shownRows();
       const rates = "Pendiente Faltan los costes de DevOps Engineer y Project Manager";
       expect(rows).toEqual([
         "Ingresos · precio cerradoPendiente Falta el precio",
@@ -443,7 +515,7 @@ describe("SummaryLedger", () => {
       expect(screen.getByRole("heading", { name: "Falta el precio" })).toBeVisible();
     });
 
-    it("says an undated recurring cost misses the planned period, and warns about it", () => {
+    it("says an undated recurring cost misses the planned period, and warns about it", async () => {
       const period = missing([], false, "cost", true);
       const withoutSpan: Ledger = {
         ...complete,
@@ -461,6 +533,7 @@ describe("SummaryLedger", () => {
         warnings: [{ code: "missingPeriod" }],
       };
       renderWithIntl(<SummaryLedger ledger={withoutSpan} team={team} pricingModel="fixed" />);
+      await openBreakdown();
 
       const statement = within(section("Cuenta de resultados"));
       const row = (name: string) =>
@@ -527,5 +600,21 @@ describe("SummaryLedger", () => {
 
     expect(within(section("Net margin")).getByText("On target")).toBeInTheDocument();
     expect(plain(section("Net margin"))).toContain("€54,300");
+  });
+});
+
+describe("SummaryEmpty", () => {
+  const empty: Ledger = { ...complete, lines: [{ key: "revenue", cents: 15_000_000 }] };
+
+  it("shows its heading by default", () => {
+    renderWithIntl(<SummaryEmpty ledger={empty} pricingModel="fixed" />);
+
+    expect(screen.getByRole("heading", { level: 2, name: "Resultado" })).not.toHaveClass("sr-only");
+  });
+
+  it("keeps its heading for screen readers only when told to hide it", () => {
+    renderWithIntl(<SummaryEmpty ledger={empty} pricingModel="fixed" heading="hidden" />);
+
+    expect(screen.getByRole("heading", { level: 2, name: "Resultado" })).toHaveClass("sr-only");
   });
 });

@@ -966,6 +966,9 @@
     },
     "lines": {
       "title": "Profit and loss",
+      "breakdown": "Show breakdown ({count, plural, one {# line} other {# lines}})",
+      "breakdownCaption": "Cost breakdown",
+      "closing": "Closing lines",
       "staffCost": "Staff cost",
       "extraCost": {
         "fixed": "Fixed extra cost",

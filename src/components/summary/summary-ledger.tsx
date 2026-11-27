@@ -1,4 +1,4 @@
-import { CheckIcon, CircleDashedIcon, TriangleAlertIcon } from "lucide-react";
+import { CheckIcon, ChevronRightIcon, CircleDashedIcon, TriangleAlertIcon } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
 import { Fragment, useId } from "react";
 
@@ -34,6 +34,11 @@ export type SummaryLedgerProps = {
   team: Pick<TeamSummary, "people" | "openRoles">;
   /** Names how revenue is made, next to its line. */
   pricingModel: PricingModel;
+  /**
+   * Whether the «Resultado» heading shows. `"hidden"` keeps it for screen readers only, where
+   * something else names the rail on screen, as the scenario card's tab does.
+   */
+  heading?: "visible" | "hidden";
 };
 
 type PricingModel = OpenScenario["project"]["pricingModel"];
@@ -43,18 +48,23 @@ type Status = NonNullable<Ledger["headline"]["status"]>;
 /**
  * The summary rail with rate access, read top to bottom like a statement (ADR 0014, board
  * "Escenario"): how complete the result is, warnings, the net margin with its status and bar, the
- * key figures, the profit and loss and, folded, staff cost by category. Whole euros are formatting
- * only: the cents stay in the data (canvas brief, "4. Summary").
+ * key figures, and the profit and loss, with its breakdown and staff cost by category folded. Whole
+ * euros are formatting only: the cents stay in the data (canvas brief, "4. Summary").
  */
-export function SummaryLedger({ ledger, team, pricingModel }: SummaryLedgerProps) {
+export function SummaryLedger({
+  ledger,
+  team,
+  pricingModel,
+  heading = "visible",
+}: SummaryLedgerProps) {
   const t = useTranslations("Summary");
   const { hours, rate } = useSummaryFormat();
   const { figures } = ledger;
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-[15px] font-semibold">{t("title")}</h2>
+        <h2 className={headingClass(heading)}>{t("title")}</h2>
         <Completeness ledger={ledger} />
       </div>
       {ledger.warnings.length > 0 && <SummaryWarnings warnings={ledger.warnings} />}
@@ -76,8 +86,7 @@ export function SummaryLedger({ ledger, team, pricingModel }: SummaryLedgerProps
         </dl>
       </section>
 
-      <Statement lines={ledger.lines} pricingModel={pricingModel} />
-      {ledger.categories.length > 0 && <CategoryTable categories={ledger.categories} />}
+      <Statement lines={ledger.lines} pricingModel={pricingModel} categories={ledger.categories} />
     </div>
   );
 }
@@ -88,7 +97,11 @@ export function SummaryLedger({ ledger, team, pricingModel }: SummaryLedgerProps
  * nothing, so there is none. An undated recurring cost without a span warns, saying how to give
  * it one.
  */
-export function SummaryEmpty({ ledger, pricingModel }: Omit<SummaryLedgerProps, "team">) {
+export function SummaryEmpty({
+  ledger,
+  pricingModel,
+  heading = "visible",
+}: Omit<SummaryLedgerProps, "team">) {
   const t = useTranslations("Summary");
   const { euros } = useSummaryFormat();
   const revenue = ledger.lines.find((line) => line.key === "revenue");
@@ -96,7 +109,7 @@ export function SummaryEmpty({ ledger, pricingModel }: Omit<SummaryLedgerProps, 
 
   return (
     <div className="flex flex-col gap-4">
-      <h2 className="text-[15px] font-semibold">{t("title")}</h2>
+      <h2 className={headingClass(heading)}>{t("title")}</h2>
       {/* An undated recurring cost without a span says what gives it one (rule d); the note below
           already says what the price and the team leave pending. */}
       {period.length > 0 && <SummaryWarnings warnings={period} />}
@@ -141,6 +154,10 @@ export function SummaryEmpty({ ledger, pricingModel }: Omit<SummaryLedgerProps, 
     </div>
   );
 }
+
+/** The rail's «Resultado» heading: on screen, or heard only. */
+const headingClass = (heading: NonNullable<SummaryLedgerProps["heading"]>) =>
+  heading === "hidden" ? "sr-only" : "text-[15px] font-semibold";
 
 /** "Complete · 9 of 9 lines", or "Partial · 6 of 9 lines" while some line is pending. */
 function Completeness({ ledger }: { ledger: Ledger }) {
@@ -301,26 +318,73 @@ function Value({
   );
 }
 
-/** The profit and loss, as a statement: subtotals say so, and the net margin closes it. */
-function Statement({ lines, pricingModel }: { lines: LedgerLine[]; pricingModel: PricingModel }) {
+/** A fold's summary: a chevron that turns on open, in muted 13 px. */
+const foldSummary =
+  "flex min-h-8 cursor-pointer list-none items-center gap-1.5 rounded-md text-[13px] text-muted-foreground hover:text-foreground [&::-webkit-details-marker]:hidden";
+const chevron =
+  "size-3.5 transition-transform duration-(--duration-fast) motion-reduce:transition-none";
+
+/** The lines that show at a glance: revenue opens the statement, these two close it. */
+const CLOSING: readonly LedgerLine["key"][] = ["totalCost", "netMargin"];
+
+/**
+ * The profit and loss, as a statement, light at a glance: revenue, total cost and the net margin
+ * show; the lines between them, how the cost is made, fold under «Ver desglose» with staff cost
+ * by category. Subtotals say so, and the net margin closes it. The fold starts closed, even on a
+ * partial result, and is not remembered.
+ */
+function Statement({
+  lines,
+  pricingModel,
+  categories,
+}: {
+  lines: LedgerLine[];
+  pricingModel: PricingModel;
+  categories: CategoryLine[];
+}) {
   const t = useTranslations("Summary.lines");
   const id = useId();
+  const opening = lines.filter((line) => line.key === "revenue");
+  const closing = lines.filter((line) => CLOSING.includes(line.key));
+  const folded = lines.filter((line) => line.key !== "revenue" && !CLOSING.includes(line.key));
+  const rows = (some: LedgerLine[]) =>
+    some.map((line) => (
+      <ResultLine
+        key={line.key === "extraCost" ? line.id : line.key}
+        line={line}
+        pricingModel={pricingModel}
+      />
+    ));
 
   return (
-    <section aria-labelledby={id}>
-      <h3 id={id} className="mb-1.5 text-sm font-semibold">
+    <section aria-labelledby={id} className="flex flex-col">
+      <h3 id={id} className="mb-2 text-sm font-semibold">
         {t("title")}
       </h3>
       <table aria-labelledby={id} className="w-full text-sm">
-        <tbody>
-          {lines.map((line) => (
-            <ResultLine
-              key={line.key === "extraCost" ? line.id : line.key}
-              line={line}
-              pricingModel={pricingModel}
+        <tbody>{rows(opening)}</tbody>
+      </table>
+      {folded.length > 0 && (
+        <details className="group/breakdown">
+          <summary className={foldSummary}>
+            <ChevronRightIcon
+              aria-hidden
+              className={cn(chevron, "group-open/breakdown:rotate-90")}
             />
-          ))}
-        </tbody>
+            {t("breakdown", { count: folded.length })}
+          </summary>
+          <div className="mb-2 flex flex-col gap-3 border-s ps-3">
+            <table className="w-full text-[13px]">
+              <caption className="sr-only">{t("breakdownCaption")}</caption>
+              <tbody>{rows(folded)}</tbody>
+            </table>
+            {/* Staff cost by category is part of the detail: it folds with it. */}
+            {categories.length > 0 && <CategoryTable categories={categories} />}
+          </div>
+        </details>
+      )}
+      <table aria-label={t("closing")} className="w-full text-sm">
+        <tbody>{rows(closing)}</tbody>
       </table>
     </section>
   );
@@ -375,7 +439,7 @@ function ResultLine({ line, pricingModel }: { line: LedgerLine; pricingModel: Pr
       <th
         scope="row"
         aria-labelledby={[subtotal && tagId, nameId, hint && hintId].filter(Boolean).join(" ")}
-        className="py-[7px] pe-3 text-start align-baseline font-[inherit]"
+        className="py-2 pe-3 text-start align-baseline font-[inherit]"
       >
         {/*
           The name never breaks: its "i" and its words stay on one line. A subtotal's tag sits on
@@ -408,7 +472,7 @@ function ResultLine({ line, pricingModel }: { line: LedgerLine; pricingModel: Pr
       {/* A figure never splits across lines. A subtotal's amount sits by its name, under the tag. */}
       <td
         className={cn(
-          "py-[7px] text-end whitespace-nowrap tabular-nums",
+          "py-2 text-end whitespace-nowrap tabular-nums",
           subtotal ? "align-bottom" : "align-baseline",
         )}
       >
@@ -429,8 +493,9 @@ function CategoryTable({ categories }: { categories: CategoryLine[] }) {
   const figure = "py-2 ps-1 text-end align-top text-xs whitespace-nowrap tabular-nums";
 
   return (
-    <details className="border-t pt-3">
-      <summary className="min-h-7 cursor-pointer text-sm font-semibold">
+    <details className="group/categories">
+      <summary className={foldSummary}>
+        <ChevronRightIcon aria-hidden className={cn(chevron, "group-open/categories:rotate-90")} />
         {t("summary", { count: categories.length })}
       </summary>
       <table className="mt-2 w-full text-[13px]">
