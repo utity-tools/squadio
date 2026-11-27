@@ -1,16 +1,15 @@
 "use client";
 
-import { CheckIcon, FilePenLineIcon, GitBranchIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Tabs } from "radix-ui";
 import { type ReactNode, useId } from "react";
 
 import { useDayRange } from "@/components/format/use-day-range";
-import { Chip } from "@/components/ui/chip";
 import { Link } from "@/i18n/navigation";
 import type { OpenScenario } from "@/lib/scenarios/scenario-view";
 
 import { useScenarioView } from "./scenario-editor";
+import { ScenarioStateChip } from "./scenario-state-chip";
 
 type Slots = {
   /** The organization, as the app's switcher or the demo's name: it reads the request. */
@@ -80,7 +79,7 @@ export function ScenarioCardView({
           >
             {scenario.name}
           </p>
-          <StateChip chosen={scenario.chosen} alternative={alternative} />
+          <ScenarioStateChip chosen={scenario.chosen} alternative={alternative} />
         </div>
         <p className="text-[13px] text-muted-foreground">{terms}</p>
         {origin}
@@ -122,33 +121,6 @@ export function ScenarioCardView({
         </Tabs.Content>
       </Tabs.Root>
     </div>
-  );
-}
-
-/** One state, always: chosen (the brand), else an alternative (its purple), else a draft. */
-function StateChip({ chosen, alternative }: { chosen: boolean; alternative: boolean }) {
-  const t = useTranslations("ScenarioHeader");
-  if (chosen) {
-    return (
-      <Chip tone="chosen">
-        <CheckIcon aria-hidden />
-        {t("chosen")}
-      </Chip>
-    );
-  }
-  if (alternative) {
-    return (
-      <Chip tone="alternative">
-        <GitBranchIcon aria-hidden />
-        {t("alternative")}
-      </Chip>
-    );
-  }
-  return (
-    <Chip tone="draft">
-      <FilePenLineIcon aria-hidden />
-      {t("draft")}
-    </Chip>
   );
 }
 
